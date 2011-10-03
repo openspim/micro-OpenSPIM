@@ -82,6 +82,10 @@ public class SPIMAcquisition implements MMPlugin {
 			return;
 		frame.dispose();
 		frame = null;
+		runToX.interrupt();
+		runToY.interrupt();
+		runToZ.interrupt();
+		runToAngle.interrupt();
 	}
    
 	/**
@@ -193,45 +197,29 @@ public class SPIMAcquisition implements MMPlugin {
 		xSlider = new MotorSlider(motorMin, motorMax, 1) {
 			@Override
 			public void valueChanged(int value) {
-				try {
-					runToXPosition(value);
-					maybeUpdateImage();
-				} catch (Exception e) {
-					IJ.handleException(e);
-				}
+				runToX.run(value);
+				maybeUpdateImage();
 			}
 		};
 		ySlider = new MotorSlider(motorMin, motorMax, 1) {
 			@Override
 			public void valueChanged(int value) {
-				try {
-					runToYPosition(value);
-					maybeUpdateImage();
-				} catch (Exception e) {
-					IJ.handleException(e);
-				}
+				runToY.run(value);
+				maybeUpdateImage();
 			}
 		};
 		zSlider = new MotorSlider(motorMin, motorMax, 1) {
 			@Override
 			public void valueChanged(int value) {
-				try {
-					runToZPosition(value);
-					maybeUpdateImage();
-				} catch (Exception e) {
-					IJ.handleException(e);
-				}
+				runToZ.run(value);
+				maybeUpdateImage();
 			}
 		};
 		rotationSlider = new MotorSlider(twisterMin, twisterMax, 0) {
 			@Override
 			public void valueChanged(int value) {
-				try {
-					runToAngle(value);
-					maybeUpdateImage();
-				} catch (Exception e) {
-					IJ.handleException(e);
-				}
+				runToAngle.run(value);
+				maybeUpdateImage();
 			}
 		};
 
@@ -507,47 +495,123 @@ public class SPIMAcquisition implements MMPlugin {
 			gui.updateImage();
 	}
 
-	protected void runToXPosition(int x) throws Exception {
-		if (mmc.getXPosition(xyStageLabel) == x)
-			return;
-		int y = (int)mmc.getYPosition(xyStageLabel);
-		mmc.setXYPosition(xyStageLabel, x, y);
-		do {
-			IJ.wait(50);
-			xPosition.setText("" + (int)mmc.getXPosition(xyStageLabel));
-		} while (mmc.getXPosition(xyStageLabel) != x);
+	protected abstract static class RunTo extends Thread {
+		protected int goal, current = Integer.MAX_VALUE;
+
+		@Override
+		public void run() {
+			for (;;) try {
+				if (goal != current) synchronized (this) {
+					if (get() == goal) {
+						current = goal;
+						done();
+						notifyAll();
+					}
+				}
+				Thread.currentThread().sleep(50);
+			} catch (Exception e) {
+				return;
+			}
+		}
+
+		public void run(int value) {
+			synchronized (this) {
+				if (goal == value) {
+					done();
+					return;
+				}
+				goal = value;
+				try {
+					set(goal);
+				} catch (Exception e) {
+					return;
+				}
+				synchronized (this) {
+					if (!isAlive())
+						start();
+					try {
+						wait();
+					} catch (InterruptedException e) {
+						return;
+					}
+				}
+			}
+		}
+
+		public abstract int get() throws Exception ;
+
+		public abstract void set(int value) throws Exception;
+
+		public abstract void done();
 	}
 
-	protected void runToYPosition(int y) throws Exception {
-		if (mmc.getYPosition(xyStageLabel) == y)
-			return;
-		int x = (int)mmc.getXPosition(xyStageLabel);
-		mmc.setXYPosition(xyStageLabel, x, y);
-		do {
-			IJ.wait(50);
-			yPosition.setText("" + (int)mmc.getYPosition(xyStageLabel));
-		} while (mmc.getYPosition(xyStageLabel) != y);
-	}
+	protected RunTo runToX = new RunTo() {
+		@Override
+		public int get() throws Exception {
+			return (int)mmc.getXPosition(xyStageLabel);
+		}
 
-	protected void runToZPosition(int position) throws Exception {
-		if (mmc.getPosition(zStageLabel) == position)
-			return;
-		mmc.setPosition(zStageLabel, position);
-		do {
-			IJ.wait(50);
-			zPosition.setText("" + (int)mmc.getPosition(zStageLabel));
-		} while (mmc.getPosition(zStageLabel) != position);
-	}
+		@Override
+		public void set(int value) throws Exception {
+			mmc.setXYPosition(xyStageLabel, value, mmc.getYPosition(xyStageLabel));
+		}
 
-	protected void runToAngle(int step) throws Exception {
-		if (mmc.getPosition(twisterLabel) == step)
-			return;
-		mmc.setPosition(twisterLabel, step);
-		do {
-			IJ.wait(50);
-			rotation.setText("" + (int)mmc.getPosition(twisterLabel));
-		} while (mmc.getPosition(twisterLabel) != step);
-	}
+		@Override
+		public void done() {
+			xPosition.setText("" + goal);
+		}
+	};
+
+	protected RunTo runToY = new RunTo() {
+		@Override
+		public int get() throws Exception {
+			return (int)mmc.getYPosition(xyStageLabel);
+		}
+
+		@Override
+		public void set(int value) throws Exception {
+			mmc.setXYPosition(xyStageLabel, mmc.getXPosition(xyStageLabel), value);
+		}
+
+		@Override
+		public void done() {
+			yPosition.setText("" + goal);
+		}
+	};
+
+	protected RunTo runToZ = new RunTo() {
+		@Override
+		public int get() throws Exception {
+			return (int)mmc.getPosition(zStageLabel);
+		}
+
+		@Override
+		public void set(int value) throws Exception {
+			mmc.setPosition(zStageLabel, value);
+		}
+
+		@Override
+		public void done() {
+			yPosition.setText("" + goal);
+		}
+	};
+
+	protected RunTo runToAngle = new RunTo() {
+		@Override
+		public int get() throws Exception {
+			return (int)mmc.getPosition(twisterLabel);
+		}
+
+		@Override
+		public void set(int value) throws Exception {
+			mmc.setPosition(twisterLabel, value);
+		}
+
+		@Override
+		public void done() {
+			rotation.setText("" + goal);
+		}
+	};
 
 	protected ImageProcessor snapSlice() throws Exception {
 		mmc.snapImage();
@@ -568,7 +632,7 @@ public class SPIMAcquisition implements MMPlugin {
 		ImageStack stack = null;
 		int zStep = (zStart < zEnd ? +1 : -1);
 		for (int z = zStart; z <= zEnd; z = z + zStep) {
-			runToZPosition(z);
+			runToZ.run(z);
 			if (zSlider != null)
 				zSlider.setValue(z);
 			ImageProcessor ip = snapSlice();
