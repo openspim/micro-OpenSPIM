@@ -8,6 +8,7 @@ import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
 import ij.process.ShortProcessor;
 
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -417,6 +418,9 @@ public class SPIMAcquisition implements MMPlugin {
 	}
 
 	protected static abstract class MotorSlider extends JSlider implements ChangeListener {
+		protected JTextField updating;
+		protected Color background;
+
 		public MotorSlider(int min, int max, int current) {
 			super(JSlider.HORIZONTAL, min, max, Math.min(max, Math.max(min, current)));
 
@@ -431,15 +435,24 @@ public class SPIMAcquisition implements MMPlugin {
 
 		@Override
 		public void stateChanged(ChangeEvent e) {
-			if (getValueIsAdjusting())
-				return;
 			final int value = getValue();
-			new Thread() {
-				@Override
-				public void run() {
-					valueChanged(value);
+			if (getValueIsAdjusting()) {
+				if (updating != null) {
+					if (background == null)
+						background = updating.getBackground();
+					updating.setBackground(Color.YELLOW);
+					updating.setText("" + value);
 				}
-			}.start();
+			}
+			else
+				new Thread() {
+					@Override
+					public void run() {
+						if (updating != null)
+							updating.setBackground(background);
+						valueChanged(value);
+					}
+				}.start();
 		}
 
 		public abstract void valueChanged(int value);
@@ -479,6 +492,8 @@ public class SPIMAcquisition implements MMPlugin {
 		public IntegerSliderField(JSlider slider) {
 			super(slider.getValue());
 			this.slider = slider;
+			if (slider instanceof MotorSlider)
+				((MotorSlider)slider).updating = this;
 		}
 
 		@Override
