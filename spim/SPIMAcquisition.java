@@ -22,6 +22,8 @@ import java.awt.event.KeyEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 
+import java.util.Hashtable;
+
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -428,6 +430,15 @@ public class SPIMAcquisition implements MMPlugin {
 			setMajorTickSpacing((int)((max - min) / 5));
 			setPaintTrack(true);
 			setPaintTicks(true);
+
+			if (min == 1) {
+				int spacing = (int)(max / 5);
+				Hashtable<Integer, JLabel> table = new Hashtable<Integer, JLabel>();
+				table.put(1, new JLabel("1"));
+				for (int i = max; i > min; i -= spacing)
+					table.put(i, new JLabel("" + i));
+				setLabelTable(table);
+			}
 			setPaintLabels(true);
 
 			addChangeListener(this);
