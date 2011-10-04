@@ -22,6 +22,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 
+import java.util.Dictionary;
 import java.util.Hashtable;
 
 import javax.swing.BorderFactory;
@@ -264,8 +265,11 @@ public class SPIMAcquisition implements MMPlugin {
 
 		addLine(left, Justification.LEFT, "x:", xPosition, "y:", yPosition, "z:", zPosition, "angle:", rotation);
 		addLine(left, Justification.STRETCH, "x:", xSlider);
+		addLine(left, Justification.RIGHT, new LimitedRangeCheckbox("Limit range", xSlider, 500, 2500));
 		addLine(left, Justification.STRETCH, "y:", ySlider);
+		addLine(left, Justification.RIGHT, new LimitedRangeCheckbox("Limit range", ySlider, 500, 2500));
 		addLine(left, Justification.STRETCH, "z:", zSlider);
+		addLine(left, Justification.RIGHT, new LimitedRangeCheckbox("Limit range", zSlider, 500, 2500));
 		addLine(left, Justification.RIGHT, "from z:", zFrom, "to z:", zTo);
 		addLine(left, Justification.STRETCH, "rotation:", rotationSlider);
 		addLine(left, Justification.RIGHT, "steps/rotation:", stepsPerRotation, "degrees/step:", degreesPerStep);
@@ -431,14 +435,8 @@ public class SPIMAcquisition implements MMPlugin {
 			setPaintTrack(true);
 			setPaintTicks(true);
 
-			if (min == 1) {
-				int spacing = (int)(max / 5);
-				Hashtable<Integer, JLabel> table = new Hashtable<Integer, JLabel>();
-				table.put(1, new JLabel("1"));
-				for (int i = max; i > min; i -= spacing)
-					table.put(i, new JLabel("" + i));
-				setLabelTable(table);
-			}
+			if (min == 1)
+				setLabelTable(makeLabelTable(min, max, 5));
 			setPaintLabels(true);
 
 			addChangeListener(this);
@@ -467,6 +465,55 @@ public class SPIMAcquisition implements MMPlugin {
 		}
 
 		public abstract void valueChanged(int value);
+	}
+
+	protected static class LimitedRangeCheckbox extends JCheckBox implements ItemListener {
+		protected MotorSlider slider;
+		protected Dictionary originalLabels, limitedLabels;
+		protected int originalMin, originalMax;
+		protected int limitedMin, limitedMax;
+
+		public LimitedRangeCheckbox(String label, MotorSlider slider, int min, int max) {
+			super(label);
+			this.slider = slider;
+			originalLabels = slider.getLabelTable();
+			originalMin = slider.getMinimum();
+			originalMax = slider.getMaximum();
+			limitedMin = min;
+			limitedMax = max;
+			limitedLabels = makeLabelTable(limitedMin, limitedMax, 5);
+			setSelected(false);
+			addItemListener(this);
+		}
+
+		@Override
+		public void itemStateChanged(ItemEvent e) {
+			if (e.getStateChange() == ItemEvent.SELECTED) {
+				int current = slider.getValue();
+				if (current < limitedMin)
+					slider.setValue(limitedMin);
+				else if (current > limitedMax)
+					slider.setValue(limitedMax);
+				slider.setMinimum(limitedMin);
+				slider.setMaximum(limitedMax);
+				slider.setLabelTable(limitedLabels);
+			}
+			else {
+				slider.setMinimum(originalMin);
+				slider.setMaximum(originalMax);
+				slider.setLabelTable(originalLabels);
+			}
+		}
+	}
+
+	protected static Dictionary makeLabelTable(int min, int max, int count) {
+		int spacing = (int)((max - min) / count);
+		spacing = 100 * ((spacing + 50) / 100); // round to nearest 100
+		Hashtable<Integer, JLabel> table = new Hashtable<Integer, JLabel>();
+		table.put(min, new JLabel("" + min));
+		for (int i = max; i > min; i -= spacing)
+			table.put(i, new JLabel("" + i));
+		return table;
 	}
 
 	protected static abstract class IntegerField extends JTextField {
