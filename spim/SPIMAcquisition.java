@@ -618,7 +618,7 @@ public class SPIMAcquisition implements MMPlugin {
 
 		@Override
 		public void done() {
-			yPosition.setText("" + goal);
+			zPosition.setText("" + goal);
 		}
 	};
 
@@ -658,9 +658,8 @@ public class SPIMAcquisition implements MMPlugin {
 		ImageStack stack = null;
 		int zStep = (zStart < zEnd ? +1 : -1);
 		for (int z = zStart; z <= zEnd; z = z + zStep) {
+			zSlider.setValue(z);
 			runToZ.run(z);
-			if (zSlider != null)
-				zSlider.setValue(z);
 			ImageProcessor ip = snapSlice();
 			if (stack == null)
 				stack = new ImageStack(ip.getWidth(), ip.getHeight());
