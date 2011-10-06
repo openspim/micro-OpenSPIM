@@ -467,28 +467,40 @@ public class SPIMAcquisition implements MMPlugin {
 		public abstract void valueChanged(int value);
 	}
 
-	protected static class LimitedRangeCheckbox extends JCheckBox implements ItemListener {
+	protected static class LimitedRangeCheckbox extends JPanel implements ItemListener {
+		protected JTextField min, max;
+		protected JCheckBox checkbox;
 		protected MotorSlider slider;
 		protected Dictionary originalLabels, limitedLabels;
 		protected int originalMin, originalMax;
 		protected int limitedMin, limitedMax;
 
 		public LimitedRangeCheckbox(String label, MotorSlider slider, int min, int max) {
-			super(label);
+			setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
+			checkbox = new JCheckBox(label);
+			add(checkbox);
+			this.min = new JTextField("" + min);
+			add(this.min);
+			add(new JLabel(" to "));
+			this.max = new JTextField("" + max);
+			add(this.max);
+
 			this.slider = slider;
 			originalLabels = slider.getLabelTable();
 			originalMin = slider.getMinimum();
 			originalMax = slider.getMaximum();
 			limitedMin = min;
 			limitedMax = max;
-			limitedLabels = makeLabelTable(limitedMin, limitedMax, 5);
-			setSelected(false);
-			addItemListener(this);
+			checkbox.setSelected(false);
+			checkbox.addItemListener(this);
 		}
 
 		@Override
 		public void itemStateChanged(ItemEvent e) {
 			if (e.getStateChange() == ItemEvent.SELECTED) {
+				limitedMin = getValue(min, limitedMin);
+				limitedMax = getValue(max, limitedMax);
+				limitedLabels = makeLabelTable(limitedMin, limitedMax, 5);
 				int current = slider.getValue();
 				if (current < limitedMin)
 					slider.setValue(limitedMin);
@@ -502,6 +514,14 @@ public class SPIMAcquisition implements MMPlugin {
 				slider.setMinimum(originalMin);
 				slider.setMaximum(originalMax);
 				slider.setLabelTable(originalLabels);
+			}
+		}
+
+		protected static int getValue(JTextField text, int defaultValue) {
+			try {
+				return Integer.parseInt(text.getText());
+			} catch (Exception e) {
+				return defaultValue;
 			}
 		}
 	}
