@@ -48,7 +48,7 @@ import org.micromanager.api.ScriptInterface;
 public class SPIMAcquisition implements MMPlugin {
 	// TODO: read these from the properties
 	protected int motorMin = 1, motorMax = 8000,
-		twisterMin = -32767, twisterMax = 32767;
+		twisterMin = -180, twisterMax = 180;
 
 	protected ScriptInterface app;
 	protected CMMCore mmc;
@@ -222,7 +222,7 @@ public class SPIMAcquisition implements MMPlugin {
 		rotationSlider = new MotorSlider(twisterMin, twisterMax, 0) {
 			@Override
 			public void valueChanged(int value) {
-				runToAngle.run(value);
+				runToAngle.run(value * 200 / 360);
 				maybeUpdateImage();
 			}
 		};
