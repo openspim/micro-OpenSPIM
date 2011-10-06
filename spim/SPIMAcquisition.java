@@ -307,8 +307,10 @@ public class SPIMAcquisition implements MMPlugin {
 		});
 		registrationCheckbox = new JCheckBox("Perform SPIM registration");
 		registrationCheckbox.setSelected(false);
+		registrationCheckbox.setEnabled(false);
 		multipleAngleCheckbox = new JCheckBox("Multiple Rotation Angles");
 		multipleAngleCheckbox.setSelected(false);
+		multipleAngleCheckbox.setEnabled(false);
 
 		ohSnap = new JButton("Oh snap!");
 		ohSnap.addActionListener(new ActionListener() {
