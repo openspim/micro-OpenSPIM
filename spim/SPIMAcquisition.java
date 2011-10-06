@@ -289,7 +289,11 @@ public class SPIMAcquisition implements MMPlugin {
 		exposureSlider = new MotorSlider(10, 1000, 10) {
 			@Override
 			public void valueChanged(int value) {
-				// TODO
+				try {
+					mmc.setExposure(value);
+				} catch (Exception e) {
+					IJ.handleException(e);
+				}
 			}
 		};
 
