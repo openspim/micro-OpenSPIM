@@ -17,6 +17,8 @@ import java.awt.GridLayout;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.ItemEvent;
@@ -555,6 +557,12 @@ public class SPIMAcquisition implements MMPlugin {
 				public void keyReleased(KeyEvent e) {
 					if (e.getKeyCode() != KeyEvent.VK_ENTER)
 						return;
+					valueChanged(getValue());
+				}
+			});
+			addFocusListener(new FocusAdapter() {
+				@Override
+				public void focusLost(FocusEvent e) {
 					valueChanged(getValue());
 				}
 			});
