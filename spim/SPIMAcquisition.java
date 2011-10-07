@@ -736,6 +736,15 @@ public class SPIMAcquisition implements MMPlugin {
 	}
 
 	protected ImagePlus snapStack(int zStart, int zEnd) throws Exception {
+		String meta = "";
+		if (xyStageLabel != "")
+			meta += "x motor position: " + mmc.getXPosition(xyStageLabel) + "\n"
+				+ "y motor position: " + mmc.getYPosition(xyStageLabel) + "\n";
+		if (zStageLabel != "")
+			meta +=  "z motor position: " + mmc.getPosition(zStageLabel) + "\n";
+		if (twisterLabel != "")
+			meta +=  "twister position: " + mmc.getPosition(twisterLabel) + "\n"
+				+ "twister angle: " + (360.0 / 200.0 * mmc.getPosition(twisterLabel)) + "\n";
 		ImageStack stack = null;
 		int zStep = (zStart < zEnd ? +1 : -1);
 		for (int z = zStart; z <= zEnd; z = z + zStep) {
@@ -746,7 +755,9 @@ public class SPIMAcquisition implements MMPlugin {
 				stack = new ImageStack(ip.getWidth(), ip.getHeight());
 			stack.addSlice("z: " + z, ip);
 		}
-		return new ImagePlus("SPIM!", stack);
+		ImagePlus result = new ImagePlus("SPIM!", stack);
+		result.setProperty("Info", meta);
+		return result;
 	}
 
 }
