@@ -307,12 +307,14 @@ public class SPIMAcquisition implements MMPlugin {
 		exposure = new IntegerSliderField(exposureSlider);
 
 		liveCheckbox = new JCheckBox("Update Live View");
-		liveCheckbox.setSelected(true);
+		liveCheckbox.setSelected(gui.isLiveModeOn());
 		updateLiveImage = true;
 		liveCheckbox.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent e) {
 				updateLiveImage = e.getStateChange() == ItemEvent.SELECTED;
+				if (updateLiveImage && !gui.isLiveModeOn())
+					gui.enableLiveMode(true);
 			}
 		});
 		registrationCheckbox = new JCheckBox("Perform SPIM registration");
