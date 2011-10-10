@@ -307,8 +307,8 @@ public class SPIMAcquisition implements MMPlugin {
 		exposure = new IntegerSliderField(exposureSlider);
 
 		liveCheckbox = new JCheckBox("Update Live View");
-		liveCheckbox.setSelected(gui.isLiveModeOn());
-		updateLiveImage = true;
+		updateLiveImage = gui.isLiveModeOn();
+		liveCheckbox.setSelected(updateLiveImage);
 		liveCheckbox.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent e) {
