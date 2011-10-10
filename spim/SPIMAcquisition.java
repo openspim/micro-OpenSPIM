@@ -763,7 +763,7 @@ public class SPIMAcquisition implements MMPlugin {
 
 		@Override
 		public void done() {
-			rotation.setText("" + goal);
+			rotation.setText("" + (goal * 360 / 200));
 		}
 	};
 
