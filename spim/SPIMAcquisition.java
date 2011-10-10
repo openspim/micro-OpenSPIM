@@ -337,6 +337,7 @@ public class SPIMAcquisition implements MMPlugin {
 		});
 
 		continuousCheckbox = new JCheckBox("Continuous z motion");
+		continuousCheckbox.setSelected(false);
 		continuousCheckbox.setEnabled(true);
 
 		ohSnap = new JButton("Oh snap!");
@@ -368,7 +369,7 @@ public class SPIMAcquisition implements MMPlugin {
 		addLine(right, Justification.RIGHT, registrationCheckbox);
 		addLine(right, Justification.RIGHT, multipleAngleCheckbox);
 		addLine(right, Justification.RIGHT, speedControl);
-		addLine(right, Justification.RIGHT, continuousCheckbox);
+		//addLine(right, Justification.RIGHT, continuousCheckbox);
 		addLine(right, Justification.RIGHT, ohSnap);
 
 		Container panel = frame.getContentPane();
