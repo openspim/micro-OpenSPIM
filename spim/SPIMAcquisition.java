@@ -772,7 +772,7 @@ public class SPIMAcquisition implements MMPlugin {
 		zSlider.setValue(zEnd);
 		int zStep = (zStart < zEnd ? +1 : -1);
 		for (int z = zStart; z  * zStep <= zEnd * zStep; z = z + zStep) {
-			while (z != (int)mmc.getPosition(zStageLabel))
+			while (z * zStep < (int)mmc.getPosition(zStageLabel) * zStep)
 				Thread.yield();
 			ImageProcessor ip = snapSlice();
 			if (stack == null)
@@ -788,7 +788,7 @@ public class SPIMAcquisition implements MMPlugin {
 		String meta = getMetaData();
 		ImageStack stack = null;
 		int zStep = (zStart < zEnd ? +1 : -1);
-		for (int z = zStart; z <= zEnd; z = z + zStep) {
+		for (int z = zStart; z * zStep <= zEnd * zStep; z = z + zStep) {
 			zSlider.setValue(z);
 			runToZ.run(z);
 			ImageProcessor ip = snapSlice();
