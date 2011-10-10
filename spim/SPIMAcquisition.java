@@ -4,6 +4,8 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 
+import ij.gui.GenericDialog;
+
 import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
 import ij.process.ShortProcessor;
@@ -68,9 +70,9 @@ public class SPIMAcquisition implements MMPlugin {
 		laserSlider, exposureSlider;
 	protected JCheckBox liveCheckbox, registrationCheckbox,
 		multipleAngleCheckbox, continuousCheckbox;
-	protected JButton ohSnap;
+	protected JButton speedControl, ohSnap;
 
-	protected boolean updateLiveImage;
+	protected boolean updateLiveImage, zStageHasVelocity;
 
 	// MMPlugin stuff
 
@@ -134,6 +136,7 @@ public class SPIMAcquisition implements MMPlugin {
 				twisterLabel = label;
 			else if (driver.equals("Picard Z Stage")) { // TODO: read this from the to-be-added property
 				zStageLabel = label;
+				zStageHasVelocity = mmc.hasProperty(zStageLabel, "Velocity");
 			}
 			else if (driver.equals("Picard XY Stage"))
 				xyStageLabel = label;
@@ -319,6 +322,18 @@ public class SPIMAcquisition implements MMPlugin {
 		multipleAngleCheckbox.setSelected(false);
 		multipleAngleCheckbox.setEnabled(false);
 
+		speedControl = new JButton("Set z-stage velocity");
+		speedControl.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				new Thread() {
+					public void run() {
+						setZStageVelocity();
+					}
+				}.start();
+			}
+		});
+
 		continuousCheckbox = new JCheckBox("Continuous z motion");
 		continuousCheckbox.setEnabled(true);
 
@@ -350,6 +365,7 @@ public class SPIMAcquisition implements MMPlugin {
 		addLine(right, Justification.RIGHT, liveCheckbox);
 		addLine(right, Justification.RIGHT, registrationCheckbox);
 		addLine(right, Justification.RIGHT, multipleAngleCheckbox);
+		addLine(right, Justification.RIGHT, speedControl);
 		addLine(right, Justification.RIGHT, continuousCheckbox);
 		addLine(right, Justification.RIGHT, ohSnap);
 
@@ -381,6 +397,8 @@ public class SPIMAcquisition implements MMPlugin {
 		laserSlider.setEnabled(laserLabel != null);
 		exposureSlider.setEnabled(cameraLabel != null);
 		liveCheckbox.setEnabled(cameraLabel != null);
+		speedControl.setEnabled(zStageHasVelocity);
+		continuousCheckbox.setEnabled(zStageLabel != null && cameraLabel != null);
 		ohSnap.setEnabled(zStageLabel != null && cameraLabel != null);
 
 		if (xyStageLabel != null) try {
@@ -602,6 +620,22 @@ public class SPIMAcquisition implements MMPlugin {
 		public void valueChanged(int value) {
 			if (slider != null)
 				slider.setValue(value);
+		}
+	}
+
+	protected void setZStageVelocity() {
+		try {
+			String[] allowedValues = mmc.getAllowedPropertyValues(zStageLabel, "Velocity").toArray();
+			String currentValue = mmc.getProperty(zStageLabel, "Velocity");
+			GenericDialog gd = new GenericDialog("z-stage velocity");
+			gd.addChoice("velocity", allowedValues, currentValue);
+			gd.showDialog();
+			if (gd.wasCanceled())
+				return;
+			int newValue = (int)Integer.parseInt(gd.getNextChoice());
+			mmc.setProperty(zStageLabel, "Velocity", newValue);
+		} catch (Exception e) {
+			IJ.handleException(e);
 		}
 	}
 
