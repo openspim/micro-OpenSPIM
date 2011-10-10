@@ -771,14 +771,20 @@ public class SPIMAcquisition implements MMPlugin {
 		IJ.wait(50); // wait 50 milliseconds for the state to settle
 		zSlider.setValue(zEnd);
 		int zStep = (zStart < zEnd ? +1 : -1);
+IJ.log("from " + zStart + " to " + zEnd + ", step: " + zStep);
 		for (int z = zStart; z  * zStep <= zEnd * zStep; z = z + zStep) {
-			while (z * zStep < (int)mmc.getPosition(zStageLabel) * zStep)
+IJ.log("Waiting for " + z + " (" + (z * zStep) + " < " + ((int)mmc.getPosition(zStageLabel) * zStep) + ")");
+			while (z * zStep > (int)mmc.getPosition(zStageLabel) * zStep)
 				Thread.yield();
+IJ.log("Got " + mmc.getPosition(zStageLabel));
 			ImageProcessor ip = snapSlice();
+			z = (int)mmc.getPosition(zStageLabel);
+IJ.log("Updated z to " + z);
 			if (stack == null)
 				stack = new ImageStack(ip.getWidth(), ip.getHeight());
 			stack.addSlice("z: " + z, ip);
 		}
+IJ.log("Finished taking " + (zStep * (zEnd - zStart)) + " slices (really got " + (stack == null ? "0" : stack.getSize() + ")"));
 		ImagePlus result = new ImagePlus("SPIM!", stack);
 		result.setProperty("Info", meta);
 		return result;
