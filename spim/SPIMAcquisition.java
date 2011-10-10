@@ -29,6 +29,9 @@ import java.awt.event.ItemListener;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.Preferences;
+
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -49,6 +52,8 @@ import org.micromanager.MMStudioMainFrame;
 
 import org.micromanager.api.MMPlugin;
 import org.micromanager.api.ScriptInterface;
+
+import org.micromanager.utils.ReportingUtils;
 
 public class SPIMAcquisition implements MMPlugin {
 	// TODO: read these from the properties
@@ -77,6 +82,8 @@ public class SPIMAcquisition implements MMPlugin {
 	protected boolean updateLiveImage, zStageHasVelocity;
 	protected Thread acquiring;
 
+	protected Preferences prefs;
+
 	// MMPlugin stuff
 
 	/**
@@ -92,6 +99,11 @@ public class SPIMAcquisition implements MMPlugin {
 	public void dispose() {
 		if (frame == null)
 			return;
+		if (prefs != null) try {
+			prefs.sync();
+		} catch (BackingStoreException e) {
+			ReportingUtils.logError("Could not write preferences: " + e);
+		}
 		frame.dispose();
 		frame = null;
 		runToX.interrupt();
@@ -117,6 +129,7 @@ public class SPIMAcquisition implements MMPlugin {
 	 */
 	@Override
 	public void show() {
+		prefs = Preferences.userNodeForPackage(getClass());
 		initUI();
 		configurationChanged();
 		frame.setVisible(true);
@@ -214,7 +227,7 @@ public class SPIMAcquisition implements MMPlugin {
 				maybeUpdateImage();
 			}
 		};
-		limitedXRange = new LimitedRangeCheckbox("Limit range", xSlider, 500, 2500);
+		limitedXRange = new LimitedRangeCheckbox("Limit range", xSlider, 500, 2500, "range.x");
 		ySlider = new MotorSlider(motorMin, motorMax, 1) {
 			@Override
 			public void valueChanged(int value) {
@@ -222,7 +235,7 @@ public class SPIMAcquisition implements MMPlugin {
 				maybeUpdateImage();
 			}
 		};
-		limitedYRange = new LimitedRangeCheckbox("Limit range", ySlider, 500, 2500);
+		limitedYRange = new LimitedRangeCheckbox("Limit range", ySlider, 500, 2500, "range.y");
 		zSlider = new MotorSlider(motorMin, motorMax, 1) {
 			@Override
 			public void valueChanged(int value) {
@@ -230,7 +243,7 @@ public class SPIMAcquisition implements MMPlugin {
 				maybeUpdateImage();
 			}
 		};
-		limitedZRange = new LimitedRangeCheckbox("Limit range", zSlider, 500, 2500);
+		limitedZRange = new LimitedRangeCheckbox("Limit range", zSlider, 500, 2500, "range.z");
 		rotationSlider = new MotorSlider(twisterMin, twisterMax, 0) {
 			@Override
 			public void valueChanged(int value) {
@@ -244,7 +257,7 @@ public class SPIMAcquisition implements MMPlugin {
 		zPosition = new IntegerSliderField(zSlider);
 		rotation = new IntegerSliderField(rotationSlider);
 
-		zFrom = new IntegerField(1) {
+		zFrom = new IntegerField(1, "z.from") {
 			@Override
 			public void valueChanged(int value) {
 				if (value < motorMin)
@@ -253,7 +266,7 @@ public class SPIMAcquisition implements MMPlugin {
 					setText("" + motorMax);
 			}
 		};
-		zTo = new IntegerField(motorMax) {
+		zTo = new IntegerField(motorMax, "z.to") {
 			@Override
 			public void valueChanged(int value) {
 				if (value < motorMin)
@@ -262,16 +275,16 @@ public class SPIMAcquisition implements MMPlugin {
 					setText("" + motorMax);
 			}
 		};
-		stepsPerRotation = new IntegerField(4) {
-			@Override
-			public void valueChanged(int value) {
-				degreesPerStep.setText("" + (360 / value));
-			}
-		};
-		degreesPerStep = new IntegerField(90) {
+		degreesPerStep = new IntegerField(90, "degrees.per.rotation") {
 			@Override
 			public void valueChanged(int value) {
 				stepsPerRotation.setText("" + (360 / value));
+			}
+		};
+		stepsPerRotation = new IntegerField(360 / degreesPerStep.getValue()) {
+			@Override
+			public void valueChanged(int value) {
+				degreesPerStep.setText("" + (360 / value));
 			}
 		};
 
@@ -291,14 +304,14 @@ public class SPIMAcquisition implements MMPlugin {
 		right.setBorder(BorderFactory.createTitledBorder("Acquisition"));
 
 		// TODO: find out correct values
-		laserSlider = new MotorSlider(0, 1000, 1000) {
+		laserSlider = new MotorSlider(0, 1000, 1000, "laser.power") {
 			@Override
 			public void valueChanged(int value) {
 				// TODO
 			}
 		};
 		// TODO: find out correct values
-		exposureSlider = new MotorSlider(10, 1000, 10) {
+		exposureSlider = new MotorSlider(10, 1000, 10, "exposure") {
 			@Override
 			public void valueChanged(int value) {
 				try {
@@ -346,7 +359,7 @@ public class SPIMAcquisition implements MMPlugin {
 		continuousCheckbox.setSelected(false);
 		continuousCheckbox.setEnabled(true);
 
-		settleTime = new IntegerField(0) {
+		settleTime = new IntegerField(0, "settle.delay") {
 			@Override
 			public void valueChanged(int value) {
 				degreesPerStep.setText("" + (360 / value));
@@ -497,12 +510,19 @@ public class SPIMAcquisition implements MMPlugin {
 		container.add(panel);
 	}
 
-	protected static abstract class MotorSlider extends JSlider implements ChangeListener {
+	protected abstract class MotorSlider extends JSlider implements ChangeListener {
 		protected JTextField updating;
 		protected Color background;
+		protected String prefsKey;
 
 		public MotorSlider(int min, int max, int current) {
-			super(JSlider.HORIZONTAL, min, max, Math.min(max, Math.max(min, current)));
+			this(min, max, current, null);
+		}
+
+		public MotorSlider(int min, int max, int current, String prefsKey) {
+			super(JSlider.HORIZONTAL, min, max, Math.min(max, Math.max(min, prefsGet(prefsKey, current))));
+
+			this.prefsKey = prefsKey;
 
 			setMinorTickSpacing((int)((max - min) / 40));
 			setMajorTickSpacing((int)((max - min) / 5));
@@ -538,33 +558,46 @@ public class SPIMAcquisition implements MMPlugin {
 				}.start();
 		}
 
+		protected void handleChange(int value) {
+			valueChanged(value);
+			prefsSet(prefsKey, value);
+		}
+
 		public abstract void valueChanged(int value);
 	}
 
-	protected static class LimitedRangeCheckbox extends JPanel implements ItemListener {
-		protected JTextField min, max;
+	protected class LimitedRangeCheckbox extends JPanel implements ItemListener {
+		protected IntegerField min, max;
 		protected JCheckBox checkbox;
 		protected MotorSlider slider;
 		protected Dictionary originalLabels, limitedLabels;
 		protected int originalMin, originalMax;
 		protected int limitedMin, limitedMax;
+		protected String prefsKey;
 
-		public LimitedRangeCheckbox(String label, MotorSlider slider, int min, int max) {
+		public LimitedRangeCheckbox(String label, MotorSlider slider, int min, int max, String prefsKey) {
+			String prefsKeyMin = null, prefsKeyMax = null;
+			if (prefsKey != null) {
+				this.prefsKey = prefsKey;
+				prefsKeyMin = prefsKey + ".x";
+				prefsKeyMax = prefsKey + ".y";
+			}
+
 			setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
 			checkbox = new JCheckBox(label);
 			add(checkbox);
-			this.min = new JTextField("" + min);
+			this.min = new IntegerField(min, prefsKeyMin);
 			add(this.min);
 			add(new JLabel(" to "));
-			this.max = new JTextField("" + max);
+			this.max = new IntegerField(max, prefsKeyMax);
 			add(this.max);
 
 			this.slider = slider;
 			originalLabels = slider.getLabelTable();
 			originalMin = slider.getMinimum();
 			originalMax = slider.getMaximum();
-			limitedMin = min;
-			limitedMax = max;
+			limitedMin = this.min.getValue();
+			limitedMax = this.max.getValue();
 			checkbox.setSelected(false);
 			checkbox.addItemListener(this);
 		}
@@ -579,8 +612,8 @@ public class SPIMAcquisition implements MMPlugin {
 		@Override
 		public void itemStateChanged(ItemEvent e) {
 			if (e.getStateChange() == ItemEvent.SELECTED) {
-				limitedMin = getValue(min, limitedMin);
-				limitedMax = getValue(max, limitedMax);
+				limitedMin = min.getValue();
+				limitedMax = max.getValue();
 				limitedLabels = makeLabelTable(limitedMin, limitedMax, 5);
 				int current = slider.getValue();
 				if (current < limitedMin)
@@ -597,14 +630,6 @@ public class SPIMAcquisition implements MMPlugin {
 				slider.setLabelTable(originalLabels);
 			}
 		}
-
-		protected static int getValue(JTextField text, int defaultValue) {
-			try {
-				return Integer.parseInt(text.getText());
-			} catch (Exception e) {
-				return defaultValue;
-			}
-		}
 	}
 
 	protected static Dictionary makeLabelTable(int min, int max, int count) {
@@ -617,28 +642,45 @@ public class SPIMAcquisition implements MMPlugin {
 		return table;
 	}
 
-	protected static abstract class IntegerField extends JTextField {
+	protected class IntegerField extends JTextField {
+		protected String prefsKey;
+
 		public IntegerField(int value) {
-			this(value, 4);
+			this(value, 4, null);
+		}
+
+		public IntegerField(int value, String prefsKey) {
+			this(value, 4, prefsKey);
 		}
 
 		public IntegerField(int value, int columns) {
+			this(value, columns, null);
+		}
+
+		public IntegerField(int value, int columns, String prefsKey) {
 			super(columns);
-			setText("" + value);
+			this.prefsKey = prefsKey;
+			setText("" + prefsGet(prefsKey, value));
 			addKeyListener(new KeyAdapter() {
 				@Override
 				public void keyReleased(KeyEvent e) {
 					if (e.getKeyCode() != KeyEvent.VK_ENTER)
 						return;
-					valueChanged(getValue());
+					handleChange();
 				}
 			});
 			addFocusListener(new FocusAdapter() {
 				@Override
 				public void focusLost(FocusEvent e) {
-					valueChanged(getValue());
+					handleChange();
 				}
 			});
+		}
+
+		protected void handleChange() {
+			int value = getValue();
+			valueChanged(value);
+			prefsSet(prefsKey, value);
 		}
 
 		public int getValue() {
@@ -648,10 +690,10 @@ public class SPIMAcquisition implements MMPlugin {
 			return Integer.parseInt(typed);
 		}
 
-		public abstract void valueChanged(int value);
+		public void valueChanged(int value) {}
 	}
 
-	protected static class IntegerSliderField extends IntegerField {
+	protected class IntegerSliderField extends IntegerField {
 		protected JSlider slider;
 
 		public IntegerSliderField(JSlider slider) {
@@ -682,6 +724,21 @@ public class SPIMAcquisition implements MMPlugin {
 		} catch (Exception e) {
 			IJ.handleException(e);
 		}
+	}
+
+	// Persistence
+
+	protected final static String prefsPrefix = "org.tomancak.spim.";
+
+	protected int prefsGet(String key, int defaultValue) {
+		if (key == null)
+			return defaultValue;
+		return prefs.getInt(prefsPrefix + key, defaultValue);
+	}
+
+	protected void prefsSet(String key, int value) {
+		if (key != null)
+			prefs.putInt(prefsPrefix + key, value);
 	}
 
 	// Accessing the devices
