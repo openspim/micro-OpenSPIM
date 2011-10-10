@@ -36,6 +36,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -66,7 +67,7 @@ public class SPIMAcquisition implements MMPlugin {
 	protected MotorSlider xSlider, ySlider, zSlider, rotationSlider,
 		laserSlider, exposureSlider;
 	protected JCheckBox liveCheckbox, registrationCheckbox,
-		multipleAngleCheckbox;
+		multipleAngleCheckbox, continuousCheckbox;
 	protected JButton ohSnap;
 
 	protected boolean updateLiveImage;
@@ -318,15 +319,23 @@ public class SPIMAcquisition implements MMPlugin {
 		multipleAngleCheckbox.setSelected(false);
 		multipleAngleCheckbox.setEnabled(false);
 
+		continuousCheckbox = new JCheckBox("Continuous z motion");
+		continuousCheckbox.setEnabled(true);
+
 		ohSnap = new JButton("Oh snap!");
 		ohSnap.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				final int zStart = zFrom.getValue();
+				final int zEnd = zTo.getValue();
+				final boolean isContinuous = continuousCheckbox.isSelected();
 				new Thread() {
 					@Override
 					public void run() {
 						try {
-							snapStack(zFrom.getValue(), zTo.getValue()).show();
+							ImagePlus image = isContinuous ?
+								snapContinuousStack(zStart, zEnd) : snapStack(zStart, zEnd);
+							image.show();
 						} catch (Exception e) {
 							IJ.handleException(e);
 						}
@@ -341,6 +350,7 @@ public class SPIMAcquisition implements MMPlugin {
 		addLine(right, Justification.RIGHT, liveCheckbox);
 		addLine(right, Justification.RIGHT, registrationCheckbox);
 		addLine(right, Justification.RIGHT, multipleAngleCheckbox);
+		addLine(right, Justification.RIGHT, continuousCheckbox);
 		addLine(right, Justification.RIGHT, ohSnap);
 
 		Container panel = frame.getContentPane();
@@ -735,16 +745,47 @@ public class SPIMAcquisition implements MMPlugin {
 			return null;
 	}
 
+	protected void snapAndShowContinuousStack(final int zStart, final int zEnd) throws Exception {
+		// Cannot run this on the EDT
+		if (SwingUtilities.isEventDispatchThread()) {
+			new Thread() {
+				public void run() {
+					try {
+						snapAndShowContinuousStack(zStart, zEnd);
+					} catch (Exception e) {
+						IJ.handleException(e);
+					}
+				}
+			}.start();
+			return;
+		}
+
+		snapContinuousStack(zStart, zEnd).show();
+	}
+
+	protected ImagePlus snapContinuousStack(int zStart, int zEnd) throws Exception {
+		String meta = getMetaData();
+		ImageStack stack = null;
+		zSlider.setValue(zStart);
+		runToZ.run(zStart);
+		IJ.wait(50); // wait 50 milliseconds for the state to settle
+		zSlider.setValue(zEnd);
+		int zStep = (zStart < zEnd ? +1 : -1);
+		for (int z = zStart; z  * zStep <= zEnd * zStep; z = z + zStep) {
+			while (z != (int)mmc.getPosition(zStageLabel))
+				Thread.yield();
+			ImageProcessor ip = snapSlice();
+			if (stack == null)
+				stack = new ImageStack(ip.getWidth(), ip.getHeight());
+			stack.addSlice("z: " + z, ip);
+		}
+		ImagePlus result = new ImagePlus("SPIM!", stack);
+		result.setProperty("Info", meta);
+		return result;
+	}
+
 	protected ImagePlus snapStack(int zStart, int zEnd) throws Exception {
-		String meta = "";
-		if (xyStageLabel != "")
-			meta += "x motor position: " + mmc.getXPosition(xyStageLabel) + "\n"
-				+ "y motor position: " + mmc.getYPosition(xyStageLabel) + "\n";
-		if (zStageLabel != "")
-			meta +=  "z motor position: " + mmc.getPosition(zStageLabel) + "\n";
-		if (twisterLabel != "")
-			meta +=  "twister position: " + mmc.getPosition(twisterLabel) + "\n"
-				+ "twister angle: " + (360.0 / 200.0 * mmc.getPosition(twisterLabel)) + "\n";
+		String meta = getMetaData();
 		ImageStack stack = null;
 		int zStep = (zStart < zEnd ? +1 : -1);
 		for (int z = zStart; z <= zEnd; z = z + zStep) {
@@ -760,5 +801,17 @@ public class SPIMAcquisition implements MMPlugin {
 		return result;
 	}
 
+	protected String getMetaData() throws Exception {
+		String meta = "";
+		if (xyStageLabel != "")
+			meta += "x motor position: " + mmc.getXPosition(xyStageLabel) + "\n"
+				+ "y motor position: " + mmc.getYPosition(xyStageLabel) + "\n";
+		if (zStageLabel != "")
+			meta +=  "z motor position: " + mmc.getPosition(zStageLabel) + "\n";
+		if (twisterLabel != "")
+			meta +=  "twister position: " + mmc.getPosition(twisterLabel) + "\n"
+				+ "twister angle: " + (360.0 / 200.0 * mmc.getPosition(twisterLabel)) + "\n";
+		return meta;
+	}
 }
 
