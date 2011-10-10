@@ -65,7 +65,7 @@ public class SPIMAcquisition implements MMPlugin {
 	protected JFrame frame;
 	protected IntegerField xPosition, yPosition, zPosition, rotation,
 		zFrom, zTo, stepsPerRotation, degreesPerStep,
-		laserPower, exposure;
+		laserPower, exposure, settleTime;
 	protected MotorSlider xSlider, ySlider, zSlider, rotationSlider,
 		laserSlider, exposureSlider;
 	protected JCheckBox liveCheckbox, registrationCheckbox,
@@ -340,6 +340,13 @@ public class SPIMAcquisition implements MMPlugin {
 		continuousCheckbox.setSelected(false);
 		continuousCheckbox.setEnabled(true);
 
+		settleTime = new IntegerField(0) {
+			@Override
+			public void valueChanged(int value) {
+				degreesPerStep.setText("" + (360 / value));
+			}
+		};
+
 		ohSnap = new JButton("Oh snap!");
 		ohSnap.addActionListener(new ActionListener() {
 			@Override
@@ -352,7 +359,7 @@ public class SPIMAcquisition implements MMPlugin {
 					public void run() {
 						try {
 							ImagePlus image = isContinuous ?
-								snapContinuousStack(zStart, zEnd) : snapStack(zStart, zEnd);
+								snapContinuousStack(zStart, zEnd) : snapStack(zStart, zEnd, settleTime.getValue());
 							image.show();
 						} catch (Exception e) {
 							IJ.handleException(e);
@@ -370,6 +377,7 @@ public class SPIMAcquisition implements MMPlugin {
 		addLine(right, Justification.RIGHT, multipleAngleCheckbox);
 		addLine(right, Justification.RIGHT, speedControl);
 		//addLine(right, Justification.RIGHT, continuousCheckbox);
+		addLine(right, Justification.RIGHT, "Delay to let z-stage settle (ms)", settleTime);
 		addLine(right, Justification.RIGHT, ohSnap);
 
 		Container panel = frame.getContentPane();
@@ -827,13 +835,15 @@ IJ.log("Finished taking " + (zStep * (zEnd - zStart)) + " slices (really got " +
 		return result;
 	}
 
-	protected ImagePlus snapStack(int zStart, int zEnd) throws Exception {
+	protected ImagePlus snapStack(int zStart, int zEnd, int delayMs) throws Exception {
 		String meta = getMetaData();
 		ImageStack stack = null;
 		int zStep = (zStart < zEnd ? +1 : -1);
 		for (int z = zStart; z * zStep <= zEnd * zStep; z = z + zStep) {
 			zSlider.setValue(z);
 			runToZ.run(z);
+			if (delayMs > 0)
+				IJ.wait(delayMs);
 			ImageProcessor ip = snapSlice();
 			if (stack == null)
 				stack = new ImageStack(ip.getWidth(), ip.getHeight());
