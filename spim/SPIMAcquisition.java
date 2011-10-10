@@ -72,7 +72,7 @@ public class SPIMAcquisition implements MMPlugin {
 		multipleAngleCheckbox, continuousCheckbox;
 	protected JButton speedControl, ohSnap;
 
-	protected boolean updateLiveImage, zStageHasVelocity;
+	protected boolean updateLiveImage, zStageHasVelocity, acquiring;
 
 	// MMPlugin stuff
 
@@ -389,28 +389,28 @@ public class SPIMAcquisition implements MMPlugin {
 	}
 
 	protected void updateUI() {
-		xPosition.setEnabled(xyStageLabel != null);
-		yPosition.setEnabled(xyStageLabel != null);
-		zPosition.setEnabled(zStageLabel != null);
-		rotation.setEnabled(twisterLabel != null);
+		xPosition.setEnabled(!acquiring && xyStageLabel != null);
+		yPosition.setEnabled(!acquiring && xyStageLabel != null);
+		zPosition.setEnabled(!acquiring && zStageLabel != null);
+		rotation.setEnabled(!acquiring && twisterLabel != null);
 
-		xSlider.setEnabled(xyStageLabel != null);
-		ySlider.setEnabled(xyStageLabel != null);
-		zSlider.setEnabled(zStageLabel != null);
-		zFrom.setEnabled(zStageLabel != null);
-		zTo.setEnabled(zStageLabel != null);
-		rotationSlider.setEnabled(twisterLabel != null);
-		stepsPerRotation.setEnabled(twisterLabel != null);
-		degreesPerStep.setEnabled(twisterLabel != null);
+		xSlider.setEnabled(!acquiring && xyStageLabel != null);
+		ySlider.setEnabled(!acquiring && xyStageLabel != null);
+		zSlider.setEnabled(!acquiring && zStageLabel != null);
+		zFrom.setEnabled(!acquiring && zStageLabel != null);
+		zTo.setEnabled(!acquiring && zStageLabel != null);
+		rotationSlider.setEnabled(!acquiring && twisterLabel != null);
+		stepsPerRotation.setEnabled(!acquiring && twisterLabel != null);
+		degreesPerStep.setEnabled(!acquiring && twisterLabel != null);
 
-		laserPower.setEnabled(laserLabel != null);
-		exposure.setEnabled(cameraLabel != null);
-		laserSlider.setEnabled(laserLabel != null);
-		exposureSlider.setEnabled(cameraLabel != null);
-		liveCheckbox.setEnabled(cameraLabel != null);
-		speedControl.setEnabled(zStageHasVelocity);
-		continuousCheckbox.setEnabled(zStageLabel != null && cameraLabel != null);
-		ohSnap.setEnabled(zStageLabel != null && cameraLabel != null);
+		laserPower.setEnabled(!acquiring && laserLabel != null);
+		exposure.setEnabled(!acquiring && cameraLabel != null);
+		laserSlider.setEnabled(!acquiring && laserLabel != null);
+		exposureSlider.setEnabled(!acquiring && cameraLabel != null);
+		liveCheckbox.setEnabled(!acquiring && cameraLabel != null);
+		speedControl.setEnabled(!acquiring && zStageHasVelocity);
+		continuousCheckbox.setEnabled(!acquiring && zStageLabel != null && cameraLabel != null);
+		ohSnap.setEnabled(!acquiring && zStageLabel != null && cameraLabel != null);
 
 		if (xyStageLabel != null) try {
 			int x = (int)mmc.getXPosition(xyStageLabel);
@@ -809,6 +809,8 @@ public class SPIMAcquisition implements MMPlugin {
 	}
 
 	protected ImagePlus snapContinuousStack(int zStart, int zEnd) throws Exception {
+		acquiring = true;
+		updateUI();
 		String meta = getMetaData();
 		ImageStack stack = null;
 		zSlider.setValue(zStart);
@@ -832,10 +834,14 @@ IJ.log("Updated z to " + z);
 IJ.log("Finished taking " + (zStep * (zEnd - zStart)) + " slices (really got " + (stack == null ? "0" : stack.getSize() + ")"));
 		ImagePlus result = new ImagePlus("SPIM!", stack);
 		result.setProperty("Info", meta);
+		acquiring = false;
+		updateUI();
 		return result;
 	}
 
 	protected ImagePlus snapStack(int zStart, int zEnd, int delayMs) throws Exception {
+		acquiring = true;
+		updateUI();
 		String meta = getMetaData();
 		ImageStack stack = null;
 		int zStep = (zStart < zEnd ? +1 : -1);
@@ -851,6 +857,8 @@ IJ.log("Finished taking " + (zStep * (zEnd - zStart)) + " slices (really got " +
 		}
 		ImagePlus result = new ImagePlus("SPIM!", stack);
 		result.setProperty("Info", meta);
+		acquiring = false;
+		updateUI();
 		return result;
 	}
 
