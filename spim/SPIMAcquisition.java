@@ -74,7 +74,8 @@ public class SPIMAcquisition implements MMPlugin {
 		multipleAngleCheckbox, continuousCheckbox;
 	protected JButton speedControl, ohSnap;
 
-	protected boolean updateLiveImage, zStageHasVelocity, acquiring;
+	protected boolean updateLiveImage, zStageHasVelocity;
+	protected Thread acquiring;
 
 	// MMPlugin stuff
 
@@ -356,21 +357,37 @@ public class SPIMAcquisition implements MMPlugin {
 		ohSnap.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				if (acquiring != null) {
+					acquiring.interrupt();
+					try {
+						acquiring.join();
+					} catch (InterruptedException e2) {
+						// orderly shutdown
+					}
+					return;
+				}
 				final int zStart = zFrom.getValue();
 				final int zEnd = zTo.getValue();
 				final boolean isContinuous = continuousCheckbox.isSelected();
-				new Thread() {
+				acquiring = new Thread() {
 					@Override
 					public void run() {
+						updateUI();
 						try {
 							ImagePlus image = isContinuous ?
 								snapContinuousStack(zStart, zEnd) : snapStack(zStart, zEnd, settleTime.getValue());
 							image.show();
+						} catch (InterruptedException e) {
+							// orderly shutdown of this thread
 						} catch (Exception e) {
 							IJ.handleException(e);
 						}
+						acquiring = null;
+						updateUI();
 					}
-				}.start();
+				};
+				ohSnap.setLabel("Abort acquisition");
+				acquiring.start();
 			}
 		});
 
@@ -394,32 +411,33 @@ public class SPIMAcquisition implements MMPlugin {
 	}
 
 	protected void updateUI() {
-		xPosition.setEnabled(!acquiring && xyStageLabel != null);
-		yPosition.setEnabled(!acquiring && xyStageLabel != null);
-		zPosition.setEnabled(!acquiring && zStageLabel != null);
-		rotation.setEnabled(!acquiring && twisterLabel != null);
+		xPosition.setEnabled(acquiring == null && xyStageLabel != null);
+		yPosition.setEnabled(acquiring == null && xyStageLabel != null);
+		zPosition.setEnabled(acquiring == null && zStageLabel != null);
+		rotation.setEnabled(acquiring == null && twisterLabel != null);
 
-		xSlider.setEnabled(!acquiring && xyStageLabel != null);
-		limitedXRange.setEnabled(!acquiring && xyStageLabel != null);
-		ySlider.setEnabled(!acquiring && xyStageLabel != null);
-		limitedYRange.setEnabled(!acquiring && xyStageLabel != null);
-		zSlider.setEnabled(!acquiring && zStageLabel != null);
-		limitedZRange.setEnabled(!acquiring && zStageLabel != null);
-		zFrom.setEnabled(!acquiring && zStageLabel != null);
-		zTo.setEnabled(!acquiring && zStageLabel != null);
-		rotationSlider.setEnabled(!acquiring && twisterLabel != null);
-		stepsPerRotation.setEnabled(!acquiring && twisterLabel != null);
-		degreesPerStep.setEnabled(!acquiring && twisterLabel != null);
+		xSlider.setEnabled(acquiring == null && xyStageLabel != null);
+		limitedXRange.setEnabled(acquiring == null && xyStageLabel != null);
+		ySlider.setEnabled(acquiring == null && xyStageLabel != null);
+		limitedYRange.setEnabled(acquiring == null && xyStageLabel != null);
+		zSlider.setEnabled(acquiring == null && zStageLabel != null);
+		limitedZRange.setEnabled(acquiring == null && zStageLabel != null);
+		zFrom.setEnabled(acquiring == null && zStageLabel != null);
+		zTo.setEnabled(acquiring == null && zStageLabel != null);
+		rotationSlider.setEnabled(acquiring == null && twisterLabel != null);
+		stepsPerRotation.setEnabled(acquiring == null && twisterLabel != null);
+		degreesPerStep.setEnabled(acquiring == null && twisterLabel != null);
 
-		laserPower.setEnabled(!acquiring && laserLabel != null);
-		exposure.setEnabled(!acquiring && cameraLabel != null);
-		laserSlider.setEnabled(!acquiring && laserLabel != null);
-		exposureSlider.setEnabled(!acquiring && cameraLabel != null);
-		liveCheckbox.setEnabled(!acquiring && cameraLabel != null);
-		speedControl.setEnabled(!acquiring && zStageHasVelocity);
-		continuousCheckbox.setEnabled(!acquiring && zStageLabel != null && cameraLabel != null);
-		settleTime.setEnabled(!acquiring && zStageLabel != null);
-		ohSnap.setEnabled(!acquiring && zStageLabel != null && cameraLabel != null);
+		laserPower.setEnabled(acquiring == null && laserLabel != null);
+		exposure.setEnabled(acquiring == null && cameraLabel != null);
+		laserSlider.setEnabled(acquiring == null && laserLabel != null);
+		exposureSlider.setEnabled(acquiring == null && cameraLabel != null);
+		liveCheckbox.setEnabled(acquiring == null && cameraLabel != null);
+		speedControl.setEnabled(acquiring == null && zStageHasVelocity);
+		continuousCheckbox.setEnabled(acquiring == null && zStageLabel != null && cameraLabel != null);
+		settleTime.setEnabled(acquiring == null && zStageLabel != null);
+		ohSnap.setEnabled(zStageLabel != null && cameraLabel != null);
+		ohSnap.setLabel(acquiring == null ? "Oh snap!" : "Abort!");
 
 		if (xyStageLabel != null) try {
 			int x = (int)mmc.getXPosition(xyStageLabel);
@@ -825,20 +843,18 @@ public class SPIMAcquisition implements MMPlugin {
 	}
 
 	protected ImagePlus snapContinuousStack(int zStart, int zEnd) throws Exception {
-		acquiring = true;
-		updateUI();
 		String meta = getMetaData();
 		ImageStack stack = null;
 		zSlider.setValue(zStart);
 		runToZ.run(zStart);
-		IJ.wait(50); // wait 50 milliseconds for the state to settle
+		Thread.sleep(50); // wait 50 milliseconds for the state to settle
 		zSlider.setValue(zEnd);
 		int zStep = (zStart < zEnd ? +1 : -1);
 IJ.log("from " + zStart + " to " + zEnd + ", step: " + zStep);
 		for (int z = zStart; z  * zStep <= zEnd * zStep; z = z + zStep) {
 IJ.log("Waiting for " + z + " (" + (z * zStep) + " < " + ((int)mmc.getPosition(zStageLabel) * zStep) + ")");
 			while (z * zStep > (int)mmc.getPosition(zStageLabel) * zStep)
-				Thread.yield();
+				Thread.sleep(0);
 IJ.log("Got " + mmc.getPosition(zStageLabel));
 			ImageProcessor ip = snapSlice();
 			z = (int)mmc.getPosition(zStageLabel);
@@ -850,22 +866,19 @@ IJ.log("Updated z to " + z);
 IJ.log("Finished taking " + (zStep * (zEnd - zStart)) + " slices (really got " + (stack == null ? "0" : stack.getSize() + ")"));
 		ImagePlus result = new ImagePlus("SPIM!", stack);
 		result.setProperty("Info", meta);
-		acquiring = false;
-		updateUI();
 		return result;
 	}
 
 	protected ImagePlus snapStack(int zStart, int zEnd, int delayMs) throws Exception {
-		acquiring = true;
-		updateUI();
+		if (delayMs < 0)
+			delayMs = 0;
 		String meta = getMetaData();
 		ImageStack stack = null;
 		int zStep = (zStart < zEnd ? +1 : -1);
 		for (int z = zStart; z * zStep <= zEnd * zStep; z = z + zStep) {
 			zSlider.setValue(z);
 			runToZ.run(z);
-			if (delayMs > 0)
-				IJ.wait(delayMs);
+			Thread.sleep(delayMs);
 			ImageProcessor ip = snapSlice();
 			if (stack == null)
 				stack = new ImageStack(ip.getWidth(), ip.getHeight());
@@ -873,8 +886,6 @@ IJ.log("Finished taking " + (zStep * (zEnd - zStart)) + " slices (really got " +
 		}
 		ImagePlus result = new ImagePlus("SPIM!", stack);
 		result.setProperty("Info", meta);
-		acquiring = false;
-		updateUI();
 		return result;
 	}
 
