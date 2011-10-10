@@ -68,6 +68,8 @@ public class SPIMAcquisition implements MMPlugin {
 		laserPower, exposure, settleTime;
 	protected MotorSlider xSlider, ySlider, zSlider, rotationSlider,
 		laserSlider, exposureSlider;
+	protected LimitedRangeCheckbox limitedXRange, limitedYRange,
+		limitedZRange;
 	protected JCheckBox liveCheckbox, registrationCheckbox,
 		multipleAngleCheckbox, continuousCheckbox;
 	protected JButton speedControl, ohSnap;
@@ -211,6 +213,7 @@ public class SPIMAcquisition implements MMPlugin {
 				maybeUpdateImage();
 			}
 		};
+		limitedXRange = new LimitedRangeCheckbox("Limit range", xSlider, 500, 2500);
 		ySlider = new MotorSlider(motorMin, motorMax, 1) {
 			@Override
 			public void valueChanged(int value) {
@@ -218,6 +221,7 @@ public class SPIMAcquisition implements MMPlugin {
 				maybeUpdateImage();
 			}
 		};
+		limitedYRange = new LimitedRangeCheckbox("Limit range", ySlider, 500, 2500);
 		zSlider = new MotorSlider(motorMin, motorMax, 1) {
 			@Override
 			public void valueChanged(int value) {
@@ -225,6 +229,7 @@ public class SPIMAcquisition implements MMPlugin {
 				maybeUpdateImage();
 			}
 		};
+		limitedZRange = new LimitedRangeCheckbox("Limit range", zSlider, 500, 2500);
 		rotationSlider = new MotorSlider(twisterMin, twisterMax, 0) {
 			@Override
 			public void valueChanged(int value) {
@@ -271,11 +276,11 @@ public class SPIMAcquisition implements MMPlugin {
 
 		addLine(left, Justification.LEFT, "x:", xPosition, "y:", yPosition, "z:", zPosition, "angle:", rotation);
 		addLine(left, Justification.STRETCH, "x:", xSlider);
-		addLine(left, Justification.RIGHT, new LimitedRangeCheckbox("Limit range", xSlider, 500, 2500));
+		addLine(left, Justification.RIGHT, limitedXRange);
 		addLine(left, Justification.STRETCH, "y:", ySlider);
-		addLine(left, Justification.RIGHT, new LimitedRangeCheckbox("Limit range", ySlider, 500, 2500));
+		addLine(left, Justification.RIGHT, limitedYRange);
 		addLine(left, Justification.STRETCH, "z:", zSlider);
-		addLine(left, Justification.RIGHT, new LimitedRangeCheckbox("Limit range", zSlider, 500, 2500));
+		addLine(left, Justification.RIGHT, limitedZRange);
 		addLine(left, Justification.RIGHT, "from z:", zFrom, "to z:", zTo);
 		addLine(left, Justification.STRETCH, "rotation:", rotationSlider);
 		addLine(left, Justification.RIGHT, "steps/rotation:", stepsPerRotation, "degrees/step:", degreesPerStep);
@@ -395,8 +400,11 @@ public class SPIMAcquisition implements MMPlugin {
 		rotation.setEnabled(!acquiring && twisterLabel != null);
 
 		xSlider.setEnabled(!acquiring && xyStageLabel != null);
+		limitedXRange.setEnabled(!acquiring && xyStageLabel != null);
 		ySlider.setEnabled(!acquiring && xyStageLabel != null);
+		limitedYRange.setEnabled(!acquiring && xyStageLabel != null);
 		zSlider.setEnabled(!acquiring && zStageLabel != null);
+		limitedZRange.setEnabled(!acquiring && zStageLabel != null);
 		zFrom.setEnabled(!acquiring && zStageLabel != null);
 		zTo.setEnabled(!acquiring && zStageLabel != null);
 		rotationSlider.setEnabled(!acquiring && twisterLabel != null);
@@ -410,6 +418,7 @@ public class SPIMAcquisition implements MMPlugin {
 		liveCheckbox.setEnabled(!acquiring && cameraLabel != null);
 		speedControl.setEnabled(!acquiring && zStageHasVelocity);
 		continuousCheckbox.setEnabled(!acquiring && zStageLabel != null && cameraLabel != null);
+		settleTime.setEnabled(!acquiring && zStageLabel != null);
 		ohSnap.setEnabled(!acquiring && zStageLabel != null && cameraLabel != null);
 
 		if (xyStageLabel != null) try {
@@ -540,6 +549,13 @@ public class SPIMAcquisition implements MMPlugin {
 			limitedMax = max;
 			checkbox.setSelected(false);
 			checkbox.addItemListener(this);
+		}
+
+		@Override
+		public void setEnabled(boolean enabled) {
+			checkbox.setEnabled(enabled);
+			min.setEnabled(enabled);
+			max.setEnabled(enabled);
 		}
 
 		@Override
