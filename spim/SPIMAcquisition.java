@@ -553,7 +553,9 @@ public class SPIMAcquisition implements MMPlugin {
 					public void run() {
 						if (updating != null)
 							updating.setBackground(background);
-						valueChanged(value);
+						synchronized (MotorSlider.this) {
+							valueChanged(value);
+						}
 					}
 				}.start();
 		}
