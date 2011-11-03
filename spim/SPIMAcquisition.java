@@ -102,7 +102,7 @@ public class SPIMAcquisition implements MMPlugin {
 		if (prefs != null) try {
 			prefs.sync();
 		} catch (BackingStoreException e) {
-			ReportingUtils.logError("Could not write preferences: " + e);
+			ReportingUtils.logException("Could not write preferences: ", e);
 		}
 		frame.dispose();
 		frame = null;
