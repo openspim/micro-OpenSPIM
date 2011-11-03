@@ -758,7 +758,7 @@ public class SPIMAcquisition implements MMPlugin {
 			for (;;) try {
 				if (goal != current) synchronized (this) {
 					if (get() == goal) {
-ReportingUtils.logMessage("Reached goal: " + goal);
+						ReportingUtils.logMessage("Reached goal: " + goal);
 						current = goal;
 						done();
 						notifyAll();
@@ -777,7 +777,7 @@ ReportingUtils.logMessage("Reached goal: " + goal);
 					return;
 				}
 				goal = value;
-ReportingUtils.logMessage("Setting goal: " + goal);
+				ReportingUtils.logMessage("Setting goal: " + goal);
 				try {
 					set(goal);
 				} catch (Exception e) {
@@ -791,7 +791,7 @@ ReportingUtils.logMessage("Setting goal: " + goal);
 					} catch (InterruptedException e) {
 						return;
 					}
-ReportingUtils.logMessage("Reached goal & returning: " + goal);
+					ReportingUtils.logMessage("Reached goal & returning: " + goal);
 				}
 			}
 		}
@@ -912,20 +912,20 @@ ReportingUtils.logMessage("Reached goal & returning: " + goal);
 		Thread.sleep(50); // wait 50 milliseconds for the state to settle
 		zSlider.setValue(zEnd);
 		int zStep = (zStart < zEnd ? +1 : -1);
-IJ.log("from " + zStart + " to " + zEnd + ", step: " + zStep);
+		ReportingUtils.logMessage("from " + zStart + " to " + zEnd + ", step: " + zStep);
 		for (int z = zStart; z  * zStep <= zEnd * zStep; z = z + zStep) {
-IJ.log("Waiting for " + z + " (" + (z * zStep) + " < " + ((int)mmc.getPosition(zStageLabel) * zStep) + ")");
+			ReportingUtils.logMessage("Waiting for " + z + " (" + (z * zStep) + " < " + ((int)mmc.getPosition(zStageLabel) * zStep) + ")");
 			while (z * zStep > (int)mmc.getPosition(zStageLabel) * zStep)
 				Thread.sleep(0);
-IJ.log("Got " + mmc.getPosition(zStageLabel));
+			ReportingUtils.logMessage("Got " + mmc.getPosition(zStageLabel));
 			ImageProcessor ip = snapSlice();
 			z = (int)mmc.getPosition(zStageLabel);
-IJ.log("Updated z to " + z);
+			ReportingUtils.logMessage("Updated z to " + z);
 			if (stack == null)
 				stack = new ImageStack(ip.getWidth(), ip.getHeight());
 			stack.addSlice("z: " + z, ip);
 		}
-IJ.log("Finished taking " + (zStep * (zEnd - zStart)) + " slices (really got " + (stack == null ? "0" : stack.getSize() + ")"));
+		ReportingUtils.logMessage("Finished taking " + (zStep * (zEnd - zStart)) + " slices (really got " + (stack == null ? "0" : stack.getSize() + ")"));
 		ImagePlus result = new ImagePlus("SPIM!", stack);
 		result.setProperty("Info", meta);
 		return result;
