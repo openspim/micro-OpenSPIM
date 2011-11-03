@@ -758,6 +758,7 @@ public class SPIMAcquisition implements MMPlugin {
 			for (;;) try {
 				if (goal != current) synchronized (this) {
 					if (get() == goal) {
+ReportingUtils.logMessage("Reached goal: " + goal);
 						current = goal;
 						done();
 						notifyAll();
@@ -776,6 +777,7 @@ public class SPIMAcquisition implements MMPlugin {
 					return;
 				}
 				goal = value;
+ReportingUtils.logMessage("Setting goal: " + goal);
 				try {
 					set(goal);
 				} catch (Exception e) {
@@ -789,6 +791,7 @@ public class SPIMAcquisition implements MMPlugin {
 					} catch (InterruptedException e) {
 						return;
 					}
+ReportingUtils.logMessage("Reached goal & returning: " + goal);
 				}
 			}
 		}
