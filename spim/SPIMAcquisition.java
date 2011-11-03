@@ -932,6 +932,9 @@ public class SPIMAcquisition implements MMPlugin {
 	}
 
 	protected ImagePlus snapStack(int zStart, int zEnd, int delayMs) throws Exception {
+		boolean isLive = gui.isLiveModeOn();
+		if (isLive)
+			gui.enableLiveMode(false);
 		if (delayMs < 0)
 			delayMs = 0;
 		String meta = getMetaData();
@@ -948,6 +951,8 @@ public class SPIMAcquisition implements MMPlugin {
 		}
 		ImagePlus result = new ImagePlus("SPIM!", stack);
 		result.setProperty("Info", meta);
+		if (isLive)
+			gui.enableLiveMode(true);
 		return result;
 	}
 
