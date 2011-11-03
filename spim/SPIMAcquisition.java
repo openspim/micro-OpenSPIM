@@ -933,8 +933,10 @@ public class SPIMAcquisition implements MMPlugin {
 
 	protected ImagePlus snapStack(int zStart, int zEnd, int delayMs) throws Exception {
 		boolean isLive = gui.isLiveModeOn();
-		if (isLive)
+		if (isLive) {
 			gui.enableLiveMode(false);
+			Thread.sleep(100);
+		}
 		if (delayMs < 0)
 			delayMs = 0;
 		String meta = getMetaData();
