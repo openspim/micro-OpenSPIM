@@ -746,8 +746,11 @@ public class SPIMAcquisition implements MMPlugin {
 	// Accessing the devices
 
 	protected void maybeUpdateImage() {
-		if (cameraLabel != null && updateLiveImage)
-			gui.updateImage();
+		if (cameraLabel != null && updateLiveImage) {
+			synchronized(frame) {
+				gui.updateImage();
+			}
+		}
 	}
 
 	protected abstract static class RunTo extends Thread {
@@ -872,7 +875,9 @@ public class SPIMAcquisition implements MMPlugin {
 	};
 
 	protected ImageProcessor snapSlice() throws Exception {
-		mmc.snapImage();
+		synchronized(frame) {
+			mmc.snapImage();
+		}
 
 		int width = (int)mmc.getImageWidth();
 		int height = (int)mmc.getImageHeight();
