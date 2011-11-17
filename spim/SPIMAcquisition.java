@@ -472,6 +472,7 @@ public class SPIMAcquisition implements MMPlugin {
 		if (twisterLabel != null) try {
 			// TODO: how to handle 200 steps per 360 degrees?
 			int angle = (int)mmc.getPosition(twisterLabel);
+			angle = (angle * 360 + 199) / 200;
 			rotation.setText("" + angle);
 			rotationSlider.setValue(angle);
 		} catch (Exception e) {
