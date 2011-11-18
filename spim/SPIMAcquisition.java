@@ -640,6 +640,10 @@ public class SPIMAcquisition implements MMPlugin {
 		spacing = 100 * ((spacing + 50) / 100); // round to nearest 100
 		Hashtable<Integer, JLabel> table = new Hashtable<Integer, JLabel>();
 		table.put(min, new JLabel("" + min));
+		if ( spacing == 0 ) {
+			table.put(max, new JLabel("" + max));
+			return table;
+		}
 		for (int i = max; i > min; i -= spacing)
 			table.put(i, new JLabel("" + i));
 		return table;
