@@ -569,8 +569,9 @@ public class SPIMAcquisition implements MMPlugin {
 		public abstract void valueChanged(int value);
 	}
 
-	protected class LimitedRangeCheckbox extends JPanel implements ItemListener {
+	protected class LimitedRangeCheckbox extends JPanel implements ActionListener, ItemListener {
 		protected IntegerField min, max;
+		protected JButton zoomIn, zoomOut;
 		protected JCheckBox checkbox;
 		protected MotorSlider slider;
 		protected Dictionary originalLabels, limitedLabels;
@@ -587,6 +588,13 @@ public class SPIMAcquisition implements MMPlugin {
 			}
 
 			setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
+
+			zoomIn = new JButton("Zoom In");
+			add(zoomIn);
+
+			zoomOut = new JButton("Zoom Out");
+			add(zoomOut);
+
 			checkbox = new JCheckBox(label);
 			add(checkbox);
 			this.min = new IntegerField(min, prefsKeyMin);
@@ -602,6 +610,9 @@ public class SPIMAcquisition implements MMPlugin {
 			limitedMin = this.min.getValue();
 			limitedMax = this.max.getValue();
 			checkbox.setSelected(false);
+
+			zoomIn.addActionListener(this);
+			zoomOut.addActionListener(this);
 			checkbox.addItemListener(this);
 		}
 
@@ -615,23 +626,71 @@ public class SPIMAcquisition implements MMPlugin {
 		@Override
 		public void itemStateChanged(ItemEvent e) {
 			if (e.getStateChange() == ItemEvent.SELECTED) {
-				limitedMin = min.getValue();
-				limitedMax = max.getValue();
-				limitedLabels = makeLabelTable(limitedMin, limitedMax, 5);
-				int current = slider.getValue();
-				if (current < limitedMin)
-					slider.setValue(limitedMin);
-				else if (current > limitedMax)
-					slider.setValue(limitedMax);
-				slider.setMinimum(limitedMin);
-				slider.setMaximum(limitedMax);
-				slider.setLabelTable(limitedLabels);
+				limit(min.getValue(), max.getValue());
 			}
 			else {
-				slider.setMinimum(originalMin);
-				slider.setMaximum(originalMax);
-				slider.setLabelTable(originalLabels);
+				reset();
 			}
+		}
+
+		protected void limit(int min, int max) {
+			if (min == originalMin && max == originalMax) {
+				reset();
+				return;
+			}
+			limitedMin = min;
+			limitedMax = max;
+			limitedLabels = makeLabelTable(limitedMin, limitedMax, 5);
+			int current = slider.getValue();
+			if (current < limitedMin)
+				slider.setValue(limitedMin);
+			else if (current > limitedMax)
+				slider.setValue(limitedMax);
+			slider.setMinimum(limitedMin);
+			slider.setMaximum(limitedMax);
+			slider.setLabelTable(limitedLabels);
+			if (!checkbox.isSelected())
+				checkbox.setSelected(true);
+		}
+
+		protected void reset() {
+			slider.setMinimum(originalMin);
+			slider.setMaximum(originalMax);
+			slider.setLabelTable(originalLabels);
+			if (checkbox.isSelected())
+				checkbox.setSelected(false);
+		}
+
+		protected void adjustRange(int range) {
+			int current = slider.getValue();
+			int min, max;
+			if (current - originalMin < range / 2)
+				min = originalMin;
+			else if (originalMax - current < range / 2)
+				min = Math.max(originalMin, originalMax - range);
+			else
+				min = current - range / 2;
+			max = Math.min(originalMax, min + range);
+			this.min.setText("" + min);
+			this.max.setText("" + max);
+			limit(min, max);
+		}
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			int min = originalMin, max = originalMax;
+			if (checkbox.isSelected()) {
+				min = limitedMin;
+				max = limitedMax;
+			}
+			Object source = e.getSource();
+			if (source == zoomIn) {
+				int range = (max - min) / 2;
+				if (range >= 50)
+					adjustRange(range);
+			}
+			else if (source == zoomOut)
+				adjustRange((max - min) * 2);
 		}
 	}
 
