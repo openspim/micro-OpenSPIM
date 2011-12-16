@@ -10,6 +10,7 @@ import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
 import ij.process.ShortProcessor;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
@@ -511,7 +512,8 @@ public class SPIMAcquisition implements MMPlugin {
 		container.add(panel);
 	}
 
-	protected abstract class MotorSlider extends JSlider implements ChangeListener {
+	protected abstract class MotorSlider extends JPanel implements ChangeListener {
+		protected JSlider slider;
 		protected JTextField updating;
 		protected Color background;
 		protected String prefsKey;
@@ -521,26 +523,28 @@ public class SPIMAcquisition implements MMPlugin {
 		}
 
 		public MotorSlider(int min, int max, int current, String prefsKey) {
-			super(JSlider.HORIZONTAL, min, max, Math.min(max, Math.max(min, prefsGet(prefsKey, current))));
+			slider = new JSlider(JSlider.HORIZONTAL, min, max, Math.min(max, Math.max(min, prefsGet(prefsKey, current))));
 
 			this.prefsKey = prefsKey;
 
-			setMinorTickSpacing((int)((max - min) / 40));
-			setMajorTickSpacing((int)((max - min) / 5));
-			setPaintTrack(true);
-			setPaintTicks(true);
+			slider.setMinorTickSpacing((int)((max - min) / 40));
+			slider.setMajorTickSpacing((int)((max - min) / 5));
+			slider.setPaintTrack(true);
+			slider.setPaintTicks(true);
 
 			if (min == 1)
-				setLabelTable(makeLabelTable(min, max, 5));
-			setPaintLabels(true);
+				slider.setLabelTable(makeLabelTable(min, max, 5));
+			slider.setPaintLabels(true);
 
-			addChangeListener(this);
+			slider.addChangeListener(this);
+			setLayout(new BorderLayout());
+			add(slider);
 		}
 
 		@Override
 		public void stateChanged(ChangeEvent e) {
-			final int value = getValue();
-			if (getValueIsAdjusting()) {
+			final int value = slider.getValue();
+			if (slider.getValueIsAdjusting()) {
 				if (updating != null) {
 					if (background == null)
 						background = updating.getBackground();
@@ -567,6 +571,46 @@ public class SPIMAcquisition implements MMPlugin {
 		}
 
 		public abstract void valueChanged(int value);
+
+		public int getValue() {
+			return slider.getValue();
+		}
+
+		public void setValue(int value) {
+			slider.setValue(value);
+		}
+
+		public boolean isEnabled() {
+			return slider.isEnabled();
+		}
+
+		public void setEnabled(boolean enabled) {
+			slider.setEnabled(enabled);
+		}
+
+		public int getMinimum() {
+			return slider.getMinimum();
+		}
+
+		public int getMaximum() {
+			return slider.getMaximum();
+		}
+
+		public void setMinimum(int value) {
+			slider.setMinimum(value);
+		}
+
+		public void setMaximum(int value) {
+			slider.setMaximum(value);
+		}
+
+		public Dictionary getLabelTable() {
+			return slider.getLabelTable();
+		}
+
+		public void setLabelTable(Dictionary table) {
+			slider.setLabelTable(table);
+		}
 	}
 
 	protected class LimitedRangeCheckbox extends JPanel implements ActionListener, ItemListener {
@@ -758,13 +802,12 @@ public class SPIMAcquisition implements MMPlugin {
 	}
 
 	protected class IntegerSliderField extends IntegerField {
-		protected JSlider slider;
+		protected MotorSlider slider;
 
-		public IntegerSliderField(JSlider slider) {
+		public IntegerSliderField(MotorSlider slider) {
 			super(slider.getValue());
 			this.slider = slider;
-			if (slider instanceof MotorSlider)
-				((MotorSlider)slider).updating = this;
+			((MotorSlider)slider).updating = this;
 		}
 
 		@Override
