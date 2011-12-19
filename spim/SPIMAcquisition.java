@@ -23,6 +23,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.ItemEvent;
@@ -541,19 +542,21 @@ public class SPIMAcquisition implements MMPlugin {
 			slider.addChangeListener(this);
 
 			minus = new JButton("-");
+			minus.setToolTipText("Shift+Click to decrement by 10");
 			minus.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent e) {
-					increment(-1);
+					increment((e.getModifiers() & InputEvent.SHIFT_MASK) == 0 ? -1 : -10);
 					updating.setText("" + getValue());
 					stateChanged(null);
 				}
 			});
 			plus = new JButton("+");
+			plus.setToolTipText("Shift+Click to increment by 10");
 			plus.addActionListener(new ActionListener() {
 				@Override
 				public void actionPerformed(ActionEvent e) {
-					increment(+1);
+					increment((e.getModifiers() & InputEvent.SHIFT_MASK) == 0 ? +1 : +10);
 					updating.setText("" + getValue());
 					stateChanged(null);
 				}
