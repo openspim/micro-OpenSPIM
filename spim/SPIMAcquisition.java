@@ -13,9 +13,7 @@ import ij.process.ShortProcessor;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.ComponentOrientation;
 import java.awt.Container;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
@@ -565,10 +563,10 @@ public class SPIMAcquisition implements MMPlugin {
 			});
 			plus.setMargin(new Insets(0, 0, 0, 0));
 
-			setLayout(new FlowLayout(FlowLayout.LEADING));
-			add(minus);
-			add(slider);
-			add(plus);
+			setLayout(new BorderLayout());
+			add(minus, BorderLayout.WEST);
+			add(slider, BorderLayout.CENTER);
+			add(plus, BorderLayout.EAST);
 		}
 
 		@Override
