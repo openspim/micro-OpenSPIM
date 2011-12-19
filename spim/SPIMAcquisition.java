@@ -18,6 +18,7 @@ import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.Insets;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -551,6 +552,7 @@ public class SPIMAcquisition implements MMPlugin {
 					stateChanged(null);
 				}
 			});
+			minus.setMargin(new Insets(0, 0, 0, 0));
 			plus = new JButton("+");
 			plus.setToolTipText("Shift+Click to increment by 10");
 			plus.addActionListener(new ActionListener() {
@@ -561,6 +563,7 @@ public class SPIMAcquisition implements MMPlugin {
 					stateChanged(null);
 				}
 			});
+			plus.setMargin(new Insets(0, 0, 0, 0));
 
 			setLayout(new FlowLayout(FlowLayout.LEADING));
 			add(minus);
