@@ -454,20 +454,21 @@ public class SPIMAcquisition implements MMPlugin {
 		ohSnap.setEnabled(zStageLabel != null && cameraLabel != null);
 		ohSnap.setLabel(acquiring == null ? "Oh snap!" : "Abort!");
 
+		updateMotorPositions();
+	}
+
+	protected void updateMotorPositions() {
 		if (xyStageLabel != null) try {
 			int x = (int)mmc.getXPosition(xyStageLabel);
 			int y = (int)mmc.getYPosition(xyStageLabel);
-			xPosition.setText("" + x);
-			yPosition.setText("" + y);
-			xSlider.setValue(x);
-			ySlider.setValue(y);
+			xSlider.setValue(x, true);
+			ySlider.setValue(y, true);
 		} catch (Exception e) {
 			IJ.handleException(e);
 		}
 		if (zStageLabel != null) try {
 			int z = (int)mmc.getPosition(zStageLabel);
-			zPosition.setText("" + z);
-			zSlider.setValue(z);
+			zSlider.setValue(z, true);
 		} catch (Exception e) {
 			IJ.handleException(e);
 		}
@@ -475,8 +476,7 @@ public class SPIMAcquisition implements MMPlugin {
 			// TODO: how to handle 200 steps per 360 degrees?
 			int angle = (int)mmc.getPosition(twisterLabel);
 			angle = (angle * 360 + 199) / 200;
-			rotation.setText("" + angle);
-			rotationSlider.setValue(angle);
+			rotationSlider.setValue(angle, true);
 		} catch (Exception e) {
 			IJ.handleException(e);
 		}
@@ -546,8 +546,6 @@ public class SPIMAcquisition implements MMPlugin {
 				@Override
 				public void actionPerformed(ActionEvent e) {
 					increment((e.getModifiers() & InputEvent.SHIFT_MASK) == 0 ? -1 : -10);
-					updating.setText("" + getValue());
-					stateChanged(null);
 				}
 			});
 			minus.setMargin(new Insets(0, 0, 0, 0));
@@ -557,8 +555,6 @@ public class SPIMAcquisition implements MMPlugin {
 				@Override
 				public void actionPerformed(ActionEvent e) {
 					increment((e.getModifiers() & InputEvent.SHIFT_MASK) == 0 ? +1 : +10);
-					updating.setText("" + getValue());
-					stateChanged(null);
 				}
 			});
 			plus.setMargin(new Insets(0, 0, 0, 0));
@@ -607,7 +603,7 @@ public class SPIMAcquisition implements MMPlugin {
 			else if (delta > 0)
 				delta = Math.min(delta, slider.getMaximum() - value);
 			if (delta != 0)
-				setValue(value + delta);
+				setValue(value + delta, true);
 			return delta;
 		}
 
@@ -616,7 +612,15 @@ public class SPIMAcquisition implements MMPlugin {
 		}
 
 		public void setValue(int value) {
+			setValue(value, false);
+		}
+
+		public void setValue(int value, boolean updateText) {
 			slider.setValue(value);
+			if (updateText && updating != null) {
+				updating.setText("" + getValue());
+				stateChanged(null);
+			}
 		}
 
 		public boolean isEnabled() {
@@ -726,9 +730,9 @@ public class SPIMAcquisition implements MMPlugin {
 			limitedLabels = makeLabelTable(limitedMin, limitedMax, 5);
 			int current = slider.getValue();
 			if (current < limitedMin)
-				slider.setValue(limitedMin);
+				slider.setValue(limitedMin, true);
 			else if (current > limitedMax)
-				slider.setValue(limitedMax);
+				slider.setValue(limitedMax, true);
 			slider.setMinimum(limitedMin);
 			slider.setMaximum(limitedMax);
 			slider.setLabelTable(limitedLabels);
