@@ -218,7 +218,7 @@ public class SPIMAcquisition implements MMPlugin {
 	protected void initUI() {
 		if (frame != null)
 			return;
-		frame = new JFrame("SPIM in a Briefcase");
+		frame = new JFrame("OpenSPIM");
 
 		JPanel left = new JPanel();
 		left.setLayout(new BoxLayout(left, BoxLayout.PAGE_AXIS));
