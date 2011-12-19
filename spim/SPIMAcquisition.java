@@ -27,6 +27,8 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 import java.util.Dictionary;
 import java.util.Hashtable;
@@ -423,6 +425,13 @@ public class SPIMAcquisition implements MMPlugin {
 		panel.add(right);
 
 		frame.pack();
+
+		frame.addWindowFocusListener(new WindowAdapter() {
+			@Override
+			public void windowGainedFocus(WindowEvent e) {
+				updateMotorPositions();
+			}
+		});
 	}
 
 	protected void updateUI() {
