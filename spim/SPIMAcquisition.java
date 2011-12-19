@@ -13,6 +13,7 @@ import ij.process.ShortProcessor;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.ComponentOrientation;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -514,6 +515,7 @@ public class SPIMAcquisition implements MMPlugin {
 
 	protected abstract class MotorSlider extends JPanel implements ChangeListener {
 		protected JSlider slider;
+		protected JButton plus, minus;
 		protected JTextField updating;
 		protected Color background;
 		protected String prefsKey;
@@ -537,8 +539,30 @@ public class SPIMAcquisition implements MMPlugin {
 			slider.setPaintLabels(true);
 
 			slider.addChangeListener(this);
-			setLayout(new BorderLayout());
+
+			minus = new JButton("-");
+			minus.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					increment(-1);
+					updating.setText("" + getValue());
+					stateChanged(null);
+				}
+			});
+			plus = new JButton("+");
+			plus.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					increment(+1);
+					updating.setText("" + getValue());
+					stateChanged(null);
+				}
+			});
+
+			setLayout(new FlowLayout(FlowLayout.LEADING));
+			add(minus);
 			add(slider);
+			add(plus);
 		}
 
 		@Override
@@ -571,6 +595,17 @@ public class SPIMAcquisition implements MMPlugin {
 		}
 
 		public abstract void valueChanged(int value);
+
+		public int increment(int delta) {
+			int value = getValue();
+			if (delta < 0)
+				delta = Math.max(delta, slider.getMinimum() - value);
+			else if (delta > 0)
+				delta = Math.min(delta, slider.getMaximum() - value);
+			if (delta != 0)
+				setValue(value + delta);
+			return delta;
+		}
 
 		public int getValue() {
 			return slider.getValue();
