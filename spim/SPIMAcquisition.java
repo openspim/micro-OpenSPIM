@@ -95,6 +95,7 @@ public class SPIMAcquisition implements MMPlugin {
 	 *  can obtain it without instantiating the plugin
 	 */
 	public static String menuName = "Acquire SPIM image";
+	public static String tooltipDescription = "The OpenSPIM GUI";
 	
 	/**
 	 * The main app calls this method to remove the module window
@@ -151,7 +152,7 @@ public class SPIMAcquisition implements MMPlugin {
 		twisterLabel = null;
 
 		for (String label : mmc.getLoadedDevices().toArray()) try {
-			String driver = mmc.getDeviceNameInLibrary(label);
+			String driver = mmc.getDeviceName(label);
 			if (driver.equals("Picard Twister"))
 				twisterLabel = label;
 			else if (driver.equals("Picard Z Stage")) { // TODO: read this from the to-be-added property
