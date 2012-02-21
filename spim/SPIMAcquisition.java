@@ -252,7 +252,7 @@ public class SPIMAcquisition implements MMPlugin {
 		rotationSlider = new MotorSlider(twisterMin, twisterMax, 0) {
 			@Override
 			public void valueChanged(int value) {
-				runToAngle.run(value * 200 / 360);
+				runToAngle.run(twisterPosition2Angle(value));
 				maybeUpdateImage();
 			}
 		};
@@ -483,10 +483,8 @@ public class SPIMAcquisition implements MMPlugin {
 			IJ.handleException(e);
 		}
 		if (twisterLabel != null) try {
-			// TODO: how to handle 200 steps per 360 degrees?
-			int angle = (int)mmc.getPosition(twisterLabel);
-			angle = (angle * 360 + 199) / 200;
-			rotationSlider.setValue(angle, true);
+			int position = (int)mmc.getPosition(twisterLabel);
+			rotationSlider.setValue(twisterPosition2Angle(position), true);
 		} catch (Exception e) {
 			IJ.handleException(e);
 		}
@@ -500,6 +498,15 @@ public class SPIMAcquisition implements MMPlugin {
 		} catch (Exception e) {
 			IJ.handleException(e);
 		}
+	}
+
+	protected int angle2TwisterPosition(int angle) {
+		return angle * 200 / 360;
+	}
+
+	protected int twisterPosition2Angle(int position) {
+		// we need to guarantee that angle2Twister(twister2Angle(pos)) == pos
+		return (position * 360 + 199 * (position < 0 ? -1 : +1)) / 200;
 	}
 
 	// UI helpers
@@ -1028,7 +1035,7 @@ public class SPIMAcquisition implements MMPlugin {
 
 		@Override
 		public void done() {
-			rotation.setText("" + (goal * 360 / 200));
+			rotation.setText("" + twisterPosition2Angle(goal));
 		}
 	};
 
@@ -1130,7 +1137,7 @@ public class SPIMAcquisition implements MMPlugin {
 			meta +=  "z motor position: " + mmc.getPosition(zStageLabel) + "\n";
 		if (twisterLabel != "")
 			meta +=  "twister position: " + mmc.getPosition(twisterLabel) + "\n"
-				+ "twister angle: " + (360.0 / 200.0 * mmc.getPosition(twisterLabel)) + "\n";
+				+ "twister angle: " + twisterPosition2Angle((int)mmc.getPosition(twisterLabel)) + "\n";
 		return meta;
 	}
 }
