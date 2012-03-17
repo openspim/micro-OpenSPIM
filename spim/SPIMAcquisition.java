@@ -252,7 +252,7 @@ public class SPIMAcquisition implements MMPlugin {
 		rotationSlider = new MotorSlider(twisterMin, twisterMax, 0) {
 			@Override
 			public void valueChanged(int value) {
-				runToAngle.run(twisterPosition2Angle(value));
+				runToAngle.run(angle2TwisterPosition(value));
 				maybeUpdateImage();
 			}
 		};
