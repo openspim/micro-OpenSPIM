@@ -1140,5 +1140,18 @@ public class SPIMAcquisition implements MMPlugin {
 				+ "twister angle: " + twisterPosition2Angle((int)mmc.getPosition(twisterLabel)) + "\n";
 		return meta;
 	}
-}
 
+	/**
+	 * This main() method is for use with Fiji's Script Editor
+	 */
+	public static void main(String[] args) {
+		MMStudioMainFrame app = MMStudioMainFrame.getInstance();
+		if (app == null) {
+			app = new MMStudioMainFrame(true);
+			app.setVisible(true);
+		}
+		SPIMAcquisition plugin = new SPIMAcquisition();
+		plugin.setApp(app);
+		plugin.show();
+	}
+}
