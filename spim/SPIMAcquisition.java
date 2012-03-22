@@ -920,13 +920,19 @@ public class SPIMAcquisition implements MMPlugin {
 
 	protected abstract static class RunTo extends Thread {
 		protected int goal, current = Integer.MAX_VALUE;
+		protected String label;
+
+		public RunTo(String label) {
+			super(label);
+			this.label = label;
+		}
 
 		@Override
 		public void run() {
 			for (;;) try {
 				if (goal != current) synchronized (this) {
 					if (get() == goal) {
-						ReportingUtils.logMessage("Reached goal: " + goal);
+						ReportingUtils.logMessage("Reached goal (" + label + "): " + goal);
 						current = goal;
 						done();
 						notifyAll();
@@ -971,7 +977,7 @@ public class SPIMAcquisition implements MMPlugin {
 		public abstract void done();
 	}
 
-	protected RunTo runToX = new RunTo() {
+	protected RunTo runToX = new RunTo("x") {
 		@Override
 		public int get() throws Exception {
 			return (int)mmc.getXPosition(xyStageLabel);
@@ -988,7 +994,7 @@ public class SPIMAcquisition implements MMPlugin {
 		}
 	};
 
-	protected RunTo runToY = new RunTo() {
+	protected RunTo runToY = new RunTo("y") {
 		@Override
 		public int get() throws Exception {
 			return (int)mmc.getYPosition(xyStageLabel);
@@ -1005,7 +1011,7 @@ public class SPIMAcquisition implements MMPlugin {
 		}
 	};
 
-	protected RunTo runToZ = new RunTo() {
+	protected RunTo runToZ = new RunTo("z") {
 		@Override
 		public int get() throws Exception {
 			return (int)mmc.getPosition(zStageLabel);
@@ -1022,7 +1028,7 @@ public class SPIMAcquisition implements MMPlugin {
 		}
 	};
 
-	protected RunTo runToAngle = new RunTo() {
+	protected RunTo runToAngle = new RunTo("angle") {
 		@Override
 		public int get() throws Exception {
 			return (int)mmc.getPosition(twisterLabel);
