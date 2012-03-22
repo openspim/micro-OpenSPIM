@@ -565,7 +565,7 @@ public class SPIMAcquisition implements MMPlugin {
 					increment((e.getModifiers() & InputEvent.SHIFT_MASK) == 0 ? -1 : -10);
 				}
 			});
-			minus.setMargin(new Insets(0, 0, 0, 0));
+			minus.setMargin(new Insets(0, 10, 0, 10));
 			plus = new JButton("+");
 			plus.setToolTipText("Shift+Click to increment by 10");
 			plus.addActionListener(new ActionListener() {
@@ -574,7 +574,7 @@ public class SPIMAcquisition implements MMPlugin {
 					increment((e.getModifiers() & InputEvent.SHIFT_MASK) == 0 ? +1 : +10);
 				}
 			});
-			plus.setMargin(new Insets(0, 0, 0, 0));
+			plus.setMargin(new Insets(0, 10, 0, 10));
 
 			setLayout(new BorderLayout());
 			add(minus, BorderLayout.WEST);
