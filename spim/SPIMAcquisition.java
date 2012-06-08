@@ -3,36 +3,23 @@ package spim;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
-
 import ij.gui.GenericDialog;
-
 import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
 import ij.process.ShortProcessor;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.Insets;
-
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
-import java.awt.event.InputEvent;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-
 import java.util.Dictionary;
 import java.util.Hashtable;
-
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
@@ -43,20 +30,13 @@ import javax.swing.JCheckBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JSlider;
-import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
-
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 
 import mmcorej.CMMCore;
 
 import org.micromanager.MMStudioMainFrame;
-
 import org.micromanager.api.MMPlugin;
 import org.micromanager.api.ScriptInterface;
-
 import org.micromanager.utils.ReportingUtils;
 
 public class SPIMAcquisition implements MMPlugin {
@@ -86,7 +66,7 @@ public class SPIMAcquisition implements MMPlugin {
 	protected boolean updateLiveImage, zStageHasVelocity;
 	protected Thread acquiring;
 
-	protected Preferences prefs;
+	private static Preferences prefs;
 
 	// MMPlugin stuff
 
@@ -404,7 +384,7 @@ public class SPIMAcquisition implements MMPlugin {
 						updateUI();
 					}
 				};
-				ohSnap.setLabel("Abort acquisition");
+				ohSnap.setText("Abort acquisition");
 				acquiring.start();
 			}
 		});
@@ -462,7 +442,7 @@ public class SPIMAcquisition implements MMPlugin {
 		continuousCheckbox.setEnabled(acquiring == null && zStageLabel != null && cameraLabel != null);
 		settleTime.setEnabled(acquiring == null && zStageLabel != null);
 		ohSnap.setEnabled(zStageLabel != null && cameraLabel != null);
-		ohSnap.setLabel(acquiring == null ? "Oh snap!" : "Abort!");
+		ohSnap.setText(acquiring == null ? "Oh snap!" : "Abort!");
 
 		updateMotorPositions();
 	}
@@ -530,275 +510,7 @@ public class SPIMAcquisition implements MMPlugin {
 		container.add(panel);
 	}
 
-	protected abstract class MotorSlider extends JPanel implements ChangeListener {
-		protected JSlider slider;
-		protected JButton plus, minus;
-		protected JTextField updating;
-		protected Color background;
-		protected String prefsKey;
-
-		public MotorSlider(int min, int max, int current) {
-			this(min, max, current, null);
-		}
-
-		public MotorSlider(int min, int max, int current, String prefsKey) {
-			slider = new JSlider(JSlider.HORIZONTAL, min, max, Math.min(max, Math.max(min, prefsGet(prefsKey, current))));
-
-			this.prefsKey = prefsKey;
-
-			slider.setMinorTickSpacing((int)((max - min) / 40));
-			slider.setMajorTickSpacing((int)((max - min) / 5));
-			slider.setPaintTrack(true);
-			slider.setPaintTicks(true);
-
-			if (min == 1)
-				slider.setLabelTable(makeLabelTable(min, max, 5));
-			slider.setPaintLabels(true);
-
-			slider.addChangeListener(this);
-
-			minus = new JButton("-");
-			minus.setToolTipText("Shift+Click to decrement by 10");
-			minus.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					increment((e.getModifiers() & InputEvent.SHIFT_MASK) == 0 ? -1 : -10);
-				}
-			});
-			minus.setMargin(new Insets(0, 10, 0, 10));
-			plus = new JButton("+");
-			plus.setToolTipText("Shift+Click to increment by 10");
-			plus.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					increment((e.getModifiers() & InputEvent.SHIFT_MASK) == 0 ? +1 : +10);
-				}
-			});
-			plus.setMargin(new Insets(0, 10, 0, 10));
-
-			setLayout(new BorderLayout());
-			add(minus, BorderLayout.WEST);
-			add(slider, BorderLayout.CENTER);
-			add(plus, BorderLayout.EAST);
-		}
-
-		@Override
-		public void stateChanged(ChangeEvent e) {
-			final int value = slider.getValue();
-			if (slider.getValueIsAdjusting()) {
-				if (updating != null) {
-					if (background == null)
-						background = updating.getBackground();
-					updating.setBackground(Color.YELLOW);
-					updating.setText("" + value);
-				}
-			}
-			else
-				new Thread() {
-					@Override
-					public void run() {
-						if (updating != null)
-							updating.setBackground(background);
-						synchronized (MotorSlider.this) {
-							valueChanged(value);
-						}
-					}
-				}.start();
-		}
-
-		protected void handleChange(int value) {
-			valueChanged(value);
-			prefsSet(prefsKey, value);
-		}
-
-		public abstract void valueChanged(int value);
-
-		public int increment(int delta) {
-			int value = getValue();
-			if (delta < 0)
-				delta = Math.max(delta, slider.getMinimum() - value);
-			else if (delta > 0)
-				delta = Math.min(delta, slider.getMaximum() - value);
-			if (delta != 0)
-				setValue(value + delta, true);
-			return delta;
-		}
-
-		public int getValue() {
-			return slider.getValue();
-		}
-
-		public void setValue(int value) {
-			setValue(value, false);
-		}
-
-		public void setValue(int value, boolean updateText) {
-			slider.setValue(value);
-			if (updateText && updating != null) {
-				updating.setText("" + getValue());
-				stateChanged(null);
-			}
-		}
-
-		public boolean isEnabled() {
-			return slider.isEnabled();
-		}
-
-		public void setEnabled(boolean enabled) {
-			slider.setEnabled(enabled);
-		}
-
-		public int getMinimum() {
-			return slider.getMinimum();
-		}
-
-		public int getMaximum() {
-			return slider.getMaximum();
-		}
-
-		public void setMinimum(int value) {
-			slider.setMinimum(value);
-		}
-
-		public void setMaximum(int value) {
-			slider.setMaximum(value);
-		}
-
-		public Dictionary getLabelTable() {
-			return slider.getLabelTable();
-		}
-
-		public void setLabelTable(Dictionary table) {
-			slider.setLabelTable(table);
-		}
-	}
-
-	protected class LimitedRangeCheckbox extends JPanel implements ActionListener, ItemListener {
-		protected IntegerField min, max;
-		protected JButton zoomIn, zoomOut;
-		protected JCheckBox checkbox;
-		protected MotorSlider slider;
-		protected Dictionary originalLabels, limitedLabels;
-		protected int originalMin, originalMax;
-		protected int limitedMin, limitedMax;
-		protected String prefsKey;
-
-		public LimitedRangeCheckbox(String label, MotorSlider slider, int min, int max, String prefsKey) {
-			String prefsKeyMin = null, prefsKeyMax = null;
-			if (prefsKey != null) {
-				this.prefsKey = prefsKey;
-				prefsKeyMin = prefsKey + ".x";
-				prefsKeyMax = prefsKey + ".y";
-			}
-
-			setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));
-
-			zoomIn = new JButton("Zoom In");
-			add(zoomIn);
-
-			zoomOut = new JButton("Zoom Out");
-			add(zoomOut);
-
-			checkbox = new JCheckBox(label);
-			add(checkbox);
-			this.min = new IntegerField(min, prefsKeyMin);
-			add(this.min);
-			add(new JLabel(" to "));
-			this.max = new IntegerField(max, prefsKeyMax);
-			add(this.max);
-
-			this.slider = slider;
-			originalLabels = slider.getLabelTable();
-			originalMin = slider.getMinimum();
-			originalMax = slider.getMaximum();
-			limitedMin = this.min.getValue();
-			limitedMax = this.max.getValue();
-			checkbox.setSelected(false);
-
-			zoomIn.addActionListener(this);
-			zoomOut.addActionListener(this);
-			checkbox.addItemListener(this);
-		}
-
-		@Override
-		public void setEnabled(boolean enabled) {
-			checkbox.setEnabled(enabled);
-			min.setEnabled(enabled);
-			max.setEnabled(enabled);
-		}
-
-		@Override
-		public void itemStateChanged(ItemEvent e) {
-			if (e.getStateChange() == ItemEvent.SELECTED) {
-				limit(min.getValue(), max.getValue());
-			}
-			else {
-				reset();
-			}
-		}
-
-		protected void limit(int min, int max) {
-			if (min == originalMin && max == originalMax) {
-				reset();
-				return;
-			}
-			limitedMin = min;
-			limitedMax = max;
-			limitedLabels = makeLabelTable(limitedMin, limitedMax, 5);
-			int current = slider.getValue();
-			if (current < limitedMin)
-				slider.setValue(limitedMin, true);
-			else if (current > limitedMax)
-				slider.setValue(limitedMax, true);
-			slider.setMinimum(limitedMin);
-			slider.setMaximum(limitedMax);
-			slider.setLabelTable(limitedLabels);
-			if (!checkbox.isSelected())
-				checkbox.setSelected(true);
-		}
-
-		protected void reset() {
-			slider.setMinimum(originalMin);
-			slider.setMaximum(originalMax);
-			slider.setLabelTable(originalLabels);
-			if (checkbox.isSelected())
-				checkbox.setSelected(false);
-		}
-
-		protected void adjustRange(int range) {
-			int current = slider.getValue();
-			int min, max;
-			if (current - originalMin < range / 2)
-				min = originalMin;
-			else if (originalMax - current < range / 2)
-				min = Math.max(originalMin, originalMax - range);
-			else
-				min = current - range / 2;
-			max = Math.min(originalMax, min + range);
-			this.min.setText("" + min);
-			this.max.setText("" + max);
-			limit(min, max);
-		}
-
-		@Override
-		public void actionPerformed(ActionEvent e) {
-			int min = originalMin, max = originalMax;
-			if (checkbox.isSelected()) {
-				min = limitedMin;
-				max = limitedMax;
-			}
-			Object source = e.getSource();
-			if (source == zoomIn) {
-				int range = (max - min) / 2;
-				if (range >= 50)
-					adjustRange(range);
-			}
-			else if (source == zoomOut)
-				adjustRange((max - min) * 2);
-		}
-	}
-
-	protected static Dictionary makeLabelTable(int min, int max, int count) {
+	public static Dictionary<Integer, JLabel> makeLabelTable(int min, int max, int count) {
 		int spacing = (int)((max - min) / count);
 		spacing = 100 * ((spacing + 50) / 100); // round to nearest 100
 		Hashtable<Integer, JLabel> table = new Hashtable<Integer, JLabel>();
@@ -808,73 +520,6 @@ public class SPIMAcquisition implements MMPlugin {
 		for (int i = max; i > min; i -= spacing)
 			table.put(i, new JLabel("" + i));
 		return table;
-	}
-
-	protected class IntegerField extends JTextField {
-		protected String prefsKey;
-
-		public IntegerField(int value) {
-			this(value, 4, null);
-		}
-
-		public IntegerField(int value, String prefsKey) {
-			this(value, 4, prefsKey);
-		}
-
-		public IntegerField(int value, int columns) {
-			this(value, columns, null);
-		}
-
-		public IntegerField(int value, int columns, String prefsKey) {
-			super(columns);
-			this.prefsKey = prefsKey;
-			setText("" + prefsGet(prefsKey, value));
-			addKeyListener(new KeyAdapter() {
-				@Override
-				public void keyReleased(KeyEvent e) {
-					if (e.getKeyCode() != KeyEvent.VK_ENTER)
-						return;
-					handleChange();
-				}
-			});
-			addFocusListener(new FocusAdapter() {
-				@Override
-				public void focusLost(FocusEvent e) {
-					handleChange();
-				}
-			});
-		}
-
-		protected void handleChange() {
-			int value = getValue();
-			valueChanged(value);
-			prefsSet(prefsKey, value);
-		}
-
-		public int getValue() {
-			String typed = getText();
-			if(!typed.matches("\\d+"))
-				return 0;
-			return Integer.parseInt(typed);
-		}
-
-		public void valueChanged(int value) {}
-	}
-
-	protected class IntegerSliderField extends IntegerField {
-		protected MotorSlider slider;
-
-		public IntegerSliderField(MotorSlider slider) {
-			super(slider.getValue());
-			this.slider = slider;
-			((MotorSlider)slider).updating = this;
-		}
-
-		@Override
-		public void valueChanged(int value) {
-			if (slider != null)
-				slider.setValue(value);
-		}
 	}
 
 	protected void setZStageVelocity() {
@@ -897,13 +542,13 @@ public class SPIMAcquisition implements MMPlugin {
 
 	protected final static String prefsPrefix = "org.tomancak.spim.";
 
-	protected int prefsGet(String key, int defaultValue) {
+	public static int prefsGet(String key, int defaultValue) {
 		if (key == null)
 			return defaultValue;
 		return prefs.getInt(prefsPrefix + key, defaultValue);
 	}
 
-	protected void prefsSet(String key, int value) {
+	public static void prefsSet(String key, int value) {
 		if (key != null)
 			prefs.putInt(prefsPrefix + key, value);
 	}
@@ -916,65 +561,6 @@ public class SPIMAcquisition implements MMPlugin {
 				gui.updateImage();
 			}
 		}
-	}
-
-	protected abstract static class RunTo extends Thread {
-		protected int goal, current = Integer.MAX_VALUE;
-		protected String label;
-
-		public RunTo(String label) {
-			super(label);
-			this.label = label;
-		}
-
-		@Override
-		public void run() {
-			for (;;) try {
-				if (goal != current) synchronized (this) {
-					if (get() == goal) {
-						ReportingUtils.logMessage("Reached goal (" + label + "): " + goal);
-						current = goal;
-						done();
-						notifyAll();
-					}
-				}
-				Thread.currentThread().sleep(50);
-			} catch (Exception e) {
-				return;
-			}
-		}
-
-		public void run(int value) {
-			synchronized (this) {
-				if (goal == value) {
-					done();
-					return;
-				}
-				goal = value;
-				ReportingUtils.logMessage("Setting goal: " + goal);
-				try {
-					set(goal);
-				} catch (Exception e) {
-					return;
-				}
-				synchronized (this) {
-					if (!isAlive())
-						start();
-					try {
-						wait();
-					} catch (InterruptedException e) {
-						return;
-					}
-					ReportingUtils.logMessage("Reached goal & returning: " + goal);
-				}
-			}
-		}
-
-		public abstract int get() throws Exception ;
-
-		public abstract void set(int value) throws Exception;
-
-		public abstract void done();
 	}
 
 	protected RunTo runToX = new RunTo("x") {
