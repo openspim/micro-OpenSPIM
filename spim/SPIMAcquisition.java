@@ -196,6 +196,7 @@ public class SPIMAcquisition implements MMPlugin {
 
 	// UI stuff
 
+	@SuppressWarnings("serial")
 	protected void initUI() {
 		if (frame != null)
 			return;
