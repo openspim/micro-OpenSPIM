@@ -482,12 +482,26 @@ public class SPIMAcquisition implements MMPlugin {
 	}
 
 	protected int angle2TwisterPosition(int angle) {
+		// always round towards zero
 		return angle * 200 / 360;
 	}
 
 	protected int twisterPosition2Angle(int position) {
-		// we need to guarantee that angle2Twister(twister2Angle(pos)) == pos
+		// we need to guarantee that angle2Twister(twister2Angle(pos)) == pos,
+		// so always round away from zero
 		return (position * 360 + 199 * (position < 0 ? -1 : +1)) / 200;
+	}
+
+	protected boolean testTwisterPosition2Angle() {
+		boolean error = false;
+		for (int pos = -20000; pos <= 20000; pos++)
+			if (angle2TwisterPosition(twisterPosition2Angle(pos)) != pos) {
+				System.err.println("pos (" + pos + ") -> "
+						+ twisterPosition2Angle(pos) + " -> "
+						+ angle2TwisterPosition(twisterPosition2Angle(pos)));
+				error = true;
+			}
+		return error;
 	}
 
 	// UI helpers
