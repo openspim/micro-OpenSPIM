@@ -115,9 +115,26 @@ public class SPIMAcquisition implements MMPlugin {
 	@Override
 	public void show() {
 		prefs = Preferences.userNodeForPackage(getClass());
+		ensurePixelResolution();
 		initUI();
 		configurationChanged();
 		frame.setVisible(true);
+	}
+   
+	/**
+	 * Makes sure we have at least a default 1:1 pixel size config.
+	 */
+	public void ensurePixelResolution() {
+		try {
+			if(mmc.getPixelSizeUm() <= 0) {
+				mmc.definePixelSizeConfig(UNCALIBRATED, "Core", "Initialize", "1");
+				mmc.setPixelSizeUm(UNCALIBRATED, 1);
+				mmc.setPixelSizeConfig(UNCALIBRATED);
+				ReportingUtils.logMessage("Defined uncalibrated pixel size (1:1).");
+			}
+		} catch (Exception e) {
+			ReportingUtils.logException("Couldn't define uncalibrated pixel size: ", e);
+		}
 	}
    
 	/**
