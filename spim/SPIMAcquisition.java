@@ -68,6 +68,8 @@ public class SPIMAcquisition implements MMPlugin {
 
 	private static Preferences prefs;
 
+	private final String UNCALIBRATED = "Uncalibrated";
+
 	// MMPlugin stuff
 
 	/**
