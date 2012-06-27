@@ -4,6 +4,7 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.GenericDialog;
+import ij.gui.ImageWindow;
 import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
 import ij.process.ShortProcessor;
@@ -18,6 +19,10 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.event.MouseMotionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.KeyEvent;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.prefs.BackingStoreException;
@@ -39,7 +44,7 @@ import org.micromanager.api.MMPlugin;
 import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.ReportingUtils;
 
-public class SPIMAcquisition implements MMPlugin {
+public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListener {
 	// TODO: read these from the properties
 	protected int motorMin = 1, motorMax = 8000,
 		twisterMin = -180, twisterMax = 180;
@@ -122,7 +127,7 @@ public class SPIMAcquisition implements MMPlugin {
 		configurationChanged();
 		frame.setVisible(true);
 	}
-   
+
 	/**
 	 * Makes sure we have at least a default 1:1 pixel size config.
 	 */
@@ -431,8 +436,26 @@ public class SPIMAcquisition implements MMPlugin {
 			@Override
 			public void windowGainedFocus(WindowEvent e) {
 				updateMotorPositions();
+				hookLiveWindowListeners();
 			}
 		});
+	}
+
+	private void hookLiveWindowListeners() {
+		// TODO: This is definitely not the right way to do this!
+		// Whenever we get focus, try to hook into the live window.
+		if(!gui.isLiveModeOn())
+			return;
+
+		ImageWindow win = gui.getImageWin();
+		if(win.isValid() && win.isVisible()) {
+			win.getCanvas().removeKeyListener(this);
+			win.getCanvas().removeMouseMotionListener(this);
+			win.getCanvas().addKeyListener(this);
+			win.getCanvas().addMouseMotionListener(this);
+			ReportingUtils.logMessage("Hooked mouse " +
+				"listeners onto image canvas.");
+		}
 	}
 
 	protected void updateUI() {
@@ -499,6 +522,44 @@ public class SPIMAcquisition implements MMPlugin {
 			IJ.handleException(e);
 		}
 	}
+
+	private int lastMouseX = -1;
+
+	public void mouseDragged(MouseEvent me) {}
+
+	public void mouseMoved(MouseEvent me) {
+		if(me.isAltDown()) {
+			// TODO: Rotate, then translate to keep axis fixed.
+			if(lastMouseX < 0) {
+				lastMouseX = me.getX();
+				return;
+			}
+
+			int delta = me.getX() - lastMouseX;
+			lastMouseX = me.getX();
+
+			// For now, at least, one pixel is going to be about
+			// .1 degrees.
+
+			try {
+				mmc.setRelativePosition(
+					twisterLabel,
+					delta * 0.1);
+			} catch (Exception e) {
+				ReportingUtils.logException(
+					"Couldn't move stage: ", e);
+			}
+		}
+	}
+
+	public void keyPressed(KeyEvent ke) {
+		// TODO: Using calibrated(?) axis of rotation, set up our
+		// translated axis information.
+	}
+
+	public void keyReleased(KeyEvent ke) {}
+
+	public void keyTyped(KeyEvent ke) {}
 
 	protected int angle2TwisterPosition(int angle) {
 		// always round towards zero
