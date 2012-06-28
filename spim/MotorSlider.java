@@ -73,6 +73,8 @@ public abstract class MotorSlider extends JPanel implements ChangeListener {
 		add(minus, BorderLayout.WEST);
 		add(slider, BorderLayout.CENTER);
 		add(plus, BorderLayout.EAST);
+
+		invokeChanger = true;
 	}
 
 	@Override
@@ -85,18 +87,21 @@ public abstract class MotorSlider extends JPanel implements ChangeListener {
 				updating.setBackground(Color.YELLOW);
 				updating.setText("" + value);
 			}
-		}
-		else
-			new Thread() {
-				@Override
-				public void run() {
-					if (updating != null)
-						updating.setBackground(background);
-					synchronized (MotorSlider.this) {
-						valueChanged(value);
+		} else {
+			if (updating != null)
+				updating.setBackground(background);
+
+			if(invokeChanger) {
+				new Thread() {
+					@Override
+					public void run() {
+						synchronized (MotorSlider.this) {
+							valueChanged(value);
+						}
 					}
-				}
-			}.start();
+				}.start();
+			}
+		}
 	}
 
 	protected void handleChange(int value) {
@@ -126,11 +131,26 @@ public abstract class MotorSlider extends JPanel implements ChangeListener {
 	}
 
 	public void setValue(int value, boolean updateText) {
+		if(value == getValue())
+			return;
+
 		slider.setValue(value);
+
 		if (updateText && updating != null) {
 			updating.setText("" + getValue());
 			stateChanged(null);
 		}
+	}
+
+	private boolean invokeChanger;
+
+	public void updateValueQuietly(int value) {
+		if(slider.getValueIsAdjusting())
+			return;
+
+		invokeChanger = false;
+		setValue(value, true);
+		invokeChanger = true;
 	}
 
 	public boolean isEnabled() {
