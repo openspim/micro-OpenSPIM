@@ -25,6 +25,8 @@ import java.awt.event.KeyListener;
 import java.awt.event.KeyEvent;
 import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
@@ -73,7 +75,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 	private static Preferences prefs;
 
+	private Timer timer;
+
 	private final String UNCALIBRATED = "Uncalibrated";
+	private final long MOTORS_UPDATE_PERIOD = 1000;
 
 	// MMPlugin stuff
 
@@ -102,6 +107,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		runToY.interrupt();
 		runToZ.interrupt();
 		runToAngle.interrupt();
+		timer.cancel();
 	}
    
 	/**
@@ -436,26 +442,17 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			@Override
 			public void windowGainedFocus(WindowEvent e) {
 				updateMotorPositions();
-				hookLiveWindowListeners();
 			}
 		});
-	}
 
-	private void hookLiveWindowListeners() {
-		// TODO: This is definitely not the right way to do this!
-		// Whenever we get focus, try to hook into the live window.
-		if(!gui.isLiveModeOn())
-			return;
+		timer = new java.util.Timer(true);
 
-		ImageWindow win = gui.getImageWin();
-		if(win.isValid() && win.isVisible()) {
-			win.getCanvas().removeKeyListener(this);
-			win.getCanvas().removeMouseMotionListener(this);
-			win.getCanvas().addKeyListener(this);
-			win.getCanvas().addMouseMotionListener(this);
-			ReportingUtils.logMessage("Hooked mouse " +
-				"listeners onto image canvas.");
-		}
+		timer.scheduleAtFixedRate(new TimerTask() {
+			@Override
+			public void run() {
+				updateMotorPositions();
+			}
+		}, 0, MOTORS_UPDATE_PERIOD);
 	}
 
 	protected void updateUI() {
