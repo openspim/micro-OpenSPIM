@@ -551,33 +551,42 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		}
 	}
 
-	private int lastMouseX = -1;
+	private int mouseStartX = -1;
+	private double stageStartT = -1;
 
 	public void mouseDragged(MouseEvent me) {}
 
 	public void mouseMoved(MouseEvent me) {
 		if(me.isAltDown()) {
 			// TODO: Rotate, then translate to keep axis fixed.
-			if(lastMouseX < 0) {
-				lastMouseX = me.getX();
+			if(mouseStartX < 0)
+			{
+				mouseStartX = me.getX();
+				try {
+					stageStartT = mmc.getPosition(twisterLabel);
+				} catch(Exception e) {
+					ReportingUtils.logError(e);
+				}
+				ReportingUtils.logMessage("Reset X=" + mouseStartX + ", T=" + stageStartT);
 				return;
 			}
 
-			int delta = me.getX() - lastMouseX;
-			lastMouseX = me.getX();
+			int delta = me.getX() - mouseStartX;
 
 			// For now, at least, one pixel is going to be about
 			// .1 degrees.
 
 			try {
-				mmc.setRelativePosition(
+				mmc.setPosition(
 					twisterLabel,
-					delta * 0.1);
+					stageStartT + delta * 0.1);
 			} catch (Exception e) {
 				ReportingUtils.logException(
 					"Couldn't move stage: ", e);
 			}
-		}
+		} else if(mouseStartX >= 0) {
+			mouseStartX = -1;
+		};
 	}
 
 	public void keyPressed(KeyEvent ke) {
