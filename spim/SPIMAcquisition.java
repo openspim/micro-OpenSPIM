@@ -108,6 +108,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		runToZ.interrupt();
 		runToAngle.interrupt();
 		timer.cancel();
+		hookLiveControls(false);
 	}
    
 	/**
@@ -131,7 +132,37 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		ensurePixelResolution();
 		initUI();
 		configurationChanged();
+
+		if(!gui.isLiveModeOn())
+			gui.enableLiveMode(true);
+
 		frame.setVisible(true);
+
+		hookLiveControls(true);
+	}
+
+	private boolean liveControlsHooked;
+
+	/**
+	 * Embed our listeners in the live window's canvas space.
+	 */
+	public void hookLiveControls(boolean hook) {
+		if(!gui.isLiveModeOn() || hook == liveControlsHooked)
+			return;
+
+		ImageWindow win = gui.getImageWin();
+		if(win != null && win.isVisible()) {
+			if(!hook) {
+				win.getCanvas().removeMouseMotionListener(this);
+				win.getCanvas().removeKeyListener(this);
+			} else {
+				win.getCanvas().addMouseMotionListener(this);
+				win.getCanvas().addKeyListener(this);
+			}
+			liveControlsHooked = hook;
+		} else {
+			ReportingUtils.logException("Couldn't set hooked=" + hook, new NullPointerException("win=" + win + ", val?" + win.isValid() + ", vis?" + win.isVisible()));
+		}
 	}
 
 	/**
