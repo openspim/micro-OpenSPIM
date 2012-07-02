@@ -567,7 +567,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				} catch(Exception e) {
 					ReportingUtils.logError(e);
 				}
-				ReportingUtils.logMessage("Reset X=" + mouseStartX + ", T=" + stageStartT);
 				return;
 			}
 
