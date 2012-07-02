@@ -522,20 +522,20 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		if (xyStageLabel != null) try {
 			int x = (int)mmc.getXPosition(xyStageLabel);
 			int y = (int)mmc.getYPosition(xyStageLabel);
-			xSlider.setValue(x, true);
-			ySlider.setValue(y, true);
+			xSlider.updateValueQuietly(x);
+			ySlider.updateValueQuietly(y);
 		} catch (Exception e) {
 			IJ.handleException(e);
 		}
 		if (zStageLabel != null) try {
 			int z = (int)mmc.getPosition(zStageLabel);
-			zSlider.setValue(z, true);
+			zSlider.updateValueQuietly(z);
 		} catch (Exception e) {
 			IJ.handleException(e);
 		}
 		if (twisterLabel != null) try {
 			int position = (int)mmc.getPosition(twisterLabel);
-			rotationSlider.setValue(twisterPosition2Angle(position), true);
+			rotationSlider.updateValueQuietly(twisterPosition2Angle(position));
 		} catch (Exception e) {
 			IJ.handleException(e);
 		}
