@@ -1,5 +1,7 @@
 package spim;
 
+import spim.LayoutUtils;
+
 import java.awt.GridLayout;
 import java.awt.Rectangle;
 
@@ -9,6 +11,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
@@ -25,8 +28,15 @@ import mmcorej.CMMCore;
 import org.micromanager.MMStudioMainFrame;
 import org.micromanager.utils.ReportingUtils;
 
-import org.apache.commons.math.geometry.Vector3D;
-import org.apache.commons.math.geometry.Rotation;
+import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
+import org.apache.commons.math.geometry.euclidean.threed.Rotation;
+
+import org.apache.commons.math.linear.RealMatrix;
+import org.apache.commons.math.linear.RealVector;
+import org.apache.commons.math.linear.DecompositionSolver;
+import org.apache.commons.math.linear.Array2DRowRealMatrix;
+import org.apache.commons.math.linear.ArrayRealVector;
+import org.apache.commons.math.linear.QRDecompositionImpl;
 
 public class SPIMCalibrator extends JFrame implements ActionListener {
 	private CMMCore core;
@@ -37,10 +47,9 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 	private JButton psrRoiPickerBtn;
 	private JTextField psrX, psrY;
 
-	private Roi rotInitRoi, rotMidRoi, rotFinalRoi;
-	private double rotInitZ, rotMidZ, rotFinalZ;
+	private Vector3D rotVecInit, rotVecMid, rotVecFinal;
 	private JButton rotPickInit, rotPickMid, rotPickFinal;
-	private JTextField thetaInit, dTheta1, dTheta2;
+	private JTextField thetaInit, dTheta;
 
 	private JLabel umPerPixLbl, rotAxisLbl, rotPosLbl;
 
@@ -55,46 +64,19 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 
 		setLayout(new BoxLayout(getContentPane(), BoxLayout.PAGE_AXIS));
 
-		JPanel pixSize = new JPanel();
-		pixSize.setLayout(new GridLayout(2, 1, 2, 2));
-		pixSize.setBorder(BorderFactory.createTitledBorder("Pixel Size"));
+		add(LayoutUtils.vertPanel("Pixel Size",
+			psrRoiPickerBtn = new JButton(PICK_ROI),
+			LayoutUtils.horizPanel(
+				LayoutUtils.labelMe(psrX = new JTextField(4),
+						    "Width (\u03BCm):"),
+				(JComponent) Box.createHorizontalStrut(4),
+				LayoutUtils.labelMe(psrY = new JTextField(4),
+						    "Height (\u03BCm):")
+			)
+		));
 
-		pixSize.add(psrRoiPickerBtn = new JButton(PICK_ROI));
 		psrRoiPickerBtn.setActionCommand(PICK_ROI);
 		psrRoiPickerBtn.addActionListener(this);
-
-		JPanel pixSizeTBs = new JPanel();
-		pixSizeTBs.setLayout(new BoxLayout(pixSizeTBs, BoxLayout.LINE_AXIS));
-
-		pixSizeTBs.add(new JLabel("Width (\u03BCm):"));
-		pixSizeTBs.add(psrX = new JTextField(8));
-		pixSizeTBs.add(Box.createHorizontalStrut(4));
-		pixSizeTBs.add(new JLabel("Height (\u03BCm):"));
-		pixSizeTBs.add(psrY = new JTextField(8));
-
-		pixSize.add(pixSizeTBs);
-
-		add(pixSize);
-
-		JPanel rotAxis = new JPanel();
-		rotAxis.setLayout(new GridLayout(3, 3, 2, 2));
-		rotAxis.setBorder(BorderFactory.createTitledBorder("Rotational Axis"));
-
-		rotAxis.add(rotPickInit = new JButton(PICK_ROI));
-		rotAxis.add(rotPickMid = new JButton(PICK_ROI));
-		rotAxis.add(rotPickFinal = new JButton(PICK_ROI));
-
-		rotPickInit.setActionCommand(PICK_ROI);
-		rotPickMid.setActionCommand(PICK_ROI);
-		rotPickFinal.setActionCommand(PICK_ROI);
-
-		rotPickInit.addActionListener(this);
-		rotPickMid.addActionListener(this);
-		rotPickFinal.addActionListener(this);
-
-		rotAxis.add(labelTF(thetaInit = new JTextField(8), "Initial \u03B8:"));
-		rotAxis.add(labelTF(dTheta1 = new JTextField(8), "First \u0394\u03B8:"));
-		rotAxis.add(labelTF(dTheta2 = new JTextField(8), "Second \u0394\u03B8:"));
 
 		JButton goto0 = new JButton("Goto \u03B80");
 		JButton goto1 = new JButton("Goto \u03B81");
@@ -104,43 +86,58 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 		goto1.addActionListener(this);
 		goto2.addActionListener(this);
 
-		rotAxis.add(goto0);
-		rotAxis.add(goto1);
-		rotAxis.add(goto2);
+		JComponent rotAxis2 = LayoutUtils.vertPanel(
+			LayoutUtils.horizPanel(
+				rotPickInit = new JButton(PICK_ROI),
+				rotPickMid = new JButton(PICK_ROI),
+				rotPickFinal = new JButton(PICK_ROI)
+			),
+			LayoutUtils.horizPanel(
+				LayoutUtils.labelMe(thetaInit = new JTextField(6), "Initial \u03B8:"),
+				(JComponent) Box.createHorizontalStrut(4),
+				LayoutUtils.labelMe(dTheta = new JTextField(6), "\u0394\u03B8:")
+			),
+			LayoutUtils.horizPanel(
+				goto0,
+				goto1,
+				goto2
+			)
+		);
 
-		add(rotAxis);
+		rotAxis2.setBorder(BorderFactory.createTitledBorder("Rotational Axis"));
 
-		JPanel btn = new JPanel();
-		btn.setLayout(new BoxLayout(btn, BoxLayout.LINE_AXIS));
+		add(rotAxis2);
 
-		JPanel calcResults = new JPanel();
-		calcResults.setLayout(new BoxLayout(calcResults, BoxLayout.PAGE_AXIS));
-		calcResults.setBorder(BorderFactory.createTitledBorder("Calculated Results"));
+		rotPickInit.setActionCommand(PICK_ROI);
+		rotPickMid.setActionCommand(PICK_ROI);
+		rotPickFinal.setActionCommand(PICK_ROI);
 
-		calcResults.add(umPerPixLbl = new JLabel("\u03BCm per pixel: Unknown"));
-		calcResults.add(rotAxisLbl = new JLabel("Rotational axis: Unknown"));
-		calcResults.add(rotPosLbl = new JLabel("Rot. axis origin: Unknown"));
-
-		btn.add(calcResults);
-
-		btn.add(Box.createHorizontalGlue());
+		rotPickInit.addActionListener(this);
+		rotPickMid.addActionListener(this);
+		rotPickFinal.addActionListener(this);
 
 		JButton recalc = new JButton("Recalculate");
 		recalc.addActionListener(this);
 
-		btn.add(recalc);
-
 		JButton ok = new JButton("OK");
 		ok.addActionListener(this);
 
-		btn.add(ok);
-
-		add(btn);
+		add(LayoutUtils.horizPanel(
+			LayoutUtils.vertPanel("Calculated Results",
+				umPerPixLbl = new JLabel("\u03BCm per pixel: Unknown"),
+				rotAxisLbl = new JLabel("Rotational axis: Unknown"),
+				rotPosLbl = new JLabel("Rot. axis origin: Unknown")
+			),
+			(JComponent) Box.createHorizontalGlue(),
+			LayoutUtils.vertPanel(
+				recalc,
+				ok
+			)
+		));
 
 		pack();
 
-		dTheta1.setText("25");
-		dTheta2.setText("25");
+		dTheta.setText("25");
 
 		try {
 			thetaInit.setText("" + core.getPosition(twisterLabel));
@@ -183,10 +180,48 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 		return mean;
 	}
 
-	private Rotation cachedRot;
+	private Vector3D cachedAxis;
 	private Vector3D cachedPos;
 
-	private void calculateRotationAxis() {};
+	private Vector3D roiToVec(Roi roi, double z) {
+		Rectangle r = roi.getBounds();
+
+		return new Vector3D(r.getX() + r.getWidth() / 2,
+				    r.getY() + r.getHeight() / 2,
+				    z);
+	}
+
+	private RealVector v3dToRVec(Vector3D in) {
+		return new ArrayRealVector(new double[] {
+			in.getX(),
+			in.getY(),
+			in.getZ()
+		});
+	}
+
+	private Vector3D rvecToV3D(RealVector rv) {
+		double[] comps = rv.toArray();
+
+		return new Vector3D(comps[0], comps[1], comps[2]);
+	};
+
+	private void calculateRotationAxis() {
+		// TODO: Find a way to compute both the position and direction in-place.
+		Rotation rot = new Rotation(rotVecInit, rotVecMid, rotVecMid, rotVecFinal);
+
+		RealMatrix rotm = new Array2DRowRealMatrix(rot.getMatrix());
+
+		RealVector b = rotm.operate(v3dToRVec(rotVecInit)).subtract(v3dToRVec(rotVecMid));
+
+		RealMatrix a = rotm.add(new Array2DRowRealMatrix(new double[][] {{-1,0,0},{0,-1,0},{0,0,-1}}));
+
+		DecompositionSolver s = new QRDecompositionImpl(a).getSolver();
+
+		RealVector pos = s.solve(b);
+
+		cachedAxis = rot.getAxis();
+		cachedPos = rvecToV3D(pos);
+	};
 
 	public Vector3D getRotationOrigin() {return null;}
 
@@ -198,8 +233,31 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 		umPerPixLbl.setText("\u03BCm per pixel: " + (getUmPerPixel() > 0 ? Double.toString(getUmPerPixel()) : "Unknown"));
 	}
 
+	private String vToString(Vector3D in) {
+		return new String("<" + in.getX() + ", " + in.getY() + ", " + in.getZ() + ">");
+	}
+
 	private void redisplayRotData() {
-	};
+		rotAxisLbl.setText("Rotational axis: " + (cachedAxis != null ? vToString(cachedAxis) : "Unknown"));
+		rotPosLbl.setText("Rot. axis origin: " + (cachedPos != null ? vToString(cachedPos) : "Unknown"));
+	}
+
+	private Vector3D pickRoiVec(Rectangle roi) {
+		try {
+			double x = (roi.getX() + roi.getWidth() / 2)*getUmPerPixel();
+			double y = (roi.getY() + roi.getWidth() / 2)*getUmPerPixel();
+			double z = core.getPosition(core.getFocusDevice());
+
+			x += core.getXPosition(core.getXYStageDevice());
+			y += core.getYPosition(core.getXYStageDevice());
+
+			return new Vector3D(x, y, z);
+		} catch(Exception e) {
+			ReportingUtils.logError(e);
+
+			return null;
+		}
+	}
 
 	@Override
 	public void actionPerformed(ActionEvent ae) {
@@ -213,25 +271,21 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 				redisplayUmPerPix();
 			} else {
 				try {
+					Vector3D vec = pickRoiVec(activeRoi.getBounds());
 					if(rotPickInit.equals(ae.getSource())) {
-						rotInitRoi = activeRoi;
-						rotInitZ = core.getPosition(core.getFocusDevice());
+						rotVecInit = vec;
 					} else if(rotPickMid.equals(ae.getSource())) {
-						rotMidRoi = activeRoi;
-						rotMidZ = core.getPosition(core.getFocusDevice());
+						rotVecMid = vec;
 					} else if(rotPickFinal.equals(ae.getSource())) {
-						rotFinalRoi = activeRoi;
-						rotFinalZ = core.getPosition(core.getFocusDevice());
+						rotVecFinal = vec;
 					} else {
 						throw new Error("PICK_ROI from unknown component!");
 					}
+
+					roiText = vToString(vec);
 				} catch(Exception e) {
 					throw new Error("Couldn't determine Z");
 				}
-				Rectangle r = activeRoi.getBounds();
-				double x = r.getX() + r.getWidth() / 2;
-				double y = r.getY() + r.getHeight() / 2;
-				roiText = x + ", " + y;
 
 				redisplayRotData();
 			}
@@ -240,9 +294,7 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 		} else if(ae.getActionCommand().startsWith("Goto")) {
 			double thetaDest = Double.parseDouble(thetaInit.getText());
 			if(!ae.getActionCommand().endsWith("0")) {
-				thetaDest += Double.parseDouble(dTheta1.getText());
-				if(ae.getActionCommand().endsWith("2"))
-					thetaDest += Double.parseDouble(dTheta2.getText());
+				thetaDest += Double.parseDouble(dTheta.getText()) * (ae.getActionCommand().endsWith("1") ? 1 : 2);
 			}
 
 			try {
@@ -250,6 +302,11 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 			} catch(Exception e) {
 				ReportingUtils.logError(e);
 			}
+		} else if(ae.getActionCommand().equals("Recalculate")) {
+			calculateRotationAxis();
+
+			redisplayRotData();
+			redisplayUmPerPix();
 		}
 	}
 }
