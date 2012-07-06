@@ -1,0 +1,39 @@
+<!-- Ant makefile for the Micro-Manager SPIMAcquisition plugin  -->
+<!-- This file assumes Micro-Manager project tree structure -->
+
+<project name="SPIMAcquisition" default="build">
+	<target name="compile" description="Compile SPIMAcquisition plugin.">
+		<!-- SPIMAcquisition depends on GaussianFit. -->
+		<sequential>
+			<subant target="build">
+				<fileset dir="../" includes="Gaussian/build.xml"/>
+			</subant>
+			<mkdir dir="build" />
+			<javac srcdir="." destdir="./build" optimize="on" source="1.5" target="1.5" debug="on">
+				<classpath>
+					<pathelement path="../Gaussian/Gaussian.jar"/>
+					<fileset dir="../../bin_Win32/jars/" >
+						<include name="*.jar"/>
+					</fileset>
+					<fileset dir="../../bin_Win32/plugins/" >
+						<include name="*.jar"/>
+					</fileset>
+					<fileset dir="../../../3rdpartypublic/classext/" >
+						<include name="*.jar"/>
+					</fileset>
+				</classpath>
+			</javac>
+		</sequential>
+	</target>
+
+	<target name="build" depends="compile" description="Build SPIMAcquisition.jar">
+		<jar jarfile="SPIMAcquisition.jar" basedir="build" />
+		<copy file="SPIMAcquisition.jar" todir="..\..\bin_Win32\mmplugins\" />
+	</target>
+
+	<target name="clean" description="Delete the SPIMAcquisition build files.">
+		<delete dir="build" />
+		<delete file="SPIMAcquisition.jar" />
+	</target>
+
+</project>
