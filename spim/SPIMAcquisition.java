@@ -472,7 +472,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		frame.addWindowFocusListener(new WindowAdapter() {
 			@Override
 			public void windowGainedFocus(WindowEvent e) {
-				updateMotorPositions();
+				tryUpdateSliderPositions();
 			}
 		});
 
@@ -481,7 +481,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		timer.scheduleAtFixedRate(new TimerTask() {
 			@Override
 			public void run() {
-				updateMotorPositions();
+				try {
+					updateMotorPositions();
+				} catch (Exception e) {
+					ReportingUtils.logError(e);
+				}
 			}
 		}, 0, MOTORS_UPDATE_PERIOD);
 	}
@@ -515,39 +519,41 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		ohSnap.setEnabled(zStageLabel != null && cameraLabel != null);
 		ohSnap.setText(acquiring == null ? "Oh snap!" : "Abort!");
 
-		updateMotorPositions();
+		tryUpdateSliderPositions();
 	}
 
-	protected void updateMotorPositions() {
-		if (xyStageLabel != null) try {
+	protected void tryUpdateSliderPositions() {
+		try {
+			updateMotorPositions();
+		} catch(Exception e) {
+			IJ.handleException(e);
+		}
+	}
+
+	private void updateMotorPositions() throws Exception {
+		if (xyStageLabel != null) {
 			int x = (int)mmc.getXPosition(xyStageLabel);
 			int y = (int)mmc.getYPosition(xyStageLabel);
 			xSlider.updateValueQuietly(x);
 			ySlider.updateValueQuietly(y);
-		} catch (Exception e) {
-			IJ.handleException(e);
 		}
-		if (zStageLabel != null) try {
+
+		if (zStageLabel != null) {
 			int z = (int)mmc.getPosition(zStageLabel);
 			zSlider.updateValueQuietly(z);
-		} catch (Exception e) {
-			IJ.handleException(e);
 		}
-		if (twisterLabel != null) try {
+
+		if (twisterLabel != null) {
 			int position = (int)mmc.getPosition(twisterLabel);
 			rotationSlider.updateValueQuietly(twisterPosition2Angle(position));
-		} catch (Exception e) {
-			IJ.handleException(e);
 		}
-		if (laserLabel != null) try {
+
+		if (laserLabel != null) {
 			// TODO: get current laser power
-		} catch (Exception e) {
-			IJ.handleException(e);
 		}
-		if (cameraLabel != null) try {
+
+		if (cameraLabel != null) {
 			// TODO: get current exposure
-		} catch (Exception e) {
-			IJ.handleException(e);
 		}
 	}
 
@@ -573,7 +579,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			int delta = me.getX() - mouseStartX;
 
 			// For now, at least, one pixel is going to be about
-			// .1 degrees.
+			// .1 steps.
 
 			try {
 				mmc.setPosition(
