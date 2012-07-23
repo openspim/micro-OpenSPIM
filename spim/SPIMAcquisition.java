@@ -49,7 +49,7 @@ import org.micromanager.utils.ReportingUtils;
 public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListener {
 	// TODO: read these from the properties
 	protected int motorMin = 1, motorMax = 8000,
-		twisterMin = -180, twisterMax = 180;
+		twisterMin = -100, twisterMax = 100;
 
 	protected ScriptInterface app;
 	protected CMMCore mmc;
@@ -291,11 +291,21 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			}
 		};
 		limitedZRange = new LimitedRangeCheckbox("Limit range", zSlider, 500, 2500, "range.z");
-		rotationSlider = new MotorSlider(twisterMin, twisterMax, 0) {
+		rotationSlider = new MappedMotorSlider(twisterMin, twisterMax, 0) {
 			@Override
 			public void valueChanged(int value) {
-				runToAngle.run(angle2TwisterPosition(value));
+				runToAngle.run(value);
 				maybeUpdateImage();
+			}
+
+			@Override
+			public double displayForValue(double value) {
+				return twisterPosition2Angle(new Double(value).intValue());
+			}
+
+			@Override
+			public double valueForDisplay(double value) {
+				return angle2TwisterPosition(new Double(value).intValue());
 			}
 		};
 
@@ -648,14 +658,40 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	}
 
 	public static Dictionary<Integer, JLabel> makeLabelTable(int min, int max, int count) {
-		int spacing = (int)((max - min) / count);
-		spacing = 100 * ((spacing + 50) / 100); // round to nearest 100
+		return makeLabelTable(min, max, count, 100, -1);
+	}
+
+	public static Dictionary<Integer, JLabel> makeLabelTable(int min, int max, int count, int round, int align) {
+		float spacing = (max - min) / count;
+		if(round > 0)
+			spacing = Math.round(spacing / round) * round;
+
 		Hashtable<Integer, JLabel> table = new Hashtable<Integer, JLabel>();
+
 		table.put(min, new JLabel("" + min));
-		if (spacing <= 0)
-			spacing = 100;
-		for (int i = max; i > min; i -= spacing)
-			table.put(i, new JLabel("" + i));
+		table.put(max, new JLabel("" + max));
+
+		float step = spacing;
+
+		float start = min + step - 0.5f;
+		float labels = count - 2;
+
+		if(align == 0) {
+			float offset = ((max - min) % step) / 2;
+
+			System.out.println("Centered: Offset=" + offset);
+
+			start = min + (int)offset + step;
+		} else if(align > 0) {
+			start = max - step;
+			step = -spacing;
+		}
+
+		System.out.println("Making label table: start=" + start + ", step=" + step + ", lbls=" + labels);
+
+		for(int lbl = 0; lbl <= labels; ++lbl)
+			table.put((int)(start + step*lbl), new JLabel("" + (int)(start + step*lbl)));
+
 		return table;
 	}
 

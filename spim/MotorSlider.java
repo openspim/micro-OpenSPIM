@@ -45,7 +45,7 @@ public abstract class MotorSlider extends JPanel implements ChangeListener {
 		slider.setPaintTicks(true);
 
 		if (min == 1)
-			slider.setLabelTable(SPIMAcquisition.makeLabelTable(min, max, 5));
+			setLabelTable(SPIMAcquisition.makeLabelTable(min, max, 5));
 		slider.setPaintLabels(true);
 
 		slider.addChangeListener(this);
@@ -142,7 +142,7 @@ public abstract class MotorSlider extends JPanel implements ChangeListener {
 		}
 	}
 
-	private boolean invokeChanger;
+	protected boolean invokeChanger;
 
 	public void updateValueQuietly(int value) {
 		if(slider.getValueIsAdjusting())
