@@ -11,6 +11,7 @@ import ij.process.ShortProcessor;
 
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
@@ -25,28 +26,62 @@ import java.awt.event.KeyListener;
 import java.awt.event.KeyEvent;
 import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.Vector;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
 import javax.swing.BorderFactory;
+import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.ChangeEvent;
 
 import mmcorej.CMMCore;
+import mmcorej.DeviceType;
 
 import org.micromanager.MMStudioMainFrame;
 import org.micromanager.api.MMPlugin;
 import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.ReportingUtils;
 
-public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListener {
+import progacq.ProgrammaticAcquisitor;
+import progacq.RangeSlider;
+
+public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListener, ChangeListener, ActionListener {
+	private static final String BTN_STOP = "Abort!";
+	private static final String BTN_START = "Oh Snap!";
+
+	private JCheckBox acq_xyDevCB;
+	private JComboBox acq_xyDevCmbo;
+	private RangeSlider acq_rangeX;
+	private RangeSlider acq_rangeY;
+	private JCheckBox acq_zDevCB;
+	private JComboBox acq_zDevCmbo;
+	private RangeSlider acq_rangeZ;
+	private JCheckBox acq_tDevCB;
+	private JComboBox acq_tDevCmbo;
+	private RangeSlider acq_rangeTheta;
+	private JCheckBox acq_timeCB;
+	private JTextField acq_stepBox;
+	private JTextField acq_countBox;
+	private JCheckBox acq_timeoutCB;
+	private JTextField acq_timeoutValBox;
+	private JButton acq_goBtn;
+	private Thread acqThread;
+
 	// TODO: read these from the properties
 	protected int motorMin = 1, motorMax = 8000,
 		twisterMin = -100, twisterMax = 100;
@@ -60,14 +95,12 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 	protected JFrame frame;
 	protected IntegerField xPosition, yPosition, zPosition, rotation,
-		zFrom, zTo, stepsPerRotation, degreesPerStep,
-		laserPower, exposure, settleTime;
+		stepsPerRotation, degreesPerStep, laserPower, exposure, settleTime;
 	protected MotorSlider xSlider, ySlider, zSlider, rotationSlider,
 		laserSlider, exposureSlider;
 	protected LimitedRangeCheckbox limitedXRange, limitedYRange,
 		limitedZRange;
-	protected JCheckBox liveCheckbox, registrationCheckbox,
-		multipleAngleCheckbox, continuousCheckbox;
+	protected JCheckBox liveCheckbox, registrationCheckbox, continuousCheckbox;
 	protected JButton speedControl, ohSnap;
 
 	protected boolean updateLiveImage, zStageHasVelocity;
@@ -234,7 +267,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	@Override
 	public String getInfo() {
 		// TODO: be more verbose
-		return "See https://wiki.mpi-cbg.de/wiki/spiminabriefcase/";
+		return "See http://openspim.org/";
 	}
    
 	/**
@@ -314,24 +347,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		zPosition = new IntegerSliderField(zSlider);
 		rotation = new IntegerSliderField(rotationSlider);
 
-		zFrom = new IntegerField(1, "z.from") {
-			@Override
-			public void valueChanged(int value) {
-				if (value < motorMin)
-					setText("" + motorMin);
-				else if (value > motorMax)
-					setText("" + motorMax);
-			}
-		};
-		zTo = new IntegerField(motorMax, "z.to") {
-			@Override
-			public void valueChanged(int value) {
-				if (value < motorMin)
-					setText("" + motorMin);
-				else if (value > motorMax)
-					setText("" + motorMax);
-			}
-		};
 		degreesPerStep = new IntegerField(90, "degrees.per.rotation") {
 			@Override
 			public void valueChanged(int value) {
@@ -352,7 +367,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		addLine(left, Justification.RIGHT, limitedYRange);
 		addLine(left, Justification.STRETCH, "z:", zSlider);
 		addLine(left, Justification.RIGHT, limitedZRange);
-		addLine(left, Justification.RIGHT, "from z:", zFrom, "to z:", zTo);
 		addLine(left, Justification.STRETCH, "rotation:", rotationSlider);
 		addLine(left, Justification.RIGHT, "steps/rotation:", stepsPerRotation, "degrees/step:", degreesPerStep);
 
@@ -385,6 +399,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		liveCheckbox = new JCheckBox("Update Live View");
 		updateLiveImage = gui.isLiveModeOn();
 		liveCheckbox.setSelected(updateLiveImage);
+		liveCheckbox.setEnabled(false);
 		liveCheckbox.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent e) {
@@ -396,9 +411,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		registrationCheckbox = new JCheckBox("Perform SPIM registration");
 		registrationCheckbox.setSelected(false);
 		registrationCheckbox.setEnabled(false);
-		multipleAngleCheckbox = new JCheckBox("Multiple Rotation Angles");
-		multipleAngleCheckbox.setSelected(false);
-		multipleAngleCheckbox.setEnabled(false);
 
 		speedControl = new JButton("Set z-stage velocity");
 		speedControl.addActionListener(new ActionListener() {
@@ -423,59 +435,217 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			}
 		};
 
-		ohSnap = new JButton("Oh snap!");
-		ohSnap.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				if (acquiring != null) {
-					acquiring.interrupt();
-					try {
-						acquiring.join();
-					} catch (InterruptedException e2) {
-						// orderly shutdown
-					}
-					return;
-				}
-				final int zStart = zFrom.getValue();
-				final int zEnd = zTo.getValue();
-				final boolean isContinuous = continuousCheckbox.isSelected();
-				acquiring = new Thread() {
-					@Override
-					public void run() {
-						updateUI();
-						try {
-							ImagePlus image = isContinuous ?
-								snapContinuousStack(zStart, zEnd) : snapStack(zStart, zEnd, settleTime.getValue());
-							image.show();
-						} catch (InterruptedException e) {
-							// orderly shutdown of this thread
-						} catch (Exception e) {
-							IJ.handleException(e);
-						}
-						acquiring = null;
-						updateUI();
-					}
-				};
-				ohSnap.setText("Abort acquisition");
-				acquiring.start();
-			}
-		});
+		addLine(right, Justification.RIGHT, "Laser power:", laserPower, "exposure:", exposure);
+		addLine(right, Justification.STRETCH, "Laser:", laserSlider);
+		addLine(right, Justification.STRETCH, "Exposure:", exposureSlider);
+		addLine(right, Justification.RIGHT, liveCheckbox, registrationCheckbox, speedControl);
+		addLine(right, Justification.RIGHT, speedControl, /*continuousCheckbox,*/ "Delay to let z-stage settle (ms):", settleTime);
 
-		addLine(right, Justification.RIGHT, "laser power:", laserPower, "exposure:", exposure);
-		addLine(right, Justification.STRETCH, "laser:", laserSlider);
-		addLine(right, Justification.STRETCH, "exposure:", exposureSlider);
-		addLine(right, Justification.RIGHT, liveCheckbox);
-		addLine(right, Justification.RIGHT, registrationCheckbox);
-		addLine(right, Justification.RIGHT, multipleAngleCheckbox);
-		addLine(right, Justification.RIGHT, speedControl);
-		//addLine(right, Justification.RIGHT, continuousCheckbox);
-		addLine(right, Justification.RIGHT, "Delay to let z-stage settle (ms)", settleTime);
-		addLine(right, Justification.RIGHT, ohSnap);
+		JPanel stageControls = new JPanel();
+		stageControls.setName("Stage Controls");
+		stageControls.setLayout(new GridLayout(1, 2));
+		stageControls.add(left);
 
-		Container panel = frame.getContentPane();
-		panel.setLayout(new GridLayout(1, 2));
-		panel.add(left);
-		panel.add(right);
+		/**
+		 * 4D Sliders
+		 */
+		JPanel xy = new JPanel();
+		xy.setLayout(new BoxLayout(xy, BoxLayout.PAGE_AXIS));
+		xy.setBorder(BorderFactory.createTitledBorder("X/Y Stage"));
+
+		JPanel xyDev = new JPanel();
+		xyDev.setLayout(new BoxLayout(xyDev, BoxLayout.LINE_AXIS));
+
+		acq_xyDevCB = new JCheckBox("");
+		acq_xyDevCB.addChangeListener(this);
+
+		JLabel xyDevLbl = new JLabel("X/Y Stage Device:");
+		acq_xyDevCmbo = new JComboBox(mmc.getLoadedDevicesOfType(
+				DeviceType.XYStageDevice).toArray());
+		acq_xyDevCmbo.setMaximumSize(acq_xyDevCmbo.getPreferredSize());
+
+		xyDev.add(acq_xyDevCB);
+		xyDev.add(xyDevLbl);
+		xyDev.add(acq_xyDevCmbo);
+		xyDev.add(Box.createHorizontalGlue());
+
+		xy.add(xyDev);
+
+		// These names keep getting more and more convoluted.
+		JPanel xyXY = new JPanel();
+		xyXY.setLayout(new BoxLayout(xyXY, BoxLayout.PAGE_AXIS));
+
+		JPanel xy_x = new JPanel();
+		xy_x.setBorder(BorderFactory.createTitledBorder("Stage X"));
+
+		acq_rangeX = new RangeSlider(1D, 8000D);
+
+		xy_x.add(acq_rangeX);
+		xy_x.setMaximumSize(xy_x.getPreferredSize());
+
+		xyXY.add(xy_x);
+
+		JPanel xy_y = new JPanel();
+		xy_y.setBorder(BorderFactory.createTitledBorder("Stage Y"));
+
+		acq_rangeY = new RangeSlider(1D, 8000D);
+
+		xy_y.add(acq_rangeY);
+		xy_y.setMaximumSize(xy_y.getPreferredSize());
+
+		xyXY.add(xy_y);
+
+		xy.add(xyXY);
+		xy.setMaximumSize(xy.getPreferredSize());
+
+		JPanel z = new JPanel();
+		z.setBorder(BorderFactory.createTitledBorder("Stage Z"));
+		z.setLayout(new BoxLayout(z, BoxLayout.PAGE_AXIS));
+
+		JPanel zDev = new JPanel();
+		zDev.setLayout(new BoxLayout(zDev, BoxLayout.LINE_AXIS));
+
+		acq_zDevCB = new JCheckBox("");
+		acq_zDevCB.addChangeListener(this);
+		JLabel zDevLbl = new JLabel("Z Stage Device:");
+		acq_zDevCmbo = new JComboBox(mmc.getLoadedDevicesOfType(
+				DeviceType.StageDevice).toArray());
+		acq_zDevCmbo.setSelectedItem(mmc.getFocusDevice());
+		acq_zDevCmbo.setMaximumSize(acq_zDevCmbo.getPreferredSize());
+
+		zDev.add(acq_zDevCB);
+		zDev.add(zDevLbl);
+		zDev.add(acq_zDevCmbo);
+		zDev.add(Box.createHorizontalGlue());
+
+		z.add(zDev);
+
+		z.add(Box.createRigidArea(new Dimension(10, 4)));
+
+		acq_rangeZ = new RangeSlider(1D, 8000D);
+
+		z.add(acq_rangeZ);
+		z.setMaximumSize(z.getPreferredSize());
+
+		JPanel t = new JPanel();
+		t.setBorder(BorderFactory.createTitledBorder("Theta"));
+		t.setLayout(new BoxLayout(t, BoxLayout.PAGE_AXIS));
+
+		JPanel tDev = new JPanel();
+		tDev.setLayout(new BoxLayout(tDev, BoxLayout.LINE_AXIS));
+
+		acq_tDevCB = new JCheckBox("");
+		acq_tDevCB.addChangeListener(this);
+		JLabel tDevLbl = new JLabel("Theta Device:");
+		tDevLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+		acq_tDevCmbo = new JComboBox(mmc.getLoadedDevicesOfType(
+				DeviceType.StageDevice).toArray());
+		acq_tDevCmbo.setMaximumSize(acq_tDevCmbo.getPreferredSize());
+		acq_tDevCmbo.setSelectedIndex(acq_tDevCmbo.getItemCount() - 1);
+		acq_tDevCmbo.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+		tDev.add(acq_tDevCB);
+		tDev.add(tDevLbl);
+		tDev.add(acq_tDevCmbo);
+		tDev.add(Box.createHorizontalGlue());
+
+		t.add(tDev);
+
+		t.add(Box.createRigidArea(new Dimension(10, 4)));
+
+		acq_rangeTheta = new RangeSlider(-100D, 100D);
+
+		t.add(acq_rangeTheta);
+		t.setMaximumSize(t.getPreferredSize());
+
+		JPanel acquisition = new JPanel();
+		acquisition.setName("Acquisition");
+		acquisition.setLayout(new BoxLayout(acquisition, BoxLayout.PAGE_AXIS));
+
+		JPanel acqTop = new JPanel();
+		acqTop.setLayout(new BoxLayout(acqTop, BoxLayout.LINE_AXIS));
+		acqTop.add(xy);
+
+		JPanel acqTopRight = new JPanel();
+		acqTopRight.setLayout(new BoxLayout(acqTopRight, BoxLayout.PAGE_AXIS));
+		acqTopRight.add(z);
+		acqTopRight.add(t);
+
+		acqTop.add(acqTopRight);
+
+		JPanel bottom = new JPanel();
+		bottom.setLayout(new BoxLayout(bottom, BoxLayout.LINE_AXIS));
+
+		JPanel timeBox = new JPanel();
+		timeBox.setLayout(new BoxLayout(timeBox, BoxLayout.LINE_AXIS));
+		timeBox.setBorder(BorderFactory.createTitledBorder("Time"));
+
+		acq_timeCB = new JCheckBox("");
+		acq_timeCB.setSelected(false);
+
+		JLabel step = new JLabel("Interval (ms):");
+		step.setToolTipText("Delay between acquisition sequences in milliseconds.");
+		acq_stepBox = new JTextField(8);
+		acq_stepBox.setMaximumSize(acq_stepBox.getPreferredSize());
+		acq_stepBox.setEnabled(false);
+
+		JLabel count = new JLabel("Count:");
+		count.setToolTipText("Number of acquisition sequences to perform.");
+		acq_countBox = new JTextField(8);
+		acq_countBox.setMaximumSize(acq_countBox.getPreferredSize());
+		acq_countBox.setEnabled(false);
+
+		acq_timeCB.addChangeListener(this);
+
+		timeBox.add(acq_timeCB);
+		timeBox.add(step);
+		timeBox.add(acq_stepBox);
+		timeBox.add(Box.createRigidArea(new Dimension(4, 10)));
+		timeBox.add(count);
+		timeBox.add(acq_countBox);
+
+		bottom.add(timeBox);
+
+		JPanel timeoutBox = new JPanel();
+		timeoutBox.setLayout(new BoxLayout(timeoutBox, BoxLayout.LINE_AXIS));
+		timeoutBox
+				.setBorder(BorderFactory.createTitledBorder("Device Timeout"));
+
+		acq_timeoutCB = new JCheckBox("Override Timeout:");
+		acq_timeoutCB.setHorizontalTextPosition(JCheckBox.RIGHT);
+		acq_timeoutCB.addChangeListener(this);
+
+		acq_timeoutValBox = new JTextField(8);
+		acq_timeoutValBox.setEnabled(false);
+		acq_timeoutValBox.setMaximumSize(acq_timeoutValBox.getPreferredSize());
+
+		timeoutBox.add(acq_timeoutCB);
+		timeoutBox.add(acq_timeoutValBox);
+
+		bottom.add(timeoutBox);
+
+		acq_goBtn = new JButton(BTN_START);
+		acq_goBtn.addActionListener(this);
+
+		bottom.add(Box.createHorizontalGlue());
+		bottom.add(acq_goBtn);
+		bottom.add(Box.createHorizontalGlue());
+
+		acq_xyDevCB.setSelected(true);
+		acq_zDevCB.setSelected(true);
+		acq_tDevCB.setSelected(true);
+		acq_timeCB.setSelected(false);
+		acq_timeoutCB.setSelected(false);
+
+		acquisition.add(acqTop);
+		acquisition.add(right);
+		acquisition.add(bottom);
+
+		JTabbedPane tabs = new JTabbedPane();
+		tabs.add("Stage Controls", stageControls);
+		tabs.add("Acquisition", acquisition);
+
+		frame.add(tabs);
 
 		frame.pack();
 
@@ -512,8 +682,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		limitedYRange.setEnabled(acquiring == null && xyStageLabel != null);
 		zSlider.setEnabled(acquiring == null && zStageLabel != null);
 		limitedZRange.setEnabled(acquiring == null && zStageLabel != null);
-		zFrom.setEnabled(acquiring == null && zStageLabel != null);
-		zTo.setEnabled(acquiring == null && zStageLabel != null);
 		rotationSlider.setEnabled(acquiring == null && twisterLabel != null);
 		stepsPerRotation.setEnabled(acquiring == null && twisterLabel != null);
 		degreesPerStep.setEnabled(acquiring == null && twisterLabel != null);
@@ -526,8 +694,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		speedControl.setEnabled(acquiring == null && zStageHasVelocity);
 		continuousCheckbox.setEnabled(acquiring == null && zStageLabel != null && cameraLabel != null);
 		settleTime.setEnabled(acquiring == null && zStageLabel != null);
-		ohSnap.setEnabled(zStageLabel != null && cameraLabel != null);
-		ohSnap.setText(acquiring == null ? "Oh snap!" : "Abort!");
 
 		tryUpdateSliderPositions();
 	}
@@ -679,15 +845,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		if(align == 0) {
 			float offset = ((max - min) % step) / 2;
 
-			System.out.println("Centered: Offset=" + offset);
-
 			start = min + (int)offset + step;
 		} else if(align > 0) {
 			start = max - step;
 			step = -spacing;
 		}
-
-		System.out.println("Making label table: start=" + start + ", step=" + step + ", lbls=" + labels);
 
 		for(int lbl = 0; lbl <= labels; ++lbl)
 			table.put((int)(start + step*lbl), new JLabel("" + (int)(start + step*lbl)));
@@ -918,5 +1080,119 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		SPIMAcquisition plugin = new SPIMAcquisition();
 		plugin.setApp(app);
 		plugin.show();
+	}
+
+	@Override
+	public void stateChanged(ChangeEvent ce) {
+		if(ce.getSource().equals(acq_xyDevCB)) {
+			acq_xyDevCmbo.setEnabled(acq_xyDevCB.isSelected());
+			acq_rangeX.setEnabled(acq_xyDevCB.isSelected());
+			acq_rangeY.setEnabled(acq_xyDevCB.isSelected());
+		} else if(ce.getSource().equals(acq_zDevCB)) {
+			acq_rangeZ.setEnabled(acq_zDevCB.isSelected());
+			acq_zDevCmbo.setEnabled(acq_zDevCB.isSelected());
+		} else if(ce.getSource().equals(acq_tDevCB)) {
+			acq_rangeTheta.setEnabled(acq_tDevCB.isSelected());
+			acq_tDevCmbo.setEnabled(acq_tDevCB.isSelected());
+		} else if(ce.getSource().equals(acq_timeCB)) {
+			acq_countBox.setEnabled(acq_timeCB.isSelected());
+			acq_stepBox.setEnabled(acq_timeCB.isSelected());
+		} else if(ce.getSource().equals(acq_timeoutCB)) {
+			acq_timeoutValBox.setEnabled(acq_timeoutCB.isSelected());
+			acq_timeoutValBox.setText("" + mmc.getTimeoutMs());
+		}
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent ae) {
+		if(BTN_START.equals(ae.getActionCommand())) {
+			if(acqThread != null)
+				acqThread.interrupt();
+
+			final String devs[];
+			final List<String[]> rows;
+
+			List<double[]> ranges = new Vector<double[]>();
+			List<String> devsL = new Vector<String>();
+
+			if (acq_xyDevCB.isSelected()) {
+				ranges.add(acq_rangeX.getRange());
+				ranges.add(acq_rangeY.getRange());
+				devsL.add(acq_xyDevCmbo.getSelectedItem().toString());
+			}
+
+			if (acq_zDevCB.isSelected()) {
+				ranges.add(acq_rangeZ.getRange());
+				devsL.add(acq_zDevCmbo.getSelectedItem().toString());
+			}
+
+			if (acq_tDevCB.isSelected()) {
+				ranges.add(acq_rangeTheta.getRange());
+				devsL.add(acq_tDevCmbo.getSelectedItem().toString());
+			}
+
+			devs = devsL.toArray(new String[devsL.size()]);
+
+			rows = ProgrammaticAcquisitor.generateRowsFromRanges(mmc, ranges, devs);
+
+			if (acq_timeoutCB.isSelected())
+				mmc.setTimeoutMs(Integer.parseInt(acq_timeoutValBox.getText()));
+
+			final int timeSeqs;
+			final double timeStep;
+
+			if (acq_timeCB.isSelected()) {
+				if (acq_countBox.getText().isEmpty()) {
+					JOptionPane.showMessageDialog(frame,
+							"Please enter a count or disable timing.");
+					acq_countBox.requestFocusInWindow();
+					return;
+				} else if (acq_stepBox.getText().isEmpty()) {
+					JOptionPane.showMessageDialog(frame,
+							"Please enter a time step or disable timing.");
+					acq_stepBox.requestFocusInWindow();
+					return;
+				}
+
+				timeSeqs = Integer.parseInt(acq_countBox.getText());
+				timeStep = Double.parseDouble(acq_stepBox.getText());
+			} else {
+				timeSeqs = 1;
+				timeStep = 0;
+			}
+
+			acqThread = new Thread() {
+				@Override
+				public void run() {
+					try {
+						ProgrammaticAcquisitor.performAcquisition(mmc, devs,
+								rows, timeSeqs, timeStep).show();
+					} catch (Exception e) {
+						JOptionPane.showMessageDialog(frame, "Error acquiring: "
+								+ e.getMessage());
+						throw new Error("Error acquiring!", e);
+					} finally {
+						acq_goBtn.setText(BTN_START);
+					}
+				}
+			};
+
+			acqThread.start();
+			acq_goBtn.setText(BTN_STOP);
+		} else if(BTN_STOP.equals(ae.getActionCommand())) {
+			try {
+				acqThread.interrupt();
+				acqThread.join(10000);
+			} catch (NullPointerException npe) {
+				// Don't care.
+			} catch (InterruptedException e1) {
+				JOptionPane.showMessageDialog(frame,
+						"Couldn't stop the thread gracefully.");
+			} finally {
+				acqThread = null;
+
+				acq_goBtn.setText(BTN_START);
+			}
+		}
 	}
 }
