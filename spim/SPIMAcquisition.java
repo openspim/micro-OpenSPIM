@@ -24,7 +24,6 @@ import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.KeyEvent;
-import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
@@ -268,7 +267,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	@Override
 	public String getInfo() {
 		// TODO: be more verbose
-		return "See https://wiki.mpi-cbg.de/wiki/spiminabriefcase/";
+		return "See http://openspim.org/";
 	}
    
 	/**
