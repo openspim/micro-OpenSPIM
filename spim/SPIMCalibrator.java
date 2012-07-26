@@ -2,7 +2,6 @@ package spim;
 
 import spim.LayoutUtils;
 
-import java.awt.GridLayout;
 import java.awt.Rectangle;
 
 import java.lang.Math;
@@ -16,12 +15,9 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import ij.ImagePlus;
 import ij.gui.Roi;
 
 import mmcorej.CMMCore;
@@ -29,16 +25,12 @@ import org.micromanager.MMStudioMainFrame;
 import org.micromanager.utils.ReportingUtils;
 
 import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
-import org.apache.commons.math.geometry.euclidean.threed.Rotation;
-
-import org.apache.commons.math.linear.RealMatrix;
-import org.apache.commons.math.linear.RealVector;
-import org.apache.commons.math.linear.DecompositionSolver;
-import org.apache.commons.math.linear.Array2DRowRealMatrix;
-import org.apache.commons.math.linear.ArrayRealVector;
-import org.apache.commons.math.linear.QRDecompositionImpl;
+import org.apache.commons.math.geometry.euclidean.threed.Plane;
+import org.apache.commons.math.geometry.euclidean.threed.Line;
 
 public class SPIMCalibrator extends JFrame implements ActionListener {
+	private static final long serialVersionUID = -4228128887292057193L;
+
 	private CMMCore core;
 	private MMStudioMainFrame gui;
 	private String twisterLabel;
@@ -147,16 +139,6 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 		}
 	}
 
-	private JPanel labelTF(JTextField f, String s) {
-		JPanel p = new JPanel();
-		p.setLayout(new BoxLayout(p, BoxLayout.LINE_AXIS));
-
-		p.add(new JLabel(s));
-		p.add(f);
-
-		return p;
-	}
-
 	public double getUmPerPixel() {
 		double w, h;
 		try {
@@ -180,54 +162,32 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 		return mean;
 	}
 
-	private Vector3D cachedAxis;
-	private Vector3D cachedPos;
-
-	private Vector3D roiToVec(Roi roi, double z) {
-		Rectangle r = roi.getBounds();
-
-		return new Vector3D(r.getX() + r.getWidth() / 2,
-				    r.getY() + r.getHeight() / 2,
-				    z);
-	}
-
-	private RealVector v3dToRVec(Vector3D in) {
-		return new ArrayRealVector(new double[] {
-			in.getX(),
-			in.getY(),
-			in.getZ()
-		});
-	}
-
-	private Vector3D rvecToV3D(RealVector rv) {
-		double[] comps = rv.toArray();
-
-		return new Vector3D(comps[0], comps[1], comps[2]);
-	};
+	private Line rotAxis;
 
 	private void calculateRotationAxis() {
-		// TODO: Find a way to compute both the position and direction in-place.
-		Rotation rot = new Rotation(rotVecInit, rotVecMid, rotVecMid, rotVecFinal);
+		// Calculate the norm and position of the two planes straddling the
+		// vectors between each position. The line intersecting these planes
+		// is the rotational axis.
+		Vector3D firstVec = rotVecMid.subtract(rotVecInit);
+		Vector3D plane1Pos = rotVecInit.add(firstVec.scalarMultiply(0.5));
 
-		RealMatrix rotm = new Array2DRowRealMatrix(rot.getMatrix());
+		Vector3D secondVec = rotVecFinal.subtract(rotVecMid);
+		Vector3D plane2Pos = rotVecMid.add(secondVec.scalarMultiply(0.5));
 
-		RealVector b = rotm.operate(v3dToRVec(rotVecInit)).subtract(v3dToRVec(rotVecMid));
-
-		RealMatrix a = rotm.add(new Array2DRowRealMatrix(new double[][] {{-1,0,0},{0,-1,0},{0,0,-1}}));
-
-		DecompositionSolver s = new QRDecompositionImpl(a).getSolver();
-
-		RealVector pos = s.solve(b);
-
-		cachedAxis = rot.getAxis();
-		cachedPos = rvecToV3D(pos);
+		rotAxis = (new Plane(plane1Pos, firstVec.normalize())).intersection(new Plane(plane2Pos, secondVec.normalize()));
 	};
 
-	public Vector3D getRotationOrigin() {return null;}
+	public Vector3D getRotationOrigin() {
+		return rotAxis != null ? rotAxis.getOrigin() : null;
+	}
 
-	public Vector3D getRotationAxis() {return null;}
+	public Vector3D getRotationAxis() {
+		return rotAxis != null ? rotAxis.getDirection() : null;
+	}
 
-	public boolean getIsCalibrated() {return false;}
+	public boolean getIsCalibrated() {
+		return rotAxis != null && getUmPerPixel() != 0;
+	}
 
 	private void redisplayUmPerPix() {
 		umPerPixLbl.setText("\u03BCm per pixel: " + (getUmPerPixel() > 0 ? Double.toString(getUmPerPixel()) : "Unknown"));
@@ -238,8 +198,8 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 	}
 
 	private void redisplayRotData() {
-		rotAxisLbl.setText("Rotational axis: " + (cachedAxis != null ? vToString(cachedAxis) : "Unknown"));
-		rotPosLbl.setText("Rot. axis origin: " + (cachedPos != null ? vToString(cachedPos) : "Unknown"));
+		rotAxisLbl.setText("Rotational axis: " + (rotAxis != null ? vToString(rotAxis.getDirection()) : "Unknown"));
+		rotPosLbl.setText("Rot. axis origin: " + (rotAxis != null ? vToString(rotAxis.getOrigin()) : "Unknown"));
 	}
 
 	private Vector3D pickRoiVec(Rectangle roi) {

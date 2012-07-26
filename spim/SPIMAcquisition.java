@@ -52,6 +52,8 @@ import javax.swing.event.ChangeEvent;
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 
+import org.apache.commons.math.geometry.euclidean.threed.Rotation;
+import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 import org.micromanager.MMStudioMainFrame;
 import org.micromanager.api.MMPlugin;
 import org.micromanager.api.ScriptInterface;
@@ -81,6 +83,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	private JTextField acq_timeoutValBox;
 	private JButton acq_goBtn;
 	private Thread acqThread;
+	
+	private SPIMCalibrator calibration;
 
 	// TODO: read these from the properties
 	protected int motorMin = 1, motorMax = 8000,
@@ -360,6 +364,17 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			}
 		};
 
+		JButton calibrateButton = new JButton("Calibrate...");
+		calibrateButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent ae) {
+				if(calibration == null)
+					calibration = new SPIMCalibrator(mmc, gui, twisterLabel);
+				
+				calibration.setVisible(true);
+			};
+		});
+
 		addLine(left, Justification.LEFT, "x:", xPosition, "y:", yPosition, "z:", zPosition, "angle:", rotation);
 		addLine(left, Justification.STRETCH, "x:", xSlider);
 		addLine(left, Justification.RIGHT, limitedXRange);
@@ -369,6 +384,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		addLine(left, Justification.RIGHT, limitedZRange);
 		addLine(left, Justification.STRETCH, "rotation:", rotationSlider);
 		addLine(left, Justification.RIGHT, "steps/rotation:", stepsPerRotation, "degrees/step:", degreesPerStep);
+		addLine(left, Justification.RIGHT, calibrateButton);
 
 		JPanel right = new JPanel();
 		right.setLayout(new BoxLayout(right, BoxLayout.PAGE_AXIS));
@@ -734,7 +750,19 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	}
 
 	private int mouseStartX = -1;
-	private double stageStartT = -1;
+	private double[] stageStart = new double[4];
+
+	private Vector3D applyCalibratedRotation(Vector3D pos, double dtheta) {
+		if(calibration == null || !calibration.getIsCalibrated())
+			return pos;
+
+		Vector3D rotOrigin = calibration.getRotationOrigin();
+		Vector3D rotAxis = calibration.getRotationAxis();
+
+		Rotation rot = new Rotation(rotAxis, dtheta * Math.PI / 100D);
+
+		return rotOrigin.add(rot.applyTo(pos.subtract(rotOrigin)));
+	}
 
 	public void mouseDragged(MouseEvent me) {}
 
@@ -745,7 +773,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			{
 				mouseStartX = me.getX();
 				try {
-					stageStartT = mmc.getPosition(twisterLabel);
+					stageStart[0] = mmc.getXPosition(xyStageLabel);
+					stageStart[1] = mmc.getYPosition(xyStageLabel);
+					stageStart[2] = mmc.getPosition(zStageLabel);
+					stageStart[3] = mmc.getPosition(twisterLabel);
 				} catch(Exception e) {
 					ReportingUtils.logError(e);
 				}
@@ -758,9 +789,21 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			// .1 steps.
 
 			try {
+				// Note: If the system isn't calibrated, the method below
+				// returns what we pass it -- for XYZ, the current position
+				// of the motors. That is, for an uncalibrated system, the
+				// setXYPosition and first setPosition lines below are noops.
+				Vector3D xyz = applyCalibratedRotation(new Vector3D(
+						stageStart[0], stageStart[1], stageStart[2]),
+						delta * 0.1);
+
+				mmc.setXYPosition(xyStageLabel, xyz.getX(), xyz.getY());
+
+				mmc.setPosition(zStageLabel, xyz.getZ());
+
 				mmc.setPosition(
 					twisterLabel,
-					stageStartT + delta * 0.1);
+					stageStart[3] + delta * 0.1);
 			} catch (Exception e) {
 				ReportingUtils.logException(
 					"Couldn't move stage: ", e);
