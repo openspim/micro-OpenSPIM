@@ -424,7 +424,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			}
 		});
 
-		continuousCheckbox = new JCheckBox("Continuous z motion");
+		continuousCheckbox = new JCheckBox("Snap Continously");
 		continuousCheckbox.setSelected(false);
 		continuousCheckbox.setEnabled(true);
 
@@ -438,8 +438,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		addLine(right, Justification.RIGHT, "Laser power:", laserPower, "exposure:", exposure);
 		addLine(right, Justification.STRETCH, "Laser:", laserSlider);
 		addLine(right, Justification.STRETCH, "Exposure:", exposureSlider);
-		addLine(right, Justification.RIGHT, liveCheckbox, registrationCheckbox, speedControl);
-		addLine(right, Justification.RIGHT, speedControl, /*continuousCheckbox,*/ "Delay to let z-stage settle (ms):", settleTime);
+		addLine(right, Justification.RIGHT, continuousCheckbox, liveCheckbox, registrationCheckbox, speedControl);
+		addLine(right, Justification.RIGHT, speedControl, "Delay to let z-stage settle (ms):", settleTime);
 
 		JPanel stageControls = new JPanel();
 		stageControls.setName("Stage Controls");
@@ -1166,7 +1166,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				public void run() {
 					try {
 						ProgrammaticAcquisitor.performAcquisition(mmc, devs,
-								rows, timeSeqs, timeStep).show();
+								rows, timeSeqs, timeStep,
+								continuousCheckbox.isSelected()).show();
 					} catch (Exception e) {
 						JOptionPane.showMessageDialog(frame, "Error acquiring: "
 								+ e.getMessage());
