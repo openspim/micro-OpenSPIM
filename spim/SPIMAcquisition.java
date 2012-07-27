@@ -18,12 +18,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.event.MouseMotionListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.KeyEvent;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
@@ -43,11 +43,11 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JSpinner;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
-import javax.swing.event.ChangeListener;
-import javax.swing.event.ChangeEvent;
 
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
@@ -62,10 +62,15 @@ import org.micromanager.utils.ReportingUtils;
 import progacq.ProgrammaticAcquisitor;
 import progacq.RangeSlider;
 
-public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListener, ChangeListener, ActionListener {
+public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListener, ItemListener, ActionListener {
 	private static final String BTN_STOP = "Abort!";
 	private static final String BTN_START = "Oh Snap!";
 
+	private JButton acq_fetchX;
+	private JButton acq_fetchY;
+	private JButton acq_fetchZ;
+	private JSpinner acq_fetchDelta;
+	private JButton acq_fetchT;
 	private JCheckBox acq_xyDevCB;
 	private JComboBox acq_xyDevCmbo;
 	private RangeSlider acq_rangeX;
@@ -465,6 +470,22 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		/**
 		 * 4D Sliders
 		 */
+		JPanel importer = new JPanel();
+		importer.setLayout(new BoxLayout(importer, BoxLayout.LINE_AXIS));
+
+		acq_fetchX = new JButton("X");
+		acq_fetchX.addActionListener(importStagePosition);
+		acq_fetchY = new JButton("Y");
+		acq_fetchY.addActionListener(importStagePosition);
+		acq_fetchZ = new JButton("Z");
+		acq_fetchZ.addActionListener(importStagePosition);
+		acq_fetchT = new JButton("\u03B8");
+		acq_fetchT.addActionListener(importStagePosition);
+
+		acq_fetchDelta = new JSpinner(new SpinnerNumberModel(motorMax / 8, motorMin, motorMax, 10));
+
+		addLine(importer, Justification.RIGHT, "Use current value of ", acq_fetchX, acq_fetchY, acq_fetchZ, acq_fetchT, " \u00B1 ", acq_fetchDelta);
+
 		JPanel xy = new JPanel();
 		xy.setLayout(new BoxLayout(xy, BoxLayout.PAGE_AXIS));
 		xy.setBorder(BorderFactory.createTitledBorder("X/Y Stage"));
@@ -473,7 +494,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		xyDev.setLayout(new BoxLayout(xyDev, BoxLayout.LINE_AXIS));
 
 		acq_xyDevCB = new JCheckBox("");
-		acq_xyDevCB.addChangeListener(this);
+		acq_xyDevCB.addItemListener(this);
 
 		JLabel xyDevLbl = new JLabel("X/Y Stage Device:");
 		acq_xyDevCmbo = new JComboBox(mmc.getLoadedDevicesOfType(
@@ -522,7 +543,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		zDev.setLayout(new BoxLayout(zDev, BoxLayout.LINE_AXIS));
 
 		acq_zDevCB = new JCheckBox("");
-		acq_zDevCB.addChangeListener(this);
+		acq_zDevCB.addItemListener(this);
 		JLabel zDevLbl = new JLabel("Z Stage Device:");
 		acq_zDevCmbo = new JComboBox(mmc.getLoadedDevicesOfType(
 				DeviceType.StageDevice).toArray());
@@ -551,7 +572,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		tDev.setLayout(new BoxLayout(tDev, BoxLayout.LINE_AXIS));
 
 		acq_tDevCB = new JCheckBox("");
-		acq_tDevCB.addChangeListener(this);
+		acq_tDevCB.addItemListener(this);
 		JLabel tDevLbl = new JLabel("Theta Device:");
 		tDevLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
 		acq_tDevCmbo = new JComboBox(mmc.getLoadedDevicesOfType(
@@ -603,15 +624,13 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		step.setToolTipText("Delay between acquisition sequences in milliseconds.");
 		acq_stepBox = new JTextField(8);
 		acq_stepBox.setMaximumSize(acq_stepBox.getPreferredSize());
-		acq_stepBox.setEnabled(false);
 
 		JLabel count = new JLabel("Count:");
 		count.setToolTipText("Number of acquisition sequences to perform.");
 		acq_countBox = new JTextField(8);
 		acq_countBox.setMaximumSize(acq_countBox.getPreferredSize());
-		acq_countBox.setEnabled(false);
 
-		acq_timeCB.addChangeListener(this);
+		acq_timeCB.addItemListener(this);
 
 		timeBox.add(acq_timeCB);
 		timeBox.add(step);
@@ -629,10 +648,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		acq_timeoutCB = new JCheckBox("Override Timeout:");
 		acq_timeoutCB.setHorizontalTextPosition(JCheckBox.RIGHT);
-		acq_timeoutCB.addChangeListener(this);
+		acq_timeoutCB.addItemListener(this);
 
 		acq_timeoutValBox = new JTextField(8);
-		acq_timeoutValBox.setEnabled(false);
 		acq_timeoutValBox.setMaximumSize(acq_timeoutValBox.getPreferredSize());
 
 		timeoutBox.add(acq_timeoutCB);
@@ -647,12 +665,14 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		bottom.add(acq_goBtn);
 		bottom.add(Box.createHorizontalGlue());
 
-		acq_xyDevCB.setSelected(true);
-		acq_zDevCB.setSelected(true);
-		acq_tDevCB.setSelected(true);
 		acq_timeCB.setSelected(false);
-		acq_timeoutCB.setSelected(false);
+		acq_countBox.setEnabled(false);
+		acq_stepBox.setEnabled(false);
 
+		acq_timeoutCB.setSelected(false);
+		acq_timeoutValBox.setEnabled(false);
+
+		acquisition.add(importer);
 		acquisition.add(acqTop);
 		acquisition.add(right);
 		acquisition.add(bottom);
@@ -686,6 +706,49 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		}, 0, MOTORS_UPDATE_PERIOD);
 	}
 
+	protected ActionListener importStagePosition = new ActionListener() {
+		@Override
+		public void actionPerformed(ActionEvent ae) {
+			double range = ((Integer)acq_fetchDelta.getValue()).doubleValue();
+			double value = 0;
+
+			RangeSlider target = null;
+
+			try {
+				if(ae.getSource().equals(acq_fetchX)) {
+					target = acq_rangeX;
+					value = mmc.getXPosition(xyStageLabel);
+				} else if(ae.getSource().equals(acq_fetchY)) {
+					target = acq_rangeY;
+					value = mmc.getYPosition(xyStageLabel);
+				} else if(ae.getSource().equals(acq_fetchZ)) {
+					target = acq_rangeZ;
+					value = mmc.getPosition(zStageLabel);
+				} else if(ae.getSource().equals(acq_fetchT)) {
+					target = acq_rangeTheta;
+					value = mmc.getPosition(twisterLabel);
+				} else {
+					throw new Exception("Import from where now?");
+				}
+			} catch(Exception e) {
+				JOptionPane.showMessageDialog(SPIMAcquisition.this.frame, e.getMessage());
+				return;
+			}
+
+			double min = value - range;
+			double max = value + range;
+			if(ae.getSource().equals(acq_fetchT)) {
+				min = Math.max(value - angle2TwisterPosition((int)range), twisterMin);
+				max = Math.min(value + angle2TwisterPosition((int)range), twisterMax);
+			} else {
+				min = Math.max(min, motorMin);
+				max = Math.min(max, motorMax);
+			};
+
+			target.setMinMax(min, max);
+		};
+	};
+
 	protected void updateUI() {
 		xPosition.setEnabled(acquiring == null && xyStageLabel != null);
 		yPosition.setEnabled(acquiring == null && xyStageLabel != null);
@@ -710,6 +773,31 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		speedControl.setEnabled(acquiring == null && zStageHasVelocity);
 		continuousCheckbox.setEnabled(acquiring == null && zStageLabel != null && cameraLabel != null);
 		settleTime.setEnabled(acquiring == null && zStageLabel != null);
+
+		acq_xyDevCB.setSelected(xyStageLabel != null);
+		acq_zDevCB.setSelected(zStageLabel != null);
+		acq_tDevCB.setSelected(twisterLabel != null);
+
+		if(xyStageLabel != null)
+			acq_xyDevCmbo.setSelectedItem(xyStageLabel);
+		if(zStageLabel != null)
+			acq_zDevCmbo.setSelectedItem(zStageLabel);
+		if(twisterLabel != null)
+			acq_tDevCmbo.setSelectedItem(twisterLabel);
+
+		acq_xyDevCmbo.setEnabled(xyStageLabel != null);
+		acq_zDevCmbo.setEnabled(zStageLabel != null);
+		acq_tDevCmbo.setEnabled(twisterLabel != null);
+
+		acq_rangeX.setEnabled(xyStageLabel != null);
+		acq_rangeY.setEnabled(xyStageLabel != null);
+		acq_rangeZ.setEnabled(zStageLabel != null);
+		acq_rangeTheta.setEnabled(twisterLabel != null);
+
+		acq_fetchX.setEnabled(xyStageLabel != null);
+		acq_fetchY.setEnabled(xyStageLabel != null);
+		acq_fetchZ.setEnabled(zStageLabel != null);
+		acq_fetchT.setEnabled(twisterLabel != null);
 
 		tryUpdateSliderPositions();
 	}
@@ -1128,21 +1216,21 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	}
 
 	@Override
-	public void stateChanged(ChangeEvent ce) {
-		if(ce.getSource().equals(acq_xyDevCB)) {
+	public void itemStateChanged(ItemEvent ie) {
+		if(ie.getSource().equals(acq_xyDevCB)) {
 			acq_xyDevCmbo.setEnabled(acq_xyDevCB.isSelected());
 			acq_rangeX.setEnabled(acq_xyDevCB.isSelected());
 			acq_rangeY.setEnabled(acq_xyDevCB.isSelected());
-		} else if(ce.getSource().equals(acq_zDevCB)) {
+		} else if(ie.getSource().equals(acq_zDevCB)) {
 			acq_rangeZ.setEnabled(acq_zDevCB.isSelected());
 			acq_zDevCmbo.setEnabled(acq_zDevCB.isSelected());
-		} else if(ce.getSource().equals(acq_tDevCB)) {
+		} else if(ie.getSource().equals(acq_tDevCB)) {
 			acq_rangeTheta.setEnabled(acq_tDevCB.isSelected());
 			acq_tDevCmbo.setEnabled(acq_tDevCB.isSelected());
-		} else if(ce.getSource().equals(acq_timeCB)) {
+		} else if(ie.getSource().equals(acq_timeCB)) {
 			acq_countBox.setEnabled(acq_timeCB.isSelected());
 			acq_stepBox.setEnabled(acq_timeCB.isSelected());
-		} else if(ce.getSource().equals(acq_timeoutCB)) {
+		} else if(ie.getSource().equals(acq_timeoutCB)) {
 			acq_timeoutValBox.setEnabled(acq_timeoutCB.isSelected());
 			acq_timeoutValBox.setText("" + mmc.getTimeoutMs());
 		}
