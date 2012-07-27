@@ -17,7 +17,7 @@ public abstract class MappedMotorSlider extends MotorSlider {
 		super(min, max, current, prefsKey);
 
 		slider.setMajorTickSpacing((int) ((max - min) / 8));
-		setLabelTable(SPIMAcquisition.makeLabelTable(min, max, 8, 25, 0));
+		setLabelTable(SPIMAcquisition.makeLabelTable(min, max, slider.getMajorTickSpacing(), 25, 0));
 	}
 
 	public abstract double displayForValue(double in);

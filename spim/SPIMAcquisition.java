@@ -867,35 +867,37 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	}
 
 	public static Dictionary<Integer, JLabel> makeLabelTable(int min, int max, int count) {
-		return makeLabelTable(min, max, count, 100, -1);
+		return makeLabelTable(min, max, (int)((max - min) / count), 100, -1);
 	}
 
-	public static Dictionary<Integer, JLabel> makeLabelTable(int min, int max, int count, int round, int align) {
-		float spacing = (max - min) / count;
-		if(round > 0)
-			spacing = Math.round(spacing / round) * round;
+	public static Dictionary<Integer, JLabel> makeLabelTable(int min, int max, int step, int round, int align) {
+		int count = (max - min) / step;
 
 		Hashtable<Integer, JLabel> table = new Hashtable<Integer, JLabel>();
 
 		table.put(min, new JLabel("" + min));
 		table.put(max, new JLabel("" + max));
 
-		float step = spacing;
-
-		float start = min + step - 0.5f;
-		float labels = count - 2;
+		float start = min;
 
 		if(align == 0) {
 			float offset = ((max - min) % step) / 2;
 
-			start = min + (int)offset + step;
+			start = min + (int)offset;
 		} else if(align > 0) {
-			start = max - step;
-			step = -spacing;
+			start = max;
+			step = -step;
 		}
 
-		for(int lbl = 0; lbl <= labels; ++lbl)
-			table.put((int)(start + step*lbl), new JLabel("" + (int)(start + step*lbl)));
+		for(int lbl = 1; lbl < count; ++lbl) {
+			float nearPos = start + step*lbl;
+
+			if(round > 0)
+				nearPos = Math.round(nearPos / round) * round;
+
+			ReportingUtils.logMessage("" + lbl + ": Putting " + (int)nearPos + " (" + nearPos + ")");
+			table.put((int)nearPos, new JLabel("" + (int)nearPos));
+		}
 
 		return table;
 	}
