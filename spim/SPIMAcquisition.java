@@ -43,11 +43,14 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JSpinner;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
@@ -660,11 +663,19 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		bottom.add(timeoutBox);
 
+		JPanel goBtnPnl = new JPanel();
+		goBtnPnl.setLayout(new GridLayout(2,1));
+
 		acq_goBtn = new JButton(BTN_START);
 		acq_goBtn.addActionListener(this);
+		goBtnPnl.add(acq_goBtn);
+
+		acq_Progress = new JProgressBar(0, 100);
+		acq_Progress.setEnabled(false);
+		goBtnPnl.add(acq_Progress);
 
 		bottom.add(Box.createHorizontalGlue());
-		bottom.add(acq_goBtn);
+		bottom.add(goBtnPnl);
 		bottom.add(Box.createHorizontalGlue());
 
 		acq_timeCB.setSelected(false);
@@ -1100,6 +1111,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			rotation.setText("" + twisterPosition2Angle(goal));
 		}
 	};
+	private JProgressBar acq_Progress;
 
 	protected ImageProcessor snapSlice() throws Exception {
 		synchronized(frame) {
@@ -1301,6 +1313,16 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			params.setTimeStepSeconds(timeStep);
 			params.setContinuous(continuousCheckbox.isSelected());
 
+			acq_Progress.setEnabled(true);
+
+			params.setProgressListener(new ChangeListener() {
+				@Override
+				public void stateChanged(ChangeEvent ce) {
+					ReportingUtils.logMessage("Acq: " + (Double)ce.getSource() * 100D);
+					acq_Progress.setValue((int)((Double)ce.getSource() * 100));
+				};
+			});
+
 			acqThread = new Thread() {
 				@Override
 				public void run() {
@@ -1313,6 +1335,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 						throw new Error("Error acquiring!", e);
 					} finally {
 						acq_goBtn.setText(BTN_START);
+						acq_Progress.setValue(0);
+						acq_Progress.setEnabled(false);
 					}
 				}
 			};
