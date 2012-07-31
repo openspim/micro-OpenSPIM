@@ -177,11 +177,17 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 		rotAxis = (new Plane(plane1Pos, firstVec.normalize())).intersection(new Plane(plane2Pos, secondVec.normalize()));
 	};
 
-	public Vector3D getRotationOrigin() {return null;}
+	public Vector3D getRotationOrigin() {
+		return rotAxis != null ? rotAxis.getOrigin() : null;
+	}
 
-	public Vector3D getRotationAxis() {return null;}
+	public Vector3D getRotationAxis() {
+		return rotAxis != null ? rotAxis.getDirection() : null;
+	}
 
-	public boolean getIsCalibrated() {return false;}
+	public boolean getIsCalibrated() {
+		return rotAxis != null && getUmPerPixel() != 0;
+	}
 
 	private void redisplayUmPerPix() {
 		umPerPixLbl.setText("\u03BCm per pixel: " + (getUmPerPixel() > 0 ? Double.toString(getUmPerPixel()) : "Unknown"));
