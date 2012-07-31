@@ -59,6 +59,7 @@ import org.micromanager.api.MMPlugin;
 import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.ReportingUtils;
 
+import progacq.AcqParams;
 import progacq.ProgrammaticAcquisitor;
 import progacq.RangeSlider;
 
@@ -171,6 +172,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	@Override
 	public void show() {
 		prefs = Preferences.userNodeForPackage(getClass());
+		
 		ensurePixelResolution();
 		initUI();
 		configurationChanged();
@@ -1294,13 +1296,17 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				timeStep = 0;
 			}
 
+			final AcqParams params = new AcqParams(mmc, devs, rows);
+			params.setTimeSeqCount(timeSeqs);
+			params.setTimeStepSeconds(timeStep);
+			params.setContinuous(continuousCheckbox.isSelected());
+
 			acqThread = new Thread() {
 				@Override
 				public void run() {
 					try {
-						ProgrammaticAcquisitor.performAcquisition(mmc, devs,
-								rows, timeSeqs, timeStep,
-								continuousCheckbox.isSelected()).show();
+						ProgrammaticAcquisitor.performAcquisition(params)
+								.show();
 					} catch (Exception e) {
 						JOptionPane.showMessageDialog(frame, "Error acquiring: "
 								+ e.getMessage());
