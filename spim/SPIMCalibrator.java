@@ -2,6 +2,7 @@ package spim;
 
 import spim.LayoutUtils;
 
+import java.awt.Color;
 import java.awt.Rectangle;
 
 import java.lang.Math;
@@ -18,7 +19,9 @@ import javax.swing.JOptionPane;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import ij.ImagePlus;
 import ij.gui.Roi;
+import ij.process.ImageProcessor;
 
 import mmcorej.CMMCore;
 import org.micromanager.MMStudioMainFrame;
@@ -27,6 +30,8 @@ import org.micromanager.utils.ReportingUtils;
 import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math.geometry.euclidean.threed.Plane;
 import org.apache.commons.math.geometry.euclidean.threed.Line;
+
+import edu.valelab.GaussianFit.GaussianFit;
 
 public class SPIMCalibrator extends JFrame implements ActionListener {
 	private static final long serialVersionUID = -4228128887292057193L;
@@ -46,6 +51,7 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 	private JLabel umPerPixLbl, rotAxisLbl, rotPosLbl;
 
 	private final String PICK_ROI = "Pick ROI";
+	private final String PICK_BEAD = "Pick Bead";
 	
 	public SPIMCalibrator(CMMCore icore, MMStudioMainFrame igui, String itwister) {
 		super("SPIM Calibration");
@@ -80,9 +86,9 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 
 		JComponent rotAxis2 = LayoutUtils.vertPanel(
 			LayoutUtils.horizPanel(
-				rotPickInit = new JButton(PICK_ROI),
-				rotPickMid = new JButton(PICK_ROI),
-				rotPickFinal = new JButton(PICK_ROI)
+				rotPickInit = new JButton(PICK_BEAD),
+				rotPickMid = new JButton(PICK_BEAD),
+				rotPickFinal = new JButton(PICK_BEAD)
 			),
 			LayoutUtils.horizPanel(
 				LayoutUtils.labelMe(thetaInit = new JTextField(6), "Initial \u03B8:"),
@@ -100,9 +106,9 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 
 		add(rotAxis2);
 
-		rotPickInit.setActionCommand(PICK_ROI);
-		rotPickMid.setActionCommand(PICK_ROI);
-		rotPickFinal.setActionCommand(PICK_ROI);
+		rotPickInit.setActionCommand(PICK_BEAD);
+		rotPickMid.setActionCommand(PICK_BEAD);
+		rotPickFinal.setActionCommand(PICK_BEAD);
 
 		rotPickInit.addActionListener(this);
 		rotPickMid.addActionListener(this);
@@ -159,7 +165,7 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 			return 0;
 		}
 
-		return mean;
+		return 1/mean;
 	}
 
 	private Line rotAxis;
@@ -174,7 +180,13 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 		Vector3D secondVec = rotVecFinal.subtract(rotVecMid);
 		Vector3D plane2Pos = rotVecMid.add(secondVec.scalarMultiply(0.5));
 
-		rotAxis = (new Plane(plane1Pos, firstVec.normalize())).intersection(new Plane(plane2Pos, secondVec.normalize()));
+		Plane firstPlane = new Plane(plane1Pos, firstVec.normalize());
+		Plane secondPlane = new Plane(plane2Pos, secondVec.normalize());
+
+		rotAxis = firstPlane.intersection(secondPlane);
+		// HACKHACK: Make sure the axis is +k...
+		if(rotAxis.getDirection().getY() < 0)
+			rotAxis = rotAxis.revert();
 	};
 
 	public Vector3D getRotationOrigin() {
@@ -202,19 +214,26 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 		rotPosLbl.setText("Rot. axis origin: " + (rotAxis != null ? vToString(rotAxis.getOrigin()) : "Unknown"));
 	}
 
-	private Vector3D pickRoiVec(Rectangle roi) {
+	private Vector3D pickBead(ImagePlus img) {
 		try {
-			double x = (roi.getX() + roi.getWidth() / 2)*getUmPerPixel();
-			double y = (roi.getY() + roi.getWidth() / 2)*getUmPerPixel();
-			double z = core.getPosition(core.getFocusDevice());
+			GaussianFit xyFitter = new GaussianFit(3, 1);
+			ImageProcessor ip = img.getProcessor();
+
+			double[] params = xyFitter.doGaussianFit(ip.crop(), (int)1e12);
+
+			img.setOverlay(new ij.gui.OvalRoi(ip.getRoi().getMinX() + params[GaussianFit.XC] - 1,
+					ip.getRoi().getMinY() + params[GaussianFit.YC] - 1, 2, 2), Color.RED, 0, Color.RED);
+
+			double x = (ip.getRoi().getMinX() + params[GaussianFit.XC] - ip.getWidth()/2)*getUmPerPixel();
+			double y = (ip.getRoi().getMinY() + params[GaussianFit.YC] - ip.getHeight()/2)*getUmPerPixel();
 
 			x += core.getXPosition(core.getXYStageDevice());
 			y += core.getYPosition(core.getXYStageDevice());
+			double z = core.getPosition(core.getFocusDevice());
 
 			return new Vector3D(x, y, z);
-		} catch(Exception e) {
+		} catch(Throwable e) {
 			ReportingUtils.logError(e);
-
 			return null;
 		}
 	}
@@ -229,28 +248,24 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 				pixelSizeRoi = activeRoi;
 				roiText = activeRoi.getBounds().getWidth() + " x " + activeRoi.getBounds().getHeight();
 				redisplayUmPerPix();
-			} else {
-				try {
-					Vector3D vec = pickRoiVec(activeRoi.getBounds());
-					if(rotPickInit.equals(ae.getSource())) {
-						rotVecInit = vec;
-					} else if(rotPickMid.equals(ae.getSource())) {
-						rotVecMid = vec;
-					} else if(rotPickFinal.equals(ae.getSource())) {
-						rotVecFinal = vec;
-					} else {
-						throw new Error("PICK_ROI from unknown component!");
-					}
-
-					roiText = vToString(vec);
-				} catch(Exception e) {
-					throw new Error("Couldn't determine Z");
-				}
-
-				redisplayRotData();
 			}
 
 			((JButton)ae.getSource()).setText(roiText);
+		} else if(PICK_BEAD.equals(ae.getActionCommand())) {
+			Vector3D vec = pickBead(gui.getImageWin().getImagePlus());
+			if(rotPickInit.equals(ae.getSource())) {
+				rotVecInit = vec;
+			} else if(rotPickMid.equals(ae.getSource())) {
+				rotVecMid = vec;
+			} else if(rotPickFinal.equals(ae.getSource())) {
+				rotVecFinal = vec;
+			} else {
+				throw new Error("PICK_BEAD from unknown component!");
+			}
+
+			redisplayRotData();
+
+			((JButton)ae.getSource()).setText(vToString(vec));
 		} else if(ae.getActionCommand().startsWith("Goto")) {
 			double thetaDest = Double.parseDouble(thetaInit.getText());
 			if(!ae.getActionCommand().endsWith("0")) {
