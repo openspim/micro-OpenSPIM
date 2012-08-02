@@ -245,7 +245,7 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 			String roiText = "???";
 
 			if(psrRoiPickerBtn.equals(ae.getSource())) {
-				pixelSizeRoi = activeRoi;
+				pixelSizeRoi = (Roi) activeRoi.clone();
 				roiText = activeRoi.getBounds().getWidth() + " x " + activeRoi.getBounds().getHeight();
 				redisplayUmPerPix();
 			}
@@ -267,13 +267,36 @@ public class SPIMCalibrator extends JFrame implements ActionListener {
 
 			((JButton)ae.getSource()).setText(vToString(vec));
 		} else if(ae.getActionCommand().startsWith("Goto")) {
-			double thetaDest = Double.parseDouble(thetaInit.getText());
-			if(!ae.getActionCommand().endsWith("0")) {
-				thetaDest += Double.parseDouble(dTheta.getText()) * (ae.getActionCommand().endsWith("1") ? 1 : 2);
-			}
+			int dest = ae.getActionCommand().charAt(
+					ae.getActionCommand().length() - 1) - '0';
+			if(dest < 0 || dest > 3)
+				throw new Error("Goto unknown theta!");
+			
+			double thetaDest = Double.parseDouble(thetaInit.getText()) + 
+					Double.parseDouble(dTheta.getText()) * dest;
+			
+			Vector3D destVec = null;
+			switch(dest) {
+			case 0:
+				destVec = rotVecInit;
+				break;
+			case 1:
+				destVec = rotVecMid;
+				break;
+			case 2:
+				destVec = rotVecFinal;
+				break;
+			};
 
 			try {
 				core.setPosition(twisterLabel, thetaDest);
+				
+				if(destVec != null) {
+					core.setXYPosition(core.getXYStageDevice(), destVec.getX(),
+							destVec.getY());
+				
+					core.setPosition(core.getFocusDevice(), destVec.getZ());
+				}
 			} catch(Exception e) {
 				ReportingUtils.logError(e);
 			}
