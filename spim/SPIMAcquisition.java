@@ -93,7 +93,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	private JButton acq_goBtn;
 	private Thread acqThread;
 	
-	private SPIMCalibrator calibration;
+	private SPIMManualCalibrator calibration;
 
 	// TODO: read these from the properties
 	protected int motorMin = 1, motorMax = 8000,
@@ -379,7 +379,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			@Override
 			public void actionPerformed(ActionEvent ae) {
 				if(calibration == null)
-					calibration = new SPIMCalibrator(mmc, gui, twisterLabel);
+					calibration = new SPIMManualCalibrator(mmc, gui, twisterLabel);
 				
 				calibration.setVisible(true);
 			};
@@ -1032,6 +1032,17 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	public static void prefsSet(String key, int value) {
 		if (key != null)
 			prefs.putInt(prefsPrefix + key, value);
+	}
+	
+	public static double prefsGet(String key, double defaultValue) {
+		if (key == null)
+			return defaultValue;
+		return prefs.getDouble(key, defaultValue);
+	}
+	
+	public static void prefsSet(String key, double value) {
+		if (key != null)
+			prefs.putDouble(key, value);
 	}
 
 	// Accessing the devices
