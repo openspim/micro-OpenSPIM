@@ -1266,37 +1266,81 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		}
 	}
 
+	/**
+	 * Recursively generates multi-view rows for the ProgAcq system, based on
+	 * the current calibration.
+	 *
+	 * @param ranges
+	 * @param devs
+	 * @return
+	 */
+	private List<String[]> generateMultiViewRows() throws Exception {
+		double[] rangeX = acq_rangeX.getRange();
+		double[] rangeY = acq_rangeY.getRange();
+		double[] rangeZ = acq_rangeZ.getRange();
+		double[] rangeT = acq_rangeTheta.getRange();
+
+		if(!acq_xyDevCB.isSelected()) {
+			rangeX[2] = rangeX[0] = mmc.getXPosition(xyStageLabel);
+			rangeY[2] = rangeY[0] = mmc.getYPosition(xyStageLabel);
+		}
+
+		if(!acq_zDevCB.isSelected())
+			rangeZ[2] = rangeZ[0] = mmc.getPosition(zStageLabel);
+
+		double currentRot = mmc.getPosition(twisterLabel);
+
+		if(!acq_tDevCB.isSelected())
+			rangeT[2] = rangeT[0] = currentRot;
+
+		List<String[]> rows = new ArrayList<String[]>(
+				(int) (((rangeX[2] - rangeX[0])/rangeX[1]) *
+				((rangeY[2] - rangeY[0])/rangeY[1]) *
+				((rangeZ[2] - rangeZ[0])/rangeZ[1]) *
+				((rangeT[2] - rangeY[0])/rangeT[1])));
+
+		for(double x = rangeX[0]; x <= rangeX[2]; x += rangeX[1]) {
+			for(double y = rangeY[0]; y <= rangeY[2]; y += rangeY[1]) {
+				for(double z = rangeZ[0]; z <= rangeZ[2]; z += rangeZ[1]) {
+					for(double t = rangeT[0]; t <= rangeT[2]; t += rangeT[1]) {
+						String[] row = new String[3];
+
+						Vector3D v = new Vector3D(x, y, z);
+
+						// Apply the transformation required to rotate to the
+						// target angle from the angle at the start of
+						// acquisition.
+						v = applyCalibratedRotation(v, t - currentRot);
+
+						row[0] = v.getX() + ", " + v.getY();
+						row[1] = "" + v.getZ();
+						row[2] = "" + t;
+
+						rows.add(row);
+					}
+				}
+			}
+		}
+
+		return rows;
+	}
+
 	@Override
 	public void actionPerformed(ActionEvent ae) {
 		if(BTN_START.equals(ae.getActionCommand())) {
 			if(acqThread != null)
 				acqThread.interrupt();
 
-			final String devs[];
+			final String devs[] = {xyStageLabel, zStageLabel, twisterLabel};
 			final List<String[]> rows;
 
-			List<double[]> ranges = new Vector<double[]>();
-			List<String> devsL = new Vector<String>();
-
-			if (acq_xyDevCB.isSelected()) {
-				ranges.add(acq_rangeX.getRange());
-				ranges.add(acq_rangeY.getRange());
-				devsL.add(acq_xyDevCmbo.getSelectedItem().toString());
+			try {
+				rows = generateMultiViewRows();
+			} catch (Throwable t) {
+				ReportingUtils.logError(t);
+				JOptionPane.showMessageDialog(this.frame, "Couldn't acquire: " + t.getMessage());
+				return;
 			}
-
-			if (acq_zDevCB.isSelected()) {
-				ranges.add(acq_rangeZ.getRange());
-				devsL.add(acq_zDevCmbo.getSelectedItem().toString());
-			}
-
-			if (acq_tDevCB.isSelected()) {
-				ranges.add(acq_rangeTheta.getRange());
-				devsL.add(acq_tDevCmbo.getSelectedItem().toString());
-			}
-
-			devs = devsL.toArray(new String[devsL.size()]);
-
-			rows = ProgrammaticAcquisitor.generateRowsFromRanges(mmc, ranges, devs);
 
 			if (acq_timeoutCB.isSelected())
 				mmc.setTimeoutMs(Integer.parseInt(acq_timeoutValBox.getText()));
