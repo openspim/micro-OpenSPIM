@@ -868,6 +868,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	public void mouseDragged(MouseEvent me) {}
 
 	public void mouseMoved(MouseEvent me) {
+		// Don't rotate unless they're actively looking at the window.
+		if(!gui.getImageWin().hasFocus())
+			return;
+
 		if(me.isAltDown()) {
 			// TODO: Rotate, then translate to keep axis fixed.
 			if(mouseStartX < 0)
