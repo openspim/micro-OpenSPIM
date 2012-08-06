@@ -24,6 +24,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
@@ -868,6 +869,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	public void mouseDragged(MouseEvent me) {}
 
 	public void mouseMoved(MouseEvent me) {
+		// Don't rotate unless they're actively looking at the window.
+		if(!gui.getImageWin().isFocused())
+			return;
+
 		if(me.isAltDown()) {
 			// TODO: Rotate, then translate to keep axis fixed.
 			if(mouseStartX < 0)
