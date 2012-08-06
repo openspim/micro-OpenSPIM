@@ -53,7 +53,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 
 	private final String PICK_ROI = "Pick ROI from Live Window";
 	private final String PICK_BEAD = "Pick Bead";
-	
+
 	public SPIMManualCalibrator(CMMCore icore, MMStudioMainFrame igui, String itwister) {
 		super("SPIM Calibration");
 
@@ -62,7 +62,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 		twisterLabel = itwister;
 
 		setLayout(new BoxLayout(getContentPane(), BoxLayout.PAGE_AXIS));
-		
+
 		add(LayoutUtils.vertPanel("Pixel Size",
 			psrRoiPickerBtn = new JButton(PICK_ROI),
 			LayoutUtils.horizPanel(
@@ -122,7 +122,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 		rotPickInit.setEnabled(false);
 		rotPickMid.setEnabled(false);
 		rotPickFinal.setEnabled(false);
-		
+
 		rotPickInit.setActionCommand(PICK_BEAD);
 		rotPickMid.setActionCommand(PICK_BEAD);
 		rotPickFinal.setActionCommand(PICK_BEAD);
@@ -134,7 +134,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 		JButton recalc = new JButton("Recalculate");
 		recalc.addActionListener(this);
 
-		JButton save = new JButton("Save");
+		JButton save = new JButton("Save & Apply");
 		save.addActionListener(this);
 
 		add(LayoutUtils.horizPanel(
@@ -160,7 +160,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 			thetaInit.setText("0");
 			ReportingUtils.logError(e);
 		}
-		
+
 		load();
 	}
 	
@@ -173,6 +173,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 
 		if(psrroiw != 0 && psrroih != 0 && psrw != 0 && psrh != 0) {
 			pixelSizeRoi = new Roi(0, 0, psrroiw, psrroih);
+			psrRoiPickerBtn.setText("" + psrroiw + " x " + psrroih);
 			psrX.setText("" + psrw);
 			psrY.setText("" + psrh);
 		};
@@ -180,18 +181,26 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 		// Rotational axis. Unfortunately, this info is probably stale.
 		// Any time a new sample is loaded, the rotational axis must be
 		// recalibrated...
-		
+
 		rotVecInit = getvec("rvi");
 		rotVecMid = getvec("rvm");
 		rotVecFinal = getvec("rvf");
-		
+
+		rotPickInit.setText(vToString(rotVecInit));
+		rotPickMid.setText(vToString(rotVecMid));
+		rotPickFinal.setText(vToString(rotVecFinal));
+
 		double tinit = SPIMAcquisition.prefsGet("calibration.rxs.theta", Double.NaN);
 		double dt = SPIMAcquisition.prefsGet("calibration.rxs.dtheta", Double.NaN);
-		
+
 		if(tinit != Double.NaN  && dt != Double.NaN) {
 			thetaInit.setText("" + tinit);
 			dTheta.setText("" + dt);
 		}
+
+		calculateRotationAxis();
+		redisplayRotData();
+		redisplayUmPerPix();
 	}
 	
 	private static void putvec(String n, Vector3D v) {
@@ -204,7 +213,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 		double x = SPIMAcquisition.prefsGet("calibration.rxs." + n + ".x", Double.NaN);
 		double y = SPIMAcquisition.prefsGet("calibration.rxs." + n + ".y", Double.NaN);
 		double z = SPIMAcquisition.prefsGet("calibration.rxs." + n + ".z", Double.NaN);
-		
+
 		if(x != Double.NaN && y != Double.NaN && z != Double.NaN)
 			return new Vector3D(x,y,z);
 		else
@@ -240,7 +249,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 	public double getUmPerPixel() {
 		if(pixelSizeRoi == null)
 			return 0;
-		
+
 		double w, h;
 		try {
 			w = Double.parseDouble(psrX.getText());
@@ -270,7 +279,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 			rotAxis = null;
 			return;
 		}
-		
+
 		// Calculate the norm and position of the two planes straddling the
 		// vectors between each position. The line intersecting these planes
 		// is the rotational axis.
@@ -284,9 +293,6 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 		Plane secondPlane = new Plane(plane2Pos, secondVec.normalize());
 
 		rotAxis = firstPlane.intersection(secondPlane);
-		// HACKHACK: Make sure the axis is +k...
-		if(rotAxis.getDirection().getY() < 0)
-			rotAxis = rotAxis.revert();
 	};
 
 	/* (non-Javadoc)
@@ -367,7 +373,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 					" x " + pixelSizeRoi.getBounds().getHeight());
 		} else if(PICK_BEAD.equals(ae.getActionCommand())) {
 			String newText = null;
-			
+
 			if((ae.getModifiers() & ActionEvent.CTRL_MASK) != 0) {
 				if(rotPickInit.equals(ae.getSource())) {
 					rotVecInit = null;
@@ -378,12 +384,12 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 				} else {
 					throw new Error("PICK_BEAD from unknown component!");
 				}
-				
+
 				newText = PICK_BEAD;
 			} else {
 				if(gui.getImageWin() == null || gui.getImageWin().getImagePlus().getRoi() == null)
 					return;
-				
+
 				Vector3D vec = pickBead(gui.getImageWin().getImagePlus());
 				if(rotPickInit.equals(ae.getSource())) {
 					rotVecInit = vec;
@@ -400,17 +406,17 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 
 			calculateRotationAxis();
 			redisplayRotData();
-			
+
 			((JButton)ae.getSource()).setText(newText);
 		} else if(ae.getActionCommand().startsWith("Goto")) {
 			int dest = ae.getActionCommand().charAt(ae.getActionCommand().length() - 1) - '0';
-			
+
 			if(dest < 0 || dest > 3)
 				throw new Error("Goto unknown theta!");
-			
+
 			double thetaDest = Double.parseDouble(thetaInit.getText()) + 
 					Double.parseDouble(dTheta.getText()) * dest;
-			
+
 			Vector3D destVec = null;
 			switch(dest) {
 			case 0:
@@ -426,16 +432,16 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 
 			try {
 				core.setPosition(twisterLabel, thetaDest);
-				
+
 				if((ae.getModifiers() & ActionEvent.CTRL_MASK) != 0 && destVec != null) {
 					core.setXYPosition(core.getXYStageDevice(), destVec.getX(),
 							destVec.getY());
-				
+
 					core.setPosition(core.getFocusDevice(), destVec.getZ());
 				}
 			} catch(Exception e) {
 				ReportingUtils.logError(e);
-				
+
 				JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
 			}
 		} else if(ae.getActionCommand().equals("Recalculate")) {
@@ -443,8 +449,18 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 
 			redisplayRotData();
 			redisplayUmPerPix();
-		} else if(ae.getActionCommand().equals("Save")) {
+		} else if(ae.getActionCommand().equals("Save & Apply")) {
 			save();
+
+			// Apply our calculated um/pix.
+			try {
+				core.definePixelSizeConfig("SPIM-Calibrated");
+				core.setPixelSizeUm("SPIM-Calibrated", getUmPerPixel());
+				core.setPixelSizeConfig("SPIM-Calibrated");
+			} catch (Throwable t) {
+				ReportingUtils.logError(t);
+				JOptionPane.showMessageDialog(this, "Couldn't apply pixel size configuration: " + t.getMessage());
+			}
 		}
 	}
 }
