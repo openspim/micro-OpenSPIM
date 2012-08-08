@@ -24,6 +24,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
@@ -91,6 +92,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	private JTextField acq_countBox;
 	private JCheckBox acq_timeoutCB;
 	private JTextField acq_timeoutValBox;
+	private JCheckBox acq_saveIndividual;
+	private JTextField acq_saveDir;
 	private JButton acq_goBtn;
 	private Thread acqThread;
 	
@@ -461,12 +464,19 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				degreesPerStep.setText("" + (360 / value));
 			}
 		};
+		
+		acq_saveIndividual = new JCheckBox("Save Individually:");
+		acq_saveIndividual.setSelected(false);
+		
+		acq_saveDir = new JTextField(100);
+		acq_saveDir.setEnabled(true);
 
 		addLine(right, Justification.RIGHT, "Laser power:", laserPower, "exposure:", exposure);
 		addLine(right, Justification.STRETCH, "Laser:", laserSlider);
 		addLine(right, Justification.STRETCH, "Exposure:", exposureSlider);
 		addLine(right, Justification.RIGHT, continuousCheckbox, liveCheckbox, registrationCheckbox, speedControl);
 		addLine(right, Justification.RIGHT, speedControl, "Delay to let z-stage settle (ms):", settleTime);
+		addLine(right, Justification.RIGHT, acq_saveIndividual, acq_saveDir);
 
 		JPanel stageControls = new JPanel();
 		stageControls.setName("Stage Controls");
@@ -1372,6 +1382,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			params.setTimeSeqCount(timeSeqs);
 			params.setTimeStepSeconds(timeStep);
 			params.setContinuous(continuousCheckbox.isSelected());
+			params.setSaveIndividual(acq_saveIndividual.isSelected());
+			if(acq_saveIndividual.isSelected())
+				params.setOutputDirectory(new File(acq_saveDir.getText()));
 
 			acq_Progress.setEnabled(true);
 
