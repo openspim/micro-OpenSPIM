@@ -468,7 +468,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		acq_saveIndividual = new JCheckBox("Save Individually:");
 		acq_saveIndividual.setSelected(false);
 		
-		acq_saveDir = new JTextField(100);
+		acq_saveDir = new JTextField(60);
 		acq_saveDir.setEnabled(true);
 
 		addLine(right, Justification.RIGHT, "Laser power:", laserPower, "exposure:", exposure);
@@ -884,9 +884,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			return;
 
 		if(me.isAltDown()) {
-			// TODO: Rotate, then translate to keep axis fixed.
-			if(mouseStartX < 0)
-			{
+			if(mouseStartX < 0) {
 				mouseStartX = me.getX();
 				try {
 					stageStart[0] = mmc.getXPosition(xyStageLabel);
@@ -917,12 +915,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 				mmc.setPosition(zStageLabel, xyz.getZ());
 
-				mmc.setPosition(
-					twisterLabel,
-					stageStart[3] + delta * 0.1);
+				mmc.setPosition(twisterLabel, stageStart[3] + delta * 0.1);
 			} catch (Exception e) {
-				ReportingUtils.logException(
-					"Couldn't move stage: ", e);
+				ReportingUtils.logException("Couldn't move stage: ", e);
 			}
 		} else if(mouseStartX >= 0) {
 			mouseStartX = -1;
@@ -1011,7 +1006,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			if(round > 0)
 				nearPos = Math.round(nearPos / round) * round;
 
-			ReportingUtils.logMessage("" + lbl + ": Putting " + (int)nearPos + " (" + nearPos + ")");
 			table.put((int)nearPos, new JLabel("" + (int)nearPos));
 		}
 
@@ -1048,13 +1042,13 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		if (key != null)
 			prefs.putInt(prefsPrefix + key, value);
 	}
-	
+
 	public static double prefsGet(String key, double defaultValue) {
 		if (key == null)
 			return defaultValue;
 		return prefs.getDouble(key, defaultValue);
 	}
-	
+
 	public static void prefsSet(String key, double value) {
 		if (key != null)
 			prefs.putDouble(key, value);
@@ -1137,6 +1131,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			rotation.setText("" + twisterPosition2Angle(goal));
 		}
 	};
+
 	private JProgressBar acq_Progress;
 
 	protected ImageProcessor snapSlice() throws Exception {
