@@ -231,7 +231,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			ReportingUtils.logException("Couldn't define uncalibrated pixel size: ", e);
 		}
 	}
-   
+
 	/**
 	 * The main app calls this method when hardware settings change.
 	 * This call signals to the module that it needs to update whatever
@@ -636,7 +636,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		acq_timeCB = new JCheckBox("");
 		acq_timeCB.setSelected(false);
 
-		JLabel step = new JLabel("Interval (ms):");
+		JLabel step = new JLabel("Interval (s):");
 		step.setToolTipText("Delay between acquisition sequences in milliseconds.");
 		acq_stepBox = new JTextField(8);
 		acq_stepBox.setMaximumSize(acq_stepBox.getPreferredSize());
