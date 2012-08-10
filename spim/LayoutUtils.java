@@ -3,8 +3,10 @@ package spim;
 import java.awt.Component;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
 
 public class LayoutUtils {
 	public static JComponent titled(String title, JComponent c) {
@@ -14,19 +16,31 @@ public class LayoutUtils {
 	}
 
 	public static Component vertPanel(Component... parts) {
-		return addAll(Box.createVerticalBox(), parts);
+		JPanel panel = new JPanel();
+		panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
+		
+		return addAll(panel, parts);
 	}
 
 	public static Component horizPanel(Component... parts) {
-		return addAll(Box.createHorizontalBox(), parts);
+		JPanel panel = new JPanel();
+		panel.setLayout(new BoxLayout(panel, BoxLayout.LINE_AXIS));
+		
+		return addAll(panel, parts);
 	}
 
 	public static Component vertPanel(String title, Component... parts) {
-		return addAll(titled(title, Box.createVerticalBox()), parts);
+		JPanel panel = new JPanel();
+		panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
+		
+		return addAll(titled(title, panel), parts);
 	}
 
 	public static Component horizPanel(String title, Component... parts) {
-		return addAll(titled(title, Box.createHorizontalBox()), parts);
+		JPanel panel = new JPanel();
+		panel.setLayout(new BoxLayout(panel, BoxLayout.LINE_AXIS));
+		
+		return addAll(titled(title, panel), parts);
 	};
 
 	public static JComponent addAll(JComponent to, Component... parts) {

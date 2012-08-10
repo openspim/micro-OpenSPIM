@@ -26,12 +26,12 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.Vector;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
@@ -41,13 +41,16 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTabbedPane;
+import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
@@ -67,8 +70,11 @@ import org.micromanager.utils.ReportingUtils;
 import progacq.AcqParams;
 import progacq.ProgrammaticAcquisitor;
 import progacq.RangeSlider;
+import progacq.StepTableModel;
 
 public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListener, ItemListener, ActionListener {
+	private static final String POSITION_LIST = "Position List";
+	private static final String SPIM_RANGES = "SPIM Ranges";
 	private static final String BTN_STOP = "Abort!";
 	private static final String BTN_START = "Oh Snap!";
 
@@ -193,6 +199,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	}
 
 	private boolean liveControlsHooked;
+	private JTable acq_PositionsTable;
 
 	/**
 	 * Embed our listeners in the live window's canvas space.
@@ -400,92 +407,13 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		addLine(left, Justification.RIGHT, "steps/rotation:", stepsPerRotation, "degrees/step:", degreesPerStep);
 		addLine(left, Justification.RIGHT, calibrateButton);
 
-		JPanel right = new JPanel();
-		right.setLayout(new BoxLayout(right, BoxLayout.PAGE_AXIS));
-		right.setBorder(BorderFactory.createTitledBorder("Acquisition"));
-
-		// TODO: find out correct values
-		laserSlider = new MotorSlider(0, 1000, 1000, "laser.power") {
-			@Override
-			public void valueChanged(int value) {
-				// TODO
-			}
-		};
-		// TODO: find out correct values
-		exposureSlider = new MotorSlider(10, 1000, 10, "exposure") {
-			@Override
-			public void valueChanged(int value) {
-				try {
-					mmc.setExposure(value);
-				} catch (Exception e) {
-					IJ.handleException(e);
-				}
-			}
-		};
-
-		laserPower = new IntegerSliderField(laserSlider);
-		exposure = new IntegerSliderField(exposureSlider);
-
-		liveCheckbox = new JCheckBox("Update Live View");
-		updateLiveImage = gui.isLiveModeOn();
-		liveCheckbox.setSelected(updateLiveImage);
-		liveCheckbox.setEnabled(false);
-		liveCheckbox.addItemListener(new ItemListener() {
-			@Override
-			public void itemStateChanged(ItemEvent e) {
-				updateLiveImage = e.getStateChange() == ItemEvent.SELECTED;
-				if (updateLiveImage && !gui.isLiveModeOn())
-					gui.enableLiveMode(true);
-			}
-		});
-		registrationCheckbox = new JCheckBox("Perform SPIM registration");
-		registrationCheckbox.setSelected(false);
-		registrationCheckbox.setEnabled(false);
-
-		speedControl = new JButton("Set z-stage velocity");
-		speedControl.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				new Thread() {
-					public void run() {
-						setZStageVelocity();
-					}
-				}.start();
-			}
-		});
-
-		continuousCheckbox = new JCheckBox("Snap Continously");
-		continuousCheckbox.setSelected(false);
-		continuousCheckbox.setEnabled(true);
-
-		settleTime = new IntegerField(0, "settle.delay") {
-			@Override
-			public void valueChanged(int value) {
-				degreesPerStep.setText("" + (360 / value));
-			}
-		};
-		
-		acq_saveIndividual = new JCheckBox("Save Individually:");
-		acq_saveIndividual.setSelected(false);
-		
-		acq_saveDir = new JTextField(60);
-		acq_saveDir.setEnabled(true);
-
-		addLine(right, Justification.RIGHT, "Laser power:", laserPower, "exposure:", exposure);
-		addLine(right, Justification.STRETCH, "Laser:", laserSlider);
-		addLine(right, Justification.STRETCH, "Exposure:", exposureSlider);
-		addLine(right, Justification.RIGHT, continuousCheckbox, liveCheckbox, registrationCheckbox, speedControl);
-		addLine(right, Justification.RIGHT, speedControl, "Delay to let z-stage settle (ms):", settleTime);
-		addLine(right, Justification.RIGHT, acq_saveIndividual, acq_saveDir);
-
 		JPanel stageControls = new JPanel();
 		stageControls.setName("Stage Controls");
 		stageControls.setLayout(new GridLayout(1, 2));
 		stageControls.add(left);
 
-		/**
-		 * 4D Sliders
-		 */
+		acq_pos_tabs = new JTabbedPane();
+		
 		JPanel importer = new JPanel();
 		importer.setLayout(new BoxLayout(importer, BoxLayout.LINE_AXIS));
 
@@ -615,16 +543,212 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		acquisition.setName("Acquisition");
 		acquisition.setLayout(new BoxLayout(acquisition, BoxLayout.PAGE_AXIS));
 
-		JPanel acqTop = new JPanel();
-		acqTop.setLayout(new BoxLayout(acqTop, BoxLayout.LINE_AXIS));
-		acqTop.add(xy);
+		JPanel acq_SPIMTab = (JPanel)LayoutUtils.vertPanel(
+			importer,
+			LayoutUtils.horizPanel(
+				xy,
+				LayoutUtils.vertPanel(
+					z,
+					t
+				)
+			)
+		);
+		acq_SPIMTab.setName(SPIM_RANGES);
 
-		JPanel acqTopRight = new JPanel();
-		acqTopRight.setLayout(new BoxLayout(acqTopRight, BoxLayout.PAGE_AXIS));
-		acqTopRight.add(z);
-		acqTopRight.add(t);
+		acq_pos_tabs.add(SPIM_RANGES, acq_SPIMTab);
 
-		acqTop.add(acqTopRight);
+		JButton acq_markPos = new JButton("Mark Current");
+		acq_markPos.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent ae) {
+				StepTableModel model = (StepTableModel)acq_PositionsTable.getModel();
+				try {
+					int idx = model.getRowCount();
+
+					int[] selectedRows = acq_PositionsTable.getSelectedRows();
+					if(selectedRows.length > 0)
+						idx = selectedRows[selectedRows.length - 1];
+
+					model.insertRow(idx,
+							new String[] {
+							mmc.getXPosition(xyStageLabel) + ", " + 
+									mmc.getYPosition(xyStageLabel),
+							"" + mmc.getPosition(zStageLabel),
+							"" + mmc.getPosition(twisterLabel)
+					});
+				} catch(Throwable t) {
+					JOptionPane.showMessageDialog(acq_PositionsTable,
+							"Couldn't mark: " + t.getMessage());
+
+					ReportingUtils.logError(t);
+				}
+			}
+		});
+
+		JButton acq_makeSlices = new JButton("Make Slices Here:");
+
+		// TODO: Decide good ranges for these...
+		final JSpinner acq_sliceRange = new JSpinner(new SpinnerNumberModel(50, 5, 1000, 5));
+		acq_sliceRange.setMaximumSize(acq_sliceRange.getPreferredSize());
+		final JSpinner acq_sliceStep = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
+		acq_sliceStep.setMaximumSize(acq_sliceStep.getPreferredSize());
+
+		acq_makeSlices.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent ae) {
+				StepTableModel model = (StepTableModel)acq_PositionsTable.getModel();
+
+				String xy, theta;
+				double midz;
+				try {
+					xy = mmc.getXPosition(xyStageLabel) + ", " + mmc.getYPosition(xyStageLabel);
+					midz = mmc.getPosition(zStageLabel);
+					theta = "" + mmc.getPosition(twisterLabel);
+				} catch(Throwable t) {
+					JOptionPane.showMessageDialog((Component)ae.getSource(),
+							"Couldn't get current position: " + t.getMessage());
+
+					return;
+				}
+
+				int range = (Integer)acq_sliceRange.getValue();
+				int step = (Integer)acq_sliceStep.getValue();
+
+				for(double z = midz - range; z < midz + range; z += step) {
+					model.insertRow(new String[] {xy, "" + z, theta});
+				}
+			}
+		});
+
+		JPanel sliceOpts = (JPanel)LayoutUtils.horizPanel(
+			new JLabel("\u00b1"),
+			acq_sliceRange,
+			new JLabel(" by "),
+			acq_sliceStep,
+			new JLabel(" \u03BCm")
+		);
+		sliceOpts.setMaximumSize(sliceOpts.getPreferredSize());
+
+		JButton acq_removePos = new JButton("Delete Selected");
+		acq_removePos.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent ae) {
+				StepTableModel model = (StepTableModel)acq_PositionsTable.getModel();
+
+				model.removeRows(acq_PositionsTable.getSelectedRows());
+			}
+		});
+		
+		JScrollPane tblScroller = new JScrollPane(acq_PositionsTable = new JTable());
+
+		StepTableModel model = new StepTableModel();
+		model.setColumns(Arrays.asList(new String[] {"X/Y Stage", "Z Stage", "Theta"}));
+
+		acq_PositionsTable.setFillsViewportHeight(true);
+		acq_PositionsTable.setModel(model);
+
+		JPanel acq_TableTab = new JPanel();
+		acq_TableTab.setLayout(new BoxLayout(acq_TableTab, BoxLayout.LINE_AXIS));
+
+		acq_TableTab.add(tblScroller);
+
+		JPanel controls = new JPanel();
+		controls.setLayout(new BoxLayout(controls, BoxLayout.PAGE_AXIS));
+		
+		controls.add(acq_markPos);
+		controls.add(acq_removePos);
+		controls.add(acq_makeSlices);
+		controls.add(sliceOpts);
+		controls.add(Box.createVerticalGlue());
+
+		controls.invalidate();
+
+		acq_TableTab.add(controls);
+		acq_TableTab.setName(POSITION_LIST);
+		
+		acq_pos_tabs.add(POSITION_LIST, acq_TableTab);
+		
+//		swigdbg(acq_pos_tabs);
+
+		JPanel right = new JPanel();
+		right.setLayout(new BoxLayout(right, BoxLayout.PAGE_AXIS));
+		right.setBorder(BorderFactory.createTitledBorder("Acquisition"));
+
+		// TODO: find out correct values
+		laserSlider = new MotorSlider(0, 1000, 1000, "laser.power") {
+			@Override
+			public void valueChanged(int value) {
+				// TODO
+			}
+		};
+
+		// TODO: find out correct values
+		exposureSlider = new MotorSlider(10, 1000, 10, "exposure") {
+			@Override
+			public void valueChanged(int value) {
+				try {
+					mmc.setExposure(value);
+				} catch (Exception e) {
+					IJ.handleException(e);
+				}
+			}
+		};
+
+		laserPower = new IntegerSliderField(laserSlider);
+		exposure = new IntegerSliderField(exposureSlider);
+
+		liveCheckbox = new JCheckBox("Update Live View");
+		updateLiveImage = gui.isLiveModeOn();
+		liveCheckbox.setSelected(updateLiveImage);
+		liveCheckbox.setEnabled(false);
+		liveCheckbox.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				updateLiveImage = e.getStateChange() == ItemEvent.SELECTED;
+				if (updateLiveImage && !gui.isLiveModeOn())
+					gui.enableLiveMode(true);
+			}
+		});
+
+		registrationCheckbox = new JCheckBox("Perform SPIM registration");
+		registrationCheckbox.setSelected(false);
+		registrationCheckbox.setEnabled(false);
+
+		speedControl = new JButton("Set z-stage velocity");
+		speedControl.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				new Thread() {
+					public void run() {
+						setZStageVelocity();
+					}
+				}.start();
+			}
+		});
+
+		continuousCheckbox = new JCheckBox("Snap Continously");
+		continuousCheckbox.setSelected(false);
+		continuousCheckbox.setEnabled(true);
+
+		settleTime = new IntegerField(0, "settle.delay") {
+			@Override
+			public void valueChanged(int value) {
+				degreesPerStep.setText("" + (360 / value));
+			}
+		};
+
+		acq_saveIndividual = new JCheckBox("Save Individually:");
+		acq_saveIndividual.setSelected(false);
+
+		acq_saveDir = new JTextField(60);
+		acq_saveDir.setEnabled(true);
+
+		addLine(right, Justification.RIGHT, "Laser power:", laserPower, "exposure:", exposure);
+		addLine(right, Justification.STRETCH, "Laser:", laserSlider);
+		addLine(right, Justification.STRETCH, "Exposure:", exposureSlider);
+		addLine(right, Justification.RIGHT, continuousCheckbox, liveCheckbox, registrationCheckbox, speedControl);
+		addLine(right, Justification.RIGHT, speedControl, "Delay to let z-stage settle (ms):", settleTime);
+		addLine(right, Justification.RIGHT, acq_saveIndividual, acq_saveDir);
 
 		JPanel bottom = new JPanel();
 		bottom.setLayout(new BoxLayout(bottom, BoxLayout.LINE_AXIS));
@@ -696,8 +820,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		acq_timeoutCB.setSelected(false);
 		acq_timeoutValBox.setEnabled(false);
 
-		acquisition.add(importer);
-		acquisition.add(acqTop);
+		acquisition.add(acq_pos_tabs);
 		acquisition.add(right);
 		acquisition.add(bottom);
 
@@ -1133,6 +1256,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	};
 
 	private JProgressBar acq_Progress;
+	private JTabbedPane acq_pos_tabs;
 
 	protected ImageProcessor snapSlice() throws Exception {
 		synchronized(frame) {
@@ -1274,7 +1398,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	/**
 	 * Recursively generates multi-view rows for the ProgAcq system, based on
 	 * the current calibration.
-	 *
+	 * 
 	 * @param ranges
 	 * @param devs
 	 * @return
@@ -1339,12 +1463,20 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			final String devs[] = {xyStageLabel, zStageLabel, twisterLabel};
 			final List<String[]> rows;
 
-			try {
-				rows = generateMultiViewRows();
-			} catch (Throwable t) {
-				ReportingUtils.logError(t);
-				JOptionPane.showMessageDialog(this.frame, "Couldn't acquire: " + t.getMessage());
-				return;
+			if(SPIM_RANGES.equals(acq_pos_tabs.getSelectedComponent().getName())) {
+				try {
+					rows = generateMultiViewRows();
+				} catch (Throwable t) {
+					ReportingUtils.logError(t);
+					JOptionPane.showMessageDialog(this.frame, "Couldn't acquire: " + t.getMessage());
+					return;
+				}
+			} else if(POSITION_LIST.equals(acq_pos_tabs.getSelectedComponent().getName())) {
+				StepTableModel model = (StepTableModel)acq_PositionsTable.getModel();
+				
+				rows = model.getRows();
+			} else {
+				throw new Error("Invalid tab selected (" + acq_pos_tabs.getSelectedComponent().getName() + ")...");
 			}
 
 			if (acq_timeoutCB.isSelected())
@@ -1395,8 +1527,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				@Override
 				public void run() {
 					try {
-						ProgrammaticAcquisitor.performAcquisition(params)
-								.show();
+						ImagePlus img = ProgrammaticAcquisitor.performAcquisition(params);
+						
+						if(img != null)
+							img.show();
 					} catch (Exception e) {
 						JOptionPane.showMessageDialog(frame, "Error acquiring: "
 								+ e.getMessage());
