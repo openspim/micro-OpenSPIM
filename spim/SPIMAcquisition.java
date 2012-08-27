@@ -544,6 +544,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		acquisition.setLayout(new BoxLayout(acquisition, BoxLayout.PAGE_AXIS));
 
 		JPanel acq_SPIMTab = (JPanel)LayoutUtils.vertPanel(
+			Box.createVerticalGlue(),
 			importer,
 			LayoutUtils.horizPanel(
 				xy,
@@ -627,7 +628,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			acq_sliceStep,
 			new JLabel(" \u03BCm")
 		);
-		sliceOpts.setMaximumSize(sliceOpts.getPreferredSize());
+		sliceOpts.setAlignmentX(Component.LEFT_ALIGNMENT);
 
 		JButton acq_removePos = new JButton("Delete Selected");
 		acq_removePos.addActionListener(new ActionListener() {
@@ -638,7 +639,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				model.removeRows(acq_PositionsTable.getSelectedRows());
 			}
 		});
-		
+
 		JScrollPane tblScroller = new JScrollPane(acq_PositionsTable = new JTable());
 
 		StepTableModel model = new StepTableModel();
@@ -652,23 +653,26 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		acq_TableTab.add(tblScroller);
 
+		JPanel outer = new JPanel();
+		outer.setLayout(new BoxLayout(outer, BoxLayout.PAGE_AXIS));
+
 		JPanel controls = new JPanel();
-		controls.setLayout(new BoxLayout(controls, BoxLayout.PAGE_AXIS));
-		
+		controls.setLayout(new GridLayout(4,1));
+
 		controls.add(acq_markPos);
 		controls.add(acq_removePos);
 		controls.add(acq_makeSlices);
 		controls.add(sliceOpts);
-		controls.add(Box.createVerticalGlue());
 
-		controls.invalidate();
+		controls.setMaximumSize(controls.getPreferredSize());
 
-		acq_TableTab.add(controls);
+		outer.add(controls);
+		outer.add(Box.createVerticalGlue());
+
+		acq_TableTab.add(outer);
 		acq_TableTab.setName(POSITION_LIST);
-		
+
 		acq_pos_tabs.add(POSITION_LIST, acq_TableTab);
-		
-//		swigdbg(acq_pos_tabs);
 
 		JPanel right = new JPanel();
 		right.setLayout(new BoxLayout(right, BoxLayout.PAGE_AXIS));
@@ -740,7 +744,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		acq_saveIndividual = new JCheckBox("Save Individually:");
 		acq_saveIndividual.setSelected(false);
 
-		acq_saveDir = new JTextField(60);
+		acq_saveDir = new JTextField(48);
 		acq_saveDir.setEnabled(true);
 
 		addLine(right, Justification.RIGHT, "Laser power:", laserPower, "exposure:", exposure);
