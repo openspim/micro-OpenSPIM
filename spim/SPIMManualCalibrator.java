@@ -28,6 +28,7 @@ import mmcorej.CMMCore;
 import org.micromanager.MMStudioMainFrame;
 import org.micromanager.utils.ReportingUtils;
 
+import org.apache.commons.math.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math.geometry.euclidean.threed.Plane;
 import org.apache.commons.math.geometry.euclidean.threed.Line;
@@ -137,6 +138,12 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 		JButton save = new JButton("Save & Apply");
 		save.addActionListener(this);
 
+		JButton revert = new JButton("Reverse Axis");
+		revert.addActionListener(this);
+
+		JButton guess = new JButton("Guess #3");
+		guess.addActionListener(this);
+
 		add(LayoutUtils.horizPanel(
 			LayoutUtils.vertPanel("Calculated Results",
 				umPerPixLbl = new JLabel("\u03BCm per pixel: Unknown"),
@@ -146,7 +153,9 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 			(JComponent) Box.createHorizontalGlue(),
 			LayoutUtils.vertPanel(
 				recalc,
-				save
+				save,
+				revert,
+				guess
 			)
 		));
 
@@ -271,6 +280,54 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 
 		return 1/mean;
 	}
+
+	private double DTheta() {
+		return Double.parseDouble(dTheta.getText()) * Math.PI / 100.0D;
+	}
+
+	private Vector3D yaxis = Vector3D.PLUS_J;
+
+	private Vector3D TwoVecAxis(boolean backwards) {
+		Vector3D a = rotVecInit;
+		Vector3D b = rotVecMid;
+
+		double avgy = (a.getY() + b.getY()) / 2;
+
+		a = new Vector3D(a.getX(), avgy, a.getZ());
+		b = new Vector3D(b.getX(), avgy, b.getZ());
+
+		Vector3D dir = b.subtract(a);
+
+		Vector3D halfway = a.add(dir.scalarMultiply(0.5D));
+
+		double l = (dir.getNorm() * 0.5D) / Math.sin(DTheta() * 0.5D);
+
+		Vector3D ortho = dir.crossProduct(yaxis).normalize();
+
+		ReportingUtils.logMessage("l=" + l + ", dir=" + vToString(dir) + ", ortho=" + vToString(ortho));
+
+		return halfway.add(ortho.scalarMultiply(l*(backwards?-1D:1D)));
+	};
+
+	private void GuessNextAndGo(boolean backwards) {
+		Vector3D axispos = TwoVecAxis(backwards);
+
+		Rotation r = new Rotation(yaxis,DTheta());
+
+		Vector3D endpos = axispos.add(r.applyTo(rotVecMid.subtract(axispos)));
+
+		try {
+			core.setPosition(twisterLabel, Double.parseDouble(thetaInit.getText()) + DTheta()*100.0D/Math.PI*2);
+
+			core.setXYPosition(core.getXYStageDevice(), endpos.getX(), endpos.getY());
+
+			core.setPosition(core.getFocusDevice(), endpos.getZ());
+		} catch(Exception e) {
+			ReportingUtils.logError(e);
+
+			JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
+		};
+	};
 
 	private Line rotAxis;
 
@@ -460,6 +517,15 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 			} catch (Throwable t) {
 				ReportingUtils.logError(t);
 				JOptionPane.showMessageDialog(this, "Couldn't apply pixel size configuration: " + t.getMessage());
+			}
+		} else if(ae.getActionCommand().equals("Reverse Axis")) {
+			if(rotAxis != null) {
+				rotAxis = rotAxis.revert();
+				redisplayRotData();
+			}
+		} else if(ae.getActionCommand().equals("Guess #3")) {
+			if(rotVecInit != null && rotVecMid != null) {
+				GuessNextAndGo((ae.getModifiers() & ActionEvent.CTRL_MASK) != 0);
 			}
 		}
 	}
