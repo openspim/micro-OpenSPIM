@@ -674,6 +674,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		acq_pos_tabs.add(POSITION_LIST, acq_TableTab);
 
+		JPanel estimates = (JPanel)LayoutUtils.horizPanel(
+			estimatesText = new JLabel(" Estimates:"),
+			Box.createHorizontalGlue()
+		);
+
 		JPanel right = new JPanel();
 		right.setLayout(new BoxLayout(right, BoxLayout.PAGE_AXIS));
 		right.setBorder(BorderFactory.createTitledBorder("Acquisition"));
@@ -825,6 +830,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		acq_timeoutValBox.setEnabled(false);
 
 		acquisition.add(acq_pos_tabs);
+		acquisition.add(estimates);
 		acquisition.add(right);
 		acquisition.add(bottom);
 
@@ -850,12 +856,70 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			public void run() {
 				try {
 					updateMotorPositions();
+					updateSizeEstimate();
 				} catch (Exception e) {
 					ReportingUtils.logError(e);
 				}
 			}
 		}, 0, MOTORS_UPDATE_PERIOD);
 	}
+
+	private static String[] units = {
+		"B", "kB", "MB", "GB", "TB", "P", "E" // If we get any further than this...
+	};
+
+	private static String describeSize(long size) {
+		int factor = 0;
+		while(size > 1024 && factor <= 6) {
+			size /= 1024;
+			++factor;
+		};
+
+		return size + " " + units[factor];
+	}
+
+	private void updateSizeEstimate() {
+		// First, determine the number of rows, and estimate the amount of
+		// storage required.
+		long count, bytesperimg;
+		if(SPIM_RANGES.equals(acq_pos_tabs.getSelectedComponent().getName())) {
+			try {
+				count = estimateRowCount(getRanges());
+			} catch (Exception e) {
+				estimatesText.setText("An exception occurred: " + e.getMessage());
+				return;
+			};
+		} else if(POSITION_LIST.equals(acq_pos_tabs.getSelectedComponent().getName())) {
+			count = acq_PositionsTable.getModel().getRowCount();
+		} else {
+			estimatesText.setText("What tab are you on? (Please report this.)");
+			return;
+		}
+
+		bytesperimg = mmc.getImageHeight()*mmc.getImageWidth()*mmc.getBytesPerPixel();
+
+		String s = " Estimates: " + count + " images; " + describeSize(bytesperimg*count);
+
+		if(acq_saveIndividual.isSelected()) {
+			File f = new File(acq_saveDir.getText());
+			if(f.exists()) {
+				while(f.getFreeSpace() == 0 && f != null)
+					f = f.getParentFile();
+
+				if(f != null && f.exists()) {
+					s += " (" + describeSize(f.getFreeSpace()) + " available)";
+				} else {
+					s += " (error traversing filesystem)";
+				}
+			} else {
+				s += " (unknown available)";
+			};
+		} else {
+			s += " (" + describeSize(ij.IJ.maxMemory() - ij.IJ.currentMemory()) + " available)";
+		};
+
+		estimatesText.setText(s);
+	};
 
 	protected ActionListener importStagePosition = new ActionListener() {
 		@Override
@@ -1261,6 +1325,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 	private JProgressBar acq_Progress;
 	private JTabbedPane acq_pos_tabs;
+	private JLabel estimatesText;
 
 	protected ImageProcessor snapSlice() throws Exception {
 		synchronized(frame) {
@@ -1399,6 +1464,35 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		}
 	}
 
+	private double[][] getRanges() throws Exception {
+		double[][] ranges = new double[][] {
+				acq_rangeX.getRange(),
+				acq_rangeY.getRange(),
+				acq_rangeZ.getRange(),
+				acq_rangeTheta.getRange()
+		};
+
+		if(!acq_xyDevCB.isSelected()) {
+			ranges[0][2] = ranges[0][0] = mmc.getXPosition(xyStageLabel);
+			ranges[1][2] = ranges[1][0] = mmc.getYPosition(xyStageLabel);
+		};
+
+		if(!acq_zDevCB.isSelected())
+			ranges[2][2] = ranges[2][0] = mmc.getPosition(zStageLabel);
+
+		if(!acq_tDevCB.isSelected())
+			ranges[3][2] = ranges[3][0] = mmc.getPosition(twisterLabel);
+
+		return ranges;
+	};
+
+	private int estimateRowCount(double[][] ranges) {
+		return (int) (((ranges[0][2] - ranges[0][0])/ranges[0][1]) *
+				((ranges[1][2] - ranges[1][0])/ranges[1][1]) *
+				((ranges[2][2] - ranges[2][0])/ranges[2][1]) *
+				((ranges[3][2] - ranges[3][0])/ranges[3][1]));
+	}
+
 	/**
 	 * Recursively generates multi-view rows for the ProgAcq system, based on
 	 * the current calibration.
@@ -1408,34 +1502,16 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	 * @return
 	 */
 	private List<String[]> generateMultiViewRows() throws Exception {
-		double[] rangeX = acq_rangeX.getRange();
-		double[] rangeY = acq_rangeY.getRange();
-		double[] rangeZ = acq_rangeZ.getRange();
-		double[] rangeT = acq_rangeTheta.getRange();
-
-		if(!acq_xyDevCB.isSelected()) {
-			rangeX[2] = rangeX[0] = mmc.getXPosition(xyStageLabel);
-			rangeY[2] = rangeY[0] = mmc.getYPosition(xyStageLabel);
-		}
-
-		if(!acq_zDevCB.isSelected())
-			rangeZ[2] = rangeZ[0] = mmc.getPosition(zStageLabel);
-
 		double currentRot = mmc.getPosition(twisterLabel);
 
-		if(!acq_tDevCB.isSelected())
-			rangeT[2] = rangeT[0] = currentRot;
+		double[][] ranges = getRanges();
 
-		List<String[]> rows = new ArrayList<String[]>(
-				(int) (((rangeX[2] - rangeX[0])/rangeX[1]) *
-				((rangeY[2] - rangeY[0])/rangeY[1]) *
-				((rangeZ[2] - rangeZ[0])/rangeZ[1]) *
-				((rangeT[2] - rangeY[0])/rangeT[1])));
+		List<String[]> rows = new ArrayList<String[]>(estimateRowCount(ranges));
 
-		for(double x = rangeX[0]; x <= rangeX[2]; x += rangeX[1]) {
-			for(double y = rangeY[0]; y <= rangeY[2]; y += rangeY[1]) {
-				for(double z = rangeZ[0]; z <= rangeZ[2]; z += rangeZ[1]) {
-					for(double t = rangeT[0]; t <= rangeT[2]; t += rangeT[1]) {
+		for(double x = ranges[0][0]; x <= ranges[0][2]; x += ranges[0][1]) {
+			for(double y = ranges[1][0]; y <= ranges[1][2]; y += ranges[1][1]) {
+				for(double z = ranges[2][0]; z <= ranges[2][2]; z += ranges[2][1]) {
+					for(double t = ranges[3][0]; t <= ranges[3][2]; t += ranges[3][1]) {
 						String[] row = new String[3];
 
 						Vector3D v = new Vector3D(x, y, z);
