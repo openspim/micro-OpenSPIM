@@ -167,7 +167,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		timer.cancel();
 		hookLiveControls(false);
 	}
-   
+
 	/**
 	 * The main app passes its ScriptInterface to the module. This
 	 * method is typically called after the module is instantiated.
@@ -179,14 +179,14 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		mmc = app.getMMCore();
 		gui = MMStudioMainFrame.getInstance();
 	}
-   
+
 	/**
 	 * Open the module window
 	 */
 	@Override
 	public void show() {
 		prefs = Preferences.userNodeForPackage(getClass());
-		
+
 		ensurePixelResolution();
 		initUI();
 		configurationChanged();
@@ -277,7 +277,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		updateUI();
 	}
-   
+
 	/**
 	 * Returns a very short (few words) description of the module.
 	 */
@@ -285,7 +285,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	public String getDescription() {
 		return "Open Source SPIM acquisition";
 	}
-   
+
 	/**
 	 * Returns verbose information about the module.
 	 * This may even include a short help instructions.
@@ -295,7 +295,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		// TODO: be more verbose
 		return "See http://openspim.org/";
 	}
-   
+
 	/**
 	 * Returns version string for the module.
 	 * There is no specific required format for the version
@@ -304,7 +304,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	public String getVersion() {
 		return "0.01";
 	}
-   
+
 	/**
 	 * Returns copyright information
 	 */
@@ -1501,10 +1501,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	};
 
 	private int estimateRowCount(double[][] ranges) {
-		return (int) (((ranges[0][2] - ranges[0][0])/ranges[0][1]) *
-				((ranges[1][2] - ranges[1][0])/ranges[1][1]) *
-				((ranges[2][2] - ranges[2][0])/ranges[2][1]) *
-				((ranges[3][2] - ranges[3][0])/ranges[3][1]));
+		return (int)(((ranges[0][2] - ranges[0][0])/ranges[0][1]) *
+					 ((ranges[1][2] - ranges[1][0])/ranges[1][1]) *
+					 ((ranges[2][2] - ranges[2][0])/ranges[2][1]) *
+					 ((ranges[3][2] - ranges[3][0])/ranges[3][1]));
 	}
 
 	/**
@@ -1567,7 +1567,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				}
 			} else if(POSITION_LIST.equals(acq_pos_tabs.getSelectedComponent().getName())) {
 				StepTableModel model = (StepTableModel)acq_PositionsTable.getModel();
-				
+
 				rows = model.getRows();
 			} else {
 				throw new Error("Invalid tab selected (" + acq_pos_tabs.getSelectedComponent().getName() + ")...");
@@ -1622,7 +1622,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				public void run() {
 					try {
 						ImagePlus img = ProgrammaticAcquisitor.performAcquisition(params);
-						
+
 						if(img != null)
 							img.show();
 					} catch (Exception e) {
