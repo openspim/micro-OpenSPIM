@@ -339,6 +339,57 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 		};
 	};
 
+	private static int detect_delta = 10;
+	private Vector3D detect() throws Exception {
+		// Peek the current ROI. Pan up and down through several frames, apply
+		// the gaussian fitter to each. We'll need to throw out some points.
+
+		double basez = core.getPosition(core.getFocusDevice());
+
+		GaussianFit fitter = new GaussianFit(3, 1);
+
+		if(gui.getImageWin() == null || gui.getImageWin().getImagePlus().getRoi() == null)
+			return null;
+
+		double cx = 0;
+		double cy = 0;
+		double cz = 0;
+		double intsum = 0;
+
+		for(double z = basez - detect_delta; z < basez + detect_delta; ++z) {
+			core.setPosition(core.getFocusDevice(), z);
+			core.waitForDevice(core.getFocusDevice());
+
+			ImageProcessor ip = gui.getImageWin().getImagePlus().getProcessor();
+
+			double[] params = fitter.doGaussianFit(ip.crop(), (int)1e12);
+
+//			System.out.println("bgr=" + params[GaussianFit.BGR] + ", int=" + params[GaussianFit.INT] + ", xc=" + params[GaussianFit.XC]+ ", yc=" + params[GaussianFit.YC] + ", sigma_x=" + params[GaussianFit.S1] + ", sigma_y=" + params[GaussianFit.S2] + ", theta=" + params[GaussianFit.S3]);
+
+			double INT = params[GaussianFit.INT];
+
+			if(INT > 10) {
+				intsum += INT;
+
+				double x = (ip.getRoi().getMinX() + params[GaussianFit.XC] - ip.getWidth()/2)*getUmPerPixel();
+				double y = (ip.getRoi().getMinY() + params[GaussianFit.YC] - ip.getHeight()/2)*getUmPerPixel();
+
+				cx += (core.getXPosition(core.getXYStageDevice()) + x)*INT;
+				cy += (core.getYPosition(core.getXYStageDevice()) + y)*INT;
+				cz += z*INT;
+			}
+		}
+
+		core.setPosition(core.getFocusDevice(), basez);
+
+		cx /= intsum;
+		cy /= intsum;
+		cz /= intsum;
+
+//		System.out.println("~Pos: " + vToString(new Vector3D(cx,cy,cz)));
+		return new Vector3D(cx,cy,cz);
+	}
+
 	private Line rotAxis;
 
 	private void calculateRotationAxis() {
@@ -403,8 +454,11 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 		rotPosLbl.setText("Rot. axis origin: " + (rotAxis != null ? vToString(rotAxis.getOrigin()) : "Unknown"));
 	}
 
-	private Vector3D pickBead(ImagePlus img) {
+	private Vector3D pickBead(ImagePlus img, boolean detect) {
 		try {
+			if(detect)
+				return detect();
+
 			GaussianFit xyFitter = new GaussianFit(3, 1);
 			ImageProcessor ip = img.getProcessor();
 
@@ -457,7 +511,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 				if(gui.getImageWin() == null || gui.getImageWin().getImagePlus().getRoi() == null)
 					return;
 
-				Vector3D vec = pickBead(gui.getImageWin().getImagePlus());
+				Vector3D vec = pickBead(gui.getImageWin().getImagePlus(), (ae.getModifiers() & ActionEvent.ALT_MASK) != 0);
 				if(rotPickInit.equals(ae.getSource())) {
 					rotVecInit = vec;
 				} else if(rotPickMid.equals(ae.getSource())) {
