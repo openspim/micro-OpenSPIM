@@ -172,7 +172,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 
 		load();
 	}
-	
+
 	public void load() {
 		// Pixel Size Roi
 		int psrroiw = SPIMAcquisition.prefsGet("calibration.psr.roiw", 0);
@@ -211,13 +211,13 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 		redisplayRotData();
 		redisplayUmPerPix();
 	}
-	
+
 	private static void putvec(String n, Vector3D v) {
 		SPIMAcquisition.prefsSet("calibration.rxs." + n + ".x", v.getX());
 		SPIMAcquisition.prefsSet("calibration.rxs." + n + ".y", v.getY());
 		SPIMAcquisition.prefsSet("calibration.rxs." + n + ".z", v.getZ());
 	}
-	
+
 	private static Vector3D getvec(String n) {
 		double x = SPIMAcquisition.prefsGet("calibration.rxs." + n + ".x", Double.NaN);
 		double y = SPIMAcquisition.prefsGet("calibration.rxs." + n + ".y", Double.NaN);
@@ -228,7 +228,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 		else
 			return null;
 	}
-	
+
 	public void save() {
 		if(pixelSizeRoi != null) {
 			SPIMAcquisition.prefsSet("calibration.psr.roiw", pixelSizeRoi.getBounds().width);
