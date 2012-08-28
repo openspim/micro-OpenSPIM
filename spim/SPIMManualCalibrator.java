@@ -304,9 +304,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 
 		Vector3D ortho = dir.crossProduct(yaxis).normalize();
 
-		ReportingUtils.logMessage("l=" + l + ", dir=" + vToString(dir) + ", ortho=" + vToString(ortho));
-
-		return halfway.add(ortho.scalarMultiply(l*(backwards?-1D:1D)));
+		return halfway.add(ortho.scalarMultiply(l*(backwards?1D:-1D)));
 	};
 
 	private void GuessNextAndGo(boolean backwards) {
@@ -322,6 +320,18 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 			core.setXYPosition(core.getXYStageDevice(), endpos.getX(), endpos.getY());
 
 			core.setPosition(core.getFocusDevice(), endpos.getZ());
+
+			// Move our ROI to around the center of the image (where the point
+			// should be) and run detect().
+			ImagePlus img = gui.getImageWin().getImagePlus();
+			Roi imgRoi = img.getRoi();
+
+			Rectangle bounds = imgRoi.getBounds();
+
+			imgRoi.setLocation((img.getWidth() - bounds.width) / 2,
+					(img.getHeight() - bounds.height) / 2);
+
+			System.out.println("Guessed/detected: " + vToString(detect()));
 		} catch(Exception e) {
 			ReportingUtils.logError(e);
 
