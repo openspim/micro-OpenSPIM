@@ -42,6 +42,7 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -752,12 +753,25 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		acq_saveDir = new JTextField(48);
 		acq_saveDir.setEnabled(true);
 
+		JButton pickDirBtn = new JButton("Browse");
+		pickDirBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent ae) {
+				JFileChooser fc = new JFileChooser(acq_saveDir.getText());
+
+				fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+
+				if(fc.showDialog(frame, "Select") == JFileChooser.APPROVE_OPTION)
+					acq_saveDir.setText(fc.getSelectedFile().getAbsolutePath());
+			};
+		});
+
 		addLine(right, Justification.RIGHT, "Laser power:", laserPower, "exposure:", exposure);
 		addLine(right, Justification.STRETCH, "Laser:", laserSlider);
 		addLine(right, Justification.STRETCH, "Exposure:", exposureSlider);
 		addLine(right, Justification.RIGHT, continuousCheckbox, liveCheckbox, registrationCheckbox, speedControl);
 		addLine(right, Justification.RIGHT, speedControl, "Delay to let z-stage settle (ms):", settleTime);
-		addLine(right, Justification.RIGHT, acq_saveIndividual, acq_saveDir);
+		addLine(right, Justification.RIGHT, acq_saveIndividual, acq_saveDir, pickDirBtn);
 
 		JPanel bottom = new JPanel();
 		bottom.setLayout(new BoxLayout(bottom, BoxLayout.LINE_AXIS));
