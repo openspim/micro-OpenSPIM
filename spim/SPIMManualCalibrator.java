@@ -307,7 +307,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 		return halfway.add(ortho.scalarMultiply(l*(backwards?1D:-1D)));
 	};
 
-	private void GuessNextAndGo(boolean backwards) {
+	private void GuessNextAndGo(boolean backwards, boolean tryagain) {
 		Vector3D axispos = TwoVecAxis(backwards);
 
 		Rotation r = new Rotation(yaxis,DTheta());
@@ -331,7 +331,14 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 			imgRoi.setLocation((img.getWidth() - bounds.width) / 2,
 					(img.getHeight() - bounds.height) / 2);
 
-			System.out.println("Guessed/detected: " + vToString(detect()));
+			Vector3D det = detect();
+
+			if(tryagain && det.equals(Vector3D.NaN)) {
+				System.out.println("Couldn't find; trying reversed ortho.");
+				GuessNextAndGo(!backwards, false);
+			} else {
+				System.out.println("Guessed/detected: " + vToString(det));
+			};
 		} catch(Exception e) {
 			ReportingUtils.logError(e);
 
@@ -464,8 +471,8 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 
 			double[] params = xyFitter.doGaussianFit(ip.crop(), (int)1e12);
 
-			img.setOverlay(new ij.gui.OvalRoi(ip.getRoi().getMinX() + params[GaussianFit.XC] - 1,
-					ip.getRoi().getMinY() + params[GaussianFit.YC] - 1, 2, 2), Color.RED, 0, Color.RED);
+			img.setOverlay(new ij.gui.OvalRoi(ip.getRoi().getMinX() + params[GaussianFit.XC],
+					ip.getRoi().getMinY() + params[GaussianFit.YC], 2, 2), Color.RED, 0, Color.RED);
 
 			double x = (ip.getRoi().getMinX() + params[GaussianFit.XC] - ip.getWidth()/2)*getUmPerPixel();
 			double y = (ip.getRoi().getMinY() + params[GaussianFit.YC] - ip.getHeight()/2)*getUmPerPixel();
@@ -490,7 +497,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 				pixelSizeRoi = (Roi) gui.getImageWin().getImagePlus().getRoi().clone();
 
 			redisplayUmPerPix();
-			psrRoiPickerBtn.setText(pixelSizeRoi.getBounds().getWidth() + 
+			psrRoiPickerBtn.setText(pixelSizeRoi.getBounds().getWidth() +
 					" x " + pixelSizeRoi.getBounds().getHeight());
 		} else if(PICK_BEAD.equals(ae.getActionCommand())) {
 			String newText = null;
@@ -589,7 +596,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 			}
 		} else if(ae.getActionCommand().equals("Guess #3")) {
 			if(rotVecInit != null && rotVecMid != null) {
-				GuessNextAndGo((ae.getModifiers() & ActionEvent.CTRL_MASK) != 0);
+				GuessNextAndGo((ae.getModifiers() & ActionEvent.CTRL_MASK) != 0, true);
 			}
 		}
 	}
