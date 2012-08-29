@@ -397,6 +397,14 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			};
 		});
 
+		JButton testBtn = new JButton("Super-Secret Testing Doo-Dah");
+		testBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent ae) {
+				(new SPIMAutoCalibrator(mmc, gui, twisterLabel)).setVisible(true);
+			};
+		});
+
 		addLine(left, Justification.LEFT, "x:", xPosition, "y:", yPosition, "z:", zPosition, "angle:", rotation);
 		addLine(left, Justification.STRETCH, "x:", xSlider);
 		addLine(left, Justification.RIGHT, limitedXRange);
@@ -406,7 +414,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		addLine(left, Justification.RIGHT, limitedZRange);
 		addLine(left, Justification.STRETCH, "rotation:", rotationSlider);
 		addLine(left, Justification.RIGHT, "steps/rotation:", stepsPerRotation, "degrees/step:", degreesPerStep);
-		addLine(left, Justification.RIGHT, calibrateButton);
+		addLine(left, Justification.RIGHT, calibrateButton, testBtn);
 
 		JPanel stageControls = new JPanel();
 		stageControls.setName("Stage Controls");
