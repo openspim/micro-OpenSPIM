@@ -104,7 +104,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	private JButton acq_goBtn;
 	private Thread acqThread;
 	
-	private SPIMManualCalibrator calibration;
+	private SPIMCalibrator calibration;
 
 	// TODO: read these from the properties
 	protected int motorMin = 1, motorMax = 8000,
@@ -390,18 +390,15 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		calibrateButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
-				if(calibration == null)
-					calibration = new SPIMManualCalibrator(mmc, gui, twisterLabel);
+				if(calibration == null) {
+					if((ae.getModifiers() & ActionEvent.ALT_MASK) != 0) {
+						calibration = new SPIMAutoCalibrator(mmc, gui, twisterLabel);
+					} else {
+						calibration = new SPIMManualCalibrator(mmc, gui, twisterLabel);
+					}
+				}
 				
-				calibration.setVisible(true);
-			};
-		});
-
-		JButton testBtn = new JButton("Super-Secret Testing Doo-Dah");
-		testBtn.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent ae) {
-				(new SPIMAutoCalibrator(mmc, gui, twisterLabel)).setVisible(true);
+				((JFrame)calibration).setVisible(true);
 			};
 		});
 
@@ -414,7 +411,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		addLine(left, Justification.RIGHT, limitedZRange);
 		addLine(left, Justification.STRETCH, "rotation:", rotationSlider);
 		addLine(left, Justification.RIGHT, "steps/rotation:", stepsPerRotation, "degrees/step:", degreesPerStep);
-		addLine(left, Justification.RIGHT, calibrateButton, testBtn);
+		addLine(left, Justification.RIGHT, calibrateButton);
 
 		JPanel stageControls = new JPanel();
 		stageControls.setName("Stage Controls");
