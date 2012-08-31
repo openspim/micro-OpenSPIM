@@ -1081,7 +1081,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		Vector3D rotOrigin = calibration.getRotationOrigin();
 		Vector3D rotAxis = calibration.getRotationAxis();
 
-		Rotation rot = new Rotation(rotAxis, dtheta * Math.PI / 100D);
+		// Reverse dtheta; for our twister motor, negative dtheta is CCW, the
+		// direction of rotation for commons math (about +k).
+		Rotation rot = new Rotation(rotAxis, -dtheta * Math.PI / 100D);
 
 		return rotOrigin.add(rot.applyTo(pos.subtract(rotOrigin)));
 	}
@@ -1506,20 +1508,12 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	};
 
 	private int estimateRowCount(double[][] ranges) {
-		return (int)(((ranges[0][2] - ranges[0][0])/ranges[0][1]) *
-					 ((ranges[1][2] - ranges[1][0])/ranges[1][1]) *
-					 ((ranges[2][2] - ranges[2][0])/ranges[2][1]) *
-					 ((ranges[3][2] - ranges[3][0])/ranges[3][1]));
+		return (int)(((ranges[0][2] - ranges[0][0])/ranges[0][1] + 1) *
+					 ((ranges[1][2] - ranges[1][0])/ranges[1][1] + 1) *
+					 ((ranges[2][2] - ranges[2][0])/ranges[2][1] + 1) *
+					 ((ranges[3][2] - ranges[3][0])/ranges[3][1] + 1));
 	}
 
-	/**
-	 * Recursively generates multi-view rows for the ProgAcq system, based on
-	 * the current calibration.
-	 * 
-	 * @param ranges
-	 * @param devs
-	 * @return
-	 */
 	private List<String[]> generateMultiViewRows() throws Exception {
 		double currentRot = mmc.getPosition(twisterLabel);
 
