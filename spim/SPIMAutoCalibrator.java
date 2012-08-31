@@ -167,21 +167,20 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			ImageProcessor ip = gui.getImageWin().getImagePlus().getProcessor();
 
 			double[] params = fitter.doGaussianFit(ip.crop(), (int)1e12);
-			double intensity = params[GaussianFit.INT];
 			double intbgr = params[GaussianFit.INT] / params[GaussianFit.BGR];
 
 			if(intbgr >= minIntBGR) {
-				intsum += intensity;
+				intsum += intbgr;
 
 				cx += (core.getXPosition(core.getXYStageDevice()) +
 						(ip.getRoi().getMinX() + params[GaussianFit.XC] -
-						ip.getWidth()/2)*getUmPerPixel())*intensity;
+						ip.getWidth()/2)*getUmPerPixel())*intbgr;
 
 				cy += (core.getYPosition(core.getXYStageDevice()) +
 						(ip.getRoi().getMinY() + params[GaussianFit.YC] -
-						ip.getHeight()/2)*getUmPerPixel())*intensity;
+						ip.getHeight()/2)*getUmPerPixel())*intbgr;
 
-				cz += z*intensity;
+				cz += core.getPosition(core.getFocusDevice())*intbgr;
 			} else {
 				ReportingUtils.logMessage("Throwing out z=" + z + "; intbgr = " + intbgr);
 			}
@@ -235,11 +234,10 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 				for(int i=0; i < ((ae.getModifiers() & ActionEvent.ALT_MASK) != 0 ? 5 : 1); ++i) {
 					core.setPosition(twisterLabel, (core.getPosition(twisterLabel) + 1));
 					core.waitForDevice(twisterLabel);
+					Thread.sleep(250);
 					if(!getNextBead()) {
 						JOptionPane.showMessageDialog(this, "Most likely, the bead has been lost. D: Sorry! Try moving the stage to the most recent position in the list.");
 						break;
-					} else {
-						Thread.sleep(250);
 					}
 				}
 			} catch(Exception e) {
