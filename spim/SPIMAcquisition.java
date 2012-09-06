@@ -556,8 +556,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			LayoutUtils.horizPanel(
 				xy,
 				LayoutUtils.vertPanel(
-					z,
-					t
+					t,
+					z
 				)
 			)
 		);
@@ -581,8 +581,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 							new String[] {
 							mmc.getXPosition(xyStageLabel) + ", " + 
 									mmc.getYPosition(xyStageLabel),
-							"" + mmc.getPosition(zStageLabel),
-							"" + mmc.getPosition(twisterLabel)
+							"" + mmc.getPosition(twisterLabel),
+							"" + mmc.getPosition(zStageLabel)
 					});
 				} catch(Throwable t) {
 					JOptionPane.showMessageDialog(acq_PositionsTable,
@@ -623,7 +623,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				int step = (Integer)acq_sliceStep.getValue();
 
 				for(double z = midz - range; z < midz + range; z += step) {
-					model.insertRow(new String[] {xy, "" + z, theta});
+					model.insertRow(new String[] {xy, theta, "" + z});
 				}
 			}
 		});
@@ -650,7 +650,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		JScrollPane tblScroller = new JScrollPane(acq_PositionsTable = new JTable());
 
 		StepTableModel model = new StepTableModel();
-		model.setColumns(Arrays.asList(new String[] {"X/Y Stage", "Z Stage", "Theta"}));
+		model.setColumns(Arrays.asList(new String[] {"X/Y Stage", "Theta", "Z Stage"}));
 
 		acq_PositionsTable.setFillsViewportHeight(true);
 		acq_PositionsTable.setModel(model);
@@ -1490,8 +1490,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		double[][] ranges = new double[][] {
 				acq_rangeX.getRange(),
 				acq_rangeY.getRange(),
-				acq_rangeZ.getRange(),
-				acq_rangeTheta.getRange()
+				acq_rangeTheta.getRange(),
+				acq_rangeZ.getRange()
 		};
 
 		if(!acq_xyDevCB.isSelected()) {
@@ -1499,11 +1499,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			ranges[1][2] = ranges[1][0] = mmc.getYPosition(xyStageLabel);
 		};
 
-		if(!acq_zDevCB.isSelected())
-			ranges[2][2] = ranges[2][0] = mmc.getPosition(zStageLabel);
-
 		if(!acq_tDevCB.isSelected())
-			ranges[3][2] = ranges[3][0] = mmc.getPosition(twisterLabel);
+			ranges[2][2] = ranges[2][0] = mmc.getPosition(twisterLabel);
+
+		if(!acq_zDevCB.isSelected())
+			ranges[3][2] = ranges[3][0] = mmc.getPosition(zStageLabel);
 
 		return ranges;
 	};
@@ -1524,8 +1524,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		for(double x = ranges[0][0]; x <= ranges[0][2]; x += ranges[0][1]) {
 			for(double y = ranges[1][0]; y <= ranges[1][2]; y += ranges[1][1]) {
-				for(double z = ranges[2][0]; z <= ranges[2][2]; z += ranges[2][1]) {
-					for(double t = ranges[3][0]; t <= ranges[3][2]; t += ranges[3][1]) {
+				for(double t = ranges[2][0]; t <= ranges[2][2]; t += ranges[2][1]) {
+					for(double z = ranges[3][0]; z <= ranges[3][2]; z += ranges[3][1]) {
 						String[] row = new String[3];
 
 						Vector3D v = new Vector3D(x, y, z);
@@ -1536,8 +1536,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 						v = applyCalibratedRotation(v, t - currentRot);
 
 						row[0] = v.getX() + ", " + v.getY();
-						row[1] = "" + v.getZ();
-						row[2] = "" + t;
+						row[1] = "" + t;
+						row[2] = "" + v.getZ();
 
 						rows.add(row);
 					}
@@ -1554,7 +1554,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			if(acqThread != null)
 				acqThread.interrupt();
 
-			final String devs[] = {xyStageLabel, zStageLabel, twisterLabel};
+			final String devs[] = {xyStageLabel, twisterLabel, zStageLabel};
 			final List<String[]> rows;
 
 			if(SPIM_RANGES.equals(acq_pos_tabs.getSelectedComponent().getName())) {
