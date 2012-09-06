@@ -1,5 +1,7 @@
 package spim;
 
+import ij.ImagePlus;
+import ij.ImageStack;
 import ij.process.ImageProcessor;
 
 import java.awt.GridLayout;
@@ -13,6 +15,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -23,10 +26,14 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
 import mmcorej.CMMCore;
+import mmcorej.TaggedImage;
 
 import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math.geometry.euclidean.threed.Line;
+import org.json.JSONException;
 import org.micromanager.MMStudioMainFrame;
+import org.micromanager.utils.MDUtils;
+import org.micromanager.utils.MMScriptException;
 import org.micromanager.utils.ReportingUtils;
 
 import edu.valelab.GaussianFit.GaussianFit;
@@ -81,12 +88,15 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		JPanel btnsPanel = new JPanel();
 		btnsPanel.setLayout(new GridLayout(6, 1));
 
+		maxOrAvg = new JCheckBox("By Max. Intens.");
+
 		LayoutUtils.addAll(btnsPanel,
 				go,
 				revise,
 				remove,
 				recalculate,
-				revert
+				revert,
+				maxOrAvg
 		);
 
 		btnsPanel.setMaximumSize(btnsPanel.getPreferredSize());
@@ -132,8 +142,6 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		return getUmPerPixel() != 0 && rotAxis != null;
 	}
 
-	static double minIntBGR = 0.20;
-
 	private Line fitAxis() {
 		Object[] vectors = ((DefaultListModel)pointsTable.getModel()).toArray();
 		LinkedList<double[]> doublePoints = new LinkedList<double[]>();
@@ -152,46 +160,120 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		return new Line(axisPoint, axisPoint.add(Vector3D.PLUS_J));
 	};
 
+	static double minIntBGR = 0.05;
+	private JCheckBox maxOrAvg;
+
+	private double guessZ() throws Exception {
+		int modelSize = pointsTable.getModel().getSize();
+
+		if(modelSize >= 2) {
+			Vector3D recent = (Vector3D)pointsTable.getModel().getElementAt(modelSize - 1);
+			Vector3D older = (Vector3D)pointsTable.getModel().getElementAt(modelSize - 2);
+
+			return recent.getZ() + (recent.getZ() - older.getZ());
+		} else {
+			return core.getPosition(core.getFocusDevice());
+		}
+	}
+
 	private Vector3D scanBead(double scanDelta) throws Exception {
-		double basez = core.getPosition(core.getFocusDevice());
+		double basez = guessZ();
 
 		GaussianFit fitter = new GaussianFit(3, 1);
 
 		double cx = 0, cy = 0, cz = 0, intsum = 0;
 
+		boolean useMaxIntensity = maxOrAvg.isSelected();
+
+		double maxInt = -1e6;
+		double maxZ = -1;
+
+		ReportingUtils.logMessage(String.format("!!!--- SCANNING %.2f to %.2f", basez - scanDelta, basez + scanDelta));
+
+		Rectangle roi = MMStudioMainFrame.getSimpleDisplay().getImagePlus().getProcessor().getRoi();
+		ImageStack stack = new ImageStack(roi.width, roi.height);
+
 		for(double z = basez - scanDelta; z <= basez + scanDelta; ++z) {
 			core.setPosition(core.getFocusDevice(), z);
 			core.waitForDevice(core.getFocusDevice());
-			Thread.sleep(10); // Test: sleep 10ms before checking...
+			Thread.sleep(15);
 
-			ImageProcessor ip = gui.getImageWin().getImagePlus().getProcessor();
+			core.snapImage();
+			TaggedImage ti = core.getTaggedImage();
+			addTags(ti, 0);
+			gui.addImage(MMStudioMainFrame.SIMPLE_ACQ, ti, true, true);
 
-			double[] params = fitter.doGaussianFit(ip.crop(), (int)1e12);
+			MMStudioMainFrame.getSimpleDisplay().updateAndDraw();
+
+			ImageProcessor ip = MMStudioMainFrame.getSimpleDisplay().getImagePlus().getProcessor();
+
+			ImageProcessor cropped = ip.crop();
+
+			stack.addSlice(cropped);
+
+			double[] params = fitter.doGaussianFit(cropped, Integer.MAX_VALUE);
 			double intbgr = params[GaussianFit.INT] / params[GaussianFit.BGR];
 
-			if(intbgr >= minIntBGR) {
+			ReportingUtils.logMessage(String.format("!!!--- Gaussian fit: C=%.2f, %.2f, INT=%.2f, BGR=%.2f.",
+					params[GaussianFit.XC], params[GaussianFit.YC], params[GaussianFit.INT], params[GaussianFit.BGR]));
+
+			double offsx = core.getXPosition(core.getXYStageDevice()) +
+					(ip.getRoi().getMinX() + params[GaussianFit.XC] -
+					ip.getWidth()/2)*getUmPerPixel();
+
+			double offsy = core.getYPosition(core.getXYStageDevice()) +
+					(ip.getRoi().getMinY() + params[GaussianFit.YC] -
+					ip.getHeight()/2)*getUmPerPixel();
+
+			if(intbgr >= minIntBGR && params[GaussianFit.XC] >= 0 && params[GaussianFit.YC] >= 0 && params[GaussianFit.XC] < cropped.getWidth() && params[GaussianFit.YC] < cropped.getHeight()) {
 				intsum += intbgr;
 
-				cx += (core.getXPosition(core.getXYStageDevice()) +
-						(ip.getRoi().getMinX() + params[GaussianFit.XC] -
-						ip.getWidth()/2)*getUmPerPixel())*intbgr;
+				ReportingUtils.logMessage("!!!--- Including z=" + z + " (" + core.getPosition(core.getFocusDevice()) + "): " + offsx + ", " + offsy + ":");
+				ReportingUtils.logMessage(core.getXPosition(core.getXYStageDevice()) + " + (" + ip.getRoi().getMinX() + " + " + params[GaussianFit.XC] + " - " + ip.getWidth() + "/2)*" + getUmPerPixel() + ")*" + intbgr + ";");
+				ReportingUtils.logMessage(core.getYPosition(core.getXYStageDevice()) + " + (" + ip.getRoi().getMinY() + " + " + params[GaussianFit.YC] + " - " + ip.getHeight() + "/2)*" + getUmPerPixel() + ")*" + intbgr + ";");
 
-				cy += (core.getYPosition(core.getXYStageDevice()) +
-						(ip.getRoi().getMinY() + params[GaussianFit.YC] -
-						ip.getHeight()/2)*getUmPerPixel())*intbgr;
+				cx += offsx*intbgr;
+
+				cy += offsy*intbgr;
 
 				cz += core.getPosition(core.getFocusDevice())*intbgr;
+
+				if(intbgr > maxInt) {
+					maxInt = intbgr;
+					maxZ = z;
+				}
 			} else {
-				ReportingUtils.logMessage("Throwing out z=" + z + "; intbgr = " + intbgr);
+				ReportingUtils.logMessage("!!!--- Throwing out " + offsx + ", " + offsy + ", " + z + "; intbgr = " + intbgr);
 			}
 		}
+
+		(new ImagePlus(basez + "+/-" + scanDelta, stack)).show();
+		core.setPosition(core.getFocusDevice(), basez);
+		core.waitForDevice(core.getFocusDevice());
 
 		cx /= intsum;
 		cy /= intsum;
 		cz /= intsum;
 
-		return new Vector3D(cx, cy, cz);
+		Vector3D ret = new Vector3D(cx, cy, (useMaxIntensity ? maxZ : cz)); 
+
+		ReportingUtils.logMessage("!!!--- RETURNING " + vToS(ret));
+
+		return ret;
 	};
+
+	private void addTags(TaggedImage ti, int channel) throws JSONException {
+		MDUtils.setChannelIndex(ti.tags, channel);
+		MDUtils.setFrameIndex(ti.tags, 0);
+		MDUtils.setPositionIndex(ti.tags, 0);
+		MDUtils.setSliceIndex(ti.tags, 0);
+		try {
+			ti.tags.put("Summary", MMStudioMainFrame.getInstance().getAcquisition(MMStudioMainFrame.SIMPLE_ACQ).getSummaryMetadata());
+		} catch (MMScriptException ex) {
+			ReportingUtils.logError("Error adding summary metadata to tags");
+		}
+		gui.addStagePositionToTags(ti);
+	}
 
 	private boolean getNextBead() throws Exception {
 		Vector3D next = scanBead(5);
@@ -206,6 +288,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			core.setXYPosition(core.getXYStageDevice(), next.getX(), next.getY());
 			core.setPosition(core.getFocusDevice(), next.getZ());
 		} catch(Exception e) {
+			ReportingUtils.logError(e);
 			JOptionPane.showMessageDialog(this, "Couldn't recenter: " + e.getMessage());
 			return false;
 		};
@@ -225,12 +308,14 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	};
 
 	private String vToS(Vector3D v) {
-		return String.format("<%.3f %.3f %.3f>", v.getX(), v.getY(), v.getZ());
+		return String.format("<%.3f, %.3f, %.3f>", v.getX(), v.getY(), v.getZ());
 	}
 
 	public void actionPerformed(ActionEvent ae) {
 		if(BTN_OBTAIN_NEXT.equals(ae.getActionCommand())) {
+			boolean live = gui.getLiveMode(); 
 			try {
+				gui.enableLiveMode(false);
 				for(int i=0; i < ((ae.getModifiers() & ActionEvent.ALT_MASK) != 0 ? 5 : 1); ++i) {
 					core.setPosition(twisterLabel, (core.getPosition(twisterLabel) + 1));
 					core.waitForDevice(twisterLabel);
@@ -242,6 +327,9 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 				}
 			} catch(Exception e) {
 				JOptionPane.showMessageDialog(this, "Couldn't scan Z: " + e.getMessage());
+				ReportingUtils.logError(e);
+			} finally {
+				gui.enableLiveMode(live);
 			}
 		} else if(BTN_REVISE.equals(ae.getActionCommand())) {
 			DefaultListModel mdl = (DefaultListModel)pointsTable.getModel();
@@ -262,6 +350,9 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 			pointsTable.clearSelection();
 		} else if(BTN_RECALCULATE.equals(ae.getActionCommand())) {
+			if(pointsTable.getModel().getSize() <= 2)
+				return;
+
 			rotAxis = fitAxis();
 
 			rotAxisLbl.setText("Rotational axis: " + vToS(rotAxis.getDirection()));
