@@ -28,6 +28,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Dictionary;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Timer;
@@ -1603,6 +1604,14 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			params.setTimeStepSeconds(timeStep);
 			params.setContinuous(continuousCheckbox.isSelected());
 			params.setSaveIndividual(acq_saveIndividual.isSelected());
+
+			HashMap<String, String> nameMap = new HashMap<String, String>(3);
+			nameMap.put(xyStageLabel, "XY");
+			nameMap.put(twisterLabel, "Ang");
+			nameMap.put(zStageLabel, "Z");
+
+			params.shortNamesToScheme("SA", true, nameMap);
+
 			if(acq_saveIndividual.isSelected())
 				params.setOutputDirectory(new File(acq_saveDir.getText()));
 
