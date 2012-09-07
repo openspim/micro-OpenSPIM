@@ -1525,19 +1525,19 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		for(double x = ranges[0][0]; x <= ranges[0][2]; x += ranges[0][1]) {
 			for(double y = ranges[1][0]; y <= ranges[1][2]; y += ranges[1][1]) {
 				for(double t = ranges[2][0]; t <= ranges[2][2]; t += ranges[2][1]) {
+					Vector3D basev = new Vector3D(x, y, (ranges[3][0] + ranges[3][2]) / 2);
+
+					// Apply the transformation required to rotate to the
+					// target angle from the angle at the start of
+					// acquisition.
+					basev = applyCalibratedRotation(basev, t - currentRot);
+
 					for(double z = ranges[3][0]; z <= ranges[3][2]; z += ranges[3][1]) {
 						String[] row = new String[3];
 
-						Vector3D v = new Vector3D(x, y, z);
-
-						// Apply the transformation required to rotate to the
-						// target angle from the angle at the start of
-						// acquisition.
-						v = applyCalibratedRotation(v, t - currentRot);
-
-						row[0] = v.getX() + ", " + v.getY();
+						row[0] = basev.getX() + ", " + basev.getY();
 						row[1] = "" + t;
-						row[2] = "" + v.getZ();
+						row[2] = "" + z;
 
 						rows.add(row);
 					}
