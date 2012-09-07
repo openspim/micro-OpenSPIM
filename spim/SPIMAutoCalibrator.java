@@ -163,8 +163,21 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	static double minIntBGR = 0.05;
 	private JCheckBox maxOrAvg;
 
+	private double guessZ() throws Exception {
+		int modelSize = pointsTable.getModel().getSize();
+
+		if(modelSize >= 2) {
+			Vector3D recent = (Vector3D)pointsTable.getModel().getElementAt(modelSize - 1);
+			Vector3D older = (Vector3D)pointsTable.getModel().getElementAt(modelSize - 2);
+
+			return recent.getZ() + (recent.getZ() - older.getZ());
+		} else {
+			return core.getPosition(core.getFocusDevice());
+		}
+	}
+
 	private Vector3D scanBead(double scanDelta) throws Exception {
-		double basez = core.getPosition(core.getFocusDevice());
+		double basez = guessZ();
 
 		GaussianFit fitter = new GaussianFit(3, 1);
 
@@ -337,6 +350,9 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 			pointsTable.clearSelection();
 		} else if(BTN_RECALCULATE.equals(ae.getActionCommand())) {
+			if(pointsTable.getModel().getSize() <= 2)
+				return;
+
 			rotAxis = fitAxis();
 
 			rotAxisLbl.setText("Rotational axis: " + vToS(rotAxis.getDirection()));
