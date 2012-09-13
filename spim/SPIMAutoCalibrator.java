@@ -4,6 +4,7 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.ImageProcessor;
 
+import java.awt.Component;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
@@ -16,6 +17,7 @@ import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -23,11 +25,14 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
 import javax.swing.JTable;
+import javax.swing.SpinnerNumberModel;
 
 import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
 
+import org.apache.commons.math.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math.geometry.euclidean.threed.Line;
 import org.json.JSONException;
@@ -39,6 +44,8 @@ import org.micromanager.utils.ReportingUtils;
 import edu.valelab.GaussianFit.GaussianFit;
 
 public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, ActionListener {
+	private static final String ZMODE_MIN_SIGMA = "Min Sigma";
+	private static final String ZMODE_MAX_INTENSITY = "Max Intens.";
 	private static final String BTN_OBTAIN_NEXT = "Obtain Next";
 	private static final String BTN_REVISE = "Revise Sel.";
 	private static final String BTN_REMOVE = "Remove Sel.";
@@ -58,6 +65,13 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	private JLabel rotAxisLbl;
 
 	private JLabel rotOrigLbl;
+	
+	private JFrame tweaksFrame;
+	private JSpinner firstDelta;
+	private JSpinner secondDelta;
+	private JComboBox zmethod;
+	private JCheckBox complexGuessZ;
+	private JSpinner intbgrThresh;
 
 	public SPIMAutoCalibrator(CMMCore core, MMStudioMainFrame gui, String itwister) {
 		super("SPIM Automatic Calibration");
@@ -88,7 +102,8 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		JPanel btnsPanel = new JPanel();
 		btnsPanel.setLayout(new GridLayout(6, 1));
 
-		maxOrAvg = new JCheckBox("By Max. Intens.");
+		JButton tweakScan = new JButton("Tweak Scan");
+		tweakScan.addActionListener(this);
 
 		LayoutUtils.addAll(btnsPanel,
 				go,
@@ -96,7 +111,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 				remove,
 				recalculate,
 				revert,
-				maxOrAvg
+				tweakScan
 		);
 
 		btnsPanel.setMaximumSize(btnsPanel.getPreferredSize());
@@ -116,6 +131,28 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		));
 
 		pack();
+
+		tweaksFrame = new JFrame("Scanning Tweaks");
+		tweaksFrame.setLayout(new GridLayout(5, 1));
+
+		LayoutUtils.addAll((JComponent) tweaksFrame.getContentPane(),
+			LayoutUtils.horizPanel(
+				new JLabel("First delta:"),
+				firstDelta = new JSpinner(new SpinnerNumberModel(5.0, 1.0, 30.0, 1.0))
+			),
+			LayoutUtils.horizPanel(
+				new JLabel("Second delta:"),
+				secondDelta = new JSpinner(new SpinnerNumberModel(15.0, 5.0, 50.0, 1.0))
+			),
+			zmethod = new JComboBox(new String[] {"Weighted Avg.", ZMODE_MAX_INTENSITY, ZMODE_MIN_SIGMA}),
+			complexGuessZ = new JCheckBox("Complex Z Guessing"),
+			LayoutUtils.horizPanel(
+				new JLabel("IntBGR:"),
+				intbgrThresh = new JSpinner(new SpinnerNumberModel(0.10, 0.0, 0.5, 0.01))
+			)
+		);
+
+		tweaksFrame.pack();
 	}
 
 	@Override
@@ -160,13 +197,25 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		return new Line(axisPoint, axisPoint.add(Vector3D.PLUS_J));
 	};
 
-	static double minIntBGR = 0.05;
-	private JCheckBox maxOrAvg;
+	private static double minIntBGR = 0.05;
 
 	private double guessZ() throws Exception {
 		int modelSize = pointsTable.getModel().getSize();
 
-		if(modelSize >= 2) {
+		if(modelSize >= 3 && complexGuessZ.isSelected()) {
+			Line a = fitAxis();
+			
+			Vector3D cur = new Vector3D(
+					core.getXPosition(core.getXYStageDevice()),
+					core.getYPosition(core.getXYStageDevice()),
+					core.getPosition(core.getFocusDevice())
+				);
+			
+			Vector3D res = new Rotation(a.getDirection(),
+					-1*(Math.PI/100)).applyTo(cur);
+			
+			return res.getZ();
+		} else if(modelSize >= 2) {
 			Vector3D recent = (Vector3D)pointsTable.getModel().getElementAt(modelSize - 1);
 			Vector3D older = (Vector3D)pointsTable.getModel().getElementAt(modelSize - 2);
 
@@ -183,10 +232,11 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 		double cx = 0, cy = 0, cz = 0, intsum = 0;
 
-		boolean useMaxIntensity = maxOrAvg.isSelected();
-
 		double maxInt = -1e6;
 		double maxZ = -1;
+		
+		double minSigma = 1e6;
+		double bestZ = -1;
 
 		ReportingUtils.logMessage(String.format("!!!--- SCANNING %.2f to %.2f", basez - scanDelta, basez + scanDelta));
 
@@ -225,7 +275,12 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 					(ip.getRoi().getMinY() + params[GaussianFit.YC] -
 					ip.getHeight()/2)*getUmPerPixel();
 
-			if(intbgr >= minIntBGR && params[GaussianFit.XC] >= 0 && params[GaussianFit.YC] >= 0 && params[GaussianFit.XC] < cropped.getWidth() && params[GaussianFit.YC] < cropped.getHeight()) {
+			double sigma = Math.sqrt(Math.pow(params[GaussianFit.S1], 2) +
+				Math.pow(params[GaussianFit.S2], 2));
+
+			if(intbgr >= (Double)intbgrThresh.getValue() &&
+					params[GaussianFit.XC] >= 0 && params[GaussianFit.YC] >= 0 &&
+					params[GaussianFit.XC] < cropped.getWidth() && params[GaussianFit.YC] < cropped.getHeight()) {
 				intsum += intbgr;
 
 				ReportingUtils.logMessage("!!!--- Including z=" + z + " (" + core.getPosition(core.getFocusDevice()) + "): " + offsx + ", " + offsy + ":");
@@ -233,21 +288,24 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 				ReportingUtils.logMessage(core.getYPosition(core.getXYStageDevice()) + " + (" + ip.getRoi().getMinY() + " + " + params[GaussianFit.YC] + " - " + ip.getHeight() + "/2)*" + getUmPerPixel() + ")*" + intbgr + ";");
 
 				cx += offsx*intbgr;
-
 				cy += offsy*intbgr;
-
 				cz += core.getPosition(core.getFocusDevice())*intbgr;
 
 				if(intbgr > maxInt) {
 					maxInt = intbgr;
 					maxZ = z;
 				}
+
+				if(sigma < minSigma) {
+					minSigma = sigma;
+					bestZ = z;
+				}
 			} else {
 				ReportingUtils.logMessage("!!!--- Throwing out " + offsx + ", " + offsy + ", " + z + "; intbgr = " + intbgr);
 			}
 		}
 
-		(new ImagePlus(basez + "+/-" + scanDelta, stack)).show();
+//		(new ImagePlus(basez + "+/-" + scanDelta, stack)).show();
 		core.setPosition(core.getFocusDevice(), basez);
 		core.waitForDevice(core.getFocusDevice());
 
@@ -255,7 +313,13 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		cy /= intsum;
 		cz /= intsum;
 
-		Vector3D ret = new Vector3D(cx, cy, (useMaxIntensity ? maxZ : cz)); 
+		if(zmethod.getSelectedItem().equals(ZMODE_MAX_INTENSITY)) {
+			cz = maxZ;
+		} else if(zmethod.getSelectedItem().equals(ZMODE_MIN_SIGMA)) {
+			cz = bestZ;
+		}
+
+		Vector3D ret = new Vector3D(cx, cy, cz);
 
 		ReportingUtils.logMessage("!!!--- RETURNING " + vToS(ret));
 
@@ -276,10 +340,10 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	}
 
 	private boolean getNextBead() throws Exception {
-		Vector3D next = scanBead(5);
+		Vector3D next = scanBead((Double)firstDelta.getValue());
 
 		if(next.isNaN())
-			next = scanBead(15);
+			next = scanBead((Double)secondDelta.getValue());
 
 		if(next.isNaN())
 			return false;
@@ -310,27 +374,40 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	private String vToS(Vector3D v) {
 		return String.format("<%.3f, %.3f, %.3f>", v.getX(), v.getY(), v.getZ());
 	}
-
-	public void actionPerformed(ActionEvent ae) {
-		if(BTN_OBTAIN_NEXT.equals(ae.getActionCommand())) {
+	
+	private Runnable getNextBeadRunnable = new Runnable() {
+		@Override
+		public void run() {
 			boolean live = gui.getLiveMode(); 
 			try {
 				gui.enableLiveMode(false);
-				for(int i=0; i < ((ae.getModifiers() & ActionEvent.ALT_MASK) != 0 ? 5 : 1); ++i) {
-					core.setPosition(twisterLabel, (core.getPosition(twisterLabel) + 1));
-					core.waitForDevice(twisterLabel);
-					Thread.sleep(250);
-					if(!getNextBead()) {
-						JOptionPane.showMessageDialog(this, "Most likely, the bead has been lost. D: Sorry! Try moving the stage to the most recent position in the list.");
-						break;
-					}
+
+				core.setPosition(twisterLabel, (core.getPosition(twisterLabel) + 1));
+				core.waitForDevice(twisterLabel);
+				Thread.sleep(50);
+				if(!getNextBead()) {
+					JOptionPane.showMessageDialog(SPIMAutoCalibrator.this,
+							"Most likely, the bead has been lost. D: Sorry! " +
+							"Try moving the stage to the most recent position" +
+							" in the list.");
 				}
 			} catch(Exception e) {
-				JOptionPane.showMessageDialog(this, "Couldn't scan Z: " + e.getMessage());
+				JOptionPane.showMessageDialog(SPIMAutoCalibrator.this,
+						"Couldn't scan Z: " + e.getMessage());
 				ReportingUtils.logError(e);
 			} finally {
 				gui.enableLiveMode(live);
 			}
+		}
+	};
+
+	public void actionPerformed(ActionEvent ae) {
+		if(BTN_OBTAIN_NEXT.equals(ae.getActionCommand())) {
+			Thread t = new Thread(getNextBeadRunnable);
+			
+			t.start();
+		} else if("Tweak Scan".equals(ae.getActionCommand())) {
+			tweaksFrame.setVisible(true);
 		} else if(BTN_REVISE.equals(ae.getActionCommand())) {
 			DefaultListModel mdl = (DefaultListModel)pointsTable.getModel();
 
