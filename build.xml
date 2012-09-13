@@ -10,6 +10,7 @@
 				<pathelement path="../../bin_Win32/plugins/MMCoreJ.jar"/>
 				<pathelement path="../ProgAcq/ProgAcq.jar"/>
 				<pathelement path="../Gaussian/Gaussian.jar"/>
+				<pathelement path="../../bin_Win32/plugins/3D_Viewer.jar"/>
 				<fileset dir="../../../3rdpartypublic/classext/" >
 					<include name="*.jar"/>
 				</fileset>
