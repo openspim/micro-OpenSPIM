@@ -3,6 +3,7 @@ package spim;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.ImageProcessor;
+import ij3d.Image3DUniverse;
 
 import java.awt.Component;
 import java.awt.GridLayout;
@@ -29,6 +30,9 @@ import javax.swing.JSpinner;
 import javax.swing.JTable;
 import javax.swing.SpinnerNumberModel;
 
+import javax.vecmath.Color3f;
+import javax.vecmath.Point3f;
+
 import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
 
@@ -44,6 +48,7 @@ import org.micromanager.utils.ReportingUtils;
 import edu.valelab.GaussianFit.GaussianFit;
 
 public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, ActionListener {
+	private static final String BTN_3DPLOT = "Plot in 3D";
 	private static final String ZMODE_MIN_SIGMA = "Min Sigma";
 	private static final String ZMODE_MAX_INTENSITY = "Max Intens.";
 	private static final String BTN_OBTAIN_NEXT = "Obtain Next";
@@ -100,17 +105,21 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		this.getContentPane().setLayout(new BoxLayout(this.getContentPane(), BoxLayout.PAGE_AXIS));
 
 		JPanel btnsPanel = new JPanel();
-		btnsPanel.setLayout(new GridLayout(6, 1));
-
+		btnsPanel.setLayout(new GridLayout(7, 1));
+		
+		JButton show3Dplot = new JButton(BTN_3DPLOT);
+		show3Dplot.addActionListener(this);
+		
 		JButton tweakScan = new JButton("Tweak Scan");
 		tweakScan.addActionListener(this);
-
+		
 		LayoutUtils.addAll(btnsPanel,
 				go,
 				revise,
 				remove,
 				recalculate,
 				revert,
+				show3Dplot,
 				tweakScan
 		);
 
@@ -134,7 +143,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 		tweaksFrame = new JFrame("Scanning Tweaks");
 		tweaksFrame.setLayout(new GridLayout(5, 1));
-
+		
 		LayoutUtils.addAll((JComponent) tweaksFrame.getContentPane(),
 			LayoutUtils.horizPanel(
 				new JLabel("First delta:"),
@@ -151,7 +160,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 				intbgrThresh = new JSpinner(new SpinnerNumberModel(0.10, 0.0, 0.5, 0.01))
 			)
 		);
-
+		
 		tweaksFrame.pack();
 	}
 
@@ -439,6 +448,18 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 			rotAxisLbl.setText("Rotational axis: " + vToS(rotAxis.getDirection()));
 			rotOrigLbl.setText("Rot. axis origin: " + vToS(rotAxis.getOrigin()));
+		} else if(BTN_3DPLOT.equals(ae.getActionCommand())) {
+			Image3DUniverse univ = new Image3DUniverse(512,512);
+			
+			List<Point3f> points = new LinkedList<Point3f>();
+			for(int i = 0; i < pointsTable.getModel().getSize(); ++i) {
+				Vector3D p = (Vector3D)pointsTable.getModel().getElementAt(i);
+				points.add(new Point3f(new float[] {(float) p.getX(), (float) p.getY(), (float) p.getZ()}));
+			}
+			
+			univ.addIcospheres(points, new Color3f(1,0,0), 2, 4, "Beads");
+			
+			univ.show();
 		}
 	};
 }
