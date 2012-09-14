@@ -1,18 +1,15 @@
 package spim;
 
-import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.ImageProcessor;
 import ij3d.Image3DUniverse;
 
-import java.awt.Component;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.LinkedList;
 import java.util.List;
-
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
@@ -27,7 +24,6 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
-import javax.swing.JTable;
 import javax.swing.SpinnerNumberModel;
 
 import javax.vecmath.Color3f;
@@ -48,9 +44,11 @@ import org.micromanager.utils.ReportingUtils;
 import edu.valelab.GaussianFit.GaussianFit;
 
 public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, ActionListener {
-	private static final String BTN_3DPLOT = "Plot in 3D";
 	private static final String ZMODE_MIN_SIGMA = "Min Sigma";
 	private static final String ZMODE_MAX_INTENSITY = "Max Intens.";
+
+	private static final String BTN_INTERRUPT_SCAN = "Interrupt";
+	private static final String BTN_3DPLOT = "Plot in 3D";
 	private static final String BTN_OBTAIN_NEXT = "Obtain Next";
 	private static final String BTN_REVISE = "Revise Sel.";
 	private static final String BTN_REMOVE = "Remove Sel.";
@@ -87,7 +85,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 		rotAxis = null;
 
-		JButton go = new JButton(BTN_OBTAIN_NEXT);
+		go = new JButton(BTN_OBTAIN_NEXT);
 		go.addActionListener(this);
 
 		JButton revise = new JButton(BTN_REVISE);
@@ -106,13 +104,13 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 		JPanel btnsPanel = new JPanel();
 		btnsPanel.setLayout(new GridLayout(7, 1));
-		
+
 		JButton show3Dplot = new JButton(BTN_3DPLOT);
 		show3Dplot.addActionListener(this);
-		
+
 		JButton tweakScan = new JButton("Tweak Scan");
 		tweakScan.addActionListener(this);
-		
+
 		LayoutUtils.addAll(btnsPanel,
 				go,
 				revise,
@@ -143,7 +141,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 		tweaksFrame = new JFrame("Scanning Tweaks");
 		tweaksFrame.setLayout(new GridLayout(5, 1));
-		
+
 		LayoutUtils.addAll((JComponent) tweaksFrame.getContentPane(),
 			LayoutUtils.horizPanel(
 				new JLabel("First delta:"),
@@ -160,7 +158,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 				intbgrThresh = new JSpinner(new SpinnerNumberModel(0.10, 0.0, 0.5, 0.01))
 			)
 		);
-		
+
 		tweaksFrame.pack();
 	}
 
@@ -206,23 +204,21 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		return new Line(axisPoint, axisPoint.add(Vector3D.PLUS_J));
 	};
 
-	private static double minIntBGR = 0.05;
-
 	private double guessZ() throws Exception {
 		int modelSize = pointsTable.getModel().getSize();
 
 		if(modelSize >= 3 && complexGuessZ.isSelected()) {
 			Line a = fitAxis();
-			
+
 			Vector3D cur = new Vector3D(
 					core.getXPosition(core.getXYStageDevice()),
 					core.getYPosition(core.getXYStageDevice()),
 					core.getPosition(core.getFocusDevice())
 				);
-			
+
 			Vector3D res = new Rotation(a.getDirection(),
 					-1*(Math.PI/100)).applyTo(cur);
-			
+
 			return res.getZ();
 		} else if(modelSize >= 2) {
 			Vector3D recent = (Vector3D)pointsTable.getModel().getElementAt(modelSize - 1);
@@ -384,13 +380,18 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		return String.format("<%.3f, %.3f, %.3f>", v.getX(), v.getY(), v.getZ());
 	}
 	
-	private Runnable getNextBeadRunnable = new Runnable() {
+	private interface RunnableWRet<V> extends Runnable {
+		public V getValue();
+	};
+
+	private RunnableWRet<Boolean> getNextBeadRunnable = new RunnableWRet<Boolean>() {
+		private Boolean exitStatus;
+
 		@Override
 		public void run() {
-			boolean live = gui.getLiveMode(); 
-			try {
-				gui.enableLiveMode(false);
+			exitStatus = null;
 
+			try {
 				core.setPosition(twisterLabel, (core.getPosition(twisterLabel) + 1));
 				core.waitForDevice(twisterLabel);
 				Thread.sleep(50);
@@ -399,22 +400,75 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 							"Most likely, the bead has been lost. D: Sorry! " +
 							"Try moving the stage to the most recent position" +
 							" in the list.");
+					exitStatus = false;
+				} else {
+					exitStatus = true;
 				}
+			} catch(InterruptedException e) {
+				exitStatus = false;
 			} catch(Exception e) {
 				JOptionPane.showMessageDialog(SPIMAutoCalibrator.this,
 						"Couldn't scan Z: " + e.getMessage());
 				ReportingUtils.logError(e);
-			} finally {
-				gui.enableLiveMode(live);
+				exitStatus = false;
 			}
 		}
+
+		@Override
+		public Boolean getValue() {
+			return exitStatus;
+		}
+
 	};
+
+	private Thread scanningThread;
+	private JButton go;
+	
+	private void scanStopped() {
+		scanningThread = null;
+		go.setText(BTN_OBTAIN_NEXT);
+		go.setActionCommand(BTN_OBTAIN_NEXT);
+	}
 
 	public void actionPerformed(ActionEvent ae) {
 		if(BTN_OBTAIN_NEXT.equals(ae.getActionCommand())) {
-			Thread t = new Thread(getNextBeadRunnable);
+			scanningThread = new Thread() {
+				@Override
+				public void run() {
+					boolean live = gui.getLiveMode(); 
+					gui.enableLiveMode(false);
+
+					do {
+						getNextBeadRunnable.run();
+					} while(!Thread.interrupted() &&
+						(getNextBeadRunnable.getValue() == null ||
+						getNextBeadRunnable.getValue() != false));
+					
+					gui.enableLiveMode(live);
+					SPIMAutoCalibrator.this.scanStopped();
+				}
+			};
+
+			scanningThread.start();
 			
-			t.start();
+			go.setText(BTN_INTERRUPT_SCAN);
+			go.setActionCommand(BTN_INTERRUPT_SCAN);
+		} else if(BTN_INTERRUPT_SCAN.equals(ae.getActionCommand())) {
+			scanningThread.interrupt();
+			
+			try {
+//				go.setEnabled(false);
+//				go.setText("Interrupting...");
+				scanningThread.join(20*1000);
+			} catch (InterruptedException e) {
+				JOptionPane.showMessageDialog(this, "Couldn't quit thread gracefully.");
+			} finally {
+//				go.setText(BTN_OBTAIN_NEXT);
+//				go.setActionCommand(BTN_OBTAIN_NEXT);
+				go.setEnabled(true);
+			}
+			
+			scanningThread = null;
 		} else if("Tweak Scan".equals(ae.getActionCommand())) {
 			tweaksFrame.setVisible(true);
 		} else if(BTN_REVISE.equals(ae.getActionCommand())) {
@@ -450,15 +504,15 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			rotOrigLbl.setText("Rot. axis origin: " + vToS(rotAxis.getOrigin()));
 		} else if(BTN_3DPLOT.equals(ae.getActionCommand())) {
 			Image3DUniverse univ = new Image3DUniverse(512,512);
-			
+
 			List<Point3f> points = new LinkedList<Point3f>();
 			for(int i = 0; i < pointsTable.getModel().getSize(); ++i) {
 				Vector3D p = (Vector3D)pointsTable.getModel().getElementAt(i);
 				points.add(new Point3f(new float[] {(float) p.getX(), (float) p.getY(), (float) p.getZ()}));
 			}
-			
+
 			univ.addIcospheres(points, new Color3f(1,0,0), 2, 4, "Beads");
-			
+
 			univ.show();
 		}
 	};
