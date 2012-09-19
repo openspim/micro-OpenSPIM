@@ -26,6 +26,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 
+import java.util.regex.*;
+
 import javax.vecmath.Color3f;
 import javax.vecmath.Point3f;
 
@@ -128,7 +130,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			btnsPanel,
 			Box.createVerticalGlue()
 		));
-
+		
 		add(LayoutUtils.horizPanel(
 			LayoutUtils.titled("Calculated Values", (JComponent) LayoutUtils.vertPanel(
 				rotAxisLbl = new JLabel("Rotational axis: "),
@@ -140,8 +142,10 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		pack();
 
 		tweaksFrame = new JFrame("Scanning Tweaks");
-		tweaksFrame.setLayout(new GridLayout(5, 1));
+		tweaksFrame.setLayout(new GridLayout(6, 1));
 
+		JButton importList;
+		
 		LayoutUtils.addAll((JComponent) tweaksFrame.getContentPane(),
 			LayoutUtils.horizPanel(
 				new JLabel("First delta:"),
@@ -156,8 +160,11 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			LayoutUtils.horizPanel(
 				new JLabel("IntBGR:"),
 				intbgrThresh = new JSpinner(new SpinnerNumberModel(0.10, 0.0, 0.5, 0.01))
-			)
+			),
+			importList = new JButton("Import...")
 		);
+		
+		importList.addActionListener(this);
 
 		tweaksFrame.pack();
 	}
@@ -514,6 +521,26 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			univ.addIcospheres(points, new Color3f(1,0,0), 2, 4, "Beads");
 
 			univ.show();
-		}
+		} else if("Import...".equals(ae.getActionCommand())) {
+			String res = JOptionPane.showInputDialog(this, "Paste the data:");
+
+			if(res == null)
+				return;
+
+			Pattern p = Pattern.compile("\\{([0-9e\\+\\-\\,\\.]*); ([0-9e\\+\\-\\,\\.]*); ([0-9e\\+\\-\\,\\.]*)\\}");
+
+			Matcher m = p.matcher(res);
+
+			int count = 0;
+			while(count < res.length() && m.find(count)) {
+				ReportingUtils.logMessage("Next v: " + m.group());
+				count = m.end() + 1;
+				double x = Double.parseDouble(m.group(1).replace(",", ""));
+				double y = Double.parseDouble(m.group(2).replace(",", ""));
+				double z = Double.parseDouble(m.group(3).replace(",", ""));
+
+				((DefaultListModel)pointsTable.getModel()).addElement(new Vector3D(x,y,z));
+			};
+		};
 	};
-}
+};
