@@ -46,6 +46,7 @@ import org.micromanager.utils.ReportingUtils;
 import edu.valelab.GaussianFit.GaussianFit;
 
 public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, ActionListener {
+	private static final String ZMODE_WEIGHTED_AVG = "Weighted Avg.";
 	private static final String ZMODE_MIN_SIGMA = "Min Sigma";
 	private static final String ZMODE_MAX_INTENSITY = "Max Intens.";
 
@@ -149,17 +150,17 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		LayoutUtils.addAll((JComponent) tweaksFrame.getContentPane(),
 			LayoutUtils.horizPanel(
 				new JLabel("First delta:"),
-				firstDelta = new JSpinner(new SpinnerNumberModel(5.0, 1.0, 30.0, 1.0))
+				firstDelta = new JSpinner(new SpinnerNumberModel(10.0, 1.0, 30.0, 1.0))
 			),
 			LayoutUtils.horizPanel(
 				new JLabel("Second delta:"),
-				secondDelta = new JSpinner(new SpinnerNumberModel(15.0, 5.0, 50.0, 1.0))
+				secondDelta = new JSpinner(new SpinnerNumberModel(20.0, 5.0, 50.0, 1.0))
 			),
-			zmethod = new JComboBox(new String[] {"Weighted Avg.", ZMODE_MAX_INTENSITY, ZMODE_MIN_SIGMA}),
+			zmethod = new JComboBox(new String[] {ZMODE_MAX_INTENSITY, ZMODE_WEIGHTED_AVG, ZMODE_MIN_SIGMA}),
 			complexGuessZ = new JCheckBox("Complex Z Guessing"),
 			LayoutUtils.horizPanel(
 				new JLabel("IntBGR:"),
-				intbgrThresh = new JSpinner(new SpinnerNumberModel(0.10, 0.0, 0.5, 0.01))
+				intbgrThresh = new JSpinner(new SpinnerNumberModel(0.20, 0.0, 0.5, 0.01))
 			),
 			importList = new JButton("Import...")
 		);
@@ -240,7 +241,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	private Vector3D scanBead(double scanDelta) throws Exception {
 		double basez = guessZ();
 
-		GaussianFit fitter = new GaussianFit(3, 1);
+		GaussianFit fitter = new GaussianFit(3, 1, true, true);
 
 		double cx = 0, cy = 0, cz = 0, intsum = 0;
 
@@ -542,5 +543,6 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 				((DefaultListModel)pointsTable.getModel()).addElement(new Vector3D(x,y,z));
 			};
 		};
-	};
+	}
+
 };
