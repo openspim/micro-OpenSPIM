@@ -1,13 +1,18 @@
 package spim;
 
+import ij.ImagePlus;
 import ij.ImageStack;
+import ij.gui.OvalRoi;
 import ij.process.ImageProcessor;
 import ij3d.Image3DUniverse;
 
 import java.awt.GridLayout;
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
 import java.util.LinkedList;
 import java.util.List;
 import javax.swing.Box;
@@ -45,7 +50,7 @@ import org.micromanager.utils.ReportingUtils;
 
 import edu.valelab.GaussianFit.GaussianFit;
 
-public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, ActionListener {
+public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, ActionListener, MouseMotionListener {
 	private static final String ZMODE_WEIGHTED_AVG = "Weighted Avg.";
 	private static final String ZMODE_MIN_SIGMA = "Min Sigma";
 	private static final String ZMODE_MAX_INTENSITY = "Max Intens.";
@@ -168,6 +173,9 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		importList.addActionListener(this);
 
 		tweaksFrame.pack();
+		
+		if(gui.getImageWin() != null)
+			gui.getImageWin().getCanvas().addMouseMotionListener(this);
 	}
 
 	@Override
@@ -192,6 +200,71 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	public boolean getIsCalibrated() {
 		// TODO Auto-generated method stub
 		return getUmPerPixel() != 0 && rotAxis != null;
+	}
+
+	private Vector3D quickFit(Point mouse) throws Exception {
+		ImagePlus img = MMStudioMainFrame.getSimpleDisplay().getImagePlus();
+		
+		ImageProcessor ip = img.getProcessor();
+
+		Rectangle oldRoi = ip.getRoi();
+		
+		Rectangle croppedRoi = new Rectangle(
+				(int) mouse.getX() - img.getWidth()/40,
+				(int) mouse.getY() - img.getHeight()/40,
+				(int) (img.getWidth()/20), (int) (img.getHeight()/20));
+
+		img.setRoi(croppedRoi);
+
+		ImageProcessor cropped = ip.crop();
+		double[] params = new GaussianFit(2, 1, true, true).doGaussianFit(cropped, (int) 1e4);
+
+		ip.setRoi(oldRoi);
+
+		double intbgr = params[GaussianFit.INT] / params[GaussianFit.BGR];
+
+		double x = params[GaussianFit.XC];
+		double y = params[GaussianFit.YC];
+		double sx = params[GaussianFit.S1];
+		double sy = params[GaussianFit.S2];
+
+		if(intbgr >= (Double)intbgrThresh.getValue() &&
+			x >= 0 && x < cropped.getWidth() &&
+			y >= 0 && y < cropped.getHeight()) {
+			img.setOverlay(new OvalRoi((int)(croppedRoi.x + x - sx),
+					(int)(croppedRoi.y + y - sy), (int)(2*sx), 2*(int)(2*sy)),
+					java.awt.Color.GREEN, 0, java.awt.Color.GREEN);
+
+			double Vx = core.getXPosition(core.getXYStageDevice()) +
+					(croppedRoi.x + x - img.getWidth()/2)*getUmPerPixel();
+			double Vy = core.getYPosition(core.getXYStageDevice()) +
+					(croppedRoi.y + y - img.getHeight()/2)*getUmPerPixel();
+
+			return new Vector3D(Vx, Vy, core.getPosition(core.getFocusDevice()));
+		} else {
+			img.setOverlay(new OvalRoi((int)(croppedRoi.x + x - sx),
+					(int)(croppedRoi.y + y - sy), (int)(2*sx), 2*(int)(2*sy)),
+					java.awt.Color.RED, 0, java.awt.Color.RED);
+			return Vector3D.NaN;
+		}
+	}
+
+	@Override
+	public void mouseDragged(MouseEvent arg0) {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void mouseMoved(MouseEvent me) {
+		if(!gui.getImageWin().isFocused())
+			return;
+
+		if(me.isControlDown())
+			try {
+				ReportingUtils.logMessage(vToS(quickFit(me.getPoint())));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 	}
 
 	private Line fitAxis() {
