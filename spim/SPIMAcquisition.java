@@ -1098,7 +1098,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		if(me.isAltDown()) {
 			if(mouseStartX < 0) {
-				mouseStartX = me.getX();
 				try {
 					stageStart[0] = mmc.getXPosition(xyStageLabel);
 					stageStart[1] = mmc.getYPosition(xyStageLabel);
@@ -1107,6 +1106,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				} catch(Exception e) {
 					ReportingUtils.logError(e);
 				}
+				mouseStartX = me.getX();
 				return;
 			}
 
