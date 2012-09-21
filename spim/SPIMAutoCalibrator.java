@@ -12,6 +12,7 @@ import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.util.LinkedList;
 import java.util.List;
@@ -42,6 +43,7 @@ import mmcorej.TaggedImage;
 import org.apache.commons.math.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math.geometry.euclidean.threed.Line;
+import org.apache.commons.math.geometry.euclidean.twod.Vector2D;
 import org.json.JSONException;
 import org.micromanager.MMStudioMainFrame;
 import org.micromanager.utils.MDUtils;
@@ -50,7 +52,7 @@ import org.micromanager.utils.ReportingUtils;
 
 import edu.valelab.GaussianFit.GaussianFit;
 
-public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, ActionListener, MouseMotionListener {
+public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, ActionListener, MouseListener, MouseMotionListener {
 	private static final String ZMODE_WEIGHTED_AVG = "Weighted Avg.";
 	private static final String ZMODE_MIN_SIGMA = "Min Sigma";
 	private static final String ZMODE_MAX_INTENSITY = "Max Intens.";
@@ -136,7 +138,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			btnsPanel,
 			Box.createVerticalGlue()
 		));
-		
+
 		add(LayoutUtils.horizPanel(
 			LayoutUtils.titled("Calculated Values", (JComponent) LayoutUtils.vertPanel(
 				rotAxisLbl = new JLabel("Rotational axis: "),
@@ -151,7 +153,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		tweaksFrame.setLayout(new GridLayout(6, 1));
 
 		JButton importList;
-		
+
 		LayoutUtils.addAll((JComponent) tweaksFrame.getContentPane(),
 			LayoutUtils.horizPanel(
 				new JLabel("First delta:"),
@@ -169,19 +171,21 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			),
 			importList = new JButton("Import...")
 		);
-		
+
 		importList.addActionListener(this);
 
 		tweaksFrame.pack();
-		
-		if(gui.getImageWin() != null)
+
+		if(gui.getImageWin() != null) {
+			gui.getImageWin().getCanvas().addMouseListener(this);
 			gui.getImageWin().getCanvas().addMouseMotionListener(this);
+		}
 	}
 
 	@Override
 	public double getUmPerPixel() {
 		// TODO Auto-generated method stub
-		return 0.43478260869565217391304347826087;
+		return umPerPix;
 	}
 
 	@Override
@@ -202,13 +206,13 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		return getUmPerPixel() != 0 && rotAxis != null;
 	}
 
-	private Vector3D quickFit(Point mouse) throws Exception {
+	private Vector2D quickFit(Point mouse) throws Exception {
 		ImagePlus img = MMStudioMainFrame.getSimpleDisplay().getImagePlus();
-		
+
 		ImageProcessor ip = img.getProcessor();
 
 		Rectangle oldRoi = ip.getRoi();
-		
+
 		Rectangle croppedRoi = new Rectangle(
 				(int) mouse.getX() - img.getWidth()/40,
 				(int) mouse.getY() - img.getHeight()/40,
@@ -235,23 +239,38 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 					(int)(croppedRoi.y + y - sy), (int)(2*sx), 2*(int)(2*sy)),
 					java.awt.Color.GREEN, 0, java.awt.Color.GREEN);
 
-			double Vx = core.getXPosition(core.getXYStageDevice()) +
-					(croppedRoi.x + x - img.getWidth()/2)*getUmPerPixel();
-			double Vy = core.getYPosition(core.getXYStageDevice()) +
-					(croppedRoi.y + y - img.getHeight()/2)*getUmPerPixel();
+			return new Vector2D(croppedRoi.x + x, croppedRoi.y + y);
 
-			return new Vector3D(Vx, Vy, core.getPosition(core.getFocusDevice()));
+//			double Vx = core.getXPosition(core.getXYStageDevice()) +
+//					(croppedRoi.x + x - img.getWidth()/2)*getUmPerPixel();
+//			double Vy = core.getYPosition(core.getXYStageDevice()) +
+//					(croppedRoi.y + y - img.getHeight()/2)*getUmPerPixel();
+
+//			return new Vector3D(Vx, Vy, core.getPosition(core.getFocusDevice()));
 		} else {
 			img.setOverlay(new OvalRoi((int)(croppedRoi.x + x - sx),
 					(int)(croppedRoi.y + y - sy), (int)(2*sx), 2*(int)(2*sy)),
 					java.awt.Color.RED, 0, java.awt.Color.RED);
-			return Vector3D.NaN;
+
+			return new Vector2D(mouse.getX(), mouse.getY());
+
+//			return Vector3D.NaN;
 		}
 	}
 
 	@Override
 	public void mouseDragged(MouseEvent arg0) {
-		// TODO Auto-generated method stub
+		if(!inMeasureMode)
+			return;
+
+		if(!gui.getImageWin().isFocused())
+			return;
+
+		try {
+			quickFit(arg0.getPoint());
+		} catch (Exception e) {
+			ReportingUtils.logError(e);
+		}
 	}
 
 	@Override
@@ -261,10 +280,59 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 		if(me.isControlDown())
 			try {
-				ReportingUtils.logMessage(vToS(quickFit(me.getPoint())));
+				ReportingUtils.logMessage(quickFit(me.getPoint()).toString());
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
+	}
+
+	@Override
+	public void mouseClicked(MouseEvent arg0) {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void mouseEntered(MouseEvent arg0) {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void mouseExited(MouseEvent arg0) {
+		// TODO Auto-generated method stub
+	}
+
+	private Vector2D point1, point2;
+	private boolean inMeasureMode;
+	private double umPerPix = 0.43478260869565217391304347826087;
+
+	@Override
+	public void mousePressed(MouseEvent arg0) {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void mouseReleased(MouseEvent arg0) {
+		if(!inMeasureMode)
+			return;
+
+		if(!gui.getImageWin().isFocused())
+			return;
+
+		try {
+			if(point1 == null || point2 != null) {
+				point1 = quickFit(arg0.getPoint());
+			} else if(point1 != null && point2 == null) {
+				point2 = quickFit(arg0.getPoint());
+
+				String dist = JOptionPane.showInputDialog("Distance: " + point2.distance(point1) + " pixels; um?");
+
+				double pix = Double.parseDouble(dist);
+
+				umPerPix = point2.distance(point1) / pix;
+			}
+		} catch (Exception e) {
+			ReportingUtils.logError(e);
+		}
 	}
 
 	private Line fitAxis() {
@@ -391,7 +459,6 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			}
 		}
 
-//		(new ImagePlus(basez + "+/-" + scanDelta, stack)).show();
 		core.setPosition(core.getFocusDevice(), basez);
 		core.waitForDevice(core.getFocusDevice());
 
@@ -617,5 +684,4 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			};
 		};
 	}
-
 };
