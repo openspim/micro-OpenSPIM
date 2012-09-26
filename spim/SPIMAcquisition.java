@@ -70,6 +70,8 @@ import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.ReportingUtils;
 
 import progacq.AcqParams;
+import progacq.IndividualImagesHandler;
+import progacq.OutputAsStackHandler;
 import progacq.ProgrammaticAcquisitor;
 import progacq.RangeSlider;
 import progacq.StepTableModel;
@@ -1082,6 +1084,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		Vector3D rotOrigin = calibration.getRotationOrigin();
 		Vector3D rotAxis = calibration.getRotationAxis();
 
+		ReportingUtils.logMessage("Rotating about axis " + rotAxis.toString() + " at " + rotOrigin.toString());
+
 		// Reverse dtheta; for our twister motor, negative dtheta is CCW, the
 		// direction of rotation for commons math (about +k).
 		Rotation rot = new Rotation(rotAxis, -dtheta * Math.PI / 100D);
@@ -1603,17 +1607,18 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			params.setTimeSeqCount(timeSeqs);
 			params.setTimeStepSeconds(timeStep);
 			params.setContinuous(continuousCheckbox.isSelected());
-			params.setSaveIndividual(acq_saveIndividual.isSelected());
-
+			
 			HashMap<String, String> nameMap = new HashMap<String, String>(3);
 			nameMap.put(xyStageLabel, "XY");
 			nameMap.put(twisterLabel, "Ang");
 			nameMap.put(zStageLabel, "Z");
 
-			params.shortNamesToScheme("SA", true, nameMap);
-
-			if(acq_saveIndividual.isSelected())
-				params.setOutputDirectory(new File(acq_saveDir.getText()));
+			if(acq_saveIndividual.isSelected()) {
+				params.setOutputHandler(new IndividualImagesHandler(
+					new File(acq_saveDir.getText()),
+					IndividualImagesHandler.shortNamesToScheme("SA", true, devs, nameMap)
+				));
+			}
 
 			acq_Progress.setEnabled(true);
 
@@ -1660,6 +1665,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				acqThread = null;
 
 				acq_goBtn.setText(BTN_START);
+
+				acq_Progress.setValue(0);
+				acq_Progress.setEnabled(false);
 			}
 		}
 	}
