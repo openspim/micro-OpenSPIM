@@ -1084,6 +1084,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		Vector3D rotOrigin = calibration.getRotationOrigin();
 		Vector3D rotAxis = calibration.getRotationAxis();
 
+		ReportingUtils.logMessage("Rotating about axis " + rotAxis.toString() + " at " + rotOrigin.toString());
+
 		// Reverse dtheta; for our twister motor, negative dtheta is CCW, the
 		// direction of rotation for commons math (about +k).
 		Rotation rot = new Rotation(rotAxis, -dtheta * Math.PI / 100D);
@@ -1612,11 +1614,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			nameMap.put(zStageLabel, "Z");
 
 			if(acq_saveIndividual.isSelected()) {
-				params.setOutputHandler(IndividualImagesHandler.class);
-				params.setHandlerParams(new Object[] {
-						new File(acq_saveDir.getText()),
-						IndividualImagesHandler.shortNamesToScheme("SA", true, devs, nameMap)
-					});
+				params.setOutputHandler(new IndividualImagesHandler(
+					new File(acq_saveDir.getText()),
+					IndividualImagesHandler.shortNamesToScheme("SA", true, devs, nameMap)
+				));
 			}
 
 			acq_Progress.setEnabled(true);
