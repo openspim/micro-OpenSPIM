@@ -71,6 +71,7 @@ import org.micromanager.utils.ReportingUtils;
 
 import progacq.AcqParams;
 import progacq.IndividualImagesHandler;
+import progacq.OMETIFFHandler;
 import progacq.OutputAsStackHandler;
 import progacq.ProgrammaticAcquisitor;
 import progacq.RangeSlider;
@@ -1614,9 +1615,15 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			nameMap.put(zStageLabel, "Z");
 
 			if(acq_saveIndividual.isSelected()) {
-				params.setOutputHandler(new IndividualImagesHandler(
+/*				params.setOutputHandler(new IndividualImagesHandler(
 					new File(acq_saveDir.getText()),
 					IndividualImagesHandler.shortNamesToScheme("SA", true, devs, nameMap)
+				));*/
+				params.setOutputHandler(new OMETIFFHandler(
+					mmc,
+					new File(acq_saveDir.getText()),
+					xyStageLabel, twisterLabel, zStageLabel, "t",
+					10, 1, timeSeqs, timeStep
 				));
 			}
 
