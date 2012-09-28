@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -1515,9 +1516,24 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 	private int estimateRowCount(double[][] ranges) {
 		return (int)(((ranges[0][2] - ranges[0][0])/ranges[0][1] + 1) *
-					 ((ranges[1][2] - ranges[1][0])/ranges[1][1] + 1) *
-					 ((ranges[2][2] - ranges[2][0])/ranges[2][1] + 1) *
-					 ((ranges[3][2] - ranges[3][0])/ranges[3][1] + 1));
+				 ((ranges[1][2] - ranges[1][0])/ranges[1][1] + 1) *
+				 ((ranges[2][2] - ranges[2][0])/ranges[2][1] + 1) *
+				 ((ranges[3][2] - ranges[3][0])/ranges[3][1] + 1));
+	}
+
+	private int[] getStackDepthsByRanges() throws Exception {
+		double[][] ranges = getRanges();
+
+		int[] depths = new int[
+			(int)(((ranges[0][2] - ranges[0][0])/ranges[0][1] + 1) *
+				 ((ranges[1][2] - ranges[1][0])/ranges[1][1] + 1) *
+				 ((ranges[2][2] - ranges[2][0])/ranges[2][1] + 1))
+			];
+
+		for(int i=0; i < depths.length; ++i)
+			depths[i] = (int)((ranges[3][2] - ranges[3][0]) / ranges[3][1] + 1);
+		
+		return depths;
 	}
 
 	private List<String[]> generateMultiViewRows() throws Exception {
@@ -1553,6 +1569,25 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		return rows;
 	}
 
+	@Deprecated
+	private int[] temp_getStackDepthsByRegions(List<String[]> rows) {
+		List<Integer> depths = new LinkedList<Integer>();
+
+		for(int r = 0; r < rows.size(); ++r) {
+			int rStart = r;
+
+			while(rows.get(r+1)[2].equals(rows.get(r)[2])) ++r;
+
+			depths.add(new Integer(rStart - r + 1));
+		}
+
+		int[] result = new int[depths.size()];
+		for(int i=0; i < depths.size(); ++i)
+			result[i] = depths.get(i);
+
+		return result;
+	}
+
 	@Override
 	public void actionPerformed(ActionEvent ae) {
 		if(BTN_START.equals(ae.getActionCommand())) {
@@ -1561,10 +1596,13 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 			final String devs[] = {xyStageLabel, twisterLabel, zStageLabel};
 			final List<String[]> rows;
+			
+			int[] depths = null;
 
 			if(SPIM_RANGES.equals(acq_pos_tabs.getSelectedComponent().getName())) {
 				try {
 					rows = generateMultiViewRows();
+					depths = getStackDepthsByRanges();
 				} catch (Throwable t) {
 					ReportingUtils.logError(t);
 					JOptionPane.showMessageDialog(this.frame, "Couldn't acquire: " + t.getMessage());
@@ -1574,6 +1612,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				StepTableModel model = (StepTableModel)acq_PositionsTable.getModel();
 
 				rows = model.getRows();
+				depths = temp_getStackDepthsByRegions(rows);
 			} else {
 				throw new Error("Invalid tab selected (" + acq_pos_tabs.getSelectedComponent().getName() + ")...");
 			}
@@ -1615,15 +1654,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			nameMap.put(zStageLabel, "Z");
 
 			if(acq_saveIndividual.isSelected()) {
-/*				params.setOutputHandler(new IndividualImagesHandler(
-					new File(acq_saveDir.getText()),
-					IndividualImagesHandler.shortNamesToScheme("SA", true, devs, nameMap)
-				));*/
 				params.setOutputHandler(new OMETIFFHandler(
 					mmc,
 					new File(acq_saveDir.getText()),
 					xyStageLabel, twisterLabel, zStageLabel, "t",
-					10, 1, timeSeqs, timeStep
+					depths, timeSeqs, timeStep
 				));
 			}
 
