@@ -889,7 +889,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	}
 
 	private static String[] units = {
-		"B", "kB", "MB", "GB", "TB", "P", "E" // If we get any further than this...
+		"B", "kB", "MB", "GB", "TB", "PB" // If we get any further than this...
 	};
 
 	private static String describeSize(long size) {
@@ -920,7 +920,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			return;
 		}
 
-		bytesperimg = mmc.getImageHeight()*mmc.getImageWidth()*mmc.getBytesPerPixel();
+		bytesperimg = mmc.getImageHeight()*mmc.getImageWidth()*mmc.getBytesPerPixel() + 2048;
 
 		String s = " Estimates: " + count + " images; " + describeSize(bytesperimg*count);
 
