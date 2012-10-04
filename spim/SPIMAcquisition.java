@@ -397,9 +397,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			public void actionPerformed(ActionEvent ae) {
 				if(calibration == null) {
 					if((ae.getModifiers() & ActionEvent.ALT_MASK) != 0) {
-						calibration = new SPIMAutoCalibrator(mmc, gui, twisterLabel);
-					} else {
 						calibration = new SPIMManualCalibrator(mmc, gui, twisterLabel);
+					} else {
+						calibration = new SPIMAutoCalibrator(mmc, gui, twisterLabel);
 					}
 				}
 				
