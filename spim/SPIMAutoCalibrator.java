@@ -85,6 +85,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	private JComboBox zmethod;
 	private JCheckBox complexGuessZ;
 	private JSpinner intbgrThresh;
+	private JCheckBox visualFit;
 
 	public SPIMAutoCalibrator(CMMCore core, MMStudioMainFrame gui, String itwister) {
 		super("SPIM Automatic Calibration");
@@ -150,7 +151,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		pack();
 
 		tweaksFrame = new JFrame("Scanning Tweaks");
-		tweaksFrame.setLayout(new GridLayout(6, 1));
+		tweaksFrame.setLayout(new GridLayout(7, 1));
 
 		JButton importList;
 
@@ -169,7 +170,8 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 				new JLabel("IntBGR:"),
 				intbgrThresh = new JSpinner(new SpinnerNumberModel(0.20, 0.0, 0.5, 0.01))
 			),
-			importList = new JButton("Import...")
+			importList = new JButton("Import..."),
+			visualFit = new JCheckBox("Fitting Overlays")
 		);
 
 		importList.addActionListener(this);
@@ -417,44 +419,62 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 			double[] params = fitter.doGaussianFit(cropped, Integer.MAX_VALUE);
 			double intbgr = params[GaussianFit.INT] / params[GaussianFit.BGR];
+			
+			double x = params[GaussianFit.XC];
+			double y = params[GaussianFit.YC];
+			double sx = params[GaussianFit.S1];
+			double sy = params[GaussianFit.S2];
 
 			ReportingUtils.logMessage(String.format("!!!--- Gaussian fit: C=%.2f, %.2f, INT=%.2f, BGR=%.2f.",
-					params[GaussianFit.XC], params[GaussianFit.YC], params[GaussianFit.INT], params[GaussianFit.BGR]));
+					x, y, params[GaussianFit.INT], params[GaussianFit.BGR]));
 
 			double offsx = core.getXPosition(core.getXYStageDevice()) +
-					(ip.getRoi().getMinX() + params[GaussianFit.XC] -
+					(ip.getRoi().getMinX() + x -
 					ip.getWidth()/2)*getUmPerPixel();
 
 			double offsy = core.getYPosition(core.getXYStageDevice()) +
-					(ip.getRoi().getMinY() + params[GaussianFit.YC] -
+					(ip.getRoi().getMinY() + y -
 					ip.getHeight()/2)*getUmPerPixel();
 
-			double sigma = Math.sqrt(Math.pow(params[GaussianFit.S1], 2) +
-				Math.pow(params[GaussianFit.S2], 2));
+			double sigma = Math.sqrt(Math.pow(sx, 2) + Math.pow(sx, 2));
 
 			if(intbgr >= (Double)intbgrThresh.getValue() &&
-					params[GaussianFit.XC] >= 0 && params[GaussianFit.YC] >= 0 &&
-					params[GaussianFit.XC] < cropped.getWidth() && params[GaussianFit.YC] < cropped.getHeight()) {
+					x >= 0 && y >= 0 &&
+					x < cropped.getWidth() && y < cropped.getHeight()) {
 				intsum += intbgr;
 
 				ReportingUtils.logMessage("!!!--- Including z=" + z + " (" + core.getPosition(core.getFocusDevice()) + "): " + offsx + ", " + offsy + ":");
-				ReportingUtils.logMessage(core.getXPosition(core.getXYStageDevice()) + " + (" + ip.getRoi().getMinX() + " + " + params[GaussianFit.XC] + " - " + ip.getWidth() + "/2)*" + getUmPerPixel() + ")*" + intbgr + ";");
-				ReportingUtils.logMessage(core.getYPosition(core.getXYStageDevice()) + " + (" + ip.getRoi().getMinY() + " + " + params[GaussianFit.YC] + " - " + ip.getHeight() + "/2)*" + getUmPerPixel() + ")*" + intbgr + ";");
+				ReportingUtils.logMessage(core.getXPosition(core.getXYStageDevice()) + " + (" + ip.getRoi().getMinX() + " + " + x + " - " + ip.getWidth() + "/2)*" + getUmPerPixel() + ")*" + intbgr + ";");
+				ReportingUtils.logMessage(core.getYPosition(core.getXYStageDevice()) + " + (" + ip.getRoi().getMinY() + " + " + y + " - " + ip.getHeight() + "/2)*" + getUmPerPixel() + ")*" + intbgr + ";");
 
 				cx += offsx*intbgr;
 				cy += offsy*intbgr;
 				cz += core.getPosition(core.getFocusDevice())*intbgr;
+				
+				java.awt.Color overlayColor = java.awt.Color.RED;
 
 				if(intbgr > maxInt) {
 					maxInt = intbgr;
 					maxZ = z;
+					overlayColor = java.awt.Color.GREEN;
 				}
 
 				if(sigma < minSigma) {
 					minSigma = sigma;
 					bestZ = z;
+					overlayColor = java.awt.Color.GREEN;
 				}
+
+				if(visualFit.isSelected())
+					MMStudioMainFrame.getSimpleDisplay().getImagePlus().setOverlay(
+							new OvalRoi((int)(roi.x + x - sx),
+							(int)(roi.y + y - sy), (int)(2*sx), 2*(int)(2*sy)),
+							overlayColor, 0, overlayColor);
+
 			} else {
+				if(visualFit.isSelected())
+					MMStudioMainFrame.getSimpleDisplay().getImagePlus().setOverlay(null);
+				
 				ReportingUtils.logMessage("!!!--- Throwing out " + offsx + ", " + offsy + ", " + z + "; intbgr = " + intbgr);
 			}
 		}
