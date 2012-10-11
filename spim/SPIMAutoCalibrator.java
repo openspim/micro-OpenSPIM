@@ -456,13 +456,15 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 				if(intbgr > maxInt) {
 					maxInt = intbgr;
 					maxZ = z;
-					overlayColor = java.awt.Color.GREEN;
+					if(ZMODE_MAX_INTENSITY.equals(zmethod.getSelectedItem()))
+						overlayColor = java.awt.Color.GREEN;
 				}
 
 				if(sigma < minSigma) {
 					minSigma = sigma;
 					bestZ = z;
-					overlayColor = java.awt.Color.GREEN;
+					if(ZMODE_MIN_SIGMA.equals(zmethod.getSelectedItem()))
+							overlayColor = java.awt.Color.GREEN;
 				}
 
 				if(visualFit.isSelected())
