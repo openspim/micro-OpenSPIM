@@ -21,7 +21,7 @@
 		</javac>
 	</target>
 
-	<target name="build" description="Build SPIMAcquisition.jar">
+	<target name="build" depends="compile" description="Build SPIMAcquisition.jar">
 		<jar jarfile="SPIMAcquisition.jar" basedir="build" />
 		<copy file="SPIMAcquisition.jar" todir="..\..\bin_Win32\mmplugins\" />
 	</target>
