@@ -104,7 +104,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	private JTextField acq_countBox;
 	private JCheckBox acq_timeoutCB;
 	private JTextField acq_timeoutValBox;
-	private JCheckBox acq_saveIndividual;
 	private JTextField acq_saveDir;
 	private JButton acq_goBtn;
 	private Thread acqThread;
@@ -757,9 +756,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			}
 		};
 
-		acq_saveIndividual = new JCheckBox("Save Individually:");
-		acq_saveIndividual.setSelected(false);
-
 		acq_saveDir = new JTextField(48);
 		acq_saveDir.setEnabled(true);
 
@@ -781,7 +777,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		addLine(right, Justification.STRETCH, "Exposure:", exposureSlider);
 		addLine(right, Justification.RIGHT, continuousCheckbox, liveCheckbox, registrationCheckbox, speedControl);
 		addLine(right, Justification.RIGHT, speedControl, "Delay to let z-stage settle (ms):", settleTime);
-		addLine(right, Justification.RIGHT, acq_saveIndividual, acq_saveDir, pickDirBtn);
+		addLine(right, Justification.RIGHT, acq_saveDir, pickDirBtn);
 
 		JPanel bottom = new JPanel();
 		bottom.setLayout(new BoxLayout(bottom, BoxLayout.LINE_AXIS));
@@ -924,7 +920,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		String s = " Estimates: " + count + " images; " + describeSize(bytesperimg*count);
 
-		if(acq_saveIndividual.isSelected()) {
+		if(!"".equals(acq_saveDir.getText())) {
 			File f = new File(acq_saveDir.getText());
 			if(f.exists()) {
 				while(f.getFreeSpace() == 0 && f != null)
@@ -1653,7 +1649,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			nameMap.put(twisterLabel, "Ang");
 			nameMap.put(zStageLabel, "Z");
 
-			if(acq_saveIndividual.isSelected()) {
+			if(!""equals(acq_saveDir.getText())) {
 				params.setOutputHandler(new OMETIFFHandler(
 					mmc,
 					new File(acq_saveDir.getText()),
