@@ -1572,7 +1572,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		for(int r = 0; r < rows.size(); ++r) {
 			int rStart = r;
 
-			while(rows.get(r+1)[2].equals(rows.get(r)[2])) ++r;
+			while(r + 1 < rows.size() && rows.get(r+1)[2].equals(rows.get(r)[2])) ++r;
 
 			depths.add(new Integer(rStart - r + 1));
 		}
