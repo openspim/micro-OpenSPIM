@@ -346,6 +346,8 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			doublePoints.add(new double[] {v.getX(), v.getY(), v.getZ()});
 		}
 
+throw new RuntimeException("not yet");
+/*
 		FitHypersphere circle = new FitHypersphere(doublePoints);
 
 		double[] center = circle.getCenter();
@@ -353,6 +355,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		Vector3D axisPoint = new Vector3D(center[0], center[1], center[2]);
 
 		return new Line(axisPoint, axisPoint.add(Vector3D.PLUS_J));
+*/
 	};
 
 	private double guessZ() throws Exception {
