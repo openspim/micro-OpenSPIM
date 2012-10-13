@@ -596,10 +596,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			}
 		});
 
-		JButton acq_makeSlices = new JButton("Make Slices Here:");
+		JButton acq_makeSlices = new JButton("Stack at this Z plus:");
 
 		// TODO: Decide good ranges for these...
-		final JSpinner acq_sliceRange = new JSpinner(new SpinnerNumberModel(50, 5, 1000, 5));
+		final JSpinner acq_sliceRange = new JSpinner(new SpinnerNumberModel(50, -1000, 1000, 5));
 		acq_sliceRange.setMaximumSize(acq_sliceRange.getPreferredSize());
 		final JSpinner acq_sliceStep = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
 		acq_sliceStep.setMaximumSize(acq_sliceStep.getPreferredSize());
@@ -610,10 +610,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				StepTableModel model = (StepTableModel)acq_PositionsTable.getModel();
 
 				String xy, theta;
-				double midz;
+				double curz;
 				try {
 					xy = mmc.getXPosition(xyStageLabel) + ", " + mmc.getYPosition(xyStageLabel);
-					midz = mmc.getPosition(zStageLabel);
+					curz = mmc.getPosition(zStageLabel);
 					theta = "" + mmc.getPosition(twisterLabel);
 				} catch(Throwable t) {
 					JOptionPane.showMessageDialog((Component)ae.getSource(),
@@ -624,17 +624,25 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 				int range = (Integer)acq_sliceRange.getValue();
 				int step = (Integer)acq_sliceStep.getValue();
+/*
+				if(range > 0)
+					for(double z = curz; z < curz + range; z += step)
+						model.insertRow(new String[] {xy, theta, "" + z});
+				else
+					for(double z = curz; z > curz + range; z -= step)
+						model.insertRow(new String[] {xy, theta, "" + z});
 
-				for(double z = midz - range; z < midz + range; z += step) {
-					model.insertRow(new String[] {xy, theta, "" + z});
-				}
+				model.insertRow(new String[] {ProgrammaticAcquisitor.STACK_DIVIDER,
+						ProgrammaticAcquisitor.STACK_DIVIDER,
+						ProgrammaticAcquisitor.STACK_DIVIDER});*/
+
+				model.insertRow(new String[] {xy, theta, curz + ":" + step + ":" + (curz + range)});
 			}
 		});
 
 		JPanel sliceOpts = (JPanel)LayoutUtils.horizPanel(
-			new JLabel("\u00b1"),
 			acq_sliceRange,
-			new JLabel(" by "),
+			new JLabel(" step "),
 			acq_sliceStep,
 			new JLabel(" \u03BCm")
 		);
@@ -777,7 +785,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		addLine(right, Justification.STRETCH, "Exposure:", exposureSlider);
 		addLine(right, Justification.RIGHT, continuousCheckbox, liveCheckbox, registrationCheckbox, speedControl);
 		addLine(right, Justification.RIGHT, speedControl, "Delay to let z-stage settle (ms):", settleTime);
-		addLine(right, Justification.RIGHT, acq_saveDir, pickDirBtn);
+		addLine(right, Justification.RIGHT, "Output directory:", acq_saveDir, pickDirBtn);
 
 		JPanel bottom = new JPanel();
 		bottom.setLayout(new BoxLayout(bottom, BoxLayout.LINE_AXIS));
@@ -910,7 +918,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				return;
 			};
 		} else if(POSITION_LIST.equals(acq_pos_tabs.getSelectedComponent().getName())) {
-			count = acq_PositionsTable.getModel().getRowCount();
+			count = buildRowsProper(((StepTableModel)acq_PositionsTable.getModel()).getRows()).size();
 		} else {
 			estimatesText.setText("What tab are you on? (Please report this.)");
 			return;
@@ -1568,13 +1576,21 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	@Deprecated
 	private int[] temp_getStackDepthsByRegions(List<String[]> rows) {
 		List<Integer> depths = new LinkedList<Integer>();
+		
+		for(int br = rows.size()-1; br > 0; --br)
+			if(rows.get(br).equals(ProgrammaticAcquisitor.STACK_DIVIDER))
+				rows.remove(br--);
+			else
+				break;
 
 		for(int r = 0; r < rows.size(); ++r) {
 			int rStart = r;
 
-			while(r + 1 < rows.size() && rows.get(r+1)[2].equals(rows.get(r)[2])) ++r;
+			while(r + 1 < rows.size() && !rows.get(r+1)[0].equals(ProgrammaticAcquisitor.STACK_DIVIDER)) ++r;
 
-			depths.add(new Integer(rStart - r + 1));
+			depths.add(new Integer((++r) - rStart));
+
+			ReportingUtils.logMessage("Stack depth " + depths.size() + ": " + depths.get(depths.size() - 1));
 		}
 
 		int[] result = new int[depths.size()];
@@ -1582,6 +1598,37 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			result[i] = depths.get(i);
 
 		return result;
+	}
+
+	public List<String[]> buildRowsProper(List<String[]> model) {
+		List<String[]> out = new LinkedList<String[]>();
+
+		for(String[] row : model) {
+			if(row[2].contains(":")) {
+				double start = Double.parseDouble(row[2].substring(0,row[2].indexOf(":")));
+				double step = Double.parseDouble(row[2].substring(row[2].indexOf(":")+1,row[2].lastIndexOf(":")));
+				double end = Double.parseDouble(row[2].substring(row[2].lastIndexOf(":")+1));
+
+				if(start < end)
+					for(double z = start; z < end; z += step)
+						out.add(new String[] {row[0], row[1], "" + z});
+				else if(end < start)
+					for(double z = start; z > end; z -= step)
+						out.add(new String[] {row[0], row[1], "" + z});
+				else
+					out.add(new String[] {row[0], row[1], "" + start});
+
+			} else {
+				out.add(row);
+			}
+
+			out.add(new String[] {ProgrammaticAcquisitor.STACK_DIVIDER,
+					ProgrammaticAcquisitor.STACK_DIVIDER,
+					ProgrammaticAcquisitor.STACK_DIVIDER});
+
+		}
+
+		return out;
 	}
 
 	@Override
@@ -1607,11 +1654,15 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			} else if(POSITION_LIST.equals(acq_pos_tabs.getSelectedComponent().getName())) {
 				StepTableModel model = (StepTableModel)acq_PositionsTable.getModel();
 
-				rows = model.getRows();
+				rows = buildRowsProper(model.getRows());
 				depths = temp_getStackDepthsByRegions(rows);
 			} else {
 				throw new Error("Invalid tab selected (" + acq_pos_tabs.getSelectedComponent().getName() + ")...");
 			}
+
+			ReportingUtils.logMessage("Steps:");
+			for(String[] row : rows)
+				ReportingUtils.logMessage(Arrays.toString(row));
 
 			if (acq_timeoutCB.isSelected())
 				mmc.setTimeoutMs(Integer.parseInt(acq_timeoutValBox.getText()));
@@ -1649,7 +1700,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			nameMap.put(twisterLabel, "Ang");
 			nameMap.put(zStageLabel, "Z");
 
-			if(!""equals(acq_saveDir.getText())) {
+			if(!"".equals(acq_saveDir.getText())) {
 				params.setOutputHandler(new OMETIFFHandler(
 					mmc,
 					new File(acq_saveDir.getText()),
