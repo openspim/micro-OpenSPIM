@@ -1796,6 +1796,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 						if(img != null)
 							img.show();
 					} catch (Exception e) {
+						e.printStackTrace();
 						JOptionPane.showMessageDialog(frame, "Error acquiring: "
 								+ e.getMessage());
 						throw new Error("Error acquiring!", e);
