@@ -71,6 +71,7 @@ import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.ReportingUtils;
 
 import progacq.AcqParams;
+import progacq.AcqRow;
 import progacq.IndividualImagesHandler;
 import progacq.OMETIFFHandler;
 import progacq.OutputAsStackHandler;
@@ -1600,6 +1601,86 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		return result;
 	}
 
+	@Deprecated
+	private AcqRow[] temp_buildAcqRows(List<String[]> rows) {
+		List<AcqRow> out = new LinkedList<AcqRow>();
+
+		for(String[] row : rows) {
+			if(row[0].equals(ProgrammaticAcquisitor.STACK_DIVIDER))
+				continue;
+
+			out.add(new AcqRow(Arrays.copyOfRange(row, 0, row.length - 1), zStageLabel, row[row.length - 1]));
+		}
+
+		return out.toArray(new AcqRow[out.size()]);
+	}
+
+	@Deprecated
+	private int[] temp_getAcqRowDepths(AcqRow[] rows) {
+		List<Integer> depths = new LinkedList<Integer>();
+		
+		for(AcqRow r : rows) {
+			switch(r.getZMode()) {
+			case SINGLE_POSITION:
+				depths.add(new Integer(1));
+				break;
+			case STEPPED_RANGE:
+				depths.add(new Integer((int)((r.getEndPosition() - r.getStartPosition())/r.getStepSize()))+1);
+				break;
+			case CONTINUOUS_SWEEP:
+				depths.add(new Integer(100)); // Can't actually calculate this...
+				break;
+			}
+		}
+
+		int[] result = new int[depths.size()];
+		for(int i=0; i < depths.size(); ++i)
+			result[i] = depths.get(i);
+
+		return result;
+	}
+	
+	private AcqRow[] getBuiltRows() throws Exception {
+		List<AcqRow> rows = new ArrayList<AcqRow>();
+
+		if(SPIM_RANGES.equals(acq_pos_tabs.getSelectedComponent().getName())) {
+			double currentRot = mmc.getPosition(twisterLabel);
+
+			double[][] ranges = getRanges();
+
+			for(double x = ranges[0][0]; x <= ranges[0][2]; x += ranges[0][1]) {
+				for(double y = ranges[1][0]; y <= ranges[1][2]; y += ranges[1][1]) {
+					for(double t = ranges[2][0]; t <= ranges[2][2]; t += ranges[2][1]) {
+						Vector3D basev = new Vector3D(x, y, (ranges[3][0] + ranges[3][2]) / 2);
+
+						// Apply the transformation required to rotate to the
+						// target angle from the angle at the start of
+						// acquisition.
+						basev = applyCalibratedRotation(basev, t - currentRot);
+
+						String z;
+
+						if(continuousCheckbox.isSelected())
+							z = ranges[3][0] + "-" + ranges[3][2] + "@" + ranges[3][1];
+						else
+							z = ranges[3][0] + ":" + ranges[3][1] + ":" + ranges[3][2];
+
+						rows.add(new AcqRow(new String[] {basev.getX() + ", " + basev.getY(), "" + t}, zStageLabel, z));
+					}
+				}
+			}
+		} else if(POSITION_LIST.equals(acq_pos_tabs.getSelectedComponent().getName())) {
+			for(String[] row : ((StepTableModel)acq_PositionsTable.getModel()).getRows()) {
+				if(row[0].equals(ProgrammaticAcquisitor.STACK_DIVIDER))
+					continue;
+
+				rows.add(new AcqRow(Arrays.copyOfRange(row, 0, row.length - 1), zStageLabel, row[row.length - 1]));
+			}
+		}
+
+		return rows.toArray(new AcqRow[rows.size()]);
+	}
+
 	public List<String[]> buildRowsProper(List<String[]> model) {
 		List<String[]> out = new LinkedList<String[]>();
 
@@ -1638,31 +1719,16 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				acqThread.interrupt();
 
 			final String devs[] = {xyStageLabel, twisterLabel, zStageLabel};
-			final List<String[]> rows;
-			
-			int[] depths = null;
+			final AcqRow[] acqRows;
 
-			if(SPIM_RANGES.equals(acq_pos_tabs.getSelectedComponent().getName())) {
-				try {
-					rows = generateMultiViewRows();
-					depths = getStackDepthsByRanges();
-				} catch (Throwable t) {
-					ReportingUtils.logError(t);
-					JOptionPane.showMessageDialog(this.frame, "Couldn't acquire: " + t.getMessage());
-					return;
-				}
-			} else if(POSITION_LIST.equals(acq_pos_tabs.getSelectedComponent().getName())) {
-				StepTableModel model = (StepTableModel)acq_PositionsTable.getModel();
-
-				rows = buildRowsProper(model.getRows());
-				depths = temp_getStackDepthsByRegions(rows);
-			} else {
-				throw new Error("Invalid tab selected (" + acq_pos_tabs.getSelectedComponent().getName() + ")...");
+			try {
+				 acqRows = getBuiltRows();
+			} catch(Exception e) {
+				JOptionPane.showMessageDialog(frame, "Error: " + e.toString());
+				return;
 			}
 
-			ReportingUtils.logMessage("Steps:");
-			for(String[] row : rows)
-				ReportingUtils.logMessage(Arrays.toString(row));
+			int[] depths = temp_getAcqRowDepths(acqRows);
 
 			if (acq_timeoutCB.isSelected())
 				mmc.setTimeoutMs(Integer.parseInt(acq_timeoutValBox.getText()));
@@ -1690,11 +1756,13 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				timeStep = 0;
 			}
 
-			final AcqParams params = new AcqParams(mmc, devs, rows);
+			final AcqParams params = new AcqParams(mmc, devs, null);
 			params.setTimeSeqCount(timeSeqs);
 			params.setTimeStepSeconds(timeStep);
 			params.setContinuous(continuousCheckbox.isSelected());
-			
+
+			params.setRows(acqRows);
+
 			HashMap<String, String> nameMap = new HashMap<String, String>(3);
 			nameMap.put(xyStageLabel, "XY");
 			nameMap.put(twisterLabel, "Ang");
@@ -1723,7 +1791,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				@Override
 				public void run() {
 					try {
-						ImagePlus img = ProgrammaticAcquisitor.performAcquisition(params);
+						ImagePlus img = ProgrammaticAcquisitor.performAcquisition2(params);
 
 						if(img != null)
 							img.show();
