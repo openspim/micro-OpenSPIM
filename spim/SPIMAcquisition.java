@@ -925,6 +925,13 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			return;
 		}
 
+		if(acq_timeCB.isSelected()) {
+			try {
+				count *= Long.parseLong(acq_countBox.getText());
+			} catch(Exception e) {
+			}
+		}
+
 		bytesperimg = mmc.getImageHeight()*mmc.getImageWidth()*mmc.getBytesPerPixel() + 2048;
 
 		String s = " Estimates: " + count + " images; " + describeSize(bytesperimg*count);
@@ -1526,97 +1533,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				 ((ranges[3][2] - ranges[3][0])/ranges[3][1] + 1));
 	}
 
-	private int[] getStackDepthsByRanges() throws Exception {
-		double[][] ranges = getRanges();
-
-		int[] depths = new int[
-			(int)(((ranges[0][2] - ranges[0][0])/ranges[0][1] + 1) *
-				 ((ranges[1][2] - ranges[1][0])/ranges[1][1] + 1) *
-				 ((ranges[2][2] - ranges[2][0])/ranges[2][1] + 1))
-			];
-
-		for(int i=0; i < depths.length; ++i)
-			depths[i] = (int)((ranges[3][2] - ranges[3][0]) / ranges[3][1] + 1);
-		
-		return depths;
-	}
-
-	private List<String[]> generateMultiViewRows() throws Exception {
-		double currentRot = mmc.getPosition(twisterLabel);
-
-		double[][] ranges = getRanges();
-
-		List<String[]> rows = new ArrayList<String[]>(estimateRowCount(ranges));
-
-		for(double x = ranges[0][0]; x <= ranges[0][2]; x += ranges[0][1]) {
-			for(double y = ranges[1][0]; y <= ranges[1][2]; y += ranges[1][1]) {
-				for(double t = ranges[2][0]; t <= ranges[2][2]; t += ranges[2][1]) {
-					Vector3D basev = new Vector3D(x, y, (ranges[3][0] + ranges[3][2]) / 2);
-
-					// Apply the transformation required to rotate to the
-					// target angle from the angle at the start of
-					// acquisition.
-					basev = applyCalibratedRotation(basev, t - currentRot);
-
-					for(double z = ranges[3][0]; z <= ranges[3][2]; z += ranges[3][1]) {
-						String[] row = new String[3];
-
-						row[0] = basev.getX() + ", " + basev.getY();
-						row[1] = "" + t;
-						row[2] = "" + z;
-
-						rows.add(row);
-					}
-				}
-			}
-		}
-
-		return rows;
-	}
-
-	@Deprecated
-	private int[] temp_getStackDepthsByRegions(List<String[]> rows) {
-		List<Integer> depths = new LinkedList<Integer>();
-		
-		for(int br = rows.size()-1; br > 0; --br)
-			if(rows.get(br).equals(ProgrammaticAcquisitor.STACK_DIVIDER))
-				rows.remove(br--);
-			else
-				break;
-
-		for(int r = 0; r < rows.size(); ++r) {
-			int rStart = r;
-
-			while(r + 1 < rows.size() && !rows.get(r+1)[0].equals(ProgrammaticAcquisitor.STACK_DIVIDER)) ++r;
-
-			depths.add(new Integer((++r) - rStart));
-
-			ReportingUtils.logMessage("Stack depth " + depths.size() + ": " + depths.get(depths.size() - 1));
-		}
-
-		int[] result = new int[depths.size()];
-		for(int i=0; i < depths.size(); ++i)
-			result[i] = depths.get(i);
-
-		return result;
-	}
-
-	@Deprecated
-	private AcqRow[] temp_buildAcqRows(List<String[]> rows) {
-		List<AcqRow> out = new LinkedList<AcqRow>();
-
-		for(String[] row : rows) {
-			if(row[0].equals(ProgrammaticAcquisitor.STACK_DIVIDER))
-				continue;
-
-			out.add(new AcqRow(Arrays.copyOfRange(row, 0, row.length - 1), zStageLabel, row[row.length - 1]));
-		}
-
-		return out.toArray(new AcqRow[out.size()]);
-	}
-
-	@Deprecated
-	private int[] temp_getAcqRowDepths(AcqRow[] rows) {
+	private int[] getAcqRowDepths(AcqRow[] rows) {
 		List<Integer> depths = new LinkedList<Integer>();
 		
 		for(AcqRow r : rows) {
@@ -1728,7 +1645,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				return;
 			}
 
-			int[] depths = temp_getAcqRowDepths(acqRows);
+			int[] depths = getAcqRowDepths(acqRows);
 
 			if (acq_timeoutCB.isSelected())
 				mmc.setTimeoutMs(Integer.parseInt(acq_timeoutValBox.getText()));
@@ -1756,12 +1673,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				timeStep = 0;
 			}
 
-			final AcqParams params = new AcqParams(mmc, devs, null);
+			final AcqParams params = new AcqParams(mmc, devs, acqRows);
 			params.setTimeSeqCount(timeSeqs);
 			params.setTimeStepSeconds(timeStep);
 			params.setContinuous(continuousCheckbox.isSelected());
-
-			params.setRows(acqRows);
 
 			HashMap<String, String> nameMap = new HashMap<String, String>(3);
 			nameMap.put(xyStageLabel, "XY");
@@ -1791,7 +1706,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				@Override
 				public void run() {
 					try {
-						ImagePlus img = ProgrammaticAcquisitor.performAcquisition2(params);
+						ImagePlus img = ProgrammaticAcquisitor.performAcquisition(params);
 
 						if(img != null)
 							img.show();
