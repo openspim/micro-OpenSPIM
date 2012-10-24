@@ -206,6 +206,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 	private boolean liveControlsHooked;
 	private JTable acq_PositionsTable;
+	private JCheckBox antiDriftCheckbox;
 
 	/**
 	 * Embed our listeners in the live window's canvas space.
@@ -756,7 +757,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		continuousCheckbox = new JCheckBox("Snap Continously");
 		continuousCheckbox.setSelected(false);
-		continuousCheckbox.setEnabled(true);
+		continuousCheckbox.setEnabled(false);
+
+		antiDriftCheckbox = new JCheckBox("Use Anti-Drift");
+		antiDriftCheckbox.setSelected(true);
+		antiDriftCheckbox.setEnabled(true);
 
 		settleTime = new IntegerField(0, "settle.delay") {
 			@Override
@@ -784,7 +789,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		addLine(right, Justification.RIGHT, "Laser power:", laserPower, "exposure:", exposure);
 		addLine(right, Justification.STRETCH, "Laser:", laserSlider);
 		addLine(right, Justification.STRETCH, "Exposure:", exposureSlider);
-		addLine(right, Justification.RIGHT, continuousCheckbox, liveCheckbox, registrationCheckbox, speedControl);
+		addLine(right, Justification.RIGHT, continuousCheckbox, antiDriftCheckbox, liveCheckbox, registrationCheckbox, speedControl);
 		addLine(right, Justification.RIGHT, speedControl, "Delay to let z-stage settle (ms):", settleTime);
 		addLine(right, Justification.RIGHT, "Output directory:", acq_saveDir, pickDirBtn);
 
@@ -1677,6 +1682,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			params.setTimeSeqCount(timeSeqs);
 			params.setTimeStepSeconds(timeStep);
 			params.setContinuous(continuousCheckbox.isSelected());
+			params.setAntiDriftOn(antiDriftCheckbox.isSelected());
 
 			HashMap<String, String> nameMap = new HashMap<String, String>(3);
 			nameMap.put(xyStageLabel, "XY");
