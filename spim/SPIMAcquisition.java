@@ -1650,8 +1650,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				return;
 			}
 
-			int[] depths = getAcqRowDepths(acqRows);
-
 			if (acq_timeoutCB.isSelected())
 				mmc.setTimeoutMs(Integer.parseInt(acq_timeoutValBox.getText()));
 
@@ -1694,7 +1692,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 					mmc,
 					new File(acq_saveDir.getText()),
 					xyStageLabel, twisterLabel, zStageLabel, "t",
-					depths, timeSeqs, timeStep
+					acqRows, timeSeqs, timeStep
 				));
 			}
 
