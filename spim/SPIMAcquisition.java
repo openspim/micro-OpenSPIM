@@ -43,7 +43,6 @@ import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
-import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -72,9 +71,7 @@ import org.micromanager.utils.ReportingUtils;
 
 import progacq.AcqParams;
 import progacq.AcqRow;
-import progacq.IndividualImagesHandler;
 import progacq.OMETIFFHandler;
-import progacq.OutputAsStackHandler;
 import progacq.ProgrammaticAcquisitor;
 import progacq.RangeSlider;
 import progacq.StepTableModel;
@@ -85,28 +82,28 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	private static final String BTN_STOP = "Abort!";
 	private static final String BTN_START = "Oh Snap!";
 
-	private JButton acq_fetchX;
-	private JButton acq_fetchY;
-	private JButton acq_fetchZ;
-	private JSpinner acq_fetchDelta;
-	private JButton acq_fetchT;
-	private JCheckBox acq_xyDevCB;
-	private JComboBox acq_xyDevCmbo;
-	private RangeSlider acq_rangeX;
-	private RangeSlider acq_rangeY;
-	private JCheckBox acq_zDevCB;
-	private JComboBox acq_zDevCmbo;
-	private RangeSlider acq_rangeZ;
-	private JCheckBox acq_tDevCB;
-	private JComboBox acq_tDevCmbo;
-	private RangeSlider acq_rangeTheta;
-	private JCheckBox acq_timeCB;
-	private JTextField acq_stepBox;
-	private JTextField acq_countBox;
-	private JCheckBox acq_timeoutCB;
-	private JTextField acq_timeoutValBox;
-	private JTextField acq_saveDir;
-	private JButton acq_goBtn;
+	private JButton acqFetchX;
+	private JButton acqFetchY;
+	private JButton acqFetchZ;
+	private JSpinner acqFetchDelta;
+	private JButton acqFetchT;
+	private JCheckBox acqXYDevCB;
+	private JComboBox acqXYDevCmbo;
+	private RangeSlider acqRangeX;
+	private RangeSlider acqRangeY;
+	private JCheckBox acqZDevCB;
+	private JComboBox acqZDevCmbo;
+	private RangeSlider acqRangeZ;
+	private JCheckBox acqTDevCB;
+	private JComboBox acqTDevCmbo;
+	private RangeSlider acqRangeTheta;
+	private JCheckBox acqTimeCB;
+	private JTextField acqStepBox;
+	private JTextField acqCountBox;
+	private JCheckBox acqTimeoutCB;
+	private JTextField acqTimeoutValBox;
+	private JTextField acqSaveDir;
+	private JButton acqGoBtn;
 	private Thread acqThread;
 	
 	private SPIMCalibrator calibration;
@@ -141,6 +138,14 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 	private final String UNCALIBRATED = "Uncalibrated";
 	private final long MOTORS_UPDATE_PERIOD = 1000;
+
+	private boolean liveControlsHooked;
+	private JTable acqPositionsTable;
+	private JCheckBox antiDriftCheckbox;
+
+	private JProgressBar acqProgress;
+	private JTabbedPane acqPosTabs;
+	private JLabel estimatesText;
 
 	// MMPlugin stuff
 
@@ -203,10 +208,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		hookLiveControls(true);
 	}
-
-	private boolean liveControlsHooked;
-	private JTable acq_PositionsTable;
-	private JCheckBox antiDriftCheckbox;
 
 	/**
 	 * Embed our listeners in the live window's canvas space.
@@ -424,23 +425,23 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		stageControls.setLayout(new GridLayout(1, 2));
 		stageControls.add(left);
 
-		acq_pos_tabs = new JTabbedPane();
+		acqPosTabs = new JTabbedPane();
 		
 		JPanel importer = new JPanel();
 		importer.setLayout(new BoxLayout(importer, BoxLayout.LINE_AXIS));
 
-		acq_fetchX = new JButton("X");
-		acq_fetchX.addActionListener(importStagePosition);
-		acq_fetchY = new JButton("Y");
-		acq_fetchY.addActionListener(importStagePosition);
-		acq_fetchZ = new JButton("Z");
-		acq_fetchZ.addActionListener(importStagePosition);
-		acq_fetchT = new JButton("\u03B8");
-		acq_fetchT.addActionListener(importStagePosition);
+		acqFetchX = new JButton("X");
+		acqFetchX.addActionListener(importStagePosition);
+		acqFetchY = new JButton("Y");
+		acqFetchY.addActionListener(importStagePosition);
+		acqFetchZ = new JButton("Z");
+		acqFetchZ.addActionListener(importStagePosition);
+		acqFetchT = new JButton("\u03B8");
+		acqFetchT.addActionListener(importStagePosition);
 
-		acq_fetchDelta = new JSpinner(new SpinnerNumberModel(motorMax / 8, motorMin, motorMax, 10));
+		acqFetchDelta = new JSpinner(new SpinnerNumberModel(motorMax / 8, motorMin, motorMax, 10));
 
-		addLine(importer, Justification.RIGHT, "Use current value of ", acq_fetchX, acq_fetchY, acq_fetchZ, acq_fetchT, " \u00B1 ", acq_fetchDelta);
+		addLine(importer, Justification.RIGHT, "Use current value of ", acqFetchX, acqFetchY, acqFetchZ, acqFetchT, " \u00B1 ", acqFetchDelta);
 
 		JPanel xy = new JPanel();
 		xy.setLayout(new BoxLayout(xy, BoxLayout.PAGE_AXIS));
@@ -449,17 +450,17 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		JPanel xyDev = new JPanel();
 		xyDev.setLayout(new BoxLayout(xyDev, BoxLayout.LINE_AXIS));
 
-		acq_xyDevCB = new JCheckBox("");
-		acq_xyDevCB.addItemListener(this);
+		acqXYDevCB = new JCheckBox("");
+		acqXYDevCB.addItemListener(this);
 
 		JLabel xyDevLbl = new JLabel("X/Y Stage Device:");
-		acq_xyDevCmbo = new JComboBox(mmc.getLoadedDevicesOfType(
+		acqXYDevCmbo = new JComboBox(mmc.getLoadedDevicesOfType(
 				DeviceType.XYStageDevice).toArray());
-		acq_xyDevCmbo.setMaximumSize(acq_xyDevCmbo.getPreferredSize());
+		acqXYDevCmbo.setMaximumSize(acqXYDevCmbo.getPreferredSize());
 
-		xyDev.add(acq_xyDevCB);
+		xyDev.add(acqXYDevCB);
 		xyDev.add(xyDevLbl);
-		xyDev.add(acq_xyDevCmbo);
+		xyDev.add(acqXYDevCmbo);
 		xyDev.add(Box.createHorizontalGlue());
 
 		xy.add(xyDev);
@@ -471,9 +472,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		JPanel xy_x = new JPanel();
 		xy_x.setBorder(BorderFactory.createTitledBorder("Stage X"));
 
-		acq_rangeX = new RangeSlider(1D, 8000D);
+		acqRangeX = new RangeSlider(1D, 8000D);
 
-		xy_x.add(acq_rangeX);
+		xy_x.add(acqRangeX);
 		xy_x.setMaximumSize(xy_x.getPreferredSize());
 
 		xyXY.add(xy_x);
@@ -481,9 +482,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		JPanel xy_y = new JPanel();
 		xy_y.setBorder(BorderFactory.createTitledBorder("Stage Y"));
 
-		acq_rangeY = new RangeSlider(1D, 8000D);
+		acqRangeY = new RangeSlider(1D, 8000D);
 
-		xy_y.add(acq_rangeY);
+		xy_y.add(acqRangeY);
 		xy_y.setMaximumSize(xy_y.getPreferredSize());
 
 		xyXY.add(xy_y);
@@ -498,26 +499,26 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		JPanel zDev = new JPanel();
 		zDev.setLayout(new BoxLayout(zDev, BoxLayout.LINE_AXIS));
 
-		acq_zDevCB = new JCheckBox("");
-		acq_zDevCB.addItemListener(this);
+		acqZDevCB = new JCheckBox("");
+		acqZDevCB.addItemListener(this);
 		JLabel zDevLbl = new JLabel("Z Stage Device:");
-		acq_zDevCmbo = new JComboBox(mmc.getLoadedDevicesOfType(
+		acqZDevCmbo = new JComboBox(mmc.getLoadedDevicesOfType(
 				DeviceType.StageDevice).toArray());
-		acq_zDevCmbo.setSelectedItem(mmc.getFocusDevice());
-		acq_zDevCmbo.setMaximumSize(acq_zDevCmbo.getPreferredSize());
+		acqZDevCmbo.setSelectedItem(mmc.getFocusDevice());
+		acqZDevCmbo.setMaximumSize(acqZDevCmbo.getPreferredSize());
 
-		zDev.add(acq_zDevCB);
+		zDev.add(acqZDevCB);
 		zDev.add(zDevLbl);
-		zDev.add(acq_zDevCmbo);
+		zDev.add(acqZDevCmbo);
 		zDev.add(Box.createHorizontalGlue());
 
 		z.add(zDev);
 
 		z.add(Box.createRigidArea(new Dimension(10, 4)));
 
-		acq_rangeZ = new RangeSlider(1D, 8000D);
+		acqRangeZ = new RangeSlider(1D, 8000D);
 
-		z.add(acq_rangeZ);
+		z.add(acqRangeZ);
 		z.setMaximumSize(z.getPreferredSize());
 
 		JPanel t = new JPanel();
@@ -527,35 +528,35 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		JPanel tDev = new JPanel();
 		tDev.setLayout(new BoxLayout(tDev, BoxLayout.LINE_AXIS));
 
-		acq_tDevCB = new JCheckBox("");
-		acq_tDevCB.addItemListener(this);
+		acqTDevCB = new JCheckBox("");
+		acqTDevCB.addItemListener(this);
 		JLabel tDevLbl = new JLabel("Theta Device:");
 		tDevLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-		acq_tDevCmbo = new JComboBox(mmc.getLoadedDevicesOfType(
+		acqTDevCmbo = new JComboBox(mmc.getLoadedDevicesOfType(
 				DeviceType.StageDevice).toArray());
-		acq_tDevCmbo.setMaximumSize(acq_tDevCmbo.getPreferredSize());
-		acq_tDevCmbo.setSelectedIndex(acq_tDevCmbo.getItemCount() - 1);
-		acq_tDevCmbo.setAlignmentX(Component.LEFT_ALIGNMENT);
+		acqTDevCmbo.setMaximumSize(acqTDevCmbo.getPreferredSize());
+		acqTDevCmbo.setSelectedIndex(acqTDevCmbo.getItemCount() - 1);
+		acqTDevCmbo.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-		tDev.add(acq_tDevCB);
+		tDev.add(acqTDevCB);
 		tDev.add(tDevLbl);
-		tDev.add(acq_tDevCmbo);
+		tDev.add(acqTDevCmbo);
 		tDev.add(Box.createHorizontalGlue());
 
 		t.add(tDev);
 
 		t.add(Box.createRigidArea(new Dimension(10, 4)));
 
-		acq_rangeTheta = new RangeSlider(-100D, 100D);
+		acqRangeTheta = new RangeSlider(-100D, 100D);
 
-		t.add(acq_rangeTheta);
+		t.add(acqRangeTheta);
 		t.setMaximumSize(t.getPreferredSize());
 
 		JPanel acquisition = new JPanel();
 		acquisition.setName("Acquisition");
 		acquisition.setLayout(new BoxLayout(acquisition, BoxLayout.PAGE_AXIS));
 
-		JPanel acq_SPIMTab = (JPanel)LayoutUtils.vertPanel(
+		JPanel acqSPIMTab = (JPanel)LayoutUtils.vertPanel(
 			Box.createVerticalGlue(),
 			importer,
 			LayoutUtils.horizPanel(
@@ -566,19 +567,19 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				)
 			)
 		);
-		acq_SPIMTab.setName(SPIM_RANGES);
+		acqSPIMTab.setName(SPIM_RANGES);
 
-		acq_pos_tabs.add(SPIM_RANGES, acq_SPIMTab);
+		acqPosTabs.add(SPIM_RANGES, acqSPIMTab);
 
-		JButton acq_markPos = new JButton("Insert Current Position");
-		acq_markPos.addActionListener(new ActionListener() {
+		JButton acqMarkPos = new JButton("Insert Current Position");
+		acqMarkPos.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
-				StepTableModel model = (StepTableModel)acq_PositionsTable.getModel();
+				StepTableModel model = (StepTableModel)acqPositionsTable.getModel();
 				try {
 					int idx = model.getRowCount();
 
-					int[] selectedRows = acq_PositionsTable.getSelectedRows();
+					int[] selectedRows = acqPositionsTable.getSelectedRows();
 					if(selectedRows.length > 0)
 						idx = selectedRows[selectedRows.length - 1];
 
@@ -590,7 +591,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 							"" + mmc.getPosition(zStageLabel)
 					});
 				} catch(Throwable t) {
-					JOptionPane.showMessageDialog(acq_PositionsTable,
+					JOptionPane.showMessageDialog(acqPositionsTable,
 							"Couldn't mark: " + t.getMessage());
 
 					ReportingUtils.logError(t);
@@ -598,18 +599,18 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			}
 		});
 
-		JButton acq_makeSlices = new JButton("Stack at this Z plus:");
+		JButton acqMakeSlices = new JButton("Stack at this Z plus:");
 
 		// TODO: Decide good ranges for these...
-		final JSpinner acq_sliceRange = new JSpinner(new SpinnerNumberModel(50, -1000, 1000, 5));
-		acq_sliceRange.setMaximumSize(acq_sliceRange.getPreferredSize());
-		final JSpinner acq_sliceStep = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
-		acq_sliceStep.setMaximumSize(acq_sliceStep.getPreferredSize());
+		final JSpinner acqSliceRange = new JSpinner(new SpinnerNumberModel(50, -1000, 1000, 5));
+		acqSliceRange.setMaximumSize(acqSliceRange.getPreferredSize());
+		final JSpinner acqSliceStep = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
+		acqSliceStep.setMaximumSize(acqSliceStep.getPreferredSize());
 
-		acq_makeSlices.addActionListener(new ActionListener() {
+		acqMakeSlices.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
-				StepTableModel model = (StepTableModel)acq_PositionsTable.getModel();
+				StepTableModel model = (StepTableModel)acqPositionsTable.getModel();
 
 				String xy, theta;
 				double curz;
@@ -624,43 +625,43 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 					return;
 				}
 
-				int range = (Integer)acq_sliceRange.getValue();
-				int step = (Integer)acq_sliceStep.getValue();
+				int range = (Integer)acqSliceRange.getValue();
+				int step = (Integer)acqSliceStep.getValue();
 
 				model.insertRow(new String[] {xy, theta, curz + ":" + step + ":" + (curz + range)});
 			}
 		});
 
 		JPanel sliceOpts = (JPanel)LayoutUtils.horizPanel(
-			acq_sliceRange,
+			acqSliceRange,
 			new JLabel(" @ "),
-			acq_sliceStep,
+			acqSliceStep,
 			new JLabel(" \u03BCm")
 		);
 		sliceOpts.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-		JButton acq_removePos = new JButton("Delete Selected Rows");
-		acq_removePos.addActionListener(new ActionListener() {
+		JButton acqRemovePos = new JButton("Delete Selected Rows");
+		acqRemovePos.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
-				StepTableModel model = (StepTableModel)acq_PositionsTable.getModel();
+				StepTableModel model = (StepTableModel)acqPositionsTable.getModel();
 
-				model.removeRows(acq_PositionsTable.getSelectedRows());
+				model.removeRows(acqPositionsTable.getSelectedRows());
 			}
 		});
 
-		JScrollPane tblScroller = new JScrollPane(acq_PositionsTable = new JTable());
+		JScrollPane tblScroller = new JScrollPane(acqPositionsTable = new JTable());
 
 		StepTableModel model = new StepTableModel();
 		model.setColumns(Arrays.asList(new String[] {"X/Y Stage", "Theta", "Z Stage"}));
 
-		acq_PositionsTable.setFillsViewportHeight(true);
-		acq_PositionsTable.setModel(model);
+		acqPositionsTable.setFillsViewportHeight(true);
+		acqPositionsTable.setModel(model);
 
-		JPanel acq_TableTab = new JPanel();
-		acq_TableTab.setLayout(new BoxLayout(acq_TableTab, BoxLayout.LINE_AXIS));
+		JPanel acqTableTab = new JPanel();
+		acqTableTab.setLayout(new BoxLayout(acqTableTab, BoxLayout.LINE_AXIS));
 
-		acq_TableTab.add(tblScroller);
+		acqTableTab.add(tblScroller);
 
 		JPanel outer = new JPanel();
 		outer.setLayout(new BoxLayout(outer, BoxLayout.PAGE_AXIS));
@@ -668,9 +669,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		JPanel controls = new JPanel();
 		controls.setLayout(new GridLayout(4,1));
 
-		controls.add(acq_markPos);
-		controls.add(acq_removePos);
-		controls.add(acq_makeSlices);
+		controls.add(acqMarkPos);
+		controls.add(acqRemovePos);
+		controls.add(acqMakeSlices);
 		controls.add(sliceOpts);
 
 		controls.setMaximumSize(controls.getPreferredSize());
@@ -678,10 +679,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		outer.add(controls);
 		outer.add(Box.createVerticalGlue());
 
-		acq_TableTab.add(outer);
-		acq_TableTab.setName(POSITION_LIST);
+		acqTableTab.add(outer);
+		acqTableTab.setName(POSITION_LIST);
 
-		acq_pos_tabs.add(POSITION_LIST, acq_TableTab);
+		acqPosTabs.add(POSITION_LIST, acqTableTab);
+
 
 		JPanel estimates = (JPanel)LayoutUtils.horizPanel(
 			estimatesText = new JLabel(" Estimates:"),
@@ -752,7 +754,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		continuousCheckbox.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent arg0) {
-				acq_saveDir.setEnabled(!continuousCheckbox.isSelected());
+				acqSaveDir.setEnabled(!continuousCheckbox.isSelected());
 				pickDirBtn.setEnabled(!continuousCheckbox.isSelected());
 			}
 		});
@@ -768,18 +770,18 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			}
 		};
 
-		acq_saveDir = new JTextField(48);
-		acq_saveDir.setEnabled(true);
+		acqSaveDir = new JTextField(48);
+		acqSaveDir.setEnabled(true);
 
 		pickDirBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
-				JFileChooser fc = new JFileChooser(acq_saveDir.getText());
+				JFileChooser fc = new JFileChooser(acqSaveDir.getText());
 
 				fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 
 				if(fc.showDialog(frame, "Select") == JFileChooser.APPROVE_OPTION)
-					acq_saveDir.setText(fc.getSelectedFile().getAbsolutePath());
+					acqSaveDir.setText(fc.getSelectedFile().getAbsolutePath());
 			};
 		});
 
@@ -788,7 +790,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		addLine(right, Justification.STRETCH, "Exposure:", exposureSlider);
 		addLine(right, Justification.RIGHT, continuousCheckbox, antiDriftCheckbox, liveCheckbox, registrationCheckbox, speedControl);
 		addLine(right, Justification.RIGHT, speedControl, "Delay to let z-stage settle (ms):", settleTime);
-		addLine(right, Justification.RIGHT, "Output directory:", acq_saveDir, pickDirBtn);
+		addLine(right, Justification.RIGHT, "Output directory:", acqSaveDir, pickDirBtn);
 
 		JPanel bottom = new JPanel();
 		bottom.setLayout(new BoxLayout(bottom, BoxLayout.LINE_AXIS));
@@ -797,27 +799,27 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		timeBox.setLayout(new BoxLayout(timeBox, BoxLayout.LINE_AXIS));
 		timeBox.setBorder(BorderFactory.createTitledBorder("Time"));
 
-		acq_timeCB = new JCheckBox("");
-		acq_timeCB.setSelected(false);
+		acqTimeCB = new JCheckBox("");
+		acqTimeCB.setSelected(false);
 
 		JLabel step = new JLabel("Interval (s):");
 		step.setToolTipText("Delay between acquisition sequences in milliseconds.");
-		acq_stepBox = new JTextField(8);
-		acq_stepBox.setMaximumSize(acq_stepBox.getPreferredSize());
+		acqStepBox = new JTextField(8);
+		acqStepBox.setMaximumSize(acqStepBox.getPreferredSize());
 
 		JLabel count = new JLabel("Count:");
 		count.setToolTipText("Number of acquisition sequences to perform.");
-		acq_countBox = new JTextField(8);
-		acq_countBox.setMaximumSize(acq_countBox.getPreferredSize());
+		acqCountBox = new JTextField(8);
+		acqCountBox.setMaximumSize(acqCountBox.getPreferredSize());
 
-		acq_timeCB.addItemListener(this);
+		acqTimeCB.addItemListener(this);
 
-		timeBox.add(acq_timeCB);
+		timeBox.add(acqTimeCB);
 		timeBox.add(step);
-		timeBox.add(acq_stepBox);
+		timeBox.add(acqStepBox);
 		timeBox.add(Box.createRigidArea(new Dimension(4, 10)));
 		timeBox.add(count);
-		timeBox.add(acq_countBox);
+		timeBox.add(acqCountBox);
 
 		bottom.add(timeBox);
 
@@ -826,39 +828,39 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		timeoutBox
 				.setBorder(BorderFactory.createTitledBorder("Device Timeout"));
 
-		acq_timeoutCB = new JCheckBox("Override Timeout:");
-		acq_timeoutCB.setHorizontalTextPosition(JCheckBox.RIGHT);
-		acq_timeoutCB.addItemListener(this);
+		acqTimeoutCB = new JCheckBox("Override Timeout:");
+		acqTimeoutCB.setHorizontalTextPosition(JCheckBox.RIGHT);
+		acqTimeoutCB.addItemListener(this);
 
-		acq_timeoutValBox = new JTextField(8);
-		acq_timeoutValBox.setMaximumSize(acq_timeoutValBox.getPreferredSize());
+		acqTimeoutValBox = new JTextField(8);
+		acqTimeoutValBox.setMaximumSize(acqTimeoutValBox.getPreferredSize());
 
-		timeoutBox.add(acq_timeoutCB);
-		timeoutBox.add(acq_timeoutValBox);
+		timeoutBox.add(acqTimeoutCB);
+		timeoutBox.add(acqTimeoutValBox);
 
 		bottom.add(timeoutBox);
 
 		JPanel goBtnPnl = new JPanel();
 		goBtnPnl.setLayout(new GridLayout(2,1));
 
-		acq_goBtn = new JButton(BTN_START);
-		acq_goBtn.addActionListener(this);
-		goBtnPnl.add(acq_goBtn);
+		acqGoBtn = new JButton(BTN_START);
+		acqGoBtn.addActionListener(this);
+		goBtnPnl.add(acqGoBtn);
 
-		acq_Progress = new JProgressBar(0, 100);
-		acq_Progress.setEnabled(false);
-		goBtnPnl.add(acq_Progress);
+		acqProgress = new JProgressBar(0, 100);
+		acqProgress.setEnabled(false);
+		goBtnPnl.add(acqProgress);
 
 		bottom.add(goBtnPnl);
 
-		acq_timeCB.setSelected(false);
-		acq_countBox.setEnabled(false);
-		acq_stepBox.setEnabled(false);
+		acqTimeCB.setSelected(false);
+		acqCountBox.setEnabled(false);
+		acqStepBox.setEnabled(false);
 
-		acq_timeoutCB.setSelected(false);
-		acq_timeoutValBox.setEnabled(false);
+		acqTimeoutCB.setSelected(false);
+		acqTimeoutValBox.setEnabled(false);
 
-		acquisition.add(acq_pos_tabs);
+		acquisition.add(acqPosTabs);
 		acquisition.add(estimates);
 		acquisition.add(right);
 		acquisition.add(bottom);
@@ -911,23 +913,23 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		// First, determine the number of rows, and estimate the amount of
 		// storage required.
 		long count, bytesperimg;
-		if(SPIM_RANGES.equals(acq_pos_tabs.getSelectedComponent().getName())) {
+		if(SPIM_RANGES.equals(acqPosTabs.getSelectedComponent().getName())) {
 			try {
 				count = estimateRowCount(getRanges());
 			} catch (Exception e) {
 				estimatesText.setText("An exception occurred: " + e.getMessage());
 				return;
 			};
-		} else if(POSITION_LIST.equals(acq_pos_tabs.getSelectedComponent().getName())) {
-			count = buildRowsProper(((StepTableModel)acq_PositionsTable.getModel()).getRows()).size();
+		} else if(POSITION_LIST.equals(acqPosTabs.getSelectedComponent().getName())) {
+			count = buildRowsProper(((StepTableModel)acqPositionsTable.getModel()).getRows()).size();
 		} else {
 			estimatesText.setText("What tab are you on? (Please report this.)");
 			return;
 		}
 
-		if(acq_timeCB.isSelected()) {
+		if(acqTimeCB.isSelected()) {
 			try {
-				count *= Long.parseLong(acq_countBox.getText());
+				count *= Long.parseLong(acqCountBox.getText());
 			} catch(Exception e) {
 			}
 		}
@@ -936,8 +938,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		String s = " Estimates: " + count + " images; " + describeSize(bytesperimg*count);
 
-		if(!"".equals(acq_saveDir.getText())) {
-			File f = new File(acq_saveDir.getText());
+		if(!"".equals(acqSaveDir.getText())) {
+			File f = new File(acqSaveDir.getText());
 			if(f.exists()) {
 				while(f.getFreeSpace() == 0 && f != null)
 					f = f.getParentFile();
@@ -960,23 +962,23 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	protected ActionListener importStagePosition = new ActionListener() {
 		@Override
 		public void actionPerformed(ActionEvent ae) {
-			double range = ((Integer)acq_fetchDelta.getValue()).doubleValue();
+			double range = ((Integer)acqFetchDelta.getValue()).doubleValue();
 			double value = 0;
 
 			RangeSlider target = null;
 
 			try {
-				if(ae.getSource().equals(acq_fetchX)) {
-					target = acq_rangeX;
+				if(ae.getSource().equals(acqFetchX)) {
+					target = acqRangeX;
 					value = mmc.getXPosition(xyStageLabel);
-				} else if(ae.getSource().equals(acq_fetchY)) {
-					target = acq_rangeY;
+				} else if(ae.getSource().equals(acqFetchY)) {
+					target = acqRangeY;
 					value = mmc.getYPosition(xyStageLabel);
-				} else if(ae.getSource().equals(acq_fetchZ)) {
-					target = acq_rangeZ;
+				} else if(ae.getSource().equals(acqFetchZ)) {
+					target = acqRangeZ;
 					value = mmc.getPosition(zStageLabel);
-				} else if(ae.getSource().equals(acq_fetchT)) {
-					target = acq_rangeTheta;
+				} else if(ae.getSource().equals(acqFetchT)) {
+					target = acqRangeTheta;
 					value = mmc.getPosition(twisterLabel);
 				} else {
 					throw new Exception("Import from where now?");
@@ -988,7 +990,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 			double min = value - range;
 			double max = value + range;
-			if(ae.getSource().equals(acq_fetchT)) {
+			if(ae.getSource().equals(acqFetchT)) {
 				min = Math.max(value - angle2TwisterPosition((int)range), twisterMin);
 				max = Math.min(value + angle2TwisterPosition((int)range), twisterMax);
 			} else {
@@ -1025,30 +1027,30 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		continuousCheckbox.setEnabled(acquiring == null && zStageLabel != null && cameraLabel != null);
 		settleTime.setEnabled(acquiring == null && zStageLabel != null);
 
-		acq_xyDevCB.setSelected(xyStageLabel != null);
-		acq_zDevCB.setSelected(zStageLabel != null);
-		acq_tDevCB.setSelected(twisterLabel != null);
+		acqXYDevCB.setSelected(xyStageLabel != null);
+		acqZDevCB.setSelected(zStageLabel != null);
+		acqTDevCB.setSelected(twisterLabel != null);
 
 		if(xyStageLabel != null)
-			acq_xyDevCmbo.setSelectedItem(xyStageLabel);
+			acqXYDevCmbo.setSelectedItem(xyStageLabel);
 		if(zStageLabel != null)
-			acq_zDevCmbo.setSelectedItem(zStageLabel);
+			acqZDevCmbo.setSelectedItem(zStageLabel);
 		if(twisterLabel != null)
-			acq_tDevCmbo.setSelectedItem(twisterLabel);
+			acqTDevCmbo.setSelectedItem(twisterLabel);
 
-		acq_xyDevCmbo.setEnabled(xyStageLabel != null);
-		acq_zDevCmbo.setEnabled(zStageLabel != null);
-		acq_tDevCmbo.setEnabled(twisterLabel != null);
+		acqXYDevCmbo.setEnabled(xyStageLabel != null);
+		acqZDevCmbo.setEnabled(zStageLabel != null);
+		acqTDevCmbo.setEnabled(twisterLabel != null);
 
-		acq_rangeX.setEnabled(xyStageLabel != null);
-		acq_rangeY.setEnabled(xyStageLabel != null);
-		acq_rangeZ.setEnabled(zStageLabel != null);
-		acq_rangeTheta.setEnabled(twisterLabel != null);
+		acqRangeX.setEnabled(xyStageLabel != null);
+		acqRangeY.setEnabled(xyStageLabel != null);
+		acqRangeZ.setEnabled(zStageLabel != null);
+		acqRangeTheta.setEnabled(twisterLabel != null);
 
-		acq_fetchX.setEnabled(xyStageLabel != null);
-		acq_fetchY.setEnabled(xyStageLabel != null);
-		acq_fetchZ.setEnabled(zStageLabel != null);
-		acq_fetchT.setEnabled(twisterLabel != null);
+		acqFetchX.setEnabled(xyStageLabel != null);
+		acqFetchY.setEnabled(xyStageLabel != null);
+		acqFetchZ.setEnabled(zStageLabel != null);
+		acqFetchT.setEnabled(twisterLabel != null);
 
 		tryUpdateSliderPositions();
 	}
@@ -1363,10 +1365,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		}
 	};
 
-	private JProgressBar acq_Progress;
-	private JTabbedPane acq_pos_tabs;
-	private JLabel estimatesText;
-
 	protected ImageProcessor snapSlice() throws Exception {
 		synchronized(frame) {
 			mmc.snapImage();
@@ -1485,42 +1483,42 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 	@Override
 	public void itemStateChanged(ItemEvent ie) {
-		if(ie.getSource().equals(acq_xyDevCB)) {
-			acq_xyDevCmbo.setEnabled(acq_xyDevCB.isSelected());
-			acq_rangeX.setEnabled(acq_xyDevCB.isSelected());
-			acq_rangeY.setEnabled(acq_xyDevCB.isSelected());
-		} else if(ie.getSource().equals(acq_zDevCB)) {
-			acq_rangeZ.setEnabled(acq_zDevCB.isSelected());
-			acq_zDevCmbo.setEnabled(acq_zDevCB.isSelected());
-		} else if(ie.getSource().equals(acq_tDevCB)) {
-			acq_rangeTheta.setEnabled(acq_tDevCB.isSelected());
-			acq_tDevCmbo.setEnabled(acq_tDevCB.isSelected());
-		} else if(ie.getSource().equals(acq_timeCB)) {
-			acq_countBox.setEnabled(acq_timeCB.isSelected());
-			acq_stepBox.setEnabled(acq_timeCB.isSelected());
-		} else if(ie.getSource().equals(acq_timeoutCB)) {
-			acq_timeoutValBox.setEnabled(acq_timeoutCB.isSelected());
-			acq_timeoutValBox.setText("" + mmc.getTimeoutMs());
+		if(ie.getSource().equals(acqXYDevCB)) {
+			acqXYDevCmbo.setEnabled(acqXYDevCB.isSelected());
+			acqRangeX.setEnabled(acqXYDevCB.isSelected());
+			acqRangeY.setEnabled(acqXYDevCB.isSelected());
+		} else if(ie.getSource().equals(acqZDevCB)) {
+			acqRangeZ.setEnabled(acqZDevCB.isSelected());
+			acqZDevCmbo.setEnabled(acqZDevCB.isSelected());
+		} else if(ie.getSource().equals(acqTDevCB)) {
+			acqRangeTheta.setEnabled(acqTDevCB.isSelected());
+			acqTDevCmbo.setEnabled(acqTDevCB.isSelected());
+		} else if(ie.getSource().equals(acqTimeCB)) {
+			acqCountBox.setEnabled(acqTimeCB.isSelected());
+			acqStepBox.setEnabled(acqTimeCB.isSelected());
+		} else if(ie.getSource().equals(acqTimeoutCB)) {
+			acqTimeoutValBox.setEnabled(acqTimeoutCB.isSelected());
+			acqTimeoutValBox.setText("" + mmc.getTimeoutMs());
 		}
 	}
 
 	private double[][] getRanges() throws Exception {
 		double[][] ranges = new double[][] {
-				acq_rangeX.getRange(),
-				acq_rangeY.getRange(),
-				acq_rangeTheta.getRange(),
-				acq_rangeZ.getRange()
+				acqRangeX.getRange(),
+				acqRangeY.getRange(),
+				acqRangeTheta.getRange(),
+				acqRangeZ.getRange()
 		};
 
-		if(!acq_xyDevCB.isSelected()) {
+		if(!acqXYDevCB.isSelected()) {
 			ranges[0][2] = ranges[0][0] = mmc.getXPosition(xyStageLabel);
 			ranges[1][2] = ranges[1][0] = mmc.getYPosition(xyStageLabel);
 		};
 
-		if(!acq_tDevCB.isSelected())
+		if(!acqTDevCB.isSelected())
 			ranges[2][2] = ranges[2][0] = mmc.getPosition(twisterLabel);
 
-		if(!acq_zDevCB.isSelected())
+		if(!acqZDevCB.isSelected())
 			ranges[3][2] = ranges[3][0] = mmc.getPosition(zStageLabel);
 
 		return ranges;
@@ -1560,7 +1558,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	private AcqRow[] getBuiltRows() throws Exception {
 		List<AcqRow> rows = new ArrayList<AcqRow>();
 
-		if(SPIM_RANGES.equals(acq_pos_tabs.getSelectedComponent().getName())) {
+		if(SPIM_RANGES.equals(acqPosTabs.getSelectedComponent().getName())) {
 			double currentRot = mmc.getPosition(twisterLabel);
 
 			double[][] ranges = getRanges();
@@ -1586,8 +1584,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 					}
 				}
 			}
-		} else if(POSITION_LIST.equals(acq_pos_tabs.getSelectedComponent().getName())) {
-			for(String[] row : ((StepTableModel)acq_PositionsTable.getModel()).getRows()) {
+		} else if(POSITION_LIST.equals(acqPosTabs.getSelectedComponent().getName())) {
+			for(String[] row : ((StepTableModel)acqPositionsTable.getModel()).getRows()) {
 				if(row[0].equals(ProgrammaticAcquisitor.STACK_DIVIDER))
 					continue;
 
@@ -1645,27 +1643,27 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				return;
 			}
 
-			if (acq_timeoutCB.isSelected())
-				mmc.setTimeoutMs(Integer.parseInt(acq_timeoutValBox.getText()));
+			if (acqTimeoutCB.isSelected())
+				mmc.setTimeoutMs(Integer.parseInt(acqTimeoutValBox.getText()));
 
 			final int timeSeqs;
 			final double timeStep;
 
-			if (acq_timeCB.isSelected()) {
-				if (acq_countBox.getText().isEmpty()) {
+			if (acqTimeCB.isSelected()) {
+				if (acqCountBox.getText().isEmpty()) {
 					JOptionPane.showMessageDialog(frame,
 							"Please enter a count or disable timing.");
-					acq_countBox.requestFocusInWindow();
+					acqCountBox.requestFocusInWindow();
 					return;
-				} else if (acq_stepBox.getText().isEmpty()) {
+				} else if (acqStepBox.getText().isEmpty()) {
 					JOptionPane.showMessageDialog(frame,
 							"Please enter a time step or disable timing.");
-					acq_stepBox.requestFocusInWindow();
+					acqStepBox.requestFocusInWindow();
 					return;
 				}
 
-				timeSeqs = Integer.parseInt(acq_countBox.getText());
-				timeStep = Double.parseDouble(acq_stepBox.getText());
+				timeSeqs = Integer.parseInt(acqCountBox.getText());
+				timeStep = Double.parseDouble(acqStepBox.getText());
 			} else {
 				timeSeqs = 1;
 				timeStep = 0;
@@ -1682,22 +1680,22 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			nameMap.put(twisterLabel, "Ang");
 			nameMap.put(zStageLabel, "Z");
 
-			if(!continuousCheckbox.isSelected() && !"".equals(acq_saveDir.getText())) {
+			if(!continuousCheckbox.isSelected() && !"".equals(acqSaveDir.getText())) {
 				params.setOutputHandler(new OMETIFFHandler(
 					mmc,
-					new File(acq_saveDir.getText()),
+					new File(acqSaveDir.getText()),
 					xyStageLabel, twisterLabel, zStageLabel, "t",
 					acqRows, timeSeqs, timeStep
 				));
 			}
 
-			acq_Progress.setEnabled(true);
+			acqProgress.setEnabled(true);
 
 			params.setProgressListener(new ChangeListener() {
 				@Override
 				public void stateChanged(ChangeEvent ce) {
 					ReportingUtils.logMessage("Acq: " + (Double)ce.getSource() * 100D);
-					acq_Progress.setValue((int)((Double)ce.getSource() * 100));
+					acqProgress.setValue((int)((Double)ce.getSource() * 100));
 				};
 			});
 
@@ -1715,15 +1713,15 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 								+ e.getMessage());
 						throw new Error("Error acquiring!", e);
 					} finally {
-						acq_goBtn.setText(BTN_START);
-						acq_Progress.setValue(0);
-						acq_Progress.setEnabled(false);
+						acqGoBtn.setText(BTN_START);
+						acqProgress.setValue(0);
+						acqProgress.setEnabled(false);
 					}
 				}
 			};
 
 			acqThread.start();
-			acq_goBtn.setText(BTN_STOP);
+			acqGoBtn.setText(BTN_STOP);
 		} else if(BTN_STOP.equals(ae.getActionCommand())) {
 			try {
 				acqThread.interrupt();
@@ -1736,10 +1734,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			} finally {
 				acqThread = null;
 
-				acq_goBtn.setText(BTN_START);
+				acqGoBtn.setText(BTN_START);
 
-				acq_Progress.setValue(0);
-				acq_Progress.setEnabled(false);
+				acqProgress.setValue(0);
+				acqProgress.setEnabled(false);
 			}
 		}
 	}
