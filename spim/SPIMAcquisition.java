@@ -20,6 +20,7 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
@@ -58,6 +59,7 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.table.TableModel;
 
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
@@ -77,8 +79,8 @@ import progacq.RangeSlider;
 import progacq.StepTableModel;
 
 public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListener, ItemListener, ActionListener {
-	private static final String POSITION_LIST = "Position List";
 	private static final String SPIM_RANGES = "SPIM Ranges";
+	private static final String POSITION_LIST = "Position List";
 	private static final String BTN_STOP = "Abort!";
 	private static final String BTN_START = "Oh Snap!";
 
@@ -657,6 +659,40 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		acqPositionsTable.setFillsViewportHeight(true);
 		acqPositionsTable.setModel(model);
+		acqPositionsTable.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent me) {
+				if(acqPositionsTable.getSelectedRowCount() == 1 &&
+						me.getClickCount() == 2) {
+					TableModel mdl = ((JTable)me.getComponent()).getModel();
+					int row = ((JTable)me.getComponent()).getSelectedRow();
+
+					String xy = (String) mdl.getValueAt(row, 0);
+					String t = (String) mdl.getValueAt(row, 1);
+					String zr = (String) mdl.getValueAt(row, 2);
+
+					double x = Double.parseDouble(xy.substring(0,xy.indexOf(',')));
+					double y = Double.parseDouble(xy.substring(xy.indexOf(',')+2));
+					double td = Double.parseDouble(t);
+
+					double z = 0;
+					if(zr.contains(":"))
+						z = Double.parseDouble(zr.substring(0,zr.indexOf(':')));
+					else if(zr.contains("@"))
+						z = Double.parseDouble(zr.substring(0,zr.indexOf('-')));
+					else
+						z = Double.parseDouble(zr);
+
+					try {
+						mmc.setXYPosition(xyStageLabel, x, y);
+						mmc.setPosition(zStageLabel, z);
+						mmc.setPosition(twisterLabel, td);
+					} catch(Throwable thrown) {
+						IJ.handleException(thrown);
+					}
+				}
+			}
+		});
 
 		JPanel acqTableTab = new JPanel();
 		acqTableTab.setLayout(new BoxLayout(acqTableTab, BoxLayout.LINE_AXIS));
