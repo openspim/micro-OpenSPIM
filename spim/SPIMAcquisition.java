@@ -570,7 +570,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		acq_pos_tabs.add(SPIM_RANGES, acq_SPIMTab);
 
-		JButton acq_markPos = new JButton("Mark Current");
+		JButton acq_markPos = new JButton("Insert Current Position");
 		acq_markPos.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
@@ -626,17 +626,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 				int range = (Integer)acq_sliceRange.getValue();
 				int step = (Integer)acq_sliceStep.getValue();
-/*
-				if(range > 0)
-					for(double z = curz; z < curz + range; z += step)
-						model.insertRow(new String[] {xy, theta, "" + z});
-				else
-					for(double z = curz; z > curz + range; z -= step)
-						model.insertRow(new String[] {xy, theta, "" + z});
-
-				model.insertRow(new String[] {ProgrammaticAcquisitor.STACK_DIVIDER,
-						ProgrammaticAcquisitor.STACK_DIVIDER,
-						ProgrammaticAcquisitor.STACK_DIVIDER});*/
 
 				model.insertRow(new String[] {xy, theta, curz + ":" + step + ":" + (curz + range)});
 			}
@@ -644,13 +633,13 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		JPanel sliceOpts = (JPanel)LayoutUtils.horizPanel(
 			acq_sliceRange,
-			new JLabel(" step "),
+			new JLabel(" @ "),
 			acq_sliceStep,
 			new JLabel(" \u03BCm")
 		);
 		sliceOpts.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-		JButton acq_removePos = new JButton("Delete Selected");
+		JButton acq_removePos = new JButton("Delete Selected Rows");
 		acq_removePos.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
@@ -755,11 +744,20 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			}
 		});
 
+		final JButton pickDirBtn = new JButton("Browse");
+
 		continuousCheckbox = new JCheckBox("Snap Continously");
 		continuousCheckbox.setSelected(false);
 		continuousCheckbox.setEnabled(false);
+		continuousCheckbox.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent arg0) {
+				acq_saveDir.setEnabled(!continuousCheckbox.isSelected());
+				pickDirBtn.setEnabled(!continuousCheckbox.isSelected());
+			}
+		});
 
-		antiDriftCheckbox = new JCheckBox("Use Anti-Drift");
+		antiDriftCheckbox = new JCheckBox("Use Anti-Drift (Experimental)");
 		antiDriftCheckbox.setSelected(true);
 		antiDriftCheckbox.setEnabled(true);
 
@@ -773,7 +771,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		acq_saveDir = new JTextField(48);
 		acq_saveDir.setEnabled(true);
 
-		JButton pickDirBtn = new JButton("Browse");
 		pickDirBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
@@ -852,9 +849,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		acq_Progress.setEnabled(false);
 		goBtnPnl.add(acq_Progress);
 
-		bottom.add(Box.createHorizontalGlue());
 		bottom.add(goBtnPnl);
-		bottom.add(Box.createHorizontalGlue());
 
 		acq_timeCB.setSelected(false);
 		acq_countBox.setEnabled(false);
@@ -1025,7 +1020,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		exposure.setEnabled(acquiring == null && cameraLabel != null);
 		laserSlider.setEnabled(acquiring == null && laserLabel != null);
 		exposureSlider.setEnabled(acquiring == null && cameraLabel != null);
-		liveCheckbox.setEnabled(acquiring == null && cameraLabel != null);
+//		liveCheckbox.setEnabled(acquiring == null && cameraLabel != null);
 		speedControl.setEnabled(acquiring == null && zStageHasVelocity);
 		continuousCheckbox.setEnabled(acquiring == null && zStageLabel != null && cameraLabel != null);
 		settleTime.setEnabled(acquiring == null && zStageLabel != null);
@@ -1687,7 +1682,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			nameMap.put(twisterLabel, "Ang");
 			nameMap.put(zStageLabel, "Z");
 
-			if(!"".equals(acq_saveDir.getText())) {
+			if(!continuousCheckbox.isSelected() && !"".equals(acq_saveDir.getText())) {
 				params.setOutputHandler(new OMETIFFHandler(
 					mmc,
 					new File(acq_saveDir.getText()),
