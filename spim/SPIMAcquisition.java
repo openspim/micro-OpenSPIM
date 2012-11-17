@@ -3,6 +3,7 @@ package spim;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
+import ij.VirtualStack;
 import ij.gui.GenericDialog;
 import ij.gui.ImageWindow;
 import ij.process.ByteProcessor;
@@ -81,6 +82,7 @@ import progacq.StepTableModel;
 public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListener, ItemListener, ActionListener {
 	private static final String SPIM_RANGES = "SPIM Ranges";
 	private static final String POSITION_LIST = "Position List";
+	private static final String VIDEO_RECORDER = "Video";
 	private static final String BTN_STOP = "Abort!";
 	private static final String BTN_START = "Oh Snap!";
 
@@ -720,6 +722,18 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		acqPosTabs.add(POSITION_LIST, acqTableTab);
 
+		JPanel acqVideoTab = (JPanel) LayoutUtils.vertPanel(
+			Box.createVerticalGlue(),
+			LayoutUtils.horizPanel(
+					Box.createHorizontalGlue(),
+					new JLabel("The current position will be used for video capture."),
+					Box.createHorizontalGlue()
+			),
+			Box.createVerticalGlue()
+		);
+		acqVideoTab.setName(VIDEO_RECORDER);
+
+		acqPosTabs.add(VIDEO_RECORDER, acqVideoTab);
 
 		JPanel estimates = (JPanel)LayoutUtils.horizPanel(
 			estimatesText = new JLabel(" Estimates:"),
@@ -958,6 +972,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			};
 		} else if(POSITION_LIST.equals(acqPosTabs.getSelectedComponent().getName())) {
 			count = buildRowsProper(((StepTableModel)acqPositionsTable.getModel()).getRows()).size();
+		} else if(VIDEO_RECORDER.equals(acqPosTabs.getSelectedComponent().getName())) {
+			estimatesText.setText("Dataset size depends on how long you record for.");
+			return;
 		} else {
 			estimatesText.setText("What tab are you on? (Please report this.)");
 			return;
@@ -1663,105 +1680,196 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		return out;
 	}
 
+	private static void appendNext(CMMCore mmc, File saveFile, int n) throws Exception {
+		mmcorej.TaggedImage TI = mmc.popNextTaggedImage();
+
+		ImageProcessor IP = ProgrammaticAcquisitor.newImageProcessor(mmc, TI.pix);
+
+		ImagePlus img = null;
+		ImageStack stck = new ImageStack(IP.getWidth(), IP.getHeight());
+		stck.addSlice("" + n, IP);
+		img = new ImagePlus("Video", stck);
+
+		img.setProperty("Info", img.getProperty("Info") + "\n" + TI.tags.toString());
+		IJ.save(img, new File(saveFile, "img" + n + ".tiff").getAbsolutePath());
+	}
+
 	@Override
 	public void actionPerformed(ActionEvent ae) {
 		if(BTN_START.equals(ae.getActionCommand())) {
 			if(acqThread != null)
 				acqThread.interrupt();
 
-			final String devs[] = {xyStageLabel, twisterLabel, zStageLabel};
-			final AcqRow[] acqRows;
+			if(VIDEO_RECORDER.equals(acqPosTabs.getSelectedComponent().getName())) {
+				final File saveFile = new File(acqSaveDir.getText());
 
-			try {
-				 acqRows = getBuiltRows();
-			} catch(Exception e) {
-				JOptionPane.showMessageDialog(frame, "Error: " + e.toString());
-				return;
-			}
-
-			if (acqTimeoutCB.isSelected())
-				mmc.setTimeoutMs(Integer.parseInt(acqTimeoutValBox.getText()));
-
-			final int timeSeqs;
-			final double timeStep;
-
-			if (acqTimeCB.isSelected()) {
-				if (acqCountBox.getText().isEmpty()) {
-					JOptionPane.showMessageDialog(frame,
-							"Please enter a count or disable timing.");
-					acqCountBox.requestFocusInWindow();
-					return;
-				} else if (acqStepBox.getText().isEmpty()) {
-					JOptionPane.showMessageDialog(frame,
-							"Please enter a time step or disable timing.");
-					acqStepBox.requestFocusInWindow();
+				if(saveFile.exists()) {
+					JOptionPane.showConfirmDialog(null, "Overwrite existing file?");
 					return;
 				}
 
-				timeSeqs = Integer.parseInt(acqCountBox.getText());
-				timeStep = Double.parseDouble(acqStepBox.getText());
-			} else {
-				timeSeqs = 1;
-				timeStep = 0;
-			}
+				final File saveDir;
+				try {
+					saveDir = File.createTempFile("vid", "dir"); //new File(saveFile.getParent(), "tmpdir");
+				} catch(Exception e) {
+					JOptionPane.showMessageDialog(null, "Couldn't create temporary directory.");
+					return;
+				}
 
-			final AcqParams params = new AcqParams(mmc, devs, acqRows);
-			params.setTimeSeqCount(timeSeqs);
-			params.setTimeStepSeconds(timeStep);
-			params.setContinuous(continuousCheckbox.isSelected());
-			params.setAntiDriftOn(antiDriftCheckbox.isSelected());
+				// Weird: mkdir once returned false though it was successful...
+				if(!saveDir.delete() || !saveDir.mkdir()) {
+					JOptionPane.showMessageDialog(null, "Couldn't create temporary directory.");
+					return;
+				}
 
-			HashMap<String, String> nameMap = new HashMap<String, String>(3);
-			nameMap.put(xyStageLabel, "XY");
-			nameMap.put(twisterLabel, "Ang");
-			nameMap.put(zStageLabel, "Z");
+				acqThread = new Thread() {
+					@Override
+					public void run() {
+						try {
+							mmc.clearCircularBuffer();
+							mmc.startContinuousSequenceAcquisition(0);
 
-			if(!continuousCheckbox.isSelected() && !"".equals(acqSaveDir.getText())) {
-				params.setOutputHandler(new OMETIFFHandler(
-					mmc,
-					new File(acqSaveDir.getText()),
-					xyStageLabel, twisterLabel, zStageLabel, "t",
-					acqRows, timeSeqs, timeStep
-				));
-			}
+							int n = 0;
+							while(!Thread.interrupted()) {
+								if (mmc.getRemainingImageCount() == 0) {
+									Thread.yield();
+									continue;
+								};
 
-			acqProgress.setEnabled(true);
+								appendNext(mmc, saveDir, n++);
+							}
 
-			params.setProgressListener(new ChangeListener() {
-				@Override
-				public void stateChanged(ChangeEvent ce) {
-					ReportingUtils.logMessage("Acq: " + (Double)ce.getSource() * 100D);
-					acqProgress.setValue((int)((Double)ce.getSource() * 100));
-				};
-			});
+							mmc.stopSequenceAcquisition();
 
-			acqThread = new Thread() {
-				@Override
-				public void run() {
-					try {
-						ImagePlus img = ProgrammaticAcquisitor.performAcquisition(params);
+							ReportingUtils.logMessage("Video stopped; finishing individual file saving...");
 
-						if(img != null)
-							img.show();
-					} catch (Exception e) {
-						e.printStackTrace();
-						JOptionPane.showMessageDialog(frame, "Error acquiring: "
-								+ e.getMessage());
-						throw new Error("Error acquiring!", e);
-					} finally {
-						acqGoBtn.setText(BTN_START);
-						acqProgress.setValue(0);
-						acqProgress.setEnabled(false);
+							while(mmc.getRemainingImageCount() != 0) {
+								appendNext(mmc, saveDir, n++);
+							}
+
+							ReportingUtils.logMessage("Condensing individual files...");
+
+							ImagePlus fij = new ImagePlus();
+							VirtualStack stck = new VirtualStack((int) mmc.getImageWidth(), (int) mmc.getImageHeight(), null, saveDir.getAbsolutePath());
+							for(int i=0; i < n - 8; ++i) {
+								ReportingUtils.logMessage(" Adding file img" + i + ".tiff...");
+								stck.addSlice("img" + i + ".tiff");
+							}
+							fij.setStack(stck);
+							fij.setFileInfo(new ij.io.FileInfo());
+							IJ.save(fij, saveFile.getAbsolutePath());
+
+							for(int i=0; i < n; ++i)
+								if(!(new File(saveDir, "img" + i + ".tiff").delete()))
+									throw new Exception("Couldn't delete temporary image " + i);
+
+							if(!saveDir.delete())
+								throw new Exception("Couldn't delete temporary directory " + saveDir.getAbsolutePath());
+						} catch(Throwable t) {
+							JOptionPane.showMessageDialog(null, "Error during acquisition: " + t.getMessage());
+							t.printStackTrace();
+						} finally {
+							acqGoBtn.setText(BTN_START);
+							acqProgress.setValue(0);
+							acqProgress.setEnabled(false);
+						};
 					}
+				};
+			} else {
+				final String devs[] = {xyStageLabel, twisterLabel, zStageLabel};
+				final AcqRow[] acqRows;
+
+				try {
+					 acqRows = getBuiltRows();
+				} catch(Exception e) {
+					JOptionPane.showMessageDialog(frame, "Error: " + e.toString());
+					return;
 				}
-			};
+
+				if (acqTimeoutCB.isSelected())
+					mmc.setTimeoutMs(Integer.parseInt(acqTimeoutValBox.getText()));
+
+				final int timeSeqs;
+				final double timeStep;
+
+				if (acqTimeCB.isSelected()) {
+					if (acqCountBox.getText().isEmpty()) {
+						JOptionPane.showMessageDialog(frame,
+								"Please enter a count or disable timing.");
+						acqCountBox.requestFocusInWindow();
+						return;
+					} else if (acqStepBox.getText().isEmpty()) {
+						JOptionPane.showMessageDialog(frame,
+								"Please enter a time step or disable timing.");
+						acqStepBox.requestFocusInWindow();
+						return;
+					}
+
+					timeSeqs = Integer.parseInt(acqCountBox.getText());
+					timeStep = Double.parseDouble(acqStepBox.getText());
+				} else {
+					timeSeqs = 1;
+					timeStep = 0;
+				}
+
+				final AcqParams params = new AcqParams(mmc, devs, acqRows);
+				params.setTimeSeqCount(timeSeqs);
+				params.setTimeStepSeconds(timeStep);
+				params.setContinuous(continuousCheckbox.isSelected());
+				params.setAntiDriftOn(antiDriftCheckbox.isSelected());
+
+				HashMap<String, String> nameMap = new HashMap<String, String>(3);
+				nameMap.put(xyStageLabel, "XY");
+				nameMap.put(twisterLabel, "Ang");
+				nameMap.put(zStageLabel, "Z");
+
+				if(!continuousCheckbox.isSelected() && !"".equals(acqSaveDir.getText())) {
+					params.setOutputHandler(new OMETIFFHandler(
+						mmc,
+						new File(acqSaveDir.getText()),
+						xyStageLabel, twisterLabel, zStageLabel, "t",
+						acqRows, timeSeqs, timeStep
+					));
+				}
+
+				acqProgress.setEnabled(true);
+
+				params.setProgressListener(new ChangeListener() {
+					@Override
+					public void stateChanged(ChangeEvent ce) {
+						ReportingUtils.logMessage("Acq: " + (Double)ce.getSource() * 100D);
+						acqProgress.setValue((int)((Double)ce.getSource() * 100));
+					};
+				});
+
+				acqThread = new Thread() {
+					@Override
+					public void run() {
+						try {
+							ImagePlus img = ProgrammaticAcquisitor.performAcquisition(params);
+
+							if(img != null)
+								img.show();
+						} catch (Exception e) {
+							e.printStackTrace();
+							JOptionPane.showMessageDialog(frame, "Error acquiring: "
+									+ e.getMessage());
+							throw new Error("Error acquiring!", e);
+						} finally {
+							acqGoBtn.setText(BTN_START);
+							acqProgress.setValue(0);
+							acqProgress.setEnabled(false);
+						}
+					}
+				};
+			}
 
 			acqThread.start();
 			acqGoBtn.setText(BTN_STOP);
 		} else if(BTN_STOP.equals(ae.getActionCommand())) {
 			try {
 				acqThread.interrupt();
-				acqThread.join(10000);
+				acqThread.join(30000);
 			} catch (NullPointerException npe) {
 				// Don't care.
 			} catch (InterruptedException e1) {
