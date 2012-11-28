@@ -27,8 +27,12 @@ import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -727,6 +731,26 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			LayoutUtils.horizPanel(
 					Box.createHorizontalGlue(),
 					new JLabel("The current position will be used for video capture."),
+					Box.createHorizontalGlue()
+			),
+			LayoutUtils.horizPanel(
+					Box.createHorizontalGlue(),
+					new JLabel(" "),
+					Box.createHorizontalGlue()
+			),
+			LayoutUtils.horizPanel(
+					Box.createHorizontalGlue(),
+					new JLabel("You may specify a time limit in the 'Interval' box."),
+					Box.createHorizontalGlue()
+			),
+			LayoutUtils.horizPanel(
+					Box.createHorizontalGlue(),
+					new JLabel("If you do not, press 'Abort!' to stop recording."),
+					Box.createHorizontalGlue()
+			),
+			LayoutUtils.horizPanel(
+					Box.createHorizontalGlue(),
+					new JLabel("(The 'Count' box has no effect in video mode.)"),
 					Box.createHorizontalGlue()
 			),
 			Box.createVerticalGlue()
@@ -1680,18 +1704,21 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		return out;
 	}
 
-	private static void appendNext(CMMCore mmc, File saveFile, int n) throws Exception {
+	private static void appendNext(CMMCore mmc, File saveFile, double bt) throws Exception {
 		mmcorej.TaggedImage TI = mmc.popNextTaggedImage();
 
 		ImageProcessor IP = ProgrammaticAcquisitor.newImageProcessor(mmc, TI.pix);
+		
+		double t = System.nanoTime() / 1e9 - bt;
 
 		ImagePlus img = null;
 		ImageStack stck = new ImageStack(IP.getWidth(), IP.getHeight());
-		stck.addSlice("" + n, IP);
+		IP.drawString(String.format("t = %.3fs", t), 8, 20);
+		stck.addSlice("" + t, IP);
 		img = new ImagePlus("Video", stck);
 
 		img.setProperty("Info", img.getProperty("Info") + "\n" + TI.tags.toString());
-		IJ.save(img, new File(saveFile, "img" + n + ".tiff").getAbsolutePath());
+		IJ.save(img, new File(saveFile, t + ".tiff").getAbsolutePath());
 	}
 
 	@Override
@@ -1701,16 +1728,36 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				acqThread.interrupt();
 
 			if(VIDEO_RECORDER.equals(acqPosTabs.getSelectedComponent().getName())) {
-				final File saveFile = new File(acqSaveDir.getText());
-
-				if(saveFile.exists()) {
-					JOptionPane.showConfirmDialog(null, "Overwrite existing file?");
+				if("".equals(acqSaveDir.getText())) {
+					JOptionPane.showMessageDialog(null, "Please specify an output file.");
 					return;
 				}
 
+				File tmpSaveFile = new File(acqSaveDir.getText());
+
+				if(tmpSaveFile.exists() && tmpSaveFile.isDirectory())  {
+					Date now = Calendar.getInstance().getTime();
+					SimpleDateFormat format = new SimpleDateFormat("d MMM yyyy HH.mm");
+					
+					tmpSaveFile = new File(tmpSaveFile, format.format(now) + ".tiff");
+				}
+
+				if(tmpSaveFile.exists()) {
+					if(!tmpSaveFile.canWrite()) {
+						JOptionPane.showMessageDialog(null, "Can't overwrite selected file. Please choose a new output file.");
+						return;
+					}
+
+					int res = JOptionPane.showConfirmDialog(null, "Overwrite \"" + tmpSaveFile.getName() + "\"?", "Confirm Overwrite", JOptionPane.YES_NO_OPTION);
+					if(res != JOptionPane.YES_OPTION)
+						return;
+				}
+
+				final File saveFile = tmpSaveFile;
+
 				final File saveDir;
 				try {
-					saveDir = File.createTempFile("vid", "dir"); //new File(saveFile.getParent(), "tmpdir");
+					saveDir = File.createTempFile("vid", "dir");
 				} catch(Exception e) {
 					JOptionPane.showMessageDialog(null, "Couldn't create temporary directory.");
 					return;
@@ -1722,46 +1769,76 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 					return;
 				}
 
+				final double recordFor = acqTimeCB.isSelected() ? Double.parseDouble(acqStepBox.getText()) : -1;
+
 				acqThread = new Thread() {
 					@Override
 					public void run() {
 						try {
+							boolean live;
+							if(live = gui.isLiveModeOn())
+								gui.enableLiveMode(false);
+
+							double beginTime = System.nanoTime() / 1e9;
+							double endTime = recordFor > 0 ? beginTime + recordFor : -1;
+
 							mmc.clearCircularBuffer();
 							mmc.startContinuousSequenceAcquisition(0);
 
-							int n = 0;
-							while(!Thread.interrupted()) {
+							while(!Thread.interrupted() && (endTime < 0 || (System.nanoTime() / 1e9) < endTime)) {
 								if (mmc.getRemainingImageCount() == 0) {
 									Thread.yield();
 									continue;
 								};
 
-								appendNext(mmc, saveDir, n++);
+								appendNext(mmc, saveDir, beginTime);
 							}
 
 							mmc.stopSequenceAcquisition();
 
+							if(live)
+								gui.enableLiveMode(true);
+
 							ReportingUtils.logMessage("Video stopped; finishing individual file saving...");
 
-							while(mmc.getRemainingImageCount() != 0) {
-								appendNext(mmc, saveDir, n++);
-							}
+							while(mmc.getRemainingImageCount() != 0)
+								appendNext(mmc, saveDir, beginTime);
 
 							ReportingUtils.logMessage("Condensing individual files...");
 
 							ImagePlus fij = new ImagePlus();
 							VirtualStack stck = new VirtualStack((int) mmc.getImageWidth(), (int) mmc.getImageHeight(), null, saveDir.getAbsolutePath());
-							for(int i=0; i < n - 8; ++i) {
-								ReportingUtils.logMessage(" Adding file img" + i + ".tiff...");
-								stck.addSlice("img" + i + ".tiff");
+
+							File[] files = saveDir.listFiles();
+							Arrays.sort(files, new Comparator<File>() {
+								@Override
+								public int compare(File f1, File f2) {
+									String n1 = f1.getName();
+									String n2 = f2.getName();
+									
+									double d1 = Double.parseDouble(n1.substring(0, n1.length() - 5));
+									double d2 = Double.parseDouble(n2.substring(0, n2.length() - 5));
+
+									return Double.compare(d1, d2);
+								}
+							});
+
+							String infoStr = "Timepoints:\n";
+
+							for(File f : files) {
+								ReportingUtils.logMessage(" Adding file " + f.getName() + "...");
+								stck.addSlice(f.getName());
+								infoStr += f.getName() + "\n";
 							}
+
+							fij.setProperty("Info", infoStr);
 							fij.setStack(stck);
 							fij.setFileInfo(new ij.io.FileInfo());
 							IJ.save(fij, saveFile.getAbsolutePath());
 
-							for(int i=0; i < n; ++i)
-								if(!(new File(saveDir, "img" + i + ".tiff").delete()))
-									throw new Exception("Couldn't delete temporary image " + i);
+							for(File f : files)
+								if(!f.delete())
+									throw new Exception("Couldn't delete temporary image " + f.getName());
 
 							if(!saveDir.delete())
 								throw new Exception("Couldn't delete temporary directory " + saveDir.getAbsolutePath());
