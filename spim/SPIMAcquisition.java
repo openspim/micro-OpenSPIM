@@ -1901,6 +1901,19 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				nameMap.put(zStageLabel, "Z");
 
 				if(!continuousCheckbox.isSelected() && !"".equals(acqSaveDir.getText())) {
+					File output = new File(acqSaveDir.getText());
+
+					if(!output.isDirectory()) {
+						JOptionPane.showMessageDialog(null, "You must specify a directory.");
+						return;
+					}
+
+					if(output.list().length != 0) {
+						int res = JOptionPane.showConfirmDialog(null, "The destination directory is not empty. Save here anyway?", "Confirm Overwrite", JOptionPane.YES_NO_OPTION);
+						if(res == JOptionPane.NO_OPTION)
+							return;
+					}
+
 					params.setOutputHandler(new OMETIFFHandler(
 						mmc,
 						new File(acqSaveDir.getText()),
