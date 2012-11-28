@@ -1011,7 +1011,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			}
 		}
 
-		bytesperimg = mmc.getImageHeight()*mmc.getImageWidth()*mmc.getBytesPerPixel() + 2048;
+		bytesperimg = mmc.getImageHeight()*mmc.getImageWidth()*mmc.getBytesPerPixel() + 2560;
 
 		String s = " Estimates: " + count + " images; " + describeSize(bytesperimg*count);
 
