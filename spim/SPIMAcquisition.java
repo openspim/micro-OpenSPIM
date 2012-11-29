@@ -659,6 +659,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		});
 
 		JScrollPane tblScroller = new JScrollPane(acqPositionsTable = new JTable());
+		tblScroller.setPreferredSize(new Dimension(tblScroller.getSize().width, 128));
 
 		StepTableModel model = new StepTableModel();
 		model.setColumns(Arrays.asList(new String[] {"X/Y Stage", "Theta", "Z Stage"}));
