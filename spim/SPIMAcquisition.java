@@ -566,10 +566,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		JPanel acqSPIMTab = (JPanel)LayoutUtils.vertPanel(
 			Box.createVerticalGlue(),
-			importer,
 			LayoutUtils.horizPanel(
 				xy,
 				LayoutUtils.vertPanel(
+					importer,
 					t,
 					z
 				)
@@ -659,6 +659,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		});
 
 		JScrollPane tblScroller = new JScrollPane(acqPositionsTable = new JTable());
+		tblScroller.setPreferredSize(new Dimension(tblScroller.getSize().width, 128));
 
 		StepTableModel model = new StepTableModel();
 		model.setColumns(Arrays.asList(new String[] {"X/Y Stage", "Theta", "Z Stage"}));
@@ -833,7 +834,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			}
 		});
 
-		antiDriftCheckbox = new JCheckBox("Use Anti-Drift (Experimental)");
+		antiDriftCheckbox = new JCheckBox("Use Anti-Drift");
 		antiDriftCheckbox.setSelected(true);
 		antiDriftCheckbox.setEnabled(true);
 
@@ -843,6 +844,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				degreesPerStep.setText("" + (360 / value));
 			}
 		};
+		settleTime.setEnabled(false);
 
 		acqSaveDir = new JTextField(48);
 		acqSaveDir.setEnabled(true);
@@ -863,8 +865,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		addLine(right, Justification.RIGHT, "Laser power:", laserPower, "exposure:", exposure);
 		addLine(right, Justification.STRETCH, "Laser:", laserSlider);
 		addLine(right, Justification.STRETCH, "Exposure:", exposureSlider);
-		addLine(right, Justification.RIGHT, continuousCheckbox, antiDriftCheckbox, liveCheckbox, registrationCheckbox, speedControl);
-		addLine(right, Justification.RIGHT, speedControl, "Delay to let z-stage settle (ms):", settleTime);
+		addLine(right, Justification.RIGHT, speedControl, "Z settle time (ms):", settleTime, continuousCheckbox, antiDriftCheckbox, liveCheckbox, registrationCheckbox);
 		addLine(right, Justification.RIGHT, "Output directory:", acqSaveDir, pickDirBtn);
 
 		JPanel bottom = new JPanel();
@@ -926,6 +927,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		acqProgress.setEnabled(false);
 		goBtnPnl.add(acqProgress);
 
+		bottom.add(Box.createHorizontalGlue());
 		bottom.add(goBtnPnl);
 
 		acqTimeCB.setSelected(false);
