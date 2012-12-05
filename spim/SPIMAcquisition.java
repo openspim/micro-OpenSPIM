@@ -978,7 +978,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 	private static String describeSize(long size) {
 		int factor = 0;
-		while(size > 1024 && factor <= 6) {
+		while(size > 1024 && factor < units.length - 1) {
 			size /= 1024;
 			++factor;
 		};
