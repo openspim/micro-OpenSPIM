@@ -854,7 +854,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			public void actionPerformed(ActionEvent ae) {
 				JFileChooser fc = new JFileChooser(acqSaveDir.getText());
 
-				fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+				fc.setFileSelectionMode(VIDEO_RECORDER.equals(acqPosTabs.getSelectedComponent().getName()) ?
+						JFileChooser.FILES_AND_DIRECTORIES : JFileChooser.DIRECTORIES_ONLY);
 
 				if(fc.showDialog(frame, "Select") == JFileChooser.APPROVE_OPTION)
 					acqSaveDir.setText(fc.getSelectedFile().getAbsolutePath());
@@ -999,7 +1000,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		} else if(POSITION_LIST.equals(acqPosTabs.getSelectedComponent().getName())) {
 			count = buildRowsProper(((StepTableModel)acqPositionsTable.getModel()).getRows()).size();
 		} else if(VIDEO_RECORDER.equals(acqPosTabs.getSelectedComponent().getName())) {
-			estimatesText.setText("Dataset size depends on how long you record for.");
+			estimatesText.setText(" Dataset size depends on how long you record for.");
 			return;
 		} else {
 			estimatesText.setText("What tab are you on? (Please report this.)");
