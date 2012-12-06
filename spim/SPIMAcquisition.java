@@ -46,6 +46,7 @@ import java.util.prefs.Preferences;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -145,7 +146,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	private Timer timer;
 
 	private final String UNCALIBRATED = "Uncalibrated";
-	private final long MOTORS_UPDATE_PERIOD = 1000;
+	private final long MOTORS_UPDATE_PERIOD = 500;
 
 	private boolean liveControlsHooked;
 	private JTable acqPositionsTable;
@@ -780,8 +781,15 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			}
 		};
 
+		int defExposure = 100;
+		try {
+			defExposure = (int)mmc.getExposure();
+		} catch(Exception e) {
+			ReportingUtils.logError(e);
+		};
+		
 		// TODO: find out correct values
-		exposureSlider = new MotorSlider(10, 1000, 10, "exposure") {
+		exposureSlider = new MotorSlider(10, 1000, defExposure, "exposure") {
 			@Override
 			public void valueChanged(int value) {
 				try {
@@ -1114,6 +1122,13 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		acqZDevCB.setSelected(zStageLabel != null);
 		acqTDevCB.setSelected(twisterLabel != null);
 
+		acqXYDevCmbo.setModel(new DefaultComboBoxModel(
+				mmc.getLoadedDevicesOfType(DeviceType.XYStageDevice).toArray()));
+		acqZDevCmbo.setModel(new DefaultComboBoxModel(
+				mmc.getLoadedDevicesOfType(DeviceType.StageDevice).toArray()));
+		acqTDevCmbo.setModel(new DefaultComboBoxModel(
+				mmc.getLoadedDevicesOfType(DeviceType.StageDevice).toArray()));
+
 		if(xyStageLabel != null)
 			acqXYDevCmbo.setSelectedItem(xyStageLabel);
 		if(zStageLabel != null)
@@ -1169,7 +1184,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		}
 
 		if (cameraLabel != null) {
-			// TODO: get current exposure
+			int exposure = (int)mmc.getExposure();
+			exposureSlider.updateValueQuietly(exposure);
 		}
 	}
 
