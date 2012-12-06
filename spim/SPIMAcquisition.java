@@ -567,7 +567,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		JPanel acqSPIMTab = (JPanel)LayoutUtils.vertPanel(
 			Box.createVerticalGlue(),
 			LayoutUtils.horizPanel(
-				xy,
+				LayoutUtils.vertPanel(
+					Box.createVerticalGlue(),
+					xy
+				),
 				LayoutUtils.vertPanel(
 					importer,
 					t,
@@ -659,7 +662,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		});
 
 		JScrollPane tblScroller = new JScrollPane(acqPositionsTable = new JTable());
-		tblScroller.setPreferredSize(new Dimension(tblScroller.getSize().width, 128));
+		tblScroller.setPreferredSize(new Dimension(tblScroller.getSize().width, 256));
 
 		StepTableModel model = new StepTableModel();
 		model.setColumns(Arrays.asList(new String[] {"X/Y Stage", "Theta", "Z Stage"}));
