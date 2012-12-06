@@ -567,7 +567,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		JPanel acqSPIMTab = (JPanel)LayoutUtils.vertPanel(
 			Box.createVerticalGlue(),
 			LayoutUtils.horizPanel(
-				xy,
+				LayoutUtils.vertPanel(
+					Box.createVerticalGlue(),
+					xy
+				),
 				LayoutUtils.vertPanel(
 					importer,
 					t,
