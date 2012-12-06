@@ -117,7 +117,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	private SPIMCalibrator calibration;
 
 	// TODO: read these from the properties
-	protected int motorMin = 1, motorMax = 8000,
+	protected int motorMin = 0, motorMax = 8000,
 		twisterMin = -100, twisterMax = 100;
 
 	protected ScriptInterface app;
@@ -480,7 +480,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		JPanel xy_x = new JPanel();
 		xy_x.setBorder(BorderFactory.createTitledBorder("Stage X"));
 
-		acqRangeX = new RangeSlider(1D, 8000D);
+		acqRangeX = new RangeSlider((double)motorMin, (double)motorMax);
 
 		xy_x.add(acqRangeX);
 		xy_x.setMaximumSize(xy_x.getPreferredSize());
@@ -490,7 +490,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		JPanel xy_y = new JPanel();
 		xy_y.setBorder(BorderFactory.createTitledBorder("Stage Y"));
 
-		acqRangeY = new RangeSlider(1D, 8000D);
+		acqRangeY = new RangeSlider((double)motorMin, (double)motorMax);
 
 		xy_y.add(acqRangeY);
 		xy_y.setMaximumSize(xy_y.getPreferredSize());
@@ -524,7 +524,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		z.add(Box.createRigidArea(new Dimension(10, 4)));
 
-		acqRangeZ = new RangeSlider(1D, 8000D);
+		acqRangeZ = new RangeSlider((double)motorMin, (double)motorMax);
 
 		z.add(acqRangeZ);
 		z.setMaximumSize(z.getPreferredSize());
@@ -555,7 +555,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		t.add(Box.createRigidArea(new Dimension(10, 4)));
 
-		acqRangeTheta = new RangeSlider(-100D, 100D);
+		acqRangeTheta = new RangeSlider((double)twisterMin, (double)twisterMax);
 
 		t.add(acqRangeTheta);
 		t.setMaximumSize(t.getPreferredSize());
