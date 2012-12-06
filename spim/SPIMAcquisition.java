@@ -277,6 +277,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			}
 			else if (driver.equals("Picard XY Stage"))
 				xyStageLabel = label;
+			else if (driver.equals("CoherentCube"))
+				laserLabel = label;
 			// testing
 			else if (driver.equals("DStage")) {
 				if (label.equals("DStage"))
@@ -773,11 +775,33 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		right.setLayout(new BoxLayout(right, BoxLayout.PAGE_AXIS));
 		right.setBorder(BorderFactory.createTitledBorder("Acquisition"));
 
+		int minlp = 5;
+		int deflp = 500;
+		int maxlp = 2000;
+		String lbl = laserLabel;
+		if(lbl == null)
+			lbl = mmc.getShutterDevice();
+
+		if(lbl != null) {
+			try {
+				// Coherent Cube specific properties!
+				minlp = (int)(Float.parseFloat(mmc.getProperty(lbl, "Minimum Laser Power")) * 100.0f);
+				deflp = (int)(Float.parseFloat(mmc.getProperty(lbl, "PowerSetpoint")) * 100.0f);
+				maxlp = (int)(Float.parseFloat(mmc.getProperty(lbl, "Maximum Laser Power")) * 100.0f);
+			} catch (Throwable e) {
+				ReportingUtils.logError(e);
+			}
+		}
+
 		// TODO: find out correct values
-		laserSlider = new MotorSlider(0, 1000, 1000, "laser.power") {
+		laserSlider = new MotorSlider(minlp, maxlp, deflp, "laser.power") {
 			@Override
 			public void valueChanged(int value) {
-				// TODO
+				try {
+					mmc.setProperty(laserLabel, "PowerSetpoint", (float)value / 100.0f);
+				} catch (Exception e) {
+					ReportingUtils.logError(e);
+				}
 			}
 		};
 
@@ -873,7 +897,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			};
 		});
 
-		addLine(right, Justification.RIGHT, "Laser power:", laserPower, "exposure:", exposure);
+		addLine(right, Justification.RIGHT, "Laser power (e-5 W):", laserPower, "Exposure (ms):", exposure);
 		addLine(right, Justification.STRETCH, "Laser:", laserSlider);
 		addLine(right, Justification.STRETCH, "Exposure:", exposureSlider);
 		addLine(right, Justification.RIGHT, speedControl, "Z settle time (ms):", settleTime, continuousCheckbox, antiDriftCheckbox, liveCheckbox, registrationCheckbox);
@@ -1180,7 +1204,17 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		}
 
 		if (laserLabel != null) {
-			// TODO: get current laser power
+			// Make sure we have the property before trying to use it. This
+			// prevents an annoying sort-of-loop from happening.
+			if(mmc.hasProperty(laserLabel, "PowerSetpoint")) {
+				// I know I'm supposed to use the readback property for power, but
+				// this updates the control's displayed value, which should match
+				// the desired power setting...
+				double psp = Double.parseDouble(mmc.getProperty(laserLabel, "PowerSetpoint"));
+				laserSlider.updateValueQuietly((int)(psp * 100.0f));
+			} else {
+				ReportingUtils.logMessage("Laser '" + laserLabel + "' doesn't have property 'PowerSetpoint'...");
+			}
 		}
 
 		if (cameraLabel != null) {
