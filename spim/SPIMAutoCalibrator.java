@@ -14,8 +14,11 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
@@ -86,6 +89,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	private JCheckBox complexGuessZ;
 	private JSpinner intbgrThresh;
 	private JCheckBox visualFit;
+	private JCheckBox hypersphere;
 
 	public SPIMAutoCalibrator(CMMCore core, MMStudioMainFrame gui, String itwister) {
 		super("SPIM Automatic Calibration");
@@ -151,7 +155,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		pack();
 
 		tweaksFrame = new JFrame("Scanning Tweaks");
-		tweaksFrame.setLayout(new GridLayout(7, 1));
+		tweaksFrame.setLayout(new GridLayout(8, 1));
 
 		JButton importList;
 
@@ -171,7 +175,8 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 				intbgrThresh = new JSpinner(new SpinnerNumberModel(0.20, 0.0, 0.5, 0.01))
 			),
 			importList = new JButton("Import..."),
-			visualFit = new JCheckBox("Fitting Overlays")
+			visualFit = new JCheckBox("Fitting Overlays"),
+			hypersphere = new JCheckBox("Fit Hypersphere")
 		);
 
 		importList.addActionListener(this);
@@ -339,23 +344,36 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 	private Line fitAxis() {
 		Object[] vectors = ((DefaultListModel)pointsTable.getModel()).toArray();
-		LinkedList<double[]> doublePoints = new LinkedList<double[]>();
 
-		for(Object vec : vectors) {
-			Vector3D v = (Vector3D)vec;
-			doublePoints.add(new double[] {v.getX(), v.getY(), v.getZ()});
+		if(!hypersphere.isSelected()) {
+			Vector3D[] realVecs = new Vector3D[vectors.length];
+
+			for(int i = 0; i < vectors.length; ++i) {
+				realVecs[i] = (Vector3D)vectors[i];
+			}
+
+			FitSphere circle = new FitSphere(realVecs);
+
+			ReportingUtils.logMessage("Circle fit: " + circle.getCenter() + ", radius " + circle.getRadius() + ", error " + circle.getError());
+
+			return new Line(circle.getCenter(), circle.getCenter().add(Vector3D.PLUS_J));
+		} else {
+			Collection<double[]> doublePoints = new LinkedList<double[]>();
+
+			for(int i = 0; i < vectors.length; ++i) {
+				Vector3D vec = (Vector3D)vectors[i];
+				doublePoints.add(new double[] {vec.getX(), vec.getY(), vec.getZ()});
+			}
+
+			FitHypersphere circle = new FitHypersphere(doublePoints);
+
+			ReportingUtils.logMessage("Circle fit: " + Arrays.toString(circle.getCenter()) + ", radius " + circle.getRadius());
+
+			double[] center = circle.getCenter();
+			Vector3D axisPoint = new Vector3D(center[0], center[1], center[2]);
+
+			return new Line(axisPoint, axisPoint.add(Vector3D.PLUS_J));
 		}
-
-throw new RuntimeException("not yet");
-/*
-		FitHypersphere circle = new FitHypersphere(doublePoints);
-
-		double[] center = circle.getCenter();
-
-		Vector3D axisPoint = new Vector3D(center[0], center[1], center[2]);
-
-		return new Line(axisPoint, axisPoint.add(Vector3D.PLUS_J));
-*/
 	};
 
 	private double guessZ() throws Exception {
