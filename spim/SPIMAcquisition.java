@@ -778,14 +778,21 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		int minlp = 5;
 		int deflp = 500;
 		int maxlp = 2000;
-		try {
-			minlp = (int)(Float.parseFloat(mmc.getProperty(laserLabel, "Minimum Laser Power")) * 100.0f);
-			deflp = (int)(Float.parseFloat(mmc.getProperty(laserLabel, "PowerSetpoint")) * 100.0f);
-			maxlp = (int)(Float.parseFloat(mmc.getProperty(laserLabel, "Maximum Laser Power")) * 100.0f);
-		} catch (Throwable e) {
-			ReportingUtils.logError(e);
+		String lbl = laserLabel;
+		if(lbl == null)
+			lbl = mmc.getShutterDevice();
+
+		if(lbl != null) {
+			try {
+				// Coherent Cube specific properties!
+				minlp = (int)(Float.parseFloat(mmc.getProperty(lbl, "Minimum Laser Power")) * 100.0f);
+				deflp = (int)(Float.parseFloat(mmc.getProperty(lbl, "PowerSetpoint")) * 100.0f);
+				maxlp = (int)(Float.parseFloat(mmc.getProperty(lbl, "Maximum Laser Power")) * 100.0f);
+			} catch (Throwable e) {
+				ReportingUtils.logError(e);
+			}
 		}
-		
+
 		// TODO: find out correct values
 		laserSlider = new MotorSlider(minlp, maxlp, deflp, "laser.power") {
 			@Override
@@ -1197,11 +1204,17 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		}
 
 		if (laserLabel != null) {
-			// I know I'm supposed to use the readback property for power, but
-			// this updates the control's displayed value, which should match
-			// the desired power setting...
-			double psp = Double.parseDouble(mmc.getProperty(laserLabel, "PowerSetpoint"));
-			laserSlider.updateValueQuietly((int)(psp * 100.0f));
+			// Make sure we have the property before trying to use it. This
+			// prevents an annoying sort-of-loop from happening.
+			if(mmc.hasProperty(laserLabel, "PowerSetpoint")) {
+				// I know I'm supposed to use the readback property for power, but
+				// this updates the control's displayed value, which should match
+				// the desired power setting...
+				double psp = Double.parseDouble(mmc.getProperty(laserLabel, "PowerSetpoint"));
+				laserSlider.updateValueQuietly((int)(psp * 100.0f));
+			} else {
+				ReportingUtils.logMessage("Laser '" + laserLabel + "' doesn't have property 'PowerSetpoint'...");
+			}
 		}
 
 		if (cameraLabel != null) {
