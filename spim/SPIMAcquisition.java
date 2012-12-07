@@ -897,7 +897,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			};
 		});
 
-		addLine(right, Justification.RIGHT, "Laser power (e-5 W):", laserPower, "Exposure (ms):", exposure);
+		addLine(right, Justification.RIGHT, "Laser power (0.01 mW):", laserPower, "Exposure (ms):", exposure);
 		addLine(right, Justification.STRETCH, "Laser:", laserSlider);
 		addLine(right, Justification.STRETCH, "Exposure:", exposureSlider);
 		addLine(right, Justification.RIGHT, speedControl, "Z settle time (ms):", settleTime, continuousCheckbox, antiDriftCheckbox, liveCheckbox, registrationCheckbox);
