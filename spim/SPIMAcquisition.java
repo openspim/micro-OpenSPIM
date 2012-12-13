@@ -1206,14 +1206,12 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		if (laserLabel != null) {
 			// Make sure we have the property before trying to use it. This
 			// prevents an annoying sort-of-loop from happening.
-			if(mmc.hasProperty(laserLabel, "PowerSetpoint")) {
+			if(mmc.hasProperty(laserLabel, "PowerSetpoint") && acqThread == null) {
 				// I know I'm supposed to use the readback property for power, but
 				// this updates the control's displayed value, which should match
 				// the desired power setting...
 				double psp = Double.parseDouble(mmc.getProperty(laserLabel, "PowerSetpoint"));
 				laserSlider.updateValueQuietly((int)(psp * 100.0f));
-			} else {
-				ReportingUtils.logMessage("Laser '" + laserLabel + "' doesn't have property 'PowerSetpoint'...");
 			}
 		}
 
