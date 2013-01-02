@@ -2,7 +2,6 @@ package spim;
 
 import java.awt.Component;
 import javax.swing.BorderFactory;
-import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
