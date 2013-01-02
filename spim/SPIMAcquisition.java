@@ -77,12 +77,12 @@ import org.micromanager.api.MMPlugin;
 import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.ReportingUtils;
 
-import progacq.AcqParams;
-import progacq.AcqRow;
-import progacq.OMETIFFHandler;
-import progacq.ProgrammaticAcquisitor;
-import progacq.RangeSlider;
-import progacq.StepTableModel;
+import spim.progacq.AcqParams;
+import spim.progacq.AcqRow;
+import spim.progacq.OMETIFFHandler;
+import spim.progacq.ProgrammaticAcquisitor;
+import spim.progacq.RangeSlider;
+import spim.progacq.StepTableModel;
 
 public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListener, ItemListener, ActionListener {
 	private static final String SPIM_RANGES = "SPIM Ranges";
@@ -1662,30 +1662,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				 ((ranges[3][2] - ranges[3][0])/ranges[3][1] + 1));
 	}
 
-	private int[] getAcqRowDepths(AcqRow[] rows) {
-		List<Integer> depths = new LinkedList<Integer>();
-		
-		for(AcqRow r : rows) {
-			switch(r.getZMode()) {
-			case SINGLE_POSITION:
-				depths.add(new Integer(1));
-				break;
-			case STEPPED_RANGE:
-				depths.add(new Integer((int)((r.getEndPosition() - r.getStartPosition())/r.getStepSize()))+1);
-				break;
-			case CONTINUOUS_SWEEP:
-				depths.add(new Integer(100)); // Can't actually calculate this...
-				break;
-			}
-		}
-
-		int[] result = new int[depths.size()];
-		for(int i=0; i < depths.size(); ++i)
-			result[i] = depths.get(i);
-
-		return result;
-	}
-	
 	private AcqRow[] getBuiltRows() throws Exception {
 		List<AcqRow> rows = new ArrayList<AcqRow>();
 
@@ -1706,9 +1682,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 						String z;
 
-						if(continuousCheckbox.isSelected())
-							z = ranges[3][0] + "-" + ranges[3][2] + "@" + ranges[3][1];
-						else
+//						if(continuousCheckbox.isSelected())
+//							z = ranges[3][0] + "-" + ranges[3][2] + "@10";
+//						else
 							z = ranges[3][0] + ":" + ranges[3][1] + ":" + ranges[3][2];
 
 						rows.add(new AcqRow(new String[] {basev.getX() + ", " + basev.getY(), "" + t}, zStageLabel, z));
