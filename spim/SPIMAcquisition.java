@@ -420,6 +420,14 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			};
 		});
 
+		JButton pixCalibBtn = new JButton("Cal. Pix. Size");
+		pixCalibBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent ae) {
+				(new PixelSizeCalibrator(mmc, gui)).setVisible(true);
+			}
+		});
+
 		addLine(left, Justification.LEFT, "x:", xPosition, "y:", yPosition, "z:", zPosition, "angle:", rotation);
 		addLine(left, Justification.STRETCH, "x:", xSlider);
 		addLine(left, Justification.RIGHT, limitedXRange);
@@ -429,7 +437,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		addLine(left, Justification.RIGHT, limitedZRange);
 		addLine(left, Justification.STRETCH, "rotation:", rotationSlider);
 		addLine(left, Justification.RIGHT, "steps/rotation:", stepsPerRotation, "degrees/step:", degreesPerStep);
-		addLine(left, Justification.RIGHT, calibrateButton);
+		addLine(left, Justification.RIGHT, pixCalibBtn, calibrateButton);
 
 		JPanel stageControls = new JPanel();
 		stageControls.setName("Stage Controls");
