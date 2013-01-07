@@ -6,7 +6,6 @@
 		<mkdir dir="build" />
 		<javac srcdir="." destdir="./build" optimize="on" source="1.5" target="1.5" debug="on">
 			<classpath>
-				<pathelement path="../ProgAcq/ProgAcq.jar"/>
 				<pathelement path="../Gaussian/Gaussian.jar"/>
 				<fileset dir="../../bin_Win32/jars/" >
 					<include name="*.jar"/>

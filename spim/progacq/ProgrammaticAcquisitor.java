@@ -7,7 +7,6 @@ import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
 import ij.process.ShortProcessor;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,8 +19,11 @@ import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 import mmcorej.TaggedImage;
 
+import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 import org.micromanager.MMStudioMainFrame;
 import org.micromanager.utils.ReportingUtils;
+
+import spim.AntiDrift;
 
 public class ProgrammaticAcquisitor {
 	public static final String STACK_DIVIDER = "-- STACK DIVIDER --";
@@ -170,9 +172,9 @@ public class ProgrammaticAcquisitor {
 		if(params.isContinuous() && params.isAntiDriftOn())
 			throw new IllegalArgumentException("No continuous acquisition w/ anti-drift!");
 
-		final Map<AcqRow, double[]> driftCompMap;
+		final Map<AcqRow, AntiDrift> driftCompMap;
 		if(params.isAntiDriftOn())
-			driftCompMap = new HashMap<AcqRow, double[]>(params.getRows().length);
+			driftCompMap = new HashMap<AcqRow, AntiDrift>(params.getRows().length);
 		else
 			driftCompMap = null;
 
@@ -219,13 +221,14 @@ public class ProgrammaticAcquisitor {
 			for(AcqRow row : params.getRows()) {
 				runDevicesAtRow(core, devices, row.getPrimaryPositions(), step);
 
-				double[] xyzi = null;
+				AntiDrift ad = null;
 				if(row.getZMode() != AcqRow.ZMode.CONTINUOUS_SWEEP && params.isAntiDriftOn()) {
-					double[] offs;
-					if((offs = driftCompMap.get(row)) != null)
-						compensateForDrift(core, row, offs);
+					if((ad = driftCompMap.get(row)) != null)
+						compensateForDrift(core, row, ad);
 					else
-						xyzi = new double[] {0, 0, 0, 0, 0, 0};
+						ad = new AntiDrift();
+
+					ad.startNewStack();
 				};
 
 				handler.beginStack(0);
@@ -237,8 +240,8 @@ public class ProgrammaticAcquisitor {
 					if(!params.isContinuous()) {
 						core.snapImage();
 						handleSlice(core, metaDevs, acqBegan, core.getTaggedImage(), handler);
-						if(xyzi != null)
-							xyzi = tallyAntiDriftSlice(core, row, xyzi, core.getTaggedImage());
+						if(ad != null)
+							tallyAntiDriftSlice(core, row, ad, core.getTaggedImage());
 					};
 					break;
 				case STEPPED_RANGE: {
@@ -251,8 +254,8 @@ public class ProgrammaticAcquisitor {
 						if(!params.isContinuous()) {
 							core.snapImage();
 							handleSlice(core, metaDevs, acqBegan, core.getTaggedImage(), handler);
-							if(xyzi != null)
-								xyzi = tallyAntiDriftSlice(core, row, xyzi, core.getTaggedImage());
+							if(ad != null)
+								tallyAntiDriftSlice(core, row, ad, core.getTaggedImage());
 						}
 
 						double stackProg = Math.max(Math.min((zStart - start)/(end - start),1),0);
@@ -283,17 +286,10 @@ public class ProgrammaticAcquisitor {
 
 				handler.finalizeStack(0);
 
-				if(xyzi != null && xyzi[3] != 1) {
-					xyzi = finalizeAntiDriftData(core, row, xyzi);
+				if(ad != null) {
+					ad.finishStack();
 
-					ReportingUtils.logMessage("--- !!! --- !!! --- Determined CINT1: " + Arrays.toString(xyzi));
-
-					xyzi[0] = core.getXPosition(core.getXYStageDevice()) - xyzi[0];
-					xyzi[1] = core.getYPosition(core.getXYStageDevice()) - xyzi[1];
-					xyzi[2] = row.getStartPosition() - xyzi[2]; 
-
-					driftCompMap.put(row, xyzi);
-
+					driftCompMap.put(row, ad);
 				}
 
 				if(Thread.interrupted())
@@ -328,7 +324,7 @@ public class ProgrammaticAcquisitor {
 					core.sleep(wait * 1e3);
 				else
 					core.logMessage("Behind schedule! (next seq in "
-							+ Double.toString(wait) + "ms)");
+							+ Double.toString(wait) + "s)");
 			}
 		}
 
@@ -340,48 +336,26 @@ public class ProgrammaticAcquisitor {
 		return handler.getImagePlus();
 	}
 
-	private static void compensateForDrift(CMMCore core, AcqRow row, double[] offset) throws Exception {
-		if(offset[3] != 1)
-			throw new Error("Attempt to anti-drift with unfinished offset.");
+	private static void compensateForDrift(CMMCore core, AcqRow row, AntiDrift ad) throws Exception {
+		Vector3D offs = ad.getAntiDriftOffset();
+		offs = new Vector3D(offs.getX()*core.getPixelSizeUm(), offs.getY()*core.getPixelSizeUm(), offs.getZ());
 
-		// Re-determine the center of intensity.
-		double[] cint = new double[] {0, 0, 0, 0, 0, 0};
+		Vector3D base = new Vector3D(core.getXPosition(core.getXYStageDevice()),
+			core.getYPosition(core.getXYStageDevice()),
+			row.getStartPosition());
 
-		// isAntiDriftOn() => !isContinuous(), so we can use snapImage...
-		switch(row.getZMode()) {
-		case SINGLE_POSITION: {
-			core.waitForImageSynchro();
+		ij.IJ.log("Determined offs: " + offs.toString());
 
-			core.snapImage();
-
-			cint = tallyAntiDriftSlice(core, row, cint, core.getTaggedImage());
-			};
-			break;
-		case STEPPED_RANGE: {
-			for(double zStart = row.getStartPosition(); zStart <= row.getEndPosition(); zStart += row.getStepSize()) {
-				core.setPosition(row.getDevice(), zStart);
-				core.waitForImageSynchro();
-				core.snapImage();
-
-				cint = tallyAntiDriftSlice(core, row, cint, core.getTaggedImage());
-			};
-			break;
-		}
-		default:
-			throw new Error("Bad mode during anti-drift...");
-		};
-
-		cint = finalizeAntiDriftData(core, row, cint);
-
-		ReportingUtils.logMessage("--- !!! --- !!! --- Determined CINT2: " + Arrays.toString(cint));
+		Vector3D point9 = base.add(offs.scalarMultiply(1.5));
+		Vector3D dest = base.add(offs);
 
 		// Note that all the following is very Picard-specific. Other stage
 		// motors will doubtless have different property names.
 
 		// Move nearly there so moving back at speed 1 doesn't take too long.
-		core.setXYPosition(core.getXYStageDevice(), cint[0] + offset[0]*0.9, cint[1] + offset[1]*0.9);
-		core.setPosition(row.getDevice(), cint[2] + offset[2]*0.9);
-		core.waitForDevice(row.getDevice());
+		core.setXYPosition(core.getXYStageDevice(), point9.getX(), point9.getY());
+		core.setPosition(row.getDevice(), point9.getZ());
+		core.waitForSystem();
 
 		String oldVelZ = core.getProperty(row.getDevice(), "Velocity");
 		String oldVelX = core.getProperty(core.getXYStageDevice(), "X-Velocity");
@@ -390,112 +364,19 @@ public class ProgrammaticAcquisitor {
 		core.setProperty(core.getXYStageDevice(), "X-Velocity", 1);
 		core.setProperty(core.getXYStageDevice(), "Y-Velocity", 1);
 
-		core.setXYPosition(core.getXYStageDevice(), cint[0] + offset[0], cint[1] + offset[1]);
-		core.setPosition(row.getDevice(), cint[2] + offset[2]);
-		core.waitForDevice(row.getDevice());
+		core.setXYPosition(core.getXYStageDevice(), dest.getX(), dest.getY());
+		core.setPosition(row.getDevice(), dest.getZ());
+		core.waitForSystem();
 
 		core.setProperty(row.getDevice(), "Velocity", oldVelZ);
 		core.setProperty(core.getXYStageDevice(), "X-Velocity", oldVelX);
 		core.setProperty(core.getXYStageDevice(), "Y-Velocity", oldVelY);
 	}
 
-	private static double[] tallyAntiDriftSlice(CMMCore core, AcqRow row, double[] offs, TaggedImage img) throws Exception {
-		double[] pix = new double[(int) (core.getImageWidth()*core.getImageHeight())];
+	private static void tallyAntiDriftSlice(CMMCore core, AcqRow row, AntiDrift ad, TaggedImage img) throws Exception {
+		ImageProcessor ip = newImageProcessor(core, img.pix);
 
-		if(img.pix instanceof byte[]) {
-			byte[] bytepix = (byte[])img.pix;
-			for(int xy = 0; xy < core.getImageWidth()*core.getImageHeight(); ++xy)
-				pix[xy] = bytepix[xy];
-		} else if(img.pix instanceof short[]) {
-			short[] shortpix = (short[])img.pix;
-			for(int xy = 0; xy < core.getImageWidth()*core.getImageHeight(); ++xy)
-				pix[xy] = shortpix[xy];
-		} else {
-			throw new Error("Unhandled image type! Implement more!");
-		}
-
-		if(offs == null)
-			offs = new double[] {0, 0, 0, 0, Double.MAX_VALUE, Double.MIN_VALUE};
-
-		for(int x=0; x < core.getImageWidth(); ++x) {
-			double first = pix[x];
-			double last = pix[(int) ((core.getImageHeight()-1)*core.getImageWidth() + x)];
-
-			if(first < offs[4])
-				offs[4] = first;
-			if(last < offs[4])
-				offs[4] = last;
-			if(first > offs[5])
-				offs[5] = first;
-			if(last > offs[5])
-				offs[5] = last;
-		}
-		for(int y=1; y < core.getImageHeight()-1; ++y) {
-			double first = pix[(int) (core.getImageWidth()*y)];
-			double last = pix[(int) ((core.getImageWidth()+1)*y-1)];
-			if(first < offs[4])
-				offs[4] = first;
-			if(last < offs[4])
-				offs[4] = last;
-			if(first > offs[5])
-				offs[5] = first;
-			if(last > offs[5])
-				offs[5] = last;
-		}
-
-		double xt = 0, yt = 0, it = 0;
-		for(int y=0; y < core.getImageHeight(); ++y) {
-			for(int x=0; x < core.getImageWidth(); ++x) {
-				double i = pix[(int) (y*core.getImageWidth()+x)];
-				xt += x*i;
-				yt += y*i;
-				it += i;
-			}
-		}
-
-		ReportingUtils.logMessage("XT, YT, IT: " + (xt/it) + ", " + (yt/it) + ", " + it);
-
-		offs[0] += xt;
-		offs[1] += yt;
-		offs[2] += (core.getPosition(row.getDevice()) - row.getStartPosition()) * it;
-		offs[3] += it;
-
-		return offs;
-	}
-
-	private static double[] finalizeAntiDriftData(CMMCore core, AcqRow row, double[] data) throws Exception {
-		double divisor = 0;
-
-		if(row.getZMode().equals(AcqRow.ZMode.SINGLE_POSITION))
-			divisor = 1;
-		else if(row.getZMode().equals(AcqRow.ZMode.STEPPED_RANGE))
-			divisor = (row.getEndPosition() - row.getStartPosition())/row.getStepSize();
-		else
-			throw new Error("Bwuh?");
-
-		ReportingUtils.logMessage("Pre-finalized data: " + Arrays.toString(data));
-
-		// Finish averaging the coordinates and put them in motor space.
-		double background = (data[5] - data[4])*0.6 + data[4];
-		double w = core.getImageWidth();
-		double h = core.getImageHeight();
-		data[0] -= background*divisor*h*(w*(w+1))/2;
-		data[1] -= background*divisor*w*(h*(h+1))/2;
-		data[2] -= background*w*h*(divisor*(divisor+1))/2;
-
-		data[0] /= data[3] - background*w*h*divisor;
-		data[1] /= data[3] - background*w*h*divisor;
-		data[2] /= data[3] - background*w*h*divisor;
-		data[3] = 1;
-		data[4] = data[5] = 0;
-
-		data[0] = (data[0] - core.getImageWidth()/2)*core.getPixelSizeUm() + core.getXPosition(core.getXYStageDevice());
-		data[1] = (data[1] - core.getImageHeight()/2)*core.getPixelSizeUm() + core.getYPosition(core.getXYStageDevice());
-		data[2] = row.getStartPosition() + data[2];
-
-		ReportingUtils.logMessage("Finalized CINT: " + Arrays.toString(data));
-
-		return data;
+		ad.tallySlice(new Vector3D(0,0,core.getPosition(row.getDevice())-row.getStartPosition()), ip);
 	}
 
 	private static void handleSlice(CMMCore core, String[] devices, double start,
