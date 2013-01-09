@@ -1,6 +1,5 @@
 package spim;
 
-import ij.IJ;
 import ij.process.ImageProcessor;
 
 import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
@@ -30,8 +29,6 @@ public class AntiDrift {
 			bg*avgc.getX()*avgc.getY()*avgc.getZ()*(avgc.getZ()+1)/2
 		);
 
-		IJ.log("i=" + i + " (" + runningIntensity + ", " + bg + "), sum=" + runningMean.toString());
-
 		return runningMean.subtract(backgroundContributions).scalarMultiply(1/i);
 	}
 
@@ -58,11 +55,8 @@ public class AntiDrift {
 
 		for(int y=0; y < ip.getHeight(); ++y) {
 			for(int x=0; x < ip.getWidth(); ++x) {
-				double pv = ip.getPixelValue(x,y) - (ip.getMin() + (ip.getMax() - ip.getMin())*0.3);
-				if(pv < 0) {
-					//IJ.log(x + ", " + y + ": " + pv);
-					pv = 0;
-				};
+				double pv = ip.getPixelValue(x,y) - (ip.getMin() + (ip.getMax() - ip.getMin())*0.2);
+				pv = Math.max(0, Math.min(pv, (ip.getMax() - ip.getMin()) * 0.79));
 
 				runningMean = runningMean.add(new Vector3D((x - cx)*pv, (y - cy)*pv, 0));
 

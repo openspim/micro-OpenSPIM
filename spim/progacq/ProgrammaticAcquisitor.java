@@ -324,7 +324,7 @@ public class ProgrammaticAcquisitor {
 					core.sleep(wait * 1e3);
 				else
 					core.logMessage("Behind schedule! (next seq in "
-							+ Double.toString(wait) + "ms)");
+							+ Double.toString(wait) + "s)");
 			}
 		}
 
@@ -346,7 +346,7 @@ public class ProgrammaticAcquisitor {
 
 		ij.IJ.log("Determined offs: " + offs.toString());
 
-		Vector3D point9 = base.add(offs.scalarMultiply(0.9));
+		Vector3D point9 = base.add(offs.scalarMultiply(1.5));
 		Vector3D dest = base.add(offs);
 
 		// Note that all the following is very Picard-specific. Other stage
@@ -355,7 +355,7 @@ public class ProgrammaticAcquisitor {
 		// Move nearly there so moving back at speed 1 doesn't take too long.
 		core.setXYPosition(core.getXYStageDevice(), point9.getX(), point9.getY());
 		core.setPosition(row.getDevice(), point9.getZ());
-		core.waitForDevice(row.getDevice());
+		core.waitForSystem();
 
 		String oldVelZ = core.getProperty(row.getDevice(), "Velocity");
 		String oldVelX = core.getProperty(core.getXYStageDevice(), "X-Velocity");
@@ -366,7 +366,7 @@ public class ProgrammaticAcquisitor {
 
 		core.setXYPosition(core.getXYStageDevice(), dest.getX(), dest.getY());
 		core.setPosition(row.getDevice(), dest.getZ());
-		core.waitForDevice(row.getDevice());
+		core.waitForSystem();
 
 		core.setProperty(row.getDevice(), "Velocity", oldVelZ);
 		core.setProperty(core.getXYStageDevice(), "X-Velocity", oldVelX);
