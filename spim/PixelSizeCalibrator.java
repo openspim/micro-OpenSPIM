@@ -3,9 +3,12 @@ package spim;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.Line;
+import ij.gui.Overlay;
+import ij.gui.PointRoi;
 import ij.gui.Roi;
 import ij.process.ImageProcessor;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -111,6 +114,31 @@ public class PixelSizeCalibrator extends JFrame implements MouseListener,
 			applyBtn
 		));
 
+		JButton dbgBtn = new JButton("Debug");
+		dbgBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent ae) {
+				if(workingImage != null) {
+					if(workingImage.getCanvas() != null)
+						workingImage.getCanvas().removeMouseListener(PixelSizeCalibrator.this);
+
+					workingImage.changes = false;
+					workingImage.close();
+				}
+
+				workingImage = IJ.getImage();
+
+				if(workingImage.getCanvas() != null)
+					workingImage.getCanvas().addMouseListener(PixelSizeCalibrator.this);
+			}
+		});
+
+		add(LayoutUtils.horizPanel(
+			Box.createHorizontalGlue(),
+			dbgBtn,
+			Box.createHorizontalGlue()
+		));
+
 		radioGroup = new ButtonGroup();
 		radioGroup.add(rulerModeRadBtn);
 		radioGroup.add(gridModeRadBtn);
@@ -190,6 +218,19 @@ public class PixelSizeCalibrator extends JFrame implements MouseListener,
 		GridLineFinder l1 = new GridLineFinder(r1, roiangle);
 		GridLineFinder l2 = new GridLineFinder(r2, roiangle);
 
+		new ImagePlus("R1", r1).show();
+		new ImagePlus("R2", r2).show();
+
+		IJ.log("Theta1: " + l1.getAngle() + ", theta2: " + l2.getAngle());
+		IJ.log("X1: " + l1.getX() + ", Y1: " + l1.getY());
+		IJ.log("X2: " + l2.getX() + ", Y2: " + l2.getY());
+
+		if(workingImage.getOverlay() != null)
+			workingImage.getOverlay().clear();
+
+		drawGLF(workingImage, new Rectangle(r1p, rd), l1);
+		drawGLF(workingImage, new Rectangle(r2p, rd), l2);
+
 		double avg = Math.IEEEremainder(l1.getAngle() + l2.getAngle(), 180) / 2;
 
 		double dx = (r2p.x + l2.getX()) - (r1p.x + l1.getX());
@@ -200,6 +241,9 @@ public class PixelSizeCalibrator extends JFrame implements MouseListener,
 		if(FORTYFIVE_DEG.equals(gridRotCmbo.getSelectedItem()))
 			latdist *= Math.sqrt(2);
 
+		IJ.log("Avg. theta: " + avg);
+		IJ.log("Parallel distance: " + latdist);
+
 		try {
 			umPerPix = Double.parseDouble(actualLengthBox.getText()) / latdist;
 
@@ -208,6 +252,31 @@ public class PixelSizeCalibrator extends JFrame implements MouseListener,
 			umPerPixLbl.setText("um/pix: --");
 			IJ.showMessage("Length must be a validly-formatted decimal number.");
 		}
+	}
+
+	private void drawGLF(ImagePlus on, Rectangle rect, GridLineFinder glf) {
+		Line ol = new Line(
+			rect.x + glf.getX(),
+			rect.y + glf.getY(),
+			rect.x + glf.getX() - Math.sin(glf.getAngle())*glf.getWidth(),
+			rect.y + glf.getY() - Math.cos(glf.getAngle())*glf.getWidth());
+		ol.setStrokeWidth(glf.getWidth() / 2);
+		ol.setStrokeColor(Color.GREEN);
+
+		PointRoi p = new PointRoi(rect.x + glf.getX(), rect.y + glf.getY());
+		p.setStrokeWidth(glf.getWidth());
+		p.setFillColor(Color.CYAN);
+
+		Roi rr = new Roi(rect);
+		rr.setStrokeWidth(1);
+		rr.setStrokeColor(Color.RED);
+
+		if(on.getOverlay() == null)
+			on.setOverlay(new Overlay());
+
+		on.getOverlay().addElement(ol);
+		on.getOverlay().addElement(p);
+		on.getOverlay().addElement(rr);
 	}
 
 	private void fetchFreshImage() {
@@ -255,6 +324,8 @@ public class PixelSizeCalibrator extends JFrame implements MouseListener,
 		private double[] bestFit;
 
 		public GridLineFinder(final ImageProcessor region, final double theta) {
+			region.smooth(); region.smooth(); region.smooth(); region.smooth();
+
 			final double r = Math.min(region.getWidth(), region.getHeight())*0.9;
 			final double cx = region.getWidth() / 2D;
 			final double cy = region.getHeight() / 2D;
@@ -309,6 +380,10 @@ public class PixelSizeCalibrator extends JFrame implements MouseListener,
 
 		public double getAngle() {
 			return Math.atan2(-bestFit[CY], bestFit[CX]);
+		}
+
+		public double getWidth() {
+			return bestFit[WIDTH];
 		}
 
 		private static double error(double[] model, ImageProcessor data, double x, double y) {
