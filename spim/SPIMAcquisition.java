@@ -19,6 +19,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
@@ -151,10 +152,20 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	private boolean liveControlsHooked;
 	private JTable acqPositionsTable;
 	private JCheckBox antiDriftCheckbox;
+	private JCheckBox laseStackCheckbox;
 
 	private JProgressBar acqProgress;
 	private JTabbedPane acqPosTabs;
 	private JLabel estimatesText;
+	protected JFrame adPane;
+	protected JCheckBox adAutoThresh;
+	protected JTextField adThreshMin;
+	protected JTextField adThreshMax;
+	protected JTextField adOldWeight;
+	protected JTextField adResetMagn;
+	protected JCheckBox adAbsolute;
+	protected JCheckBox adVisualize;
+	private JButton starBtn;
 
 	// MMPlugin stuff
 
@@ -680,6 +691,22 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		acqPositionsTable.setFillsViewportHeight(true);
 		acqPositionsTable.setModel(model);
+		acqPositionsTable.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyPressed(KeyEvent ke) {
+				if(ke.isControlDown() && ke.getKeyCode() == KeyEvent.VK_V) {
+					try {
+						String data = (String) java.awt.Toolkit.getDefaultToolkit().getSystemClipboard().getContents(null).getTransferData(DataFlavor.stringFlavor);
+
+						String[] lines = data.split("\n");
+						for(String line : lines)
+							((StepTableModel)acqPositionsTable.getModel()).insertRow(line.split("\t"));
+					} catch(Exception e) {
+						IJ.handleException(e);
+					}
+				}
+			}
+		});
 		acqPositionsTable.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent me) {
@@ -838,7 +865,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		liveCheckbox = new JCheckBox("Update Live View");
 		updateLiveImage = gui.isLiveModeOn();
 		liveCheckbox.setSelected(updateLiveImage);
-		liveCheckbox.setEnabled(false);
 		liveCheckbox.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent e) {
@@ -878,8 +904,40 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		});
 
 		antiDriftCheckbox = new JCheckBox("Use Anti-Drift");
-		antiDriftCheckbox.setSelected(true);
+		antiDriftCheckbox.setSelected(false);
 		antiDriftCheckbox.setEnabled(true);
+		antiDriftCheckbox.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent ie) {
+				if(antiDriftCheckbox.isSelected()) {
+					if(SPIMAcquisition.this.adPane == null) {
+						JFrame fr = new JFrame("AD Settings");
+						fr.setLayout(new BoxLayout(fr.getContentPane(), BoxLayout.PAGE_AXIS));
+						fr.add(SPIMAcquisition.this.adAbsolute = new JCheckBox("Absolute"));
+						fr.add(LayoutUtils.titled("Thresholding", (JComponent) LayoutUtils.vertPanel(
+							SPIMAcquisition.this.adAutoThresh = new JCheckBox("Auto"),
+							LayoutUtils.labelMe(SPIMAcquisition.this.adThreshMin = new JTextField("350"), "Min:"),
+							LayoutUtils.labelMe(SPIMAcquisition.this.adThreshMax = new JTextField("4096"), "Max:")
+						)));
+						fr.add(LayoutUtils.labelMe(SPIMAcquisition.this.adOldWeight = new JTextField("0.0"), "Old Weight (0..2):"));
+						fr.add(LayoutUtils.labelMe(SPIMAcquisition.this.adResetMagn = new JTextField("-1"), "Reset Magn.:"));
+						fr.add(SPIMAcquisition.this.adVisualize = new JCheckBox("Visualize"));
+						fr.pack();
+						SPIMAcquisition.this.adPane = fr;
+
+						adAutoThresh.addItemListener(new ItemListener() {
+							@Override
+							public void itemStateChanged(ItemEvent ie) {
+								adThreshMin.setText("0.1");
+								adThreshMax.setText("0.4");
+							}
+						});
+					}
+					
+					SPIMAcquisition.this.adPane.setVisible(true);
+				}
+			}
+		});
 
 		settleTime = new IntegerField(0, "settle.delay") {
 			@Override
@@ -887,7 +945,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				degreesPerStep.setText("" + (360 / value));
 			}
 		};
-		settleTime.setEnabled(false);
+
+		laseStackCheckbox = new JCheckBox("Lase Full Stack");
+		laseStackCheckbox.setSelected(false);
+		laseStackCheckbox.setEnabled(true);
 
 		acqSaveDir = new JTextField(48);
 		acqSaveDir.setEnabled(true);
@@ -908,7 +969,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		addLine(right, Justification.RIGHT, "Laser power (0.01 mW):", laserPower, "Exposure (ms):", exposure);
 		addLine(right, Justification.STRETCH, "Laser:", laserSlider);
 		addLine(right, Justification.STRETCH, "Exposure:", exposureSlider);
-		addLine(right, Justification.RIGHT, speedControl, "Z settle time (ms):", settleTime, continuousCheckbox, antiDriftCheckbox, liveCheckbox, registrationCheckbox);
+		addLine(right, Justification.RIGHT, speedControl, "Z settle time (ms):", settleTime, continuousCheckbox, antiDriftCheckbox, liveCheckbox, laseStackCheckbox /*registrationCheckbox*/);
 		addLine(right, Justification.RIGHT, "Output directory:", acqSaveDir, pickDirBtn);
 
 		JPanel bottom = new JPanel();
@@ -1145,7 +1206,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		exposure.setEnabled(acquiring == null && cameraLabel != null);
 		laserSlider.setEnabled(acquiring == null && laserLabel != null);
 		exposureSlider.setEnabled(acquiring == null && cameraLabel != null);
-//		liveCheckbox.setEnabled(acquiring == null && cameraLabel != null);
+		liveCheckbox.setEnabled(acquiring == null && cameraLabel != null);
 		speedControl.setEnabled(acquiring == null && zStageHasVelocity);
 		continuousCheckbox.setEnabled(acquiring == null && zStageLabel != null && cameraLabel != null);
 		settleTime.setEnabled(acquiring == null && zStageLabel != null);
@@ -1429,7 +1490,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	// Accessing the devices
 
 	protected void maybeUpdateImage() {
-		if (cameraLabel != null && updateLiveImage) {
+		if (cameraLabel != null && updateLiveImage && !gui.isLiveModeOn()) {
 			synchronized(frame) {
 				gui.updateImage();
 			}
@@ -1932,6 +1993,24 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				params.setTimeStepSeconds(timeStep);
 				params.setContinuous(continuousCheckbox.isSelected());
 				params.setAntiDriftOn(antiDriftCheckbox.isSelected());
+
+				if(antiDriftCheckbox.isSelected()) {
+					double[] adparams = new double[7];
+
+					adparams[0] = (adAutoThresh.isSelected() ? 1 : -1);
+					adparams[1] = Double.parseDouble(adThreshMin.getText());
+					adparams[2] = Double.parseDouble(adThreshMax.getText());
+					adparams[3] = Double.parseDouble(adOldWeight.getText());
+					adparams[4] = Double.parseDouble(adResetMagn.getText());
+					adparams[5] = (adAbsolute.isSelected() ? 1 : -1);
+					adparams[6] = (adVisualize.isSelected() ? 1 : -1);
+
+					params.setAntiDriftParams(adparams);
+				}
+
+				params.setUpdateLive(liveCheckbox.isSelected());
+				params.setIllumFullStack(laseStackCheckbox.isSelected());
+				params.setSettleDelay(settleTime.getValue());
 
 				HashMap<String, String> nameMap = new HashMap<String, String>(3);
 				nameMap.put(xyStageLabel, "XY");
