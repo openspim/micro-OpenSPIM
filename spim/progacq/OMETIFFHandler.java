@@ -92,7 +92,7 @@ public class OMETIFFHandler implements AcqOutputHandler {
 
 				meta.setPixelsSizeX(new PositiveInteger((int)core.getImageWidth()), image);
 				meta.setPixelsSizeY(new PositiveInteger((int)core.getImageHeight()), image);
-				meta.setPixelsSizeZ(new PositiveInteger(depth), image);
+				meta.setPixelsSizeZ(new PositiveInteger(depth+1), image);
 				meta.setPixelsSizeC(new PositiveInteger(1), image);
 				meta.setPixelsSizeT(new PositiveInteger(timesteps), image);
 
@@ -108,10 +108,9 @@ public class OMETIFFHandler implements AcqOutputHandler {
 			writer.setWriteSequentially(true);
 			writer.setMetadataRetrieve(meta);
 			writer.setInterleaved(false);
+			((loci.formats.out.OMETiffWriter)writer).setAllowFullUpdate(false);
 			writer.setValidBitsPerPixel((int) core.getImageBitDepth());
 			writer.setCompression("Uncompressed");
-
-			IJ.log(((OMEXMLMetadata)meta).dumpXML());
 		} catch(Throwable t) {
 			t.printStackTrace();
 			throw new IllegalArgumentException(t);
@@ -176,7 +175,10 @@ public class OMETIFFHandler implements AcqOutputHandler {
 	@Override
 	public void finalizeAcquisition() throws Exception {
 		if(writer != null)
+		{
+			((loci.formats.out.OMETiffWriter)writer).updateSeriesMetadata();
 			writer.close();
+		}
 
 		ReportingUtils.logMessage("" + imageCounter + " vs " + stacks);
 		imageCounter = 0;

@@ -24,6 +24,10 @@ public class AcqParams {
 	private String[]		metaDevices;
 
 	private boolean			antiDrift;
+	private double[]		adParams;
+	private boolean			updateLive;
+	private boolean			illumFullStack;
+	private int				zWaitMillis;
 
 	public AcqParams() {
 		this(null, null, null, 0D, 0, false, null, null, false, null);
@@ -240,5 +244,37 @@ public class AcqParams {
 
 	public void setRows(AcqRow[] irows) {
 		rows = irows;
+	}
+
+	public boolean isUpdateLive() {
+		return updateLive;
+	}
+
+	public void setUpdateLive(boolean updateLive) {
+		this.updateLive = updateLive;
+	}
+
+	public boolean isIllumFullStack() {
+		return illumFullStack;
+	}
+
+	public void setIllumFullStack(boolean illumFullStack) {
+		this.illumFullStack = illumFullStack;
+	}
+
+	public int getSettleDelay() {
+		return zWaitMillis;
+	}
+
+	public void setSettleDelay(int zWaitMillis) {
+		this.zWaitMillis = zWaitMillis;
+	}
+
+	public double[] getAntiDriftParams() {
+		return adParams;
+	}
+
+	public void setAntiDriftParams(double[] adparams) {
+		this.adParams = adparams;
 	};
 }

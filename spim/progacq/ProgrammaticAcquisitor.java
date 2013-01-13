@@ -21,6 +21,8 @@ import mmcorej.TaggedImage;
 
 import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 import org.micromanager.MMStudioMainFrame;
+import org.micromanager.utils.MDUtils;
+import org.micromanager.utils.MMScriptException;
 import org.micromanager.utils.ReportingUtils;
 
 import spim.AntiDrift;
@@ -144,6 +146,41 @@ public class ProgrammaticAcquisitor {
 						+ "\" for device \"" + dev + "\", row " + step, e);
 			}
 		}
+		core.waitForSystem();
+	}
+	
+	private static void updateLiveImage(MMStudioMainFrame f, TaggedImage ti)
+	{
+		try {
+			MDUtils.setChannelIndex(ti.tags, 0);
+			MDUtils.setFrameIndex(ti.tags, 0);
+			MDUtils.setPositionIndex(ti.tags, 0);
+			MDUtils.setSliceIndex(ti.tags, 0);
+			ti.tags.put("Summary", f.getAcquisition(MMStudioMainFrame.SIMPLE_ACQ).getSummaryMetadata());
+			f.addStagePositionToTags(ti);
+			f.addImage(MMStudioMainFrame.SIMPLE_ACQ, ti, true, false);
+		} catch (Throwable t) {
+			ReportingUtils.logException("Attemped to update live window.", t);
+		}
+	}
+
+	private static ImagePlus cleanAbort(AcqParams p, boolean live, boolean as, Thread ct) {
+		p.getCore().setAutoShutter(as);
+		p.getProgressListener().stateChanged(new ChangeEvent(100.0D));
+
+		try {
+			if(ct != null && ct.isAlive()) {
+				ct.interrupt();
+				ct.join();
+			}
+
+			MMStudioMainFrame.getInstance().enableLiveMode(live);
+
+			p.getOutputHandler().finalizeAcquisition();
+			return p.getOutputHandler().getImagePlus();
+		} catch(Exception e) {
+			return null;
+		}
 	}
 
 	/**
@@ -155,12 +192,19 @@ public class ProgrammaticAcquisitor {
 	 * @throws Exception
 	 */
 	public static ImagePlus performAcquisition(final AcqParams params) throws Exception {
+		if(params.isContinuous() && params.isAntiDriftOn())
+			throw new IllegalArgumentException("No continuous acquisition w/ anti-drift!");
+
 		final CMMCore core = params.getCore();
 
-		MMStudioMainFrame frame = MMStudioMainFrame.getInstance();
+		final MMStudioMainFrame frame = MMStudioMainFrame.getInstance();
 		boolean liveOn = frame.isLiveModeOn();
 		if(liveOn)
 			frame.enableLiveMode(false);
+
+		boolean autoShutter = core.getAutoShutter();
+		if(params.isIllumFullStack())
+			core.setAutoShutter(false);
 
 		final String[] metaDevs = params.getMetaDevices();
 		String[] devices = params.getStepDevices();
@@ -168,9 +212,6 @@ public class ProgrammaticAcquisitor {
 		final AcqOutputHandler handler = params.getOutputHandler();
 
 		final double acqBegan = System.nanoTime() / 1e9;
-
-		if(params.isContinuous() && params.isAntiDriftOn())
-			throw new IllegalArgumentException("No continuous acquisition w/ anti-drift!");
 
 		final Map<AcqRow, AntiDrift> driftCompMap;
 		if(params.isAntiDriftOn())
@@ -196,7 +237,11 @@ public class ProgrammaticAcquisitor {
 									continue;
 								};
 
-								handleSlice(core, metaDevs, acqBegan, core.popNextTaggedImage(), handler);
+								TaggedImage ti = core.popNextTaggedImage();
+								handleSlice(core, metaDevs, acqBegan, ti, handler);
+
+								if(params.isUpdateLive())
+									updateLiveImage(frame, ti);
 							}
 
 							core.stopSequenceAcquisition();
@@ -226,22 +271,28 @@ public class ProgrammaticAcquisitor {
 					if((ad = driftCompMap.get(row)) != null)
 						compensateForDrift(core, row, ad);
 					else
-						ad = new AntiDrift();
+						ad = new AntiDrift(params.getAntiDriftParams(), row.getDepth()*row.getStepSize());
 
 					ad.startNewStack();
 				};
+
+				if(params.isIllumFullStack())
+					core.setShutterOpen(true);
 
 				handler.beginStack(0);
 
 				switch(row.getZMode()) {
 				case SINGLE_POSITION:
 					core.waitForImageSynchro();
+					Thread.sleep(params.getSettleDelay());
 
 					if(!params.isContinuous()) {
 						core.snapImage();
 						handleSlice(core, metaDevs, acqBegan, core.getTaggedImage(), handler);
 						if(ad != null)
 							tallyAntiDriftSlice(core, row, ad, core.getTaggedImage());
+						if(params.isUpdateLive())
+							updateLiveImage(frame, core.getTaggedImage());
 					};
 					break;
 				case STEPPED_RANGE: {
@@ -251,11 +302,19 @@ public class ProgrammaticAcquisitor {
 						core.setPosition(row.getDevice(), zStart);
 						core.waitForImageSynchro();
 
+						try {
+							Thread.sleep(params.getSettleDelay());
+						} catch(InterruptedException ie) {
+							return cleanAbort(params, liveOn, autoShutter, continuousThread);
+						}
+
 						if(!params.isContinuous()) {
 							core.snapImage();
 							handleSlice(core, metaDevs, acqBegan, core.getTaggedImage(), handler);
 							if(ad != null)
 								tallyAntiDriftSlice(core, row, ad, core.getTaggedImage());
+							if(params.isUpdateLive())
+								updateLiveImage(frame, core.getTaggedImage());
 						}
 
 						double stackProg = Math.max(Math.min((zStart - start)/(end - start),1),0);
@@ -286,6 +345,9 @@ public class ProgrammaticAcquisitor {
 
 				handler.finalizeStack(0);
 
+				if(params.isIllumFullStack())
+					core.setShutterOpen(false);
+
 				if(ad != null) {
 					ad.finishStack();
 
@@ -293,10 +355,13 @@ public class ProgrammaticAcquisitor {
 				}
 
 				if(Thread.interrupted())
-					return handler.getImagePlus();
+					return cleanAbort(params, liveOn, autoShutter, continuousThread);
 
 				if(params.isContinuous() && !continuousThread.isAlive())
+				{
+					cleanAbort(params, liveOn, autoShutter, continuousThread);
 					throw new Exception(continuousThread.toString());
+				}
 
 				final Double progress = (double) (params.getRows().length * timeSeq + step + 1)
 						/ (params.getRows().length * params.getTimeSeqCount());
@@ -321,7 +386,11 @@ public class ProgrammaticAcquisitor {
 						(System.nanoTime() / 1e9 - acqBegan);
 	
 				if(wait > 0D)
-					core.sleep(wait * 1e3);
+					try {
+					Thread.sleep((long)(wait * 1e3));
+					} catch(InterruptedException ie) {
+						return cleanAbort(params, liveOn, autoShutter, continuousThread);
+					}
 				else
 					core.logMessage("Behind schedule! (next seq in "
 							+ Double.toString(wait) + "s)");
@@ -329,6 +398,9 @@ public class ProgrammaticAcquisitor {
 		}
 
 		handler.finalizeAcquisition();
+
+		if(autoShutter)
+			core.setAutoShutter(true);
 
 		if(liveOn)
 			frame.enableLiveMode(true);
@@ -338,7 +410,7 @@ public class ProgrammaticAcquisitor {
 
 	private static void compensateForDrift(CMMCore core, AcqRow row, AntiDrift ad) throws Exception {
 		Vector3D offs = ad.getAntiDriftOffset();
-		offs = new Vector3D(offs.getX()*core.getPixelSizeUm(), offs.getY()*core.getPixelSizeUm(), offs.getZ());
+		offs = new Vector3D(offs.getX()*-core.getPixelSizeUm(), offs.getY()*-core.getPixelSizeUm(), offs.getZ());
 
 		Vector3D base = new Vector3D(core.getXPosition(core.getXYStageDevice()),
 			core.getYPosition(core.getXYStageDevice()),

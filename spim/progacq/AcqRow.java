@@ -59,7 +59,10 @@ public class AcqRow {
 	}
 
 	public int getDepth() {
-		return (int) ((end - start + 1) / stepOrSpeed);
+		if(mode == ZMode.SINGLE_POSITION)
+			return 1;
+		else
+			return (int) ((end - start + 1) / stepOrSpeed);
 	}
 
 	public double getX() {
