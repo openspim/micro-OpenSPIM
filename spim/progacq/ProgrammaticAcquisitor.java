@@ -25,7 +25,6 @@ import org.micromanager.utils.MDUtils;
 import org.micromanager.utils.MMScriptException;
 import org.micromanager.utils.ReportingUtils;
 
-import spim.AntiDrift;
 
 public class ProgrammaticAcquisitor {
 	public static final String STACK_DIVIDER = "-- STACK DIVIDER --";
@@ -271,7 +270,7 @@ public class ProgrammaticAcquisitor {
 					if((ad = driftCompMap.get(row)) != null)
 						compensateForDrift(core, row, ad);
 					else
-						ad = new AntiDrift(params.getAntiDriftParams(), row.getDepth()*row.getStepSize());
+						ad = params.getAntiDrift(row);
 
 					ad.startNewStack();
 				};
@@ -410,7 +409,7 @@ public class ProgrammaticAcquisitor {
 
 	private static void compensateForDrift(CMMCore core, AcqRow row, AntiDrift ad) throws Exception {
 		Vector3D offs = ad.getAntiDriftOffset();
-		offs = new Vector3D(offs.getX()*-core.getPixelSizeUm(), offs.getY()*-core.getPixelSizeUm(), offs.getZ());
+		offs = new Vector3D(offs.getX()*-core.getPixelSizeUm(), offs.getY()*-core.getPixelSizeUm(), -offs.getZ());
 
 		Vector3D base = new Vector3D(core.getXPosition(core.getXYStageDevice()),
 			core.getYPosition(core.getXYStageDevice()),

@@ -23,11 +23,10 @@ public class AcqParams {
 
 	private String[]		metaDevices;
 
-	private boolean			antiDrift;
-	private double[]		adParams;
-	private boolean			updateLive;
-	private boolean			illumFullStack;
-	private int				zWaitMillis;
+	private AntiDrift.Factory	adFactory;
+	private boolean				updateLive;
+	private boolean				illumFullStack;
+	private int					zWaitMillis;
 
 	public AcqParams() {
 		this(null, null, null, 0D, 0, false, null, null, false, null);
@@ -231,11 +230,15 @@ public class AcqParams {
 
 	// TODO: Implement the following:
 	public boolean isAntiDriftOn() {
-		return antiDrift;
+		return adFactory != null;
 	};
 
-	public void setAntiDriftOn(boolean in) {
-		antiDrift = in;
+	public void setAntiDrift(AntiDrift.Factory in) {
+		adFactory = in;
+	};
+
+	public AntiDrift getAntiDrift(AcqRow r) {
+		return (adFactory != null ? adFactory.Manufacture(this, r) : null);
 	};
 
 	public AcqRow[] getRows() {
@@ -270,11 +273,4 @@ public class AcqParams {
 		this.zWaitMillis = zWaitMillis;
 	}
 
-	public double[] getAntiDriftParams() {
-		return adParams;
-	}
-
-	public void setAntiDriftParams(double[] adparams) {
-		this.adParams = adparams;
-	};
 }

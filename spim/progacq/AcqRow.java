@@ -62,7 +62,7 @@ public class AcqRow {
 		if(mode == ZMode.SINGLE_POSITION)
 			return 1;
 		else
-			return (int) ((end - start + 1) / stepOrSpeed);
+			return (int) ((end - start) / stepOrSpeed) + 1;
 	}
 
 	public double getX() {

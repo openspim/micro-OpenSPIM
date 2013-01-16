@@ -15,6 +15,7 @@ import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.datatransfer.DataFlavor;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -51,6 +52,8 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -80,8 +83,12 @@ import org.micromanager.utils.ReportingUtils;
 
 import spim.progacq.AcqParams;
 import spim.progacq.AcqRow;
+import spim.progacq.AntiDrift;
+import spim.progacq.IntensityMeanAntiDrift;
+import spim.progacq.ManualAntiDrift;
 import spim.progacq.OMETIFFHandler;
 import spim.progacq.ProgrammaticAcquisitor;
+import spim.progacq.ProjDiffAntiDrift;
 import spim.progacq.RangeSlider;
 import spim.progacq.StepTableModel;
 
@@ -157,7 +164,17 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	private JProgressBar acqProgress;
 	private JTabbedPane acqPosTabs;
 	private JLabel estimatesText;
+
+	private final String AD_MODE_MANUAL = "Manual Select";
+	private final String AD_MODE_PROJECTIONS = "Projections";
+	private final String AD_MODE_INTCENT = "Center of Intensity";
+
+	private final String[] AntiDriftModeNames = {
+		AD_MODE_MANUAL, AD_MODE_PROJECTIONS, AD_MODE_INTCENT
+	};
+
 	protected JFrame adPane;
+	protected JComboBox adModeCmbo;
 	protected JCheckBox adAutoThresh;
 	protected JTextField adThreshMin;
 	protected JTextField adThreshMax;
@@ -914,27 +931,42 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 					if(SPIMAcquisition.this.adPane == null) {
 						JFrame fr = new JFrame("AD Settings");
 						fr.setLayout(new BoxLayout(fr.getContentPane(), BoxLayout.PAGE_AXIS));
-						fr.add(SPIMAcquisition.this.adAbsolute = new JCheckBox("Absolute"));
-						fr.add(LayoutUtils.titled("Thresholding", (JComponent) LayoutUtils.vertPanel(
-							SPIMAcquisition.this.adAutoThresh = new JCheckBox("Auto"),
-							LayoutUtils.labelMe(SPIMAcquisition.this.adThreshMin = new JTextField("350"), "Min:"),
-							LayoutUtils.labelMe(SPIMAcquisition.this.adThreshMax = new JTextField("4096"), "Max:")
+
+						fr.add(SPIMAcquisition.this.adModeCmbo = new JComboBox(AntiDriftModeNames));
+
+						fr.add(SPIMAcquisition.this.adAutoControls = LayoutUtils.titled("Automatic", (JComponent) LayoutUtils.vertPanel(
+							SPIMAcquisition.this.adAbsolute = new JCheckBox("Absolute"),
+							LayoutUtils.titled("Thresholding", (JComponent) LayoutUtils.vertPanel(
+								SPIMAcquisition.this.adAutoThresh = new JCheckBox("Auto"),
+								LayoutUtils.labelMe(SPIMAcquisition.this.adThreshMin = new JTextField("350"), "Min:"),
+								LayoutUtils.labelMe(SPIMAcquisition.this.adThreshMax = new JTextField("4096"), "Max:")
+							)),
+							LayoutUtils.labelMe(SPIMAcquisition.this.adOldWeight = new JTextField("0.0"), "Old Weight (0..2):"),
+							LayoutUtils.labelMe(SPIMAcquisition.this.adResetMagn = new JTextField("-1"), "Reset Magn.:"),
+							SPIMAcquisition.this.adVisualize = new JCheckBox("Visualize")
 						)));
-						fr.add(LayoutUtils.labelMe(SPIMAcquisition.this.adOldWeight = new JTextField("0.0"), "Old Weight (0..2):"));
-						fr.add(LayoutUtils.labelMe(SPIMAcquisition.this.adResetMagn = new JTextField("-1"), "Reset Magn.:"));
-						fr.add(SPIMAcquisition.this.adVisualize = new JCheckBox("Visualize"));
 						fr.pack();
-						SPIMAcquisition.this.adPane = fr;
+
+						adPane = fr;
 
 						adAutoThresh.addItemListener(new ItemListener() {
 							@Override
 							public void itemStateChanged(ItemEvent ie) {
-								adThreshMin.setText("0.1");
-								adThreshMax.setText("0.4");
+								adThreshMin.setText(adAutoThresh.isSelected() ? "0.1" : "350");
+								adThreshMax.setText(adAutoThresh.isSelected() ? "0.4" : "4096");
+							}
+						});
+
+						adModeCmbo.setSelectedItem(AD_MODE_PROJECTIONS);
+						adModeCmbo.addItemListener(new ItemListener() {
+							@Override
+							public void itemStateChanged(ItemEvent ie) {
+								adAutoControls.setVisible(AD_MODE_INTCENT.equals(adModeCmbo.getSelectedItem()));
+								adPane.pack();
 							}
 						});
 					}
-					
+
 					SPIMAcquisition.this.adPane.setVisible(true);
 				}
 			}
@@ -1993,20 +2025,44 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				params.setTimeSeqCount(timeSeqs);
 				params.setTimeStepSeconds(timeStep);
 				params.setContinuous(continuousCheckbox.isSelected());
-				params.setAntiDriftOn(antiDriftCheckbox.isSelected());
 
 				if(antiDriftCheckbox.isSelected()) {
-					double[] adparams = new double[7];
+					AntiDrift.Factory f = null;
 
-					adparams[0] = (adAutoThresh.isSelected() ? 1 : -1);
-					adparams[1] = Double.parseDouble(adThreshMin.getText());
-					adparams[2] = Double.parseDouble(adThreshMax.getText());
-					adparams[3] = Double.parseDouble(adOldWeight.getText());
-					adparams[4] = Double.parseDouble(adResetMagn.getText());
-					adparams[5] = (adAbsolute.isSelected() ? 1 : -1);
-					adparams[6] = (adVisualize.isSelected() ? 1 : -1);
+					if(AD_MODE_MANUAL.equals(adModeCmbo.getSelectedItem())) {
+						f = new AntiDrift.Factory() {
+							@Override
+							public AntiDrift Manufacture(AcqParams p, AcqRow r) {
+								return new ManualAntiDrift(p, r);
+							}
+						};
+					} else if(AD_MODE_PROJECTIONS.equals(adModeCmbo.getSelectedItem())) {
+						f = new AntiDrift.Factory() {
+							@Override
+							public AntiDrift Manufacture(AcqParams p, AcqRow r) {
+								return new ProjDiffAntiDrift();
+							}
+						};
+					} else if(AD_MODE_INTCENT.equals(adModeCmbo.getSelectedItem())) {
+						final double[] adparams = new double[7];
 
-					params.setAntiDriftParams(adparams);
+						adparams[0] = (adAutoThresh.isSelected() ? 1 : -1);
+						adparams[1] = Double.parseDouble(adThreshMin.getText());
+						adparams[2] = Double.parseDouble(adThreshMax.getText());
+						adparams[3] = Double.parseDouble(adOldWeight.getText());
+						adparams[4] = Double.parseDouble(adResetMagn.getText());
+						adparams[5] = (adAbsolute.isSelected() ? 1 : -1);
+						adparams[6] = (adVisualize.isSelected() ? 1 : -1);
+
+						f = new AntiDrift.Factory() {
+							@Override
+							public AntiDrift Manufacture(AcqParams p, AcqRow r) {
+								return new IntensityMeanAntiDrift(adparams, r.getEndPosition() - r.getStartPosition());
+							}
+						};
+					}
+					
+					params.setAntiDrift(f);
 				}
 
 				params.setUpdateLive(liveCheckbox.isSelected());
