@@ -1,14 +1,12 @@
-package spim;
+package spim.progacq;
 
-import ij.IJ;
 import ij.process.ImageProcessor;
 
 import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 import org.micromanager.MMStudioMainFrame;
 
-import spim.progacq.AcqRow;
 
-public class AntiDrift {
+public class IntensityMeanAntiDrift implements AntiDrift {
 	private Vector3D initialMean, cachedMean, runningMean, counts;
 	private double runningIntensity, currentMin, currentMax;
 	private long counted;
@@ -21,7 +19,7 @@ public class AntiDrift {
 	private boolean absolute;
 	private boolean visualize;
 
-	public AntiDrift() {
+	public IntensityMeanAntiDrift() {
 		initialMean = Vector3D.ZERO;
 		cachedMean = Vector3D.ZERO;
 		runningMean = Vector3D.ZERO;
@@ -32,7 +30,7 @@ public class AntiDrift {
 		lowThresh = -1;
 	}
 
-	public AntiDrift(double[] parameters, double dz) {
+	public IntensityMeanAntiDrift(double[] parameters, double dz) {
 		this();
 
 		autoThreshold = (parameters[0] > 0);
@@ -54,25 +52,40 @@ public class AntiDrift {
 			return initialMean;
 		}
 
-		Vector3D ci = runningMean.scalarMultiply(1/runningIntensity);
+		Vector3D ci = null;
+		if(autoThreshold) {
+			ci = runningMean.scalarMultiply(1/runningIntensity);
+		} else {
+			ci = new Vector3D(runningMean.getX()/runningIntensity,
+					runningMean.getY()/runningIntensity,
+					counts.getZ());
+		}
 
 		if(resetMagnitude > 0 && initialMean.subtract(ci).getNorm() > resetMagnitude) {
 			ij.IJ.log("(Magnitude exceeded reset; halving.)");
 			ci = ci.add(initialMean).scalarMultiply(0.5);
 		}
 
+		ij.IJ.log("Center of intensity: " + ci.toString());
+
 		return ci;
 	}
 
+	/* (non-Javadoc)
+	 * @see spim.AntiDrift#getAntiDriftOffset()
+	 */
+	@Override
 	public Vector3D getAntiDriftOffset() {
-		if(absolute && !initialMean.equals(cachedMean))
-			return new Vector3D(0, 0, 2*midz).subtract(initialMean.add(cachedMean));
-		else if(absolute)
-			return new Vector3D(0, 0, midz).subtract(initialMean);
+		if(absolute)
+			return cachedMean.scalarMultiply(-1);
 		else
 			return initialMean.subtract(cachedMean);
 	}
 
+	/* (non-Javadoc)
+	 * @see spim.AntiDrift#startNewStack()
+	 */
+	@Override
 	public void startNewStack() {
 		runningMean = Vector3D.ZERO;
 		counts = Vector3D.ZERO;
@@ -82,6 +95,10 @@ public class AntiDrift {
 		counted = 0;
 	}
 
+	/* (non-Javadoc)
+	 * @see spim.AntiDrift#tallySlice(org.apache.commons.math.geometry.euclidean.threed.Vector3D, ij.process.ImageProcessor)
+	 */
+	@Override
 	public void tallySlice(Vector3D center, ImageProcessor ip) {
 		counts = counts.add(new Vector3D(ip.getWidth(), ip.getHeight(), 1));
 
@@ -129,16 +146,24 @@ public class AntiDrift {
 		}
 
 		runningIntensity += it;
-		runningMean = runningMean.add(new Vector3D(0,0,center.getZ()*it));
+		runningMean = runningMean.add(new Vector3D(0,0,(center.getZ() - midz)*(autoThreshold ? it : 1)));
 
 		if(visualize)
 			visualizeThreshold(ip);
 	}
 
+	/* (non-Javadoc)
+	 * @see spim.AntiDrift#finishStack()
+	 */
+	@Override
 	public void finishStack() {
 		finishStack(initialMean.getNorm() == 0);
 	}
 
+	/* (non-Javadoc)
+	 * @see spim.AntiDrift#finishStack(boolean)
+	 */
+	@Override
 	public void finishStack(boolean initial) {
 		if(cachedMean == null)
 			cachedMean = getIntensityCenter();
@@ -165,4 +190,5 @@ public class AntiDrift {
 
 		MMStudioMainFrame.getInstance().getImageWin().getImagePlus().setProcessor(ip);
 	}
+
 }
