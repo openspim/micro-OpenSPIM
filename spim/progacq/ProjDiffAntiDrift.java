@@ -75,16 +75,17 @@ public class ProjDiffAntiDrift implements AntiDrift {
 			}
 		}
 
-		public ColorProcessor getDiff(final Projections other, int dx, int dy, int dz) {
+		public ColorProcessor getDiff(final Projections other, int dx, int dy, int dz, double zScaling) {
 			final int w = xy.getWidth();
 			final int h = xy.getHeight();
 			final int d = xz.getHeight();
+			final int dScaled = (int)Math.round(d * zScaling);
 
-			final ColorProcessor result = new ColorProcessor(w + 1 + d, h + 1 + d);
+			final ColorProcessor result = new ColorProcessor(w + 1 + dScaled, h + 1 + dScaled);
 			final ColorBlitter blitter = new ColorBlitter(result);
 			blitter.copyBits(getDiff(xy, other.xy, dx, dy), 0, 0, Blitter.COPY);
-			blitter.copyBits(getDiff(xz, other.xz, dx, dz), 0, h, Blitter.COPY);
-			blitter.copyBits(getDiff(zy, other.zy, dz, dy), w, 0, Blitter.COPY);
+			blitter.copyBits(getDiff(xz, other.xz, dx, dz, 1, zScaling), 0, h, Blitter.COPY);
+			blitter.copyBits(getDiff(zy, other.zy, dz, dy, zScaling, 1), w, 0, Blitter.COPY);
 			return result;
 		}
 
@@ -92,6 +93,14 @@ public class ProjDiffAntiDrift implements AntiDrift {
 			new ImagePlus("XY", xy).show();
 			new ImagePlus("XZ", xz).show();
 			new ImagePlus("ZY", zy).show();
+		}
+
+		private static ColorProcessor getDiff(final FloatProcessor fp1, final FloatProcessor fp2, int dx, int dy, double xScaling, double yScaling) {
+			final ColorProcessor result = getDiff(fp1, fp2, dx, dy);
+			if (xScaling == 1 && yScaling == 1) return result;
+			final int dstWidth = (int)Math.round(result.getWidth() * xScaling);
+			final int dstHeight = (int)Math.round(result.getHeight() * yScaling);
+			return (ColorProcessor)result.resize(dstWidth, dstHeight);
 		}
 
 		private static ColorProcessor getDiff(final FloatProcessor fp1, final FloatProcessor fp2, int dx, int dy) {
@@ -152,17 +161,19 @@ public class ProjDiffAntiDrift implements AntiDrift {
 		private Projections before, after;
 		private Callback callback;
 		private int dx, dy, dz;
+		private double zScaling;
 		private Dimension preferredImageSize;
 		private Image diff;
 		private JPanel panel;
 
-		public AdjusterGUI(final ImagePlus before, final ImagePlus after, final Callback callback) {
-			this(Projections.get(before), Projections.get(after), callback);
+		public AdjusterGUI(final ImagePlus before, final ImagePlus after, final double zScaling, final Callback callback) {
+			this(Projections.get(before), Projections.get(after), zScaling, callback);
 		}
 
-		public AdjusterGUI(final Projections before, final Projections after, final Callback callback) {
+		public AdjusterGUI(final Projections before, final Projections after, final double zScaling, final Callback callback) {
 			this.before = before;
 			this.after = after;
+			this.zScaling = zScaling;
 			this.callback = callback;
 
 			updateDiff();
@@ -224,7 +235,7 @@ public class ProjDiffAntiDrift implements AntiDrift {
 		}
 
 		private void updateDiff() {
-			final ColorProcessor cp = before.getDiff(after, dx, dy, dz);
+			final ColorProcessor cp = before.getDiff(after, dx, dy, dz, zScaling);
 			preferredImageSize = new Dimension(cp.getWidth(), cp.getHeight());
 			diff = cp.createImage();
 			if (panel != null) panel.repaint();
@@ -233,11 +244,13 @@ public class ProjDiffAntiDrift implements AntiDrift {
 
 	private Vector3D offset;
 	private Projections first, latest;
+	private double zScaling;
 	private AdjusterGUI gui;
 
-	public ProjDiffAntiDrift() {
+	public ProjDiffAntiDrift(final double zScaling) {
 		offset = Vector3D.ZERO;
 		first = null;
+		this.zScaling = zScaling;
 	}
 
 	@Override
@@ -268,7 +281,7 @@ public class ProjDiffAntiDrift implements AntiDrift {
 	@Override
 	public void finishStack(boolean initial) {
 		if(!initial) {
-			gui = new AdjusterGUI(first, latest, new Callback() {
+			gui = new AdjusterGUI(first, latest, zScaling, new Callback() {
 				@Override
 				public void offset(int dx, int dy, int dz) {
 					ProjDiffAntiDrift.this.offset.add(new Vector3D(-dx, -dy, -dz));
