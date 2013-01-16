@@ -2040,7 +2040,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 						f = new AntiDrift.Factory() {
 							@Override
 							public AntiDrift Manufacture(AcqParams p, AcqRow r) {
-								return new ProjDiffAntiDrift();
+								return new ProjDiffAntiDrift(4.6 /* TODO: use the correct z calibration */);
 							}
 						};
 					} else if(AD_MODE_INTCENT.equals(adModeCmbo.getSelectedItem())) {
