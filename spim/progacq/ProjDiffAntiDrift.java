@@ -5,6 +5,7 @@ import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.File;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -17,6 +18,11 @@ import ij.process.ColorProcessor;
 import ij.process.FloatBlitter;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
+
+import mpicbg.imglib.algorithm.fft.PhaseCorrelation;
+import mpicbg.imglib.algorithm.fft.PhaseCorrelationPeak;
+import mpicbg.imglib.image.ImagePlusAdapter;
+import mpicbg.imglib.type.numeric.real.FloatType;
 
 import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 
@@ -75,18 +81,23 @@ public class ProjDiffAntiDrift implements AntiDrift {
 			}
 		}
 
-		public ColorProcessor getDiff(final Projections other, int dx, int dy, int dz, double zScaling) {
-			final int w = xy.getWidth();
-			final int h = xy.getHeight();
-			final int d = xz.getHeight();
-			final int dScaled = (int)Math.round(d * zScaling);
+		public double largestDimension() {
+			double d = 0;
 
-			final ColorProcessor result = new ColorProcessor(w + 1 + dScaled, h + 1 + dScaled);
-			final ColorBlitter blitter = new ColorBlitter(result);
-			blitter.copyBits(getDiff(xy, other.xy, dx, dy), 0, 0, Blitter.COPY);
-			blitter.copyBits(getDiff(xz, other.xz, dx, dz, 1, zScaling), 0, h, Blitter.COPY);
-			blitter.copyBits(getDiff(zy, other.zy, dz, dy, zScaling, 1), w, 0, Blitter.COPY);
-			return result;
+			if(xy.getWidth() > d)
+				d = xy.getWidth();
+			if(xy.getHeight() > d)
+				d = xy.getHeight();
+			if(xz.getWidth() > d)
+				d = xz.getWidth();
+			if(xz.getHeight() > d)
+				d = xz.getHeight();
+			if(zy.getWidth() > d)
+				d = zy.getWidth();
+			if(zy.getHeight() > d)
+				d = zy.getHeight();
+
+			return d;
 		}
 
 		public void show() {
@@ -95,12 +106,20 @@ public class ProjDiffAntiDrift implements AntiDrift {
 			new ImagePlus("ZY", zy).show();
 		}
 
-		private static ColorProcessor getDiff(final FloatProcessor fp1, final FloatProcessor fp2, int dx, int dy, double xScaling, double yScaling) {
-			final ColorProcessor result = getDiff(fp1, fp2, dx, dy);
-			if (xScaling == 1 && yScaling == 1) return result;
-			final int dstWidth = (int)Math.round(result.getWidth() * xScaling);
-			final int dstHeight = (int)Math.round(result.getHeight() * yScaling);
-			return (ColorProcessor)result.resize(dstWidth, dstHeight);
+		public ColorProcessor getDiff(final Projections other, double scale, double zratio, int dx, int dy, int dz) {
+			final int w = (int) (xy.getWidth()*scale);
+			final int h = (int) (xy.getHeight()*scale);
+			final int d = (int) (xz.getHeight()*zratio*scale);
+
+			final ColorProcessor result = new ColorProcessor(w + 1 + d, h + 1 + d);
+			final ColorBlitter blitter = new ColorBlitter(result);
+			blitter.copyBits(getDiff(xy, other.xy, dx, dy).resize(w, h), 0, 0, Blitter.COPY);
+			blitter.copyBits(getDiff(xz, other.xz, dx, dz).resize(w, d), 0, h, Blitter.COPY);
+			blitter.copyBits(getDiff(zy, other.zy, dz, dy).resize(d, h), w, 0, Blitter.COPY);
+			result.setColor(java.awt.Color.YELLOW);
+			result.drawLine(0, h, w+d, h);
+			result.drawLine(w, 0, w, h+d);
+			return result;
 		}
 
 		private static ColorProcessor getDiff(final FloatProcessor fp1, final FloatProcessor fp2, int dx, int dy) {
@@ -129,6 +148,40 @@ public class ProjDiffAntiDrift implements AntiDrift {
 			}
 
 			return result;
+		}
+
+		private static mpicbg.imglib.image.Image<FloatType> wrap(FloatProcessor fp) {
+			return ImagePlusAdapter.wrapFloat(new ImagePlus("", fp));
+		}
+
+		private static int[] correlate(final FloatProcessor first, final FloatProcessor second) {
+			PhaseCorrelation<FloatType, FloatType> pc = new PhaseCorrelation<FloatType, FloatType>(wrap(first), wrap(second));
+
+			if(!pc.checkInput()) {
+				ij.IJ.log(pc.getErrorMessage());
+				return null;
+			}
+
+			if(!pc.process()) {
+				ij.IJ.log(pc.getErrorMessage());
+				return null;
+			}
+
+			PhaseCorrelationPeak peak = pc.getShift();
+			return peak.getPosition();
+		}
+
+		public Vector3D correlateAndAverage(final Projections other) {
+			int[] xyc = correlate(xy, other.xy);
+			int[] xzc = correlate(xz, other.xz);
+			int[] zyc = correlate(zy, other.zy);
+
+			if(xyc == null || xzc == null || zyc == null)
+				return Vector3D.ZERO;
+
+			// TODO: Figure out why this seems to be too little...
+			return new Vector3D(xyc[0] + xzc[0], xyc[1] + zyc[1],
+				xzc[1] + zyc[0]).scalarMultiply(0.5D);
 		}
 
 		private static int normalize(float value, double min, double max) {
@@ -161,22 +214,47 @@ public class ProjDiffAntiDrift implements AntiDrift {
 		private Projections before, after;
 		private Callback callback;
 		private int dx, dy, dz;
-		private double zScaling;
 		private Dimension preferredImageSize;
 		private Image diff;
 		private JPanel panel;
+		private double scale, zratio;
+		private File outputFile;
 
-		public AdjusterGUI(final ImagePlus before, final ImagePlus after, final double zScaling, final Callback callback) {
-			this(Projections.get(before), Projections.get(after), zScaling, callback);
-		}
+		public AdjusterGUI(Vector3D loc, double theta, long tp, double izratio,
+				File saveDir, final Projections first, final Projections latest,
+				final Callback callback) {
+			System.gc();
 
-		public AdjusterGUI(final Projections before, final Projections after, final double zScaling, final Callback callback) {
-			this.before = before;
-			this.after = after;
-			this.zScaling = zScaling;
+			this.before = first;
+			this.after = latest;
 			this.callback = callback;
 
+			if(saveDir != null) {
+				String xyz = String.format("XYZ%.2fx%.2fx%.2f_Theta%.2f", loc.getX(), loc.getY(), loc.getZ(), theta);
+				String fn = String.format("diff_TL%02d", tp);
+				outputFile = new File(new File(saveDir, xyz), fn);
+
+				if(!outputFile.getParentFile().exists() && !outputFile.getParentFile().mkdirs()) {
+					ij.IJ.log("Couldn't create output directory for diff. (Continuing.)");
+					outputFile = null;
+				}
+			} else {
+				outputFile = null;
+			}
+
+			scale = getToolkit().getScreenSize().width / (after.largestDimension() * 2) * 0.9;
+			zratio = izratio;
+			writeDiff("initial");
+
+			Vector3D offs = latest.correlateAndAverage(first);
+			dx = (int) offs.getX();
+			dy = (int) offs.getY();
+			dz = (int) offs.getZ();
 			updateDiff();
+
+			writeDiff("suggested");
+
+			ij.IJ.log("Suggested offset: " + offs.toString());
 
 			panel = new JPanel() {
 				@Override
@@ -186,41 +264,59 @@ public class ProjDiffAntiDrift implements AntiDrift {
 				}
 			};
 			panel.setPreferredSize(preferredImageSize);
-			//panel.addKeyListener(this);
 			getContentPane().add(panel);
-			//getContentPane().addKeyListener(this);
 			addKeyListener(this);
 			pack();
+			setTitle(String.format("xyz: %.2f x %.2f x %.2f, theta: %.2f, timepoint %02d", loc.getX(), loc.getY(), loc.getZ(), theta, tp));
 		}
 
 		public void keyPressed(final KeyEvent e) {
 			switch (e.getKeyCode()) {
 				case KeyEvent.VK_ENTER:
+					if(outputFile != null)
+						writeDiff("final_saved");
 					dispose();
 					callback.offset(dx, dy, dz);
 					break;
+				case KeyEvent.VK_ESCAPE:
+					if(outputFile != null) {
+						dx = dy = dz = 0;
+						writeDiff("final_aborted");
+					}
+					dispose();
+					break;
 				case KeyEvent.VK_UP:
-					dy--;
+					dy += (e.isShiftDown() ? 10 : 1);
 					updateDiff();
 					break;
 				case KeyEvent.VK_DOWN:
-					dy++;
+					dy -= (e.isShiftDown() ? 10 : 1);
 					updateDiff();
 					break;
 				case KeyEvent.VK_LEFT:
-					dx--;
+					dx += (e.isShiftDown() ? 10 : 1);
 					updateDiff();
 					break;
 				case KeyEvent.VK_RIGHT:
-					dx++;
+					dx -= (e.isShiftDown() ? 10 : 1);
 					updateDiff();
 					break;
 				case KeyEvent.VK_PAGE_UP:
-					dz--;
+					dz -= (e.isShiftDown() ? 10 : 1);
 					updateDiff();
 					break;
 				case KeyEvent.VK_PAGE_DOWN:
-					dz++;
+					dz += (e.isShiftDown() ? 10 : 1);
+					updateDiff();
+					break;
+				case KeyEvent.VK_MINUS:
+				case KeyEvent.VK_END:
+					scale -= 0.1;
+					updateDiff();
+					break;
+				case KeyEvent.VK_EQUALS:
+				case KeyEvent.VK_HOME:
+					scale += 0.1;
 					updateDiff();
 					break;
 			}
@@ -235,22 +331,59 @@ public class ProjDiffAntiDrift implements AntiDrift {
 		}
 
 		private void updateDiff() {
-			final ColorProcessor cp = before.getDiff(after, dx, dy, dz, zScaling);
+			final ColorProcessor cp = before.getDiff(after, scale, zratio, dx, dy, dz);
 			preferredImageSize = new Dimension(cp.getWidth(), cp.getHeight());
+			if(diff != null) {
+				diff.flush();
+				diff = null;
+			}
 			diff = cp.createImage();
-			if (panel != null) panel.repaint();
+			if (panel != null) {
+				panel.setPreferredSize(preferredImageSize);
+				pack();
+				panel.repaint();
+			}
+		}
+
+		private void writeDiff(String suffix) {
+			ImagePlus imp = new ImagePlus(getTitle(), before.getDiff(after, scale, zratio, dx, dy, dz));
+			ij.IJ.save(imp, outputFile.getAbsolutePath() + "_" + suffix + ".tiff");
+			imp = null; // TODO: kill this; temporarily make sure we return memory to initial state with checkMem.
+		}
+
+		@Override
+		public void dispose() {
+			super.dispose();
+			diff.flush();
+			diff = null;
+			before = after = null;
 		}
 	}
 
 	private Vector3D offset;
 	private Projections first, latest;
-	private double zScaling;
 	private AdjusterGUI gui;
 
-	public ProjDiffAntiDrift(final double zScaling) {
+	private long tp;
+	private Vector3D loc;
+	private double theta;
+	private double zstep;
+
+	private File saveDir;
+	private double zratio;
+
+	public ProjDiffAntiDrift(File outDir, AcqRow r) {
 		offset = Vector3D.ZERO;
 		first = null;
-		this.zScaling = zScaling;
+
+		loc = new Vector3D(r.getX(), r.getY(), r.getStartPosition());
+		theta = r.getTheta();
+		tp = 1;
+		zstep = r.getStepSize();
+		zratio = zstep*2.3; // TODO: This is hard-coded.
+
+		if(outDir != null)
+			saveDir = new File(outDir, "diffs");
 	}
 
 	@Override
@@ -260,8 +393,13 @@ public class ProjDiffAntiDrift implements AntiDrift {
 
 	@Override
 	public void startNewStack() {
-		if(gui != null) {
+		if(gui != null && gui.isVisible()) {
+			if(gui.outputFile != null)
+				gui.writeDiff("final_slid");
+			gui.callback.offset(gui.dx, gui.dy, gui.dz);
+
 			gui.setVisible(false);
+			gui.dispose();
 			gui = null;
 		}
 
@@ -280,17 +418,19 @@ public class ProjDiffAntiDrift implements AntiDrift {
 
 	@Override
 	public void finishStack(boolean initial) {
-		if(!initial) {
-			gui = new AdjusterGUI(first, latest, zScaling, new Callback() {
-				@Override
-				public void offset(int dx, int dy, int dz) {
-					ProjDiffAntiDrift.this.offset.add(new Vector3D(-dx, -dy, -dz));
-				}
-			});
-			gui.setVisible(true);
-		}
+		if(first == null)
+			first = latest;
+
+		gui = new AdjusterGUI(loc, theta, tp, zratio, saveDir, first, latest, new Callback() {
+			@Override
+			public void offset(int dx, int dy, int dz) {
+				offset = offset.add(new Vector3D(-dx, -dy, -dz*zstep));
+			}
+		});
+		gui.setVisible(true);
 
 		first = latest;
+		++tp;
 	}
 
 }

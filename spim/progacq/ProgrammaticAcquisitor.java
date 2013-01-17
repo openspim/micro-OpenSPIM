@@ -173,7 +173,8 @@ public class ProgrammaticAcquisitor {
 				ct.join();
 			}
 
-			MMStudioMainFrame.getInstance().enableLiveMode(live);
+			// TEMPORARY: Don't re-enable live mode. This keeps our laser off.
+//			MMStudioMainFrame.getInstance().enableLiveMode(live);
 
 			p.getOutputHandler().finalizeAcquisition();
 			return p.getOutputHandler().getImagePlus();
@@ -356,8 +357,7 @@ public class ProgrammaticAcquisitor {
 				if(Thread.interrupted())
 					return cleanAbort(params, liveOn, autoShutter, continuousThread);
 
-				if(params.isContinuous() && !continuousThread.isAlive())
-				{
+				if(params.isContinuous() && !continuousThread.isAlive()) {
 					cleanAbort(params, liveOn, autoShutter, continuousThread);
 					throw new Exception(continuousThread.toString());
 				}
@@ -401,8 +401,9 @@ public class ProgrammaticAcquisitor {
 		if(autoShutter)
 			core.setAutoShutter(true);
 
-		if(liveOn)
-			frame.enableLiveMode(true);
+		// TEMPORARY: Don't re-enable live mode. This keeps our laser off.
+//		if(liveOn)
+//			frame.enableLiveMode(true);
 
 		return handler.getImagePlus();
 	}

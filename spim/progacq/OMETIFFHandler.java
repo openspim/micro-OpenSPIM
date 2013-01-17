@@ -92,15 +92,14 @@ public class OMETIFFHandler implements AcqOutputHandler {
 
 				meta.setPixelsSizeX(new PositiveInteger((int)core.getImageWidth()), image);
 				meta.setPixelsSizeY(new PositiveInteger((int)core.getImageHeight()), image);
-				meta.setPixelsSizeZ(new PositiveInteger(depth+1), image);
+				meta.setPixelsSizeZ(new PositiveInteger(depth), image);
 				meta.setPixelsSizeC(new PositiveInteger(1), image);
 				meta.setPixelsSizeT(new PositiveInteger(timesteps), image);
 
-				meta.setPixelsPhysicalSizeX(new PositiveFloat(core.getPixelSizeUm()), image);
-				meta.setPixelsPhysicalSizeY(new PositiveFloat(core.getPixelSizeUm()), image);
+				meta.setPixelsPhysicalSizeX(new PositiveFloat(core.getPixelSizeUm()*core.getImageWidth()), image);
+				meta.setPixelsPhysicalSizeY(new PositiveFloat(core.getPixelSizeUm()*core.getImageHeight()), image);
 				meta.setPixelsPhysicalSizeZ(new PositiveFloat(1d), image);
 				meta.setPixelsTimeIncrement(new Double(deltat), image);
-
 			}
 
 			writer = new ImageWriter().getWriter(makeFilename(0, 0));
@@ -118,7 +117,7 @@ public class OMETIFFHandler implements AcqOutputHandler {
 	}
 
 	private static String makeFilename(int angleIndex, int timepoint) {
-		return "spim_TL" + (timepoint + 1) + "_Angle" + angleIndex + ".ome.tiff";
+		return String.format("spim_TL%02d_Angle%01d.ome.tiff", (timepoint + 1), angleIndex);
 	}
 
 	private void openWriter(int angleIndex, int timepoint) throws Exception {
@@ -143,6 +142,17 @@ public class OMETIFFHandler implements AcqOutputHandler {
 			openWriter(imageCounter % stacks, imageCounter / stacks);
 	}
 
+	private int doubleAnnotations = 0;
+	private int storeDouble(int image, int plane, int n, String name, double val) {
+		String key = String.format("%d/%d/%d: %s", image, plane, n, name);
+
+		meta.setDoubleAnnotationID(key, doubleAnnotations);
+		meta.setDoubleAnnotationValue(val, doubleAnnotations);
+		meta.setPlaneAnnotationRef(key, image, plane, n);
+
+		return doubleAnnotations++;
+	}
+
 	@Override
 	public void processSlice(ImageProcessor ip, double X, double Y, double Z, double theta, double deltaT)
 			throws Exception {
@@ -161,8 +171,16 @@ public class OMETIFFHandler implements AcqOutputHandler {
 		meta.setPlaneTheZ(new NonNegativeInteger(sliceCounter), image, plane);
 		meta.setPlaneTheT(new NonNegativeInteger(timePoint), image, plane);
 		meta.setPlaneDeltaT(deltaT, image, plane);
-		meta.setPlaneAnnotationRef(X + "/" + Y + "/" + Z, image, plane, 0);
-		writer.saveBytes(plane, data);
+
+		storeDouble(image, plane, 0, "Theta", theta);
+
+		try {
+			writer.saveBytes(plane, data);
+		} catch(java.io.IOException ioe) {
+			finalizeStack(0);
+			writer.close();
+			throw new Exception("Error writing OME-TIFF.", ioe);
+		}
 
 		++sliceCounter;
 	}
