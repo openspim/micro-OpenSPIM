@@ -846,7 +846,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			}
 		}
 
-		// TODO: find out correct values
 		laserSlider = new MotorSlider(minlp, maxlp, deflp, "laser.power") {
 			@Override
 			public void valueChanged(int value) {
@@ -2026,6 +2025,39 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				params.setTimeStepSeconds(timeStep);
 				params.setContinuous(continuousCheckbox.isSelected());
 
+				HashMap<String, String> nameMap = new HashMap<String, String>(3);
+				nameMap.put(xyStageLabel, "XY");
+				nameMap.put(twisterLabel, "Ang");
+				nameMap.put(zStageLabel, "Z");
+
+				final File output;
+				if(!continuousCheckbox.isSelected() && !"".equals(acqSaveDir.getText())) {
+					output = new File(acqSaveDir.getText());
+
+					if(!output.isDirectory()) {
+						JOptionPane.showMessageDialog(null, "You must specify a directory.");
+						return;
+					}
+
+					if(output.list().length != 0) {
+						int res = JOptionPane.showConfirmDialog(null, "The destination directory is not empty. Save here anyway?", "Confirm Overwrite", JOptionPane.YES_NO_OPTION);
+						if(res == JOptionPane.NO_OPTION)
+							return;
+
+						for(File f : output.listFiles())
+							if(!f.delete())
+								if(JOptionPane.showConfirmDialog(null, "Couldn't clean destination directory (" + f.getName() + "). Continue anyway?", "Confirm Append", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION)
+									return;
+					}
+
+					params.setOutputHandler(new OMETIFFHandler(
+						mmc, output, xyStageLabel, twisterLabel, zStageLabel, "t",
+						acqRows, timeSeqs, timeStep
+					));
+				} else {
+					output = null;
+				}
+
 				if(antiDriftCheckbox.isSelected()) {
 					AntiDrift.Factory f = null;
 
@@ -2040,7 +2072,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 						f = new AntiDrift.Factory() {
 							@Override
 							public AntiDrift Manufacture(AcqParams p, AcqRow r) {
-								return new ProjDiffAntiDrift(4.6 /* TODO: use the correct z calibration */);
+								return new ProjDiffAntiDrift(output, r);
 							}
 						};
 					} else if(AD_MODE_INTCENT.equals(adModeCmbo.getSelectedItem())) {
@@ -2069,42 +2101,21 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				params.setIllumFullStack(laseStackCheckbox.isSelected());
 				params.setSettleDelay(settleTime.getValue());
 
-				HashMap<String, String> nameMap = new HashMap<String, String>(3);
-				nameMap.put(xyStageLabel, "XY");
-				nameMap.put(twisterLabel, "Ang");
-				nameMap.put(zStageLabel, "Z");
-
-				if(!continuousCheckbox.isSelected() && !"".equals(acqSaveDir.getText())) {
-					File output = new File(acqSaveDir.getText());
-
-					if(!output.isDirectory()) {
-						JOptionPane.showMessageDialog(null, "You must specify a directory.");
-						return;
-					}
-
-					if(output.list().length != 0) {
-						int res = JOptionPane.showConfirmDialog(null, "The destination directory is not empty. Save here anyway?", "Confirm Overwrite", JOptionPane.YES_NO_OPTION);
-						if(res == JOptionPane.NO_OPTION)
-							return;
-					}
-
-					params.setOutputHandler(new OMETIFFHandler(
-						mmc,
-						new File(acqSaveDir.getText()),
-						xyStageLabel, twisterLabel, zStageLabel, "t",
-						acqRows, timeSeqs, timeStep
-					));
-				}
-
 				acqProgress.setEnabled(true);
 
 				params.setProgressListener(new ChangeListener() {
 					@Override
 					public void stateChanged(ChangeEvent ce) {
-						ReportingUtils.logMessage("Acq: " + (Double)ce.getSource() * 100D);
+//						ReportingUtils.logMessage("Acq: " + (Double)ce.getSource() * 100D);
 						acqProgress.setValue((int)((Double)ce.getSource() * 100));
 					};
 				});
+
+				if(output != null) {
+					String log = new File(output, "log.txt").getAbsolutePath();
+					System.setProperty("ij.log.file", log);
+					ij.IJ.log("Opened log file " + log);
+				}
 
 				acqThread = new Thread() {
 					@Override
@@ -2119,11 +2130,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 							JOptionPane.showMessageDialog(frame, "Error acquiring: "
 									+ e.getMessage());
 							throw new Error("Error acquiring!", e);
-						} finally {
-							acqGoBtn.setText(BTN_START);
-							acqProgress.setValue(0);
-							acqProgress.setEnabled(false);
 						}
+
+						acqGoBtn.setText(BTN_START);
+						acqProgress.setValue(0);
+						acqProgress.setEnabled(false);
 					}
 				};
 			}
@@ -2139,14 +2150,14 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			} catch (InterruptedException e1) {
 				JOptionPane.showMessageDialog(frame,
 						"Couldn't stop the thread gracefully.");
-			} finally {
-				acqThread = null;
-
-				acqGoBtn.setText(BTN_START);
-
-				acqProgress.setValue(0);
-				acqProgress.setEnabled(false);
 			}
+
+			acqThread = null;
+
+			acqGoBtn.setText(BTN_START);
+
+			acqProgress.setValue(0);
+			acqProgress.setEnabled(false);
 		}
 	}
 }
