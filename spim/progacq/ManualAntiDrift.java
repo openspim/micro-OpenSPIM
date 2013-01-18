@@ -1,8 +1,8 @@
 package spim.progacq;
 
 import java.awt.Rectangle;
-import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 
 import javax.swing.JOptionPane;
 
@@ -12,24 +12,17 @@ import ij.process.ImageProcessor;
 
 import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 
-public class ManualAntiDrift extends MouseAdapter implements AntiDrift {
+public class ManualAntiDrift extends AntiDrift implements MouseListener {
 	private AcqRow row;
-	private Vector3D lastOffset;
 	private ImageStack stack;
 	private ImagePlus image;
 	private int width, height;
 
 	public ManualAntiDrift(AcqParams p, AcqRow r) {
 		row = r;
-		lastOffset = Vector3D.ZERO;
 
 		width = (int) p.getCore().getImageWidth();
 		height = (int) p.getCore().getImageHeight();
-	}
-
-	@Override
-	public Vector3D getAntiDriftOffset() {
-		return lastOffset.scalarMultiply(-1);
 	}
 
 	@Override
@@ -40,7 +33,7 @@ public class ManualAntiDrift extends MouseAdapter implements AntiDrift {
 			stack = null;
 			ij.IJ.freeMemory();
 		}
-		
+
 		stack = new ImageStack(width, height);
 	}
 
@@ -75,8 +68,6 @@ public class ManualAntiDrift extends MouseAdapter implements AntiDrift {
 			double cy = roi.getCenterY() - (image.getHeight()/2);
 			double cz = (zslice - (row.getDepth()/2))*row.getStepSize();
 
-			lastOffset = lastOffset.add(new Vector3D(cx, cy, cz));
-
 			image.hide();
 			ij.IJ.setTool("hand");
 
@@ -84,6 +75,17 @@ public class ManualAntiDrift extends MouseAdapter implements AntiDrift {
 			stack = null;
 
 			ij.IJ.freeMemory();
+
+			invokeCallback(new Vector3D(cx, cy, cz));
 		}
 	}
+
+	@Override
+	public void mouseClicked(MouseEvent arg0) {}
+	@Override
+	public void mouseEntered(MouseEvent arg0) {}
+	@Override
+	public void mouseExited(MouseEvent arg0) {}
+	@Override
+	public void mousePressed(MouseEvent arg0) {}
 }

@@ -25,6 +25,8 @@ import org.micromanager.utils.MDUtils;
 import org.micromanager.utils.MMScriptException;
 import org.micromanager.utils.ReportingUtils;
 
+import spim.progacq.AntiDrift.Callback;
+
 
 public class ProgrammaticAcquisitor {
 	public static final String STACK_DIVIDER = "-- STACK DIVIDER --";
@@ -267,21 +269,28 @@ public class ProgrammaticAcquisitor {
 			}
 
 			int step = 0;
-			for(AcqRow row : params.getRows()) {
+			for(final AcqRow row : params.getRows()) {
 				final int tp = timeSeq;
 				final int rown = step;
 
-				runDevicesAtRow(core, devices, row.getPrimaryPositions(), step);
-
 				AntiDrift ad = null;
 				if(row.getZMode() != AcqRow.ZMode.CONTINUOUS_SWEEP && params.isAntiDriftOn()) {
-					if((ad = driftCompMap.get(row)) != null)
-						compensateForDrift(core, row, ad);
-					else
+					if((ad = driftCompMap.get(row)) == null) {
 						ad = params.getAntiDrift(row);
+						ad.setCallback(new AntiDrift.Callback() {
+							@Override
+							public void applyOffset(Vector3D offs) {
+								offs = new Vector3D(offs.getX()*-core.getPixelSizeUm(), offs.getY()*-core.getPixelSizeUm(), -offs.getZ());
+								ij.IJ.log(String.format("TP %d view %d: Offset: %s", tp, rown, offs.toString()));
+								row.translate(offs);
+							}
+						});
+					}
 
 					ad.startNewStack();
 				};
+
+				runDevicesAtRow(core, devices, row.getPrimaryPositions(), step);
 
 				if(params.isIllumFullStack())
 					core.setShutterOpen(true);
@@ -413,43 +422,6 @@ public class ProgrammaticAcquisitor {
 //			frame.enableLiveMode(true);
 
 		return handler.getImagePlus();
-	}
-
-	private static void compensateForDrift(CMMCore core, AcqRow row, AntiDrift ad) throws Exception {
-		Vector3D offs = ad.getAntiDriftOffset();
-		offs = new Vector3D(offs.getX()*-core.getPixelSizeUm(), offs.getY()*-core.getPixelSizeUm(), -offs.getZ());
-
-		Vector3D base = new Vector3D(core.getXPosition(core.getXYStageDevice()),
-			core.getYPosition(core.getXYStageDevice()),
-			row.getStartPosition());
-
-		ij.IJ.log("Determined offs: " + offs.toString());
-
-		Vector3D point9 = base.add(offs.scalarMultiply(1.5));
-		Vector3D dest = base.add(offs);
-
-		// Note that all the following is very Picard-specific. Other stage
-		// motors will doubtless have different property names.
-
-		// Move nearly there so moving back at speed 1 doesn't take too long.
-		core.setXYPosition(core.getXYStageDevice(), point9.getX(), point9.getY());
-		core.setPosition(row.getDevice(), point9.getZ());
-		core.waitForSystem();
-
-		String oldVelZ = core.getProperty(row.getDevice(), "Velocity");
-		String oldVelX = core.getProperty(core.getXYStageDevice(), "X-Velocity");
-		String oldVelY = core.getProperty(core.getXYStageDevice(), "Y-Velocity");
-		core.setProperty(row.getDevice(),"Velocity",1);
-		core.setProperty(core.getXYStageDevice(), "X-Velocity", 1);
-		core.setProperty(core.getXYStageDevice(), "Y-Velocity", 1);
-
-		core.setXYPosition(core.getXYStageDevice(), dest.getX(), dest.getY());
-		core.setPosition(row.getDevice(), dest.getZ());
-		core.waitForSystem();
-
-		core.setProperty(row.getDevice(), "Velocity", oldVelZ);
-		core.setProperty(core.getXYStageDevice(), "X-Velocity", oldVelX);
-		core.setProperty(core.getXYStageDevice(), "Y-Velocity", oldVelY);
 	}
 
 	private static void tallyAntiDriftSlice(CMMCore core, AcqRow row, AntiDrift ad, TaggedImage img) throws Exception {

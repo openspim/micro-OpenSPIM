@@ -26,7 +26,7 @@ import mpicbg.imglib.type.numeric.real.FloatType;
 
 import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 
-public class ProjDiffAntiDrift implements AntiDrift {
+public class ProjDiffAntiDrift extends AntiDrift {
 	private static class Projections {
 		private FloatProcessor xy, xz, zy;
 
@@ -118,8 +118,8 @@ public class ProjDiffAntiDrift implements AntiDrift {
 
 			return makePanel(
 					drawCrosshair(getDiff(xy, other.xy, dv.getX(), dv.getY()), w, h, center.getX(), center.getY()),
-					drawCrosshair(getDiff(xz, other.xz, dv.getX(), dv.getZ()), w, d, center.getX(), center.getZ()*zratio),
-					drawCrosshair(getDiff(zy, other.zy, dv.getZ(), dv.getY()), d, h, center.getZ()*zratio, center.getY())
+					drawCrosshair(getDiff(xz, other.xz, dv.getX(), dv.getZ()), w, d, center.getX(), center.getZ()),
+					drawCrosshair(getDiff(zy, other.zy, dv.getZ(), dv.getY()), d, h, center.getZ(), center.getY())
 					);
 		}
 
@@ -247,10 +247,6 @@ public class ProjDiffAntiDrift implements AntiDrift {
 		}
 	}
 
-	public interface Callback {
-		void offset(Vector3D offs);
-	}
-
 	@SuppressWarnings("serial")
 	private static class AdjusterGUI extends JFrame implements KeyListener {
 		private Projections before, after;
@@ -296,11 +292,11 @@ public class ProjDiffAntiDrift implements AntiDrift {
 			switch (e.getKeyCode()) {
 				case KeyEvent.VK_ENTER:
 					dispose();
-					callback.offset(offset);
+					callback.applyOffset(offset);
 					break;
 				case KeyEvent.VK_ESCAPE:
 					dispose();
-					callback.offset(Vector3D.ZERO);
+					callback.applyOffset(Vector3D.ZERO);
 					break;
 				case KeyEvent.VK_UP:
 					offset = offset.add(new Vector3D(0, (e.isShiftDown() ? 10 : 1), 0));
@@ -371,12 +367,12 @@ public class ProjDiffAntiDrift implements AntiDrift {
 		}
 	}
 
-	private Vector3D offset, lastCorrection;
+	private Vector3D lastCorrection;
 	private Projections first, latest;
 	private AdjusterGUI gui;
 
 	private long tp;
-	private Vector3D loc, center;
+	private Vector3D loc;
 	private double theta;
 	private double zstep;
 
@@ -384,7 +380,7 @@ public class ProjDiffAntiDrift implements AntiDrift {
 	private double zratio;
 
 	public ProjDiffAntiDrift(File outDir, AcqRow r) {
-		offset = lastCorrection = Vector3D.ZERO;
+		lastCorrection = Vector3D.ZERO;
 		first = null;
 
 		loc = new Vector3D(r.getX(), r.getY(), r.getStartPosition());
@@ -400,20 +396,15 @@ public class ProjDiffAntiDrift implements AntiDrift {
 			if(!saveDir.exists() && !saveDir.mkdirs()) {
 				ij.IJ.log("Couldn't create output directory " + saveDir.getAbsolutePath());
 			} else {
-				outputDir = outDir;
+				outputDir = saveDir;
 			}
 		}
 	}
 
 	@Override
-	public Vector3D getAntiDriftOffset() {
-		return offset;
-	}
-
-	@Override
 	public void startNewStack() {
 		if(gui != null && gui.isVisible()) {
-			gui.callback.offset(gui.offset);
+			gui.callback.applyOffset(gui.offset);
 
 			gui.setVisible(false);
 			gui.dispose();
@@ -455,12 +446,12 @@ public class ProjDiffAntiDrift implements AntiDrift {
 		if(outputDir != null)
 			latest.writeDiff(first, zratio, init, center, getOutFile("suggested"));
 
-		gui = new AdjusterGUI(loc, theta, tp, zratio, first, latest, init, center, new Callback() {
+		gui = new AdjusterGUI(loc, theta, tp, zratio, first, latest, init, center, new AntiDrift.Callback() {
 			@Override
-			public void offset(Vector3D offs) {
+			public void applyOffset(Vector3D offs) {
 				offs = offs.add(lastCorrection);
 				lastCorrection = offs;
-				offset = offset.add(new Vector3D(-offs.getX(), -offs.getY(), -offs.getZ()*zstep));
+				invokeCallback(new Vector3D(-offs.getX(), -offs.getY(), -offs.getZ()*zstep));
 
 				if(outputDir != null)
 					latest.writeDiff(first, zratio, offs, center, getOutFile("final"));
