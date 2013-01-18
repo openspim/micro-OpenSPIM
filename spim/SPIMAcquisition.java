@@ -2065,14 +2065,14 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 					if(AD_MODE_MANUAL.equals(adModeCmbo.getSelectedItem())) {
 						f = new AntiDrift.Factory() {
 							@Override
-							public AntiDrift Manufacture(AcqParams p, AcqRow r) {
+							public AntiDrift manufacture(AcqParams p, AcqRow r) {
 								return new ManualAntiDrift(p, r);
 							}
 						};
 					} else if(AD_MODE_PROJECTIONS.equals(adModeCmbo.getSelectedItem())) {
 						f = new AntiDrift.Factory() {
 							@Override
-							public AntiDrift Manufacture(AcqParams p, AcqRow r) {
+							public AntiDrift manufacture(AcqParams p, AcqRow r) {
 								return new ProjDiffAntiDrift(output, r);
 							}
 						};
@@ -2089,7 +2089,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 						f = new AntiDrift.Factory() {
 							@Override
-							public AntiDrift Manufacture(AcqParams p, AcqRow r) {
+							public AntiDrift manufacture(AcqParams p, AcqRow r) {
 								return new IntensityMeanAntiDrift(adparams, r.getEndPosition() - r.getStartPosition());
 							}
 						};

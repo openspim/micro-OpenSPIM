@@ -6,7 +6,7 @@ import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 import org.micromanager.MMStudioMainFrame;
 
 
-public class IntensityMeanAntiDrift implements AntiDrift {
+public class IntensityMeanAntiDrift extends AntiDrift {
 	private Vector3D initialMean, cachedMean, runningMean, counts;
 	private double runningIntensity, currentMin, currentMax;
 	private long counted;
@@ -69,17 +69,6 @@ public class IntensityMeanAntiDrift implements AntiDrift {
 		ij.IJ.log("Center of intensity: " + ci.toString());
 
 		return ci;
-	}
-
-	/* (non-Javadoc)
-	 * @see spim.AntiDrift#getAntiDriftOffset()
-	 */
-	@Override
-	public Vector3D getAntiDriftOffset() {
-		if(absolute)
-			return cachedMean.scalarMultiply(-1);
-		else
-			return initialMean.subtract(cachedMean);
 	}
 
 	/* (non-Javadoc)
@@ -174,6 +163,11 @@ public class IntensityMeanAntiDrift implements AntiDrift {
 
 		if(initial)
 			initialMean = cachedMean;
+
+		if(absolute)
+			invokeCallback(cachedMean.scalarMultiply(-1));
+		else
+			invokeCallback(initialMean.subtract(cachedMean));
 	}
 
 	private void visualizeThreshold(ImageProcessor ip) {

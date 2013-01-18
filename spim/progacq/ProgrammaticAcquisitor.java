@@ -25,6 +25,8 @@ import org.micromanager.utils.MDUtils;
 import org.micromanager.utils.MMScriptException;
 import org.micromanager.utils.ReportingUtils;
 
+import spim.progacq.AntiDrift.Callback;
+
 
 public class ProgrammaticAcquisitor {
 	public static final String STACK_DIVIDER = "-- STACK DIVIDER --";
@@ -267,21 +269,30 @@ public class ProgrammaticAcquisitor {
 			}
 
 			int step = 0;
-			for(AcqRow row : params.getRows()) {
+			for(final AcqRow row : params.getRows()) {
 				final int tp = timeSeq;
 				final int rown = step;
 
-				runDevicesAtRow(core, devices, row.getPrimaryPositions(), step);
-
 				AntiDrift ad = null;
 				if(row.getZMode() != AcqRow.ZMode.CONTINUOUS_SWEEP && params.isAntiDriftOn()) {
-					if((ad = driftCompMap.get(row)) != null)
-						compensateForDrift(core, row, ad);
-					else
+					if((ad = driftCompMap.get(row)) != null) {
+						//compensateForDrift(core, row, ad);
+					} else {
 						ad = params.getAntiDrift(row);
+						ad.setCallback(new AntiDrift.Callback() {
+							@Override
+							public void applyOffset(Vector3D offs) {
+								offs = new Vector3D(offs.getX()*-core.getPixelSizeUm(), offs.getY()*-core.getPixelSizeUm(), -offs.getZ());
+								ij.IJ.log(String.format("TP %d view %d: Offset: %s", tp, rown, offs.toString()));
+								row.translate(offs);
+							}
+						});
+					}
 
 					ad.startNewStack();
 				};
+
+				runDevicesAtRow(core, devices, row.getPrimaryPositions(), step);
 
 				if(params.isIllumFullStack())
 					core.setShutterOpen(true);
@@ -415,9 +426,9 @@ public class ProgrammaticAcquisitor {
 		return handler.getImagePlus();
 	}
 
+	@Deprecated
 	private static void compensateForDrift(CMMCore core, AcqRow row, AntiDrift ad) throws Exception {
-		Vector3D offs = ad.getAntiDriftOffset();
-		offs = new Vector3D(offs.getX()*-core.getPixelSizeUm(), offs.getY()*-core.getPixelSizeUm(), -offs.getZ());
+		Vector3D offs = Vector3D.ZERO; //ad.getAntiDriftOffset();
 
 		Vector3D base = new Vector3D(core.getXPosition(core.getXYStageDevice()),
 			core.getYPosition(core.getXYStageDevice()),

@@ -195,7 +195,7 @@ public class AcqParams {
 	};
 
 	public AntiDrift getAntiDrift(AcqRow r) {
-		return (adFactory != null ? adFactory.Manufacture(this, r) : null);
+		return (adFactory != null ? adFactory.manufacture(this, r) : null);
 	};
 
 	public AcqRow[] getRows() {

@@ -4,9 +4,7 @@ import ij.process.ImageProcessor;
 
 import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 
-public interface AntiDrift {
-	public abstract Vector3D getAntiDriftOffset();
-
+public abstract class AntiDrift {
 	public abstract void startNewStack();
 
 	public abstract void tallySlice(Vector3D center, ImageProcessor ip);
@@ -16,10 +14,23 @@ public interface AntiDrift {
 	public abstract void finishStack(boolean initial);
 
 	public interface Factory {
-		public abstract AntiDrift Manufacture(AcqParams p, AcqRow r);
+		public abstract AntiDrift manufacture(AcqParams p, AcqRow r);
 	}
 
 	public interface Callback {
-		public abstract void Apply(Vector3D offset);
+		public abstract void applyOffset(Vector3D offset);
+	}
+
+	private Callback callback;
+
+	public void setCallback(Callback cb) {
+		callback = cb;
+	}
+
+	protected void invokeCallback(Vector3D offset) {
+		if(callback != null)
+			callback.applyOffset(offset);
+		else
+			ij.IJ.log("Anti-drift with no callback tried to invoke!");
 	}
 }

@@ -1,12 +1,14 @@
 package spim.progacq;
 
+import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
+
 public class AcqRow {
 	public enum ZMode {
 		SINGLE_POSITION,
 		STEPPED_RANGE,
 		CONTINUOUS_SWEEP
 	};
-	
+
 	private ZMode mode;
 	private String[] mainPositions;
 	private String specialDevLabel;
@@ -87,5 +89,15 @@ public class AcqRow {
 
 	public ZMode getZMode() {
 		return mode;
+	}
+
+	public void translate(Vector3D v) {
+		if(mainPositions.length != 3)
+			return;
+
+		mainPositions[0] = String.format("%f, %f", getX() + v.getX(), getY() + v.getY());
+		mainPositions[2] = Double.toString(getStartPosition() + v.getZ());
+		start += v.getZ();
+		end += v.getZ();
 	}
 }
