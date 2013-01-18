@@ -1060,6 +1060,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		acqProgress = new JProgressBar(0, 100);
 		acqProgress.setEnabled(false);
+		acqProgress.setStringPainted(true);
+		acqProgress.setString("Not Acquiring");
 		goBtnPnl.add(acqProgress);
 
 		bottom.add(Box.createHorizontalGlue());
@@ -2102,12 +2104,12 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 				acqProgress.setEnabled(true);
 
-				params.setProgressListener(new ChangeListener() {
+				params.setProgressListener(new ProgrammaticAcquisitor.AcqProgressCallback() {
 					@Override
-					public void stateChanged(ChangeEvent ce) {
-//						ReportingUtils.logMessage("Acq: " + (Double)ce.getSource() * 100D);
-						acqProgress.setValue((int)((Double)ce.getSource() * 100));
-					};
+					public void reportProgress(int tp, int row, double overall) {
+						acqProgress.setString(String.format("%.02f%%: T %d \u03B8 %d", overall*100, tp+1, row+1));
+						acqProgress.setValue((int)(overall * 100));
+					}
 				});
 
 				if(output != null) {
@@ -2131,9 +2133,12 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 							throw new Error("Error acquiring!", e);
 						}
 
+						acqThread = null;
 						acqGoBtn.setText(BTN_START);
+
+						acqProgress.setString("Not Acquiring");
 						acqProgress.setValue(0);
-						acqProgress.setEnabled(false);
+						acqProgress.repaint();
 					}
 				};
 			}
@@ -2155,8 +2160,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 			acqGoBtn.setText(BTN_START);
 
+			acqProgress.setString("Not Acquiring");
 			acqProgress.setValue(0);
-			acqProgress.setEnabled(false);
+			acqProgress.repaint();
 		}
 	}
 }

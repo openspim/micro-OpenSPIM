@@ -165,7 +165,7 @@ public class ProgrammaticAcquisitor {
 
 	private static ImagePlus cleanAbort(AcqParams p, boolean live, boolean as, Thread ct) {
 		p.getCore().setAutoShutter(as);
-		p.getProgressListener().stateChanged(new ChangeEvent(100.0D));
+		p.getProgressListener().reportProgress(p.getTimeSeqCount() - 1, p.getRows().length - 1, 100.0D);
 
 		try {
 			if(ct != null && ct.isAlive()) {
@@ -181,6 +181,10 @@ public class ProgrammaticAcquisitor {
 		} catch(Exception e) {
 			return null;
 		}
+	}
+
+	public interface AcqProgressCallback {
+		public abstract void reportProgress(int tp, int row, double overall);
 	}
 
 	/**
@@ -264,6 +268,9 @@ public class ProgrammaticAcquisitor {
 
 			int step = 0;
 			for(AcqRow row : params.getRows()) {
+				final int tp = timeSeq;
+				final int rown = step;
+
 				runDevicesAtRow(core, devices, row.getPrimaryPositions(), step);
 
 				AntiDrift ad = null;
@@ -324,7 +331,7 @@ public class ProgrammaticAcquisitor {
 						SwingUtilities.invokeLater(new Runnable() {
 							@Override
 							public void run() {
-								params.getProgressListener().stateChanged(new ChangeEvent(progress));
+								params.getProgressListener().reportProgress(tp, rown, progress);
 							}
 						});
 					};
@@ -368,7 +375,7 @@ public class ProgrammaticAcquisitor {
 				SwingUtilities.invokeLater(new Runnable() {
 					@Override
 					public void run() {
-						params.getProgressListener().stateChanged(new ChangeEvent(progress));
+						params.getProgressListener().reportProgress(tp, rown, progress);
 					}
 				});
 
