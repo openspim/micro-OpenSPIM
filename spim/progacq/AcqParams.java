@@ -19,7 +19,7 @@ public class AcqParams {
 	private Class<? extends AcqOutputHandler> outputHandler;
 	private Object[]		handlerParams;
 
-	private ChangeListener	progressListener;
+	private ProgrammaticAcquisitor.AcqProgressCallback	progressListener;
 
 	private String[]		metaDevices;
 
@@ -43,7 +43,7 @@ public class AcqParams {
 
 	public AcqParams(CMMCore iCore, String[] iDevices, AcqRow[] iRows,
 			double iTimeStep, int iTimeSeqCnt, boolean iContinuous,
-			ChangeListener iListener, String[] iMetaDevices, boolean saveIndv,
+			ProgrammaticAcquisitor.AcqProgressCallback iListener, String[] iMetaDevices, boolean saveIndv,
 			File rootDir) {
 		this(
 			iCore,
@@ -66,8 +66,8 @@ public class AcqParams {
 
 	public AcqParams(CMMCore iCore, String[] iDevs, AcqRow[] iRows,
 			double iTimeStep, int iTimeSeqCnt, boolean iContinuous,
-			ChangeListener iListener, String[] iMetaDevices,
-			Class<? extends AcqOutputHandler> handler, Object[] params) {
+			ProgrammaticAcquisitor.AcqProgressCallback iListener, String[] iMetaDevices,
+			AcqOutputHandler handler) {
 
 		setCore(iCore);
 		setStepDevices(iDevs);
@@ -155,14 +155,14 @@ public class AcqParams {
 	/**
 	 * @return the progressListener
 	 */
-	public ChangeListener getProgressListener() {
+	public ProgrammaticAcquisitor.AcqProgressCallback getProgressListener() {
 		return progressListener;
 	}
 
 	/**
 	 * @param progressListener the progressListener to set
 	 */
-	public void setProgressListener(ChangeListener progressListener) {
+	public void setProgressListener(ProgrammaticAcquisitor.AcqProgressCallback progressListener) {
 		this.progressListener = progressListener;
 	}
 
