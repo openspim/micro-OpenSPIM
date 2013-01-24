@@ -2,7 +2,6 @@ package spim.progacq;
 
 import java.io.File;
 
-import ij.IJ;
 import ij.ImagePlus;
 import ij.process.ImageProcessor;
 import ij.process.ShortProcessor;
@@ -16,7 +15,6 @@ import loci.formats.IFormatWriter;
 import loci.formats.ImageWriter;
 import loci.formats.MetadataTools;
 import loci.formats.meta.IMetadata;
-import loci.formats.ome.OMEXMLMetadata;
 import loci.formats.services.OMEXMLService;
 import mmcorej.CMMCore;
 
