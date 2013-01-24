@@ -1681,12 +1681,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		ImagePlus img = null;
 		ImageStack stck = new ImageStack(IP.getWidth(), IP.getHeight());
-		IP.drawString(String.format("t = %.3fs", t), 8, 20);
-		stck.addSlice("" + t, IP);
+		stck.addSlice(String.format("t=%.3fs", t), IP);
 		img = new ImagePlus("Video", stck);
 
 		img.setProperty("Info", img.getProperty("Info") + "\n" + TI.tags.toString());
-		IJ.save(img, new File(saveFile, t + ".tiff").getAbsolutePath());
+		IJ.save(img, new File(saveFile, String.format("%.3f.tiff",t)).getAbsolutePath());
 	}
 
 	@Override
@@ -1775,7 +1774,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 							ReportingUtils.logMessage("Condensing individual files...");
 
 							ImagePlus fij = new ImagePlus();
-							VirtualStack stck = new VirtualStack((int) mmc.getImageWidth(), (int) mmc.getImageHeight(), null, saveDir.getAbsolutePath());
+							LabelledVirtualStack stck = new LabelledVirtualStack((int) mmc.getImageWidth(), (int) mmc.getImageHeight(), null, saveDir.getAbsolutePath());
 
 							File[] files = saveDir.listFiles();
 							Arrays.sort(files, new Comparator<File>() {
@@ -1794,14 +1793,16 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 							String infoStr = "Timepoints:\n";
 
 							for(File f : files) {
-								ReportingUtils.logMessage(" Adding file " + f.getName() + "...");
-								stck.addSlice(f.getName());
-								infoStr += f.getName() + "\n";
+								String t = String.format("t=%s", f.getName().substring(0, f.getName().indexOf('.') + 4)) + "s";
+								stck.addSlice(t, f.getName());
+								infoStr += t + "\n";
 							}
 
 							fij.setProperty("Info", infoStr);
 							fij.setStack(stck);
-							fij.setFileInfo(new ij.io.FileInfo());
+							fij.setFileInfo(fij.getFileInfo());
+							fij.getOriginalFileInfo().directory = saveFile.getParent();
+							fij.getOriginalFileInfo().fileName = saveFile.getName();
 							IJ.save(fij, saveFile.getAbsolutePath());
 
 							for(File f : files)
