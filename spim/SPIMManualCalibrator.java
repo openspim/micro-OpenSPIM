@@ -6,7 +6,6 @@ import java.awt.Color;
 import java.awt.Rectangle;
 
 import java.lang.Math;
-import java.util.prefs.Preferences;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
