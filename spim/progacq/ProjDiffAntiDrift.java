@@ -372,7 +372,7 @@ public class ProjDiffAntiDrift extends AntiDrift {
 	private AdjusterGUI gui;
 
 	private long tp;
-	private Vector3D loc, center;
+	private Vector3D loc;
 	private double theta;
 	private double zstep;
 

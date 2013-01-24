@@ -271,9 +271,7 @@ public class ProgrammaticAcquisitor {
 
 				AntiDrift ad = null;
 				if(row.getZMode() != AcqRow.ZMode.CONTINUOUS_SWEEP && params.isAntiDriftOn()) {
-					if((ad = driftCompMap.get(row)) != null) {
-						//compensateForDrift(core, row, ad);
-					} else {
+					if((ad = driftCompMap.get(row)) == null) {
 						ad = params.getAntiDrift(row);
 						ad.setCallback(new AntiDrift.Callback() {
 							@Override
@@ -420,43 +418,6 @@ public class ProgrammaticAcquisitor {
 //			frame.enableLiveMode(true);
 
 		return handler.getImagePlus();
-	}
-
-	@Deprecated
-	private static void compensateForDrift(CMMCore core, AcqRow row, AntiDrift ad) throws Exception {
-		Vector3D offs = Vector3D.ZERO; //ad.getAntiDriftOffset();
-
-		Vector3D base = new Vector3D(core.getXPosition(core.getXYStageDevice()),
-			core.getYPosition(core.getXYStageDevice()),
-			row.getStartPosition());
-
-		ij.IJ.log("Determined offs: " + offs.toString());
-
-		Vector3D point9 = base.add(offs.scalarMultiply(1.5));
-		Vector3D dest = base.add(offs);
-
-		// Note that all the following is very Picard-specific. Other stage
-		// motors will doubtless have different property names.
-
-		// Move nearly there so moving back at speed 1 doesn't take too long.
-		core.setXYPosition(core.getXYStageDevice(), point9.getX(), point9.getY());
-		core.setPosition(row.getDevice(), point9.getZ());
-		core.waitForSystem();
-
-		String oldVelZ = core.getProperty(row.getDevice(), "Velocity");
-		String oldVelX = core.getProperty(core.getXYStageDevice(), "X-Velocity");
-		String oldVelY = core.getProperty(core.getXYStageDevice(), "Y-Velocity");
-		core.setProperty(row.getDevice(),"Velocity",1);
-		core.setProperty(core.getXYStageDevice(), "X-Velocity", 1);
-		core.setProperty(core.getXYStageDevice(), "Y-Velocity", 1);
-
-		core.setXYPosition(core.getXYStageDevice(), dest.getX(), dest.getY());
-		core.setPosition(row.getDevice(), dest.getZ());
-		core.waitForSystem();
-
-		core.setProperty(row.getDevice(), "Velocity", oldVelZ);
-		core.setProperty(core.getXYStageDevice(), "X-Velocity", oldVelX);
-		core.setProperty(core.getXYStageDevice(), "Y-Velocity", oldVelY);
 	}
 
 	private static void tallyAntiDriftSlice(CMMCore core, AcqRow row, AntiDrift ad, TaggedImage img) throws Exception {
