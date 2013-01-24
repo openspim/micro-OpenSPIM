@@ -5,9 +5,7 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.GenericDialog;
 import ij.gui.ImageWindow;
-import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
-import ij.process.ShortProcessor;
 
 import java.awt.Component;
 import java.awt.Container;
@@ -64,7 +62,6 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
-import javax.swing.SwingUtilities;
 import javax.swing.table.TableModel;
 
 import mmcorej.CMMCore;
@@ -1536,106 +1533,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				gui.updateImage();
 			}
 		}
-	}
-
-	protected ImageProcessor snapSlice() throws Exception {
-		synchronized(frame) {
-			mmc.snapImage();
-		}
-
-		int width = (int)mmc.getImageWidth();
-		int height = (int)mmc.getImageHeight();
-		if (mmc.getBytesPerPixel() == 1) {
-			byte[] pixels = (byte[])mmc.getImage();
-			return new ByteProcessor(width, height, pixels, null);
-		} else if (mmc.getBytesPerPixel() == 2){
-			short[] pixels = (short[])mmc.getImage();
-			return new ShortProcessor(width, height, pixels, null);
-		} else
-			return null;
-	}
-
-	protected void snapAndShowContinuousStack(final int zStart, final int zEnd) throws Exception {
-		// Cannot run this on the EDT
-		if (SwingUtilities.isEventDispatchThread()) {
-			new Thread() {
-				public void run() {
-					try {
-						snapAndShowContinuousStack(zStart, zEnd);
-					} catch (Exception e) {
-						IJ.handleException(e);
-					}
-				}
-			}.start();
-			return;
-		}
-
-		snapContinuousStack(zStart, zEnd).show();
-	}
-
-	protected ImagePlus snapContinuousStack(int zStart, int zEnd) throws Exception {
-		String meta = getMetaData();
-		ImageStack stack = null;
-		zSlider.setValue(zStart);
-		Thread.sleep(50); // wait 50 milliseconds for the state to settle
-		zSlider.setValue(zEnd);
-		int zStep = (zStart < zEnd ? +1 : -1);
-		ReportingUtils.logMessage("from " + zStart + " to " + zEnd + ", step: " + zStep);
-		for (int z = zStart; z  * zStep <= zEnd * zStep; z = z + zStep) {
-			ReportingUtils.logMessage("Waiting for " + z + " (" + (z * zStep) + " < " + ((int)mmc.getPosition(zStageLabel) * zStep) + ")");
-			while (z * zStep > (int)mmc.getPosition(zStageLabel) * zStep)
-				Thread.sleep(0);
-			ReportingUtils.logMessage("Got " + mmc.getPosition(zStageLabel));
-			ImageProcessor ip = snapSlice();
-			z = (int)mmc.getPosition(zStageLabel);
-			ReportingUtils.logMessage("Updated z to " + z);
-			if (stack == null)
-				stack = new ImageStack(ip.getWidth(), ip.getHeight());
-			stack.addSlice("z: " + z, ip);
-		}
-		ReportingUtils.logMessage("Finished taking " + (zStep * (zEnd - zStart)) + " slices (really got " + (stack == null ? "0" : stack.getSize() + ")"));
-		ImagePlus result = new ImagePlus("SPIM!", stack);
-		result.setProperty("Info", meta);
-		return result;
-	}
-
-	protected ImagePlus snapStack(int zStart, int zEnd, int delayMs) throws Exception {
-		boolean isLive = gui.isLiveModeOn();
-		if (isLive) {
-			gui.enableLiveMode(false);
-			Thread.sleep(100);
-		}
-		if (delayMs < 0)
-			delayMs = 0;
-		String meta = getMetaData();
-		ImageStack stack = null;
-		int zStep = (zStart < zEnd ? +1 : -1);
-		for (int z = zStart; z * zStep <= zEnd * zStep; z = z + zStep) {
-			zSlider.setValue(z);
-			Thread.sleep(delayMs);
-			ImageProcessor ip = snapSlice();
-			if (stack == null)
-				stack = new ImageStack(ip.getWidth(), ip.getHeight());
-			stack.addSlice("z: " + z, ip);
-		}
-		ImagePlus result = new ImagePlus("SPIM!", stack);
-		result.setProperty("Info", meta);
-		if (isLive)
-			gui.enableLiveMode(true);
-		return result;
-	}
-
-	protected String getMetaData() throws Exception {
-		String meta = "";
-		if (xyStageLabel != "")
-			meta += "x motor position: " + mmc.getXPosition(xyStageLabel) + "\n"
-				+ "y motor position: " + mmc.getYPosition(xyStageLabel) + "\n";
-		if (zStageLabel != "")
-			meta +=  "z motor position: " + mmc.getPosition(zStageLabel) + "\n";
-		if (twisterLabel != "")
-			meta +=  "twister position: " + mmc.getPosition(twisterLabel) + "\n"
-				+ "twister angle: " + twisterPosition2Angle((int)mmc.getPosition(twisterLabel)) + "\n";
-		return meta;
 	}
 
 	/**
