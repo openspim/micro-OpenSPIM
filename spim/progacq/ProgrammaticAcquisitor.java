@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Vector;
 
 import javax.swing.SwingUtilities;
-import javax.swing.event.ChangeEvent;
 
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
@@ -21,12 +20,9 @@ import mmcorej.TaggedImage;
 
 import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 import org.micromanager.MMStudioMainFrame;
+import org.micromanager.utils.ImageUtils;
 import org.micromanager.utils.MDUtils;
-import org.micromanager.utils.MMScriptException;
 import org.micromanager.utils.ReportingUtils;
-
-import spim.progacq.AntiDrift.Callback;
-
 
 public class ProgrammaticAcquisitor {
 	public static final String STACK_DIVIDER = "-- STACK DIVIDER --";
@@ -464,7 +460,7 @@ public class ProgrammaticAcquisitor {
 	}
 
 	private static void tallyAntiDriftSlice(CMMCore core, AcqRow row, AntiDrift ad, TaggedImage img) throws Exception {
-		ImageProcessor ip = newImageProcessor(core, img.pix);
+		ImageProcessor ip = ImageUtils.makeProcessor(img);
 
 		ad.tallySlice(new Vector3D(0,0,core.getPosition(row.getDevice())-row.getStartPosition()), ip);
 	}
@@ -488,7 +484,7 @@ public class ProgrammaticAcquisitor {
 			}
 		}
 
-		ImageProcessor ip = newImageProcessor(core, slice.pix);
+		ImageProcessor ip = ImageUtils.makeProcessor(slice);
 
 		// FIXME: Don't assume the name is 'Picard Twister'...
 		handler.processSlice(ip, core.getXPosition(core.getXYStageDevice()),
@@ -496,137 +492,6 @@ public class ProgrammaticAcquisitor {
 				core.getPosition(core.getFocusDevice()),
 				core.getPosition("Picard Twister"),
 				System.nanoTime() / 1e9 - start);
-	}
-
-	/**
-	 * Utility function to convert an array of bytes into an array of integers.
-	 * Effectively a reinterpret_cast.
-	 * 
-	 * @param b
-	 *            Array of bytes (image data).
-	 * @return Array of integers b represents.
-	 * @throws Exception
-	 *             If b has an impossible length.
-	 */
-	private static int[] bToI(byte[] b) throws Exception {
-		if (b.length % 4 != 0)
-			throw new Exception("4-byte length mismatch!");
-
-		int[] i = new int[b.length / 4];
-
-		for (int bi = 0; bi < i.length; ++bi) {
-			// These might not actually be ARGB. All 32-bit pixel formats are
-			// passed through this function.
-			int alpha = b[bi * 4 + 3] & 0xFF;
-			int red = b[bi * 4 + 2] & 0xFF;
-			int green = b[bi * 4 + 1] & 0xFF;
-			int blue = b[bi * 4 + 0] & 0xFF;
-
-			i[bi] = (alpha << 24) | (red << 16) | (green << 8) | blue;
-		}
-
-		return i;
-	}
-
-	/**
-	 * Like above, but reinterprets as an array of floats.
-	 * 
-	 * @param b
-	 *            Array of bytes (image data).
-	 * @return Array of floats b represents.
-	 * @throws Exception
-	 *             If b has an impossible length.
-	 */
-	private static double[] bToF(byte[] b) throws Exception {
-		if (b.length % 4 != 0)
-			throw new Exception("4-byte float length mismatch!");
-
-		double[] f = new double[b.length / 4];
-
-		for (int bi = 0; bi < f.length; ++bi) {
-			int hh = b[bi * 4 + 3] & 0xFF;
-			int hl = b[bi * 4 + 2] & 0xFF;
-			int lh = b[bi * 4 + 1] & 0xFF;
-			int ll = b[bi * 4 + 0] & 0xFF;
-
-			f[bi] = (double) Float.intBitsToFloat((hh << 24) | (hl << 16)
-					| (lh << 8) | ll);
-		}
-
-		return f;
-	}
-
-	/**
-	 * Just like above, but as doubles.
-	 * 
-	 * @param b
-	 *            Array of bytes (64-bit floating point image data).
-	 * @return Array of doubles represented by b.
-	 * @throws Exception
-	 *             If b has an impossible length.
-	 */
-	private static double[] bToD(byte[] b) throws Exception {
-		if (b.length % 8 != 0)
-			throw new Exception("8-byte length mismatch!");
-
-		double[] d = new double[b.length / 8];
-
-		for (int bi = 0; bi < d.length; ++bi) {
-			int hhh = b[bi * 8 + 7] & 0xFF;
-			int hhl = b[bi * 8 + 6] & 0xFF;
-			int hlh = b[bi * 8 + 5] & 0xFF;
-			int hll = b[bi * 8 + 4] & 0xFF;
-			int lhh = b[bi * 8 + 3] & 0xFF;
-			int lhl = b[bi * 8 + 2] & 0xFF;
-			int llh = b[bi * 8 + 1] & 0xFF;
-			int lll = b[bi * 8 + 0] & 0xFF;
-
-			d[bi] = Double.longBitsToDouble((hhh << 56) | (hhl << 48)
-					| (hlh << 40) | (hll << 32) | (lhh << 24) | (lhl << 16)
-					| (llh << 8) | (lll << 0));
-		}
-
-		return d;
-	}
-
-	/**
-	 * Generates an image processor object (IJ) based off the latest image taken
-	 * by the specified core.
-	 * 
-	 * @param core
-	 *            The Micro-Manager core reference to acquire via.
-	 * @return An ImageProcessor object containing the pixels in MM's image.
-	 * @throws Exception
-	 *             On unsupported image modes.
-	 */
-	public static ImageProcessor newImageProcessor(CMMCore core, Object image)
-			throws Exception {
-		if (core.getBytesPerPixel() == 1) {
-			return new ByteProcessor((int) core.getImageWidth(),
-					(int) core.getImageHeight(), (byte[]) image, null);
-		} else if (core.getBytesPerPixel() == 2) {
-			return new ShortProcessor((int) core.getImageWidth(),
-					(int) core.getImageHeight(), (short[]) image, null);
-		} else if (core.getBytesPerPixel() == 4) {
-			if (core.getNumberOfComponents() > 1) {
-				return new ColorProcessor((int) core.getImageWidth(),
-						(int) core.getImageHeight(), bToI((byte[]) image));
-			} else {
-				return new FloatProcessor((int) core.getImageWidth(),
-						(int) core.getImageHeight(), bToF((byte[]) image));
-			}
-		} else if (core.getBytesPerPixel() == 8) {
-			if (core.getNumberOfComponents() > 1) {
-				throw new Exception("No support for 64-bit color!");
-			} else {
-				return new FloatProcessor((int) core.getImageWidth(),
-						(int) core.getImageHeight(), bToD((byte[]) image));
-			}
-		} else {
-			// TODO: Expand support to include all modes...
-			throw new Exception("Unsupported image depth ("
-					+ core.getBytesPerPixel() + " bytes/pixel)");
-		}
 	}
 
 	/**

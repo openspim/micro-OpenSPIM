@@ -3,7 +3,6 @@ package spim;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
-import ij.VirtualStack;
 import ij.gui.GenericDialog;
 import ij.gui.ImageWindow;
 import ij.process.ByteProcessor;
@@ -53,7 +52,6 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
-import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -67,8 +65,6 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import javax.swing.table.TableModel;
 
 import mmcorej.CMMCore;
@@ -79,6 +75,7 @@ import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 import org.micromanager.MMStudioMainFrame;
 import org.micromanager.api.MMPlugin;
 import org.micromanager.api.ScriptInterface;
+import org.micromanager.utils.ImageUtils;
 import org.micromanager.utils.ReportingUtils;
 
 import spim.progacq.AcqParams;
@@ -1839,7 +1836,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	private static void appendNext(CMMCore mmc, File saveFile, double bt) throws Exception {
 		mmcorej.TaggedImage TI = mmc.popNextTaggedImage();
 
-		ImageProcessor IP = ProgrammaticAcquisitor.newImageProcessor(mmc, TI.pix);
+		ImageProcessor IP = ImageUtils.makeProcessor(TI);
 		
 		double t = System.nanoTime() / 1e9 - bt;
 
