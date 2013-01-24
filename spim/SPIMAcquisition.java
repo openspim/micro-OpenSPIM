@@ -179,7 +179,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	protected JTextField adResetMagn;
 	protected JCheckBox adAbsolute;
 	protected JCheckBox adVisualize;
-	private JButton starBtn;
 	protected JComponent adAutoControls;
 
 	// MMPlugin stuff
