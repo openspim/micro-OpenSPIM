@@ -34,6 +34,7 @@ import org.apache.commons.math.optimization.GoalType;
 import org.apache.commons.math.optimization.direct.NelderMeadSimplex;
 import org.apache.commons.math.optimization.direct.SimplexOptimizer;
 import org.micromanager.MMStudioMainFrame;
+import org.micromanager.utils.ImageUtils;
 
 import mmcorej.CMMCore;
 
@@ -289,10 +290,10 @@ public class PixelSizeCalibrator extends JFrame implements MouseListener,
 
 		try {
 			if(gui.isLiveModeOn()) {
-				workingImage = new ImagePlus("Calibration", ProgrammaticAcquisitor.newImageProcessor(core, core.getLastImage()));
+				workingImage = new ImagePlus("Calibration", ImageUtils.makeProcessor(core.getLastTaggedImage()));
 			} else {
 				core.snapImage();
-				workingImage = new ImagePlus("Calibration", ProgrammaticAcquisitor.newImageProcessor(core, core.getImage()));
+				workingImage = new ImagePlus("Calibration", ImageUtils.makeProcessor(core.getTaggedImage()));
 			}
 		} catch(Throwable t) {
 			IJ.handleException(t);
