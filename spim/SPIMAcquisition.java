@@ -204,10 +204,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		}
 		frame.dispose();
 		frame = null;
-		runToX.interrupt();
-		runToY.interrupt();
-		runToZ.interrupt();
-		runToAngle.interrupt();
 		timer.cancel();
 		hookLiveControls(false);
 	}
@@ -372,7 +368,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		xSlider = new MotorSlider(motorMin, motorMax, 1) {
 			@Override
 			public void valueChanged(int value) {
-				runToX.run(value);
+				try {
+					mmc.setXYPosition(xyStageLabel, value, mmc.getYPosition(xyStageLabel));
+				} catch (Exception e) {
+					IJ.handleException(e);
+				}
 				maybeUpdateImage();
 			}
 		};
@@ -380,7 +380,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		ySlider = new MotorSlider(motorMin, motorMax, 1) {
 			@Override
 			public void valueChanged(int value) {
-				runToY.run(value);
+				try {
+					mmc.setXYPosition(xyStageLabel, mmc.getXPosition(xyStageLabel), value);
+				} catch (Exception e) {
+					IJ.handleException(e);
+				}
 				maybeUpdateImage();
 			}
 		};
@@ -388,7 +392,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		zSlider = new MotorSlider(motorMin, motorMax, 1) {
 			@Override
 			public void valueChanged(int value) {
-				runToZ.run(value);
+				try {
+					mmc.setPosition(zStageLabel, value);
+				} catch (Exception e) {
+					IJ.handleException(e);
+				}
 				maybeUpdateImage();
 			}
 		};
@@ -396,7 +404,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		rotationSlider = new MappedMotorSlider(twisterMin, twisterMax, 0) {
 			@Override
 			public void valueChanged(int value) {
-				runToAngle.run(value);
+				try {
+					mmc.setPosition(twisterLabel, value);
+				} catch (Exception e) {
+					IJ.handleException(e);
+				}
 				maybeUpdateImage();
 			}
 
@@ -1526,74 +1538,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		}
 	}
 
-	protected RunTo runToX = new RunTo("x") {
-		@Override
-		public int get() throws Exception {
-			return (int)mmc.getXPosition(xyStageLabel);
-		}
-
-		@Override
-		public void set(int value) throws Exception {
-			mmc.setXYPosition(xyStageLabel, value, mmc.getYPosition(xyStageLabel));
-		}
-
-		@Override
-		public void done() {
-			xPosition.setText("" + goal);
-		}
-	};
-
-	protected RunTo runToY = new RunTo("y") {
-		@Override
-		public int get() throws Exception {
-			return (int)mmc.getYPosition(xyStageLabel);
-		}
-
-		@Override
-		public void set(int value) throws Exception {
-			mmc.setXYPosition(xyStageLabel, mmc.getXPosition(xyStageLabel), value);
-		}
-
-		@Override
-		public void done() {
-			yPosition.setText("" + goal);
-		}
-	};
-
-	protected RunTo runToZ = new RunTo("z") {
-		@Override
-		public int get() throws Exception {
-			return (int)mmc.getPosition(zStageLabel);
-		}
-
-		@Override
-		public void set(int value) throws Exception {
-			mmc.setPosition(zStageLabel, value);
-		}
-
-		@Override
-		public void done() {
-			zPosition.setText("" + goal);
-		}
-	};
-
-	protected RunTo runToAngle = new RunTo("angle") {
-		@Override
-		public int get() throws Exception {
-			return (int)mmc.getPosition(twisterLabel);
-		}
-
-		@Override
-		public void set(int value) throws Exception {
-			mmc.setPosition(twisterLabel, value);
-		}
-
-		@Override
-		public void done() {
-			rotation.setText("" + twisterPosition2Angle(goal));
-		}
-	};
-
 	protected ImageProcessor snapSlice() throws Exception {
 		synchronized(frame) {
 			mmc.snapImage();
@@ -1633,7 +1577,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		String meta = getMetaData();
 		ImageStack stack = null;
 		zSlider.setValue(zStart);
-		runToZ.run(zStart);
 		Thread.sleep(50); // wait 50 milliseconds for the state to settle
 		zSlider.setValue(zEnd);
 		int zStep = (zStart < zEnd ? +1 : -1);
@@ -1669,7 +1612,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		int zStep = (zStart < zEnd ? +1 : -1);
 		for (int z = zStart; z * zStep <= zEnd * zStep; z = z + zStep) {
 			zSlider.setValue(z);
-			runToZ.run(z);
 			Thread.sleep(delayMs);
 			ImageProcessor ip = snapSlice();
 			if (stack == null)
