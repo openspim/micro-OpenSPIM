@@ -376,7 +376,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				maybeUpdateImage();
 			}
 		};
-		limitedXRange = new LimitedRangeCheckbox("Limit range", xSlider, 500, 2500, "range.x");
+		limitedXRange = new LimitedRangeCheckbox("Limit range", xSlider, 1000, 5000, "range.x");
 		ySlider = new MotorSlider(motorMin, motorMax, 1) {
 			@Override
 			public void valueChanged(int value) {
@@ -388,7 +388,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				maybeUpdateImage();
 			}
 		};
-		limitedYRange = new LimitedRangeCheckbox("Limit range", ySlider, 500, 2500, "range.y");
+		limitedYRange = new LimitedRangeCheckbox("Limit range", ySlider, 1000, 5000, "range.y");
 		zSlider = new MotorSlider(motorMin, motorMax, 1) {
 			@Override
 			public void valueChanged(int value) {
