@@ -379,7 +379,7 @@ public class ProjDiffAntiDrift extends AntiDrift {
 	private File outputDir;
 	private double zratio;
 
-	public ProjDiffAntiDrift(File outDir, AcqRow r) {
+	public ProjDiffAntiDrift(File outDir, AcqParams p, AcqRow r) {
 		lastCorrection = Vector3D.ZERO;
 		first = null;
 
@@ -387,7 +387,7 @@ public class ProjDiffAntiDrift extends AntiDrift {
 		theta = r.getTheta();
 		tp = 1;
 		zstep = r.getStepSize();
-		zratio = zstep*2.3; // TODO: This is hard-coded.
+		zratio = zstep/p.getCore().getPixelSizeUm();
 
 		if(outDir != null) {
 			String xyz = String.format("XYZ%.2fx%.2fx%.2f_Theta%.2f", loc.getX(), loc.getY(), loc.getZ(), theta);
