@@ -75,9 +75,11 @@ import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.ImageUtils;
 import org.micromanager.utils.ReportingUtils;
 
+import spim.progacq.AcqOutputHandler;
 import spim.progacq.AcqParams;
 import spim.progacq.AcqRow;
 import spim.progacq.AntiDrift;
+import spim.progacq.AsyncOutputWrapper;
 import spim.progacq.IntensityMeanAntiDrift;
 import spim.progacq.ManualAntiDrift;
 import spim.progacq.OMETIFFHandler;
@@ -177,6 +179,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	protected JCheckBox adVisualize;
 	private JButton starBtn;
 	protected JComponent adAutoControls;
+	private JCheckBox asyncCheckbox;
 
 	// MMPlugin stuff
 
@@ -990,6 +993,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		acqSaveDir = new JTextField(48);
 		acqSaveDir.setEnabled(true);
 
+		asyncCheckbox = new JCheckBox("Asynchronous Output");
+		asyncCheckbox.setSelected(true);
+		asyncCheckbox.setEnabled(true);
+		asyncCheckbox.setToolTipText("If checked, captured images will be buffered and written as time permits. This speeds up acquisition. Currently only applies if an output directory is specified.");
+
 		pickDirBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
@@ -1007,7 +1015,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		addLine(right, Justification.STRETCH, "Laser:", laserSlider);
 		addLine(right, Justification.STRETCH, "Exposure:", exposureSlider);
 		addLine(right, Justification.RIGHT, speedControl, "Z settle time (ms):", settleTime, continuousCheckbox, antiDriftCheckbox, liveCheckbox, laseStackCheckbox /*registrationCheckbox*/);
-		addLine(right, Justification.RIGHT, "Output directory:", acqSaveDir, pickDirBtn);
+		addLine(right, Justification.RIGHT, "Output directory:", acqSaveDir, pickDirBtn, asyncCheckbox);
 
 		JPanel bottom = new JPanel();
 		bottom.setLayout(new BoxLayout(bottom, BoxLayout.LINE_AXIS));
@@ -1888,10 +1896,14 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 									return;
 					}
 
-					params.setOutputHandler(new OMETIFFHandler(
+					AcqOutputHandler handler = new OMETIFFHandler(
 						mmc, output, xyStageLabel, twisterLabel, zStageLabel, "t",
 						acqRows, timeSeqs, timeStep
-					));
+					);
+					if(asyncCheckbox.isSelected())
+						handler = new AsyncOutputWrapper(handler, (ij.IJ.maxMemory() - ij.IJ.currentMemory())/(mmc.getImageWidth()*mmc.getImageHeight()*mmc.getBytesPerPixel()*2));
+
+					params.setOutputHandler(handler);
 				} else {
 					output = null;
 				}
