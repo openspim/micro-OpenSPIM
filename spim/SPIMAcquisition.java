@@ -937,9 +937,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 					if(SPIMAcquisition.this.adPane == null) {
 						JFrame fr = new JFrame("AD Settings");
 						fr.setLayout(new BoxLayout(fr.getContentPane(), BoxLayout.PAGE_AXIS));
-						
+
 						fr.add(SPIMAcquisition.this.adModeCmbo = new JComboBox(AntiDriftModeNames));
-						
+
 						fr.add(SPIMAcquisition.this.adAutoControls = LayoutUtils.titled("Automatic", (JComponent) LayoutUtils.vertPanel(
 							SPIMAcquisition.this.adAbsolute = new JCheckBox("Absolute"),
 							LayoutUtils.titled("Thresholding", (JComponent) LayoutUtils.vertPanel(
@@ -958,8 +958,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 						adAutoThresh.addItemListener(new ItemListener() {
 							@Override
 							public void itemStateChanged(ItemEvent ie) {
-								adThreshMin.setText("0.1");
-								adThreshMax.setText("0.4");
+								adThreshMin.setText(adAutoThresh.isSelected() ? "0.1" : "350");
+								adThreshMax.setText(adAutoThresh.isSelected() ? "0.4" : "4096");
 							}
 						});
 
@@ -967,7 +967,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 						adModeCmbo.addItemListener(new ItemListener() {
 							@Override
 							public void itemStateChanged(ItemEvent ie) {
-								adAutoControls.setEnabled(AD_MODE_INTCENT.equals(adModeCmbo.getSelectedItem()));
+								adAutoControls.setVisible(AD_MODE_INTCENT.equals(adModeCmbo.getSelectedItem()));
+								adPane.pack();
 							}
 						});
 					}
