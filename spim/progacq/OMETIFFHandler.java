@@ -176,7 +176,8 @@ public class OMETIFFHandler implements AcqOutputHandler {
 			writer.saveBytes(plane, data);
 		} catch(java.io.IOException ioe) {
 			finalizeStack(0);
-			writer.close();
+			if(writer != null)
+				writer.close();
 			throw new Exception("Error writing OME-TIFF.", ioe);
 		}
 
@@ -192,11 +193,15 @@ public class OMETIFFHandler implements AcqOutputHandler {
 	public void finalizeAcquisition() throws Exception {
 		if(writer != null)
 		{
-			((loci.formats.out.OMETiffWriter)writer).updateSeriesMetadata();
+			try {
+				((loci.formats.out.OMETiffWriter)writer).setAllowFullUpdate(true);
+			} catch (NullPointerException npe) {
+				ij.IJ.handleException(npe);
+			}
+
 			writer.close();
 		}
 
-		ReportingUtils.logMessage("" + imageCounter + " vs " + stacks);
 		imageCounter = 0;
 
 		writer = null;
