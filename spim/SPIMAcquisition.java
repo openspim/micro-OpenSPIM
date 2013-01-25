@@ -143,7 +143,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	protected JButton speedControl, ohSnap;
 
 	protected boolean updateLiveImage, zStageHasVelocity;
-	protected Thread acquiring;
 
 	private static Preferences prefs;
 
@@ -1233,29 +1232,29 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	};
 
 	protected void updateUI() {
-		xPosition.setEnabled(acquiring == null && xyStageLabel != null);
-		yPosition.setEnabled(acquiring == null && xyStageLabel != null);
-		zPosition.setEnabled(acquiring == null && zStageLabel != null);
-		rotation.setEnabled(acquiring == null && twisterLabel != null);
+		xPosition.setEnabled(acqThread == null && xyStageLabel != null);
+		yPosition.setEnabled(acqThread == null && xyStageLabel != null);
+		zPosition.setEnabled(acqThread == null && zStageLabel != null);
+		rotation.setEnabled(acqThread == null && twisterLabel != null);
 
-		xSlider.setEnabled(acquiring == null && xyStageLabel != null);
-		limitedXRange.setEnabled(acquiring == null && xyStageLabel != null);
-		ySlider.setEnabled(acquiring == null && xyStageLabel != null);
-		limitedYRange.setEnabled(acquiring == null && xyStageLabel != null);
-		zSlider.setEnabled(acquiring == null && zStageLabel != null);
-		limitedZRange.setEnabled(acquiring == null && zStageLabel != null);
-		rotationSlider.setEnabled(acquiring == null && twisterLabel != null);
-		stepsPerRotation.setEnabled(acquiring == null && twisterLabel != null);
-		degreesPerStep.setEnabled(acquiring == null && twisterLabel != null);
+		xSlider.setEnabled(acqThread == null && xyStageLabel != null);
+		limitedXRange.setEnabled(acqThread == null && xyStageLabel != null);
+		ySlider.setEnabled(acqThread == null && xyStageLabel != null);
+		limitedYRange.setEnabled(acqThread == null && xyStageLabel != null);
+		zSlider.setEnabled(acqThread == null && zStageLabel != null);
+		limitedZRange.setEnabled(acqThread == null && zStageLabel != null);
+		rotationSlider.setEnabled(acqThread == null && twisterLabel != null);
+		stepsPerRotation.setEnabled(acqThread == null && twisterLabel != null);
+		degreesPerStep.setEnabled(acqThread == null && twisterLabel != null);
 
-		laserPower.setEnabled(acquiring == null && laserLabel != null);
-		exposure.setEnabled(acquiring == null && cameraLabel != null);
-		laserSlider.setEnabled(acquiring == null && laserLabel != null);
-		exposureSlider.setEnabled(acquiring == null && cameraLabel != null);
-		liveCheckbox.setEnabled(acquiring == null && cameraLabel != null);
-		speedControl.setEnabled(acquiring == null && zStageHasVelocity);
-		continuousCheckbox.setEnabled(acquiring == null && zStageLabel != null && cameraLabel != null);
-		settleTime.setEnabled(acquiring == null && zStageLabel != null);
+		laserPower.setEnabled(acqThread == null && laserLabel != null);
+		exposure.setEnabled(acqThread == null && cameraLabel != null);
+		laserSlider.setEnabled(acqThread == null && laserLabel != null);
+		exposureSlider.setEnabled(acqThread == null && cameraLabel != null);
+		liveCheckbox.setEnabled(acqThread == null && cameraLabel != null);
+		speedControl.setEnabled(acqThread == null && zStageHasVelocity);
+		continuousCheckbox.setEnabled(acqThread == null && zStageLabel != null && cameraLabel != null);
+		settleTime.setEnabled(acqThread == null && zStageLabel != null);
 
 		acqXYDevCB.setSelected(xyStageLabel != null);
 		acqZDevCB.setSelected(zStageLabel != null);
