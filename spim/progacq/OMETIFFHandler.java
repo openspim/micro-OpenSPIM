@@ -105,7 +105,6 @@ public class OMETIFFHandler implements AcqOutputHandler {
 			writer.setWriteSequentially(true);
 			writer.setMetadataRetrieve(meta);
 			writer.setInterleaved(false);
-			((loci.formats.out.OMETiffWriter)writer).setAllowFullUpdate(false);
 			writer.setValidBitsPerPixel((int) core.getImageBitDepth());
 			writer.setCompression("Uncompressed");
 		} catch(Throwable t) {
@@ -192,15 +191,7 @@ public class OMETIFFHandler implements AcqOutputHandler {
 	@Override
 	public void finalizeAcquisition() throws Exception {
 		if(writer != null)
-		{
-			try {
-				((loci.formats.out.OMETiffWriter)writer).setAllowFullUpdate(true);
-			} catch (NullPointerException npe) {
-				ij.IJ.handleException(npe);
-			}
-
 			writer.close();
-		}
 
 		imageCounter = 0;
 
