@@ -75,6 +75,7 @@ import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.ImageUtils;
 import org.micromanager.utils.ReportingUtils;
 
+import spim.DeviceManager.SPIMDevice;
 import spim.progacq.AcqOutputHandler;
 import spim.progacq.AcqParams;
 import spim.progacq.AcqRow;
@@ -129,8 +130,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	protected CMMCore mmc;
 	protected MMStudioMainFrame gui;
 
-	protected String xyStageLabel, zStageLabel, twisterLabel,
-		laserLabel, cameraLabel;
+//	protected String xyStageLabel, zStageLabel, twisterLabel,
+//		laserLabel, cameraLabel;
+	protected DeviceManager devMgr;
 
 	protected JFrame frame;
 	protected IntegerField xPosition, yPosition, zPosition, rotation,
@@ -226,6 +228,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	public void show() {
 		prefs = Preferences.userNodeForPackage(getClass());
 
+		devMgr = new DeviceManager(mmc);
+
 		ensurePixelResolution();
 		initUI();
 		configurationChanged();
@@ -283,7 +287,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	 */
 	@Override
 	public void configurationChanged() {
-		zStageLabel = null;
+/*		zStageLabel = null;
 		xyStageLabel = null;
 		twisterLabel = null;
 
@@ -311,7 +315,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		} catch (Exception e) {
 			IJ.handleException(e);
 		}
-		cameraLabel = mmc.getCameraDevice();
+		cameraLabel = mmc.getCameraDevice();*/
 
 		updateUI();
 	}
@@ -368,7 +372,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			@Override
 			public void valueChanged(int value) {
 				try {
-					mmc.setXYPosition(xyStageLabel, value, mmc.getYPosition(xyStageLabel));
+					String xy = devMgr.getLabel(SPIMDevice.STAGE_XY);
+					mmc.setXYPosition(xy, value, mmc.getYPosition(xy));
 				} catch (Exception e) {
 					IJ.handleException(e);
 				}
@@ -380,7 +385,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			@Override
 			public void valueChanged(int value) {
 				try {
-					mmc.setXYPosition(xyStageLabel, mmc.getXPosition(xyStageLabel), value);
+					String xy = devMgr.getLabel(SPIMDevice.STAGE_XY);
+					mmc.setXYPosition(xy, mmc.getXPosition(xy), value);
 				} catch (Exception e) {
 					IJ.handleException(e);
 				}
@@ -392,7 +398,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			@Override
 			public void valueChanged(int value) {
 				try {
-					mmc.setPosition(zStageLabel, value);
+					mmc.setPosition(devMgr.getLabel(SPIMDevice.STAGE_Z), value);
 				} catch (Exception e) {
 					IJ.handleException(e);
 				}
@@ -404,7 +410,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			@Override
 			public void valueChanged(int value) {
 				try {
-					mmc.setPosition(twisterLabel, value);
+					mmc.setPosition(devMgr.getLabel(SPIMDevice.STAGE_THETA), value);
 				} catch (Exception e) {
 					IJ.handleException(e);
 				}
@@ -445,10 +451,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			@Override
 			public void actionPerformed(ActionEvent ae) {
 				if(calibration == null) {
+					String twister = devMgr.getLabel(SPIMDevice.STAGE_THETA);
 					if((ae.getModifiers() & ActionEvent.ALT_MASK) != 0) {
-						calibration = new SPIMManualCalibrator(mmc, gui, twisterLabel);
+						calibration = new SPIMManualCalibrator(mmc, gui, twister);
 					} else {
-						calibration = new SPIMAutoCalibrator(mmc, gui, twisterLabel);
+						calibration = new SPIMAutoCalibrator(mmc, gui, twister);
 					}
 				}
 				
@@ -464,6 +471,15 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			}
 		});
 
+		JButton devMgrBtn = new JButton("Manage Devices");
+		devMgrBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent ae) {
+				if(devMgr != null)
+					devMgr.setVisible(true);
+			}
+		});
+
 		addLine(left, Justification.LEFT, "x:", xPosition, "y:", yPosition, "z:", zPosition, "angle:", rotation);
 		addLine(left, Justification.STRETCH, "x:", xSlider);
 		addLine(left, Justification.RIGHT, limitedXRange);
@@ -473,7 +489,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		addLine(left, Justification.RIGHT, limitedZRange);
 		addLine(left, Justification.STRETCH, "rotation:", rotationSlider);
 		addLine(left, Justification.RIGHT, "steps/rotation:", stepsPerRotation, "degrees/step:", degreesPerStep);
-		addLine(left, Justification.RIGHT, pixCalibBtn, calibrateButton);
+		addLine(left, Justification.RIGHT, devMgrBtn, pixCalibBtn, calibrateButton);
 
 		JPanel stageControls = new JPanel();
 		stageControls.setName("Stage Controls");
@@ -643,10 +659,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 					model.insertRow(idx,
 							new String[] {
-							mmc.getXPosition(xyStageLabel) + ", " + 
-									mmc.getYPosition(xyStageLabel),
-							"" + mmc.getPosition(twisterLabel),
-							"" + mmc.getPosition(zStageLabel)
+							mmc.getXPosition(devMgr.getLabel(SPIMDevice.STAGE_XY)) + ", " + 
+									mmc.getYPosition(devMgr.getLabel(SPIMDevice.STAGE_XY)),
+							"" + mmc.getPosition(devMgr.getLabel(SPIMDevice.STAGE_THETA)),
+							"" + mmc.getPosition(devMgr.getLabel(SPIMDevice.STAGE_Z))
 					});
 				} catch(Throwable t) {
 					JOptionPane.showMessageDialog(acqPositionsTable,
@@ -673,9 +689,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				String xy, theta;
 				double curz;
 				try {
-					xy = mmc.getXPosition(xyStageLabel) + ", " + mmc.getYPosition(xyStageLabel);
-					curz = mmc.getPosition(zStageLabel);
-					theta = "" + mmc.getPosition(twisterLabel);
+					xy = mmc.getXPosition(devMgr.getLabel(SPIMDevice.STAGE_XY)) + ", " + mmc.getYPosition(devMgr.getLabel(SPIMDevice.STAGE_XY));
+					curz = mmc.getPosition(devMgr.getLabel(SPIMDevice.STAGE_Z));
+					theta = "" + mmc.getPosition(devMgr.getLabel(SPIMDevice.STAGE_THETA));
 				} catch(Throwable t) {
 					JOptionPane.showMessageDialog((Component)ae.getSource(),
 							"Couldn't get current position: " + t.getMessage());
@@ -757,9 +773,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 						z = Double.parseDouble(zr);
 
 					try {
-						mmc.setXYPosition(xyStageLabel, x, y);
-						mmc.setPosition(zStageLabel, z);
-						mmc.setPosition(twisterLabel, td);
+						mmc.setXYPosition(devMgr.getLabel(SPIMDevice.STAGE_XY), x, y);
+						mmc.setPosition(devMgr.getLabel(SPIMDevice.STAGE_Z), z);
+						mmc.setPosition(devMgr.getLabel(SPIMDevice.STAGE_THETA), td);
 					} catch(Throwable thrown) {
 						IJ.handleException(thrown);
 					}
@@ -838,7 +854,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		int minlp = 5;
 		int deflp = 500;
 		int maxlp = 2000;
-		String lbl = laserLabel;
+		String lbl = devMgr.getLabel(SPIMDevice.LASER1);
 		if(lbl == null)
 			lbl = mmc.getShutterDevice();
 
@@ -857,7 +873,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			@Override
 			public void valueChanged(int value) {
 				try {
-					mmc.setProperty(laserLabel, "PowerSetpoint", (float)value / 100.0f);
+					mmc.setProperty(devMgr.getLabel(SPIMDevice.LASER1), "PowerSetpoint", (float)value / 100.0f);
 				} catch (Exception e) {
 					ReportingUtils.logError(e);
 				}
@@ -870,7 +886,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		} catch(Exception e) {
 			ReportingUtils.logError(e);
 		};
-		
+
 		// TODO: find out correct values
 		exposureSlider = new MotorSlider(10, 1000, defExposure, "exposure") {
 			@Override
@@ -1200,16 +1216,16 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			try {
 				if(ae.getSource().equals(acqFetchX)) {
 					target = acqRangeX;
-					value = mmc.getXPosition(xyStageLabel);
+					value = mmc.getXPosition(devMgr.getLabel(SPIMDevice.STAGE_XY));
 				} else if(ae.getSource().equals(acqFetchY)) {
 					target = acqRangeY;
-					value = mmc.getYPosition(xyStageLabel);
+					value = mmc.getYPosition(devMgr.getLabel(SPIMDevice.STAGE_XY));
 				} else if(ae.getSource().equals(acqFetchZ)) {
 					target = acqRangeZ;
-					value = mmc.getPosition(zStageLabel);
+					value = mmc.getPosition(devMgr.getLabel(SPIMDevice.STAGE_Z));
 				} else if(ae.getSource().equals(acqFetchT)) {
 					target = acqRangeTheta;
-					value = mmc.getPosition(twisterLabel);
+					value = mmc.getPosition(devMgr.getLabel(SPIMDevice.STAGE_THETA));
 				} else {
 					throw new Exception("Import from where now?");
 				}
@@ -1233,6 +1249,12 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	};
 
 	protected void updateUI() {
+		String xyStageLabel = devMgr.getLabel(SPIMDevice.STAGE_XY);
+		String zStageLabel = devMgr.getLabel(SPIMDevice.STAGE_Z);
+		String twisterLabel = devMgr.getLabel(SPIMDevice.STAGE_THETA);
+		String laserLabel = devMgr.getLabel(SPIMDevice.LASER1);
+		String cameraLabel = devMgr.getLabel(SPIMDevice.CAMERA1);
+
 		xPosition.setEnabled(acqThread == null && xyStageLabel != null);
 		yPosition.setEnabled(acqThread == null && xyStageLabel != null);
 		zPosition.setEnabled(acqThread == null && zStageLabel != null);
@@ -1301,6 +1323,12 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	}
 
 	private void updateMotorPositions() throws Exception {
+		String xyStageLabel = devMgr.getLabel(SPIMDevice.STAGE_XY);
+		String zStageLabel = devMgr.getLabel(SPIMDevice.STAGE_Z);
+		String twisterLabel = devMgr.getLabel(SPIMDevice.STAGE_THETA);
+		String laserLabel = devMgr.getLabel(SPIMDevice.LASER1);
+		String cameraLabel = devMgr.getLabel(SPIMDevice.CAMERA1);
+
 		if (xyStageLabel != null) {
 			int x = (int)mmc.getXPosition(xyStageLabel);
 			int y = (int)mmc.getYPosition(xyStageLabel);
@@ -1365,10 +1393,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		if(me.isAltDown()) {
 			if(mouseStartX < 0) {
 				try {
-					stageStart[0] = mmc.getXPosition(xyStageLabel);
-					stageStart[1] = mmc.getYPosition(xyStageLabel);
-					stageStart[2] = mmc.getPosition(zStageLabel);
-					stageStart[3] = mmc.getPosition(twisterLabel);
+					stageStart[0] = mmc.getXPosition(devMgr.getLabel(SPIMDevice.STAGE_XY));
+					stageStart[1] = mmc.getYPosition(devMgr.getLabel(SPIMDevice.STAGE_XY));
+					stageStart[2] = mmc.getPosition(devMgr.getLabel(SPIMDevice.STAGE_Z));
+					stageStart[3] = mmc.getPosition(devMgr.getLabel(SPIMDevice.STAGE_THETA));
 				} catch(Exception e) {
 					ReportingUtils.logError(e);
 				}
@@ -1390,11 +1418,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 						stageStart[0], stageStart[1], stageStart[2]),
 						delta * 0.1);
 
-				mmc.setXYPosition(xyStageLabel, xyz.getX(), xyz.getY());
+				mmc.setXYPosition(devMgr.getLabel(SPIMDevice.STAGE_XY), xyz.getX(), xyz.getY());
 
-				mmc.setPosition(zStageLabel, xyz.getZ());
+				mmc.setPosition(devMgr.getLabel(SPIMDevice.STAGE_Z), xyz.getZ());
 
-				mmc.setPosition(twisterLabel, stageStart[3] + delta * 0.1);
+				mmc.setPosition(devMgr.getLabel(SPIMDevice.STAGE_THETA), stageStart[3] + delta * 0.1);
 			} catch (Exception e) {
 				ReportingUtils.logException("Couldn't move stage: ", e);
 			}
@@ -1493,15 +1521,15 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 	protected void setZStageVelocity() {
 		try {
-			String[] allowedValues = mmc.getAllowedPropertyValues(zStageLabel, "Velocity").toArray();
-			String currentValue = mmc.getProperty(zStageLabel, "Velocity");
+			String[] allowedValues = mmc.getAllowedPropertyValues(devMgr.getLabel(SPIMDevice.STAGE_Z), "Velocity").toArray();
+			String currentValue = mmc.getProperty(devMgr.getLabel(SPIMDevice.STAGE_Z), "Velocity");
 			GenericDialog gd = new GenericDialog("z-stage velocity");
 			gd.addChoice("velocity", allowedValues, currentValue);
 			gd.showDialog();
 			if (gd.wasCanceled())
 				return;
 			int newValue = (int)Integer.parseInt(gd.getNextChoice());
-			mmc.setProperty(zStageLabel, "Velocity", newValue);
+			mmc.setProperty(devMgr.getLabel(SPIMDevice.STAGE_Z), "Velocity", newValue);
 		} catch (Exception e) {
 			IJ.handleException(e);
 		}
@@ -1536,7 +1564,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	// Accessing the devices
 
 	protected void maybeUpdateImage() {
-		if (cameraLabel != null && updateLiveImage && !gui.isLiveModeOn()) {
+		if (devMgr.getLabel(SPIMDevice.CAMERA1) != null && updateLiveImage && !gui.isLiveModeOn()) {
 			synchronized(frame) {
 				gui.updateImage();
 			}
@@ -1587,15 +1615,15 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		};
 
 		if(!acqXYDevCB.isSelected()) {
-			ranges[0][2] = ranges[0][0] = mmc.getXPosition(xyStageLabel);
-			ranges[1][2] = ranges[1][0] = mmc.getYPosition(xyStageLabel);
+			ranges[0][2] = ranges[0][0] = mmc.getXPosition(devMgr.getLabel(SPIMDevice.STAGE_XY));
+			ranges[1][2] = ranges[1][0] = mmc.getYPosition(devMgr.getLabel(SPIMDevice.STAGE_XY));
 		};
 
 		if(!acqTDevCB.isSelected())
-			ranges[2][2] = ranges[2][0] = mmc.getPosition(twisterLabel);
+			ranges[2][2] = ranges[2][0] = mmc.getPosition(devMgr.getLabel(SPIMDevice.STAGE_THETA));
 
 		if(!acqZDevCB.isSelected())
-			ranges[3][2] = ranges[3][0] = mmc.getPosition(zStageLabel);
+			ranges[3][2] = ranges[3][0] = mmc.getPosition(devMgr.getLabel(SPIMDevice.STAGE_Z));
 
 		return ranges;
 	};
@@ -1611,7 +1639,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		List<AcqRow> rows = new ArrayList<AcqRow>();
 
 		if(SPIM_RANGES.equals(acqPosTabs.getSelectedComponent().getName())) {
-			double currentRot = mmc.getPosition(twisterLabel);
+			double currentRot = mmc.getPosition(devMgr.getLabel(SPIMDevice.STAGE_THETA));
 
 			double[][] ranges = getRanges();
 
@@ -1632,7 +1660,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 //						else
 							z = ranges[3][0] + ":" + ranges[3][1] + ":" + ranges[3][2];
 
-						rows.add(new AcqRow(new String[] {basev.getX() + ", " + basev.getY(), "" + t}, zStageLabel, z));
+						rows.add(new AcqRow(new String[] {basev.getX() + ", " + basev.getY(), "" + t}, devMgr.getLabel(SPIMDevice.STAGE_Z), z));
 					}
 				}
 			}
@@ -1641,7 +1669,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				if(row[0].equals(ProgrammaticAcquisitor.STACK_DIVIDER))
 					continue;
 
-				rows.add(new AcqRow(Arrays.copyOfRange(row, 0, row.length - 1), zStageLabel, row[row.length - 1]));
+				rows.add(new AcqRow(Arrays.copyOfRange(row, 0, row.length - 1), devMgr.getLabel(SPIMDevice.STAGE_Z), row[row.length - 1]));
 			}
 		}
 
@@ -1698,6 +1726,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	@Override
 	public void actionPerformed(ActionEvent ae) {
 		if(BTN_START.equals(ae.getActionCommand())) {
+			final String xyStageLabel = devMgr.getLabel(SPIMDevice.STAGE_XY);
+			final String zStageLabel = devMgr.getLabel(SPIMDevice.STAGE_Z);
+			final String twisterLabel = devMgr.getLabel(SPIMDevice.STAGE_THETA);
+
 			if(acqThread != null)
 				acqThread.interrupt();
 
