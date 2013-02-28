@@ -66,7 +66,7 @@ public class ManualAntiDrift extends AntiDrift implements MouseListener {
 
 			double cx = roi.getCenterX() - (image.getWidth()/2);
 			double cy = roi.getCenterY() - (image.getHeight()/2);
-			double cz = (zslice - (row.getDepth()/2))*row.getStepSize();
+			double cz = (zslice - (row.getDepth()/2))*row.getZStepSize();
 
 			image.hide();
 			ij.IJ.setTool("hand");

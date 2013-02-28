@@ -1,11 +1,7 @@
 package spim.progacq;
 
 import ij.ImagePlus;
-import ij.process.ByteProcessor;
-import ij.process.ColorProcessor;
-import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
-import ij.process.ShortProcessor;
 
 import java.util.HashMap;
 import java.util.List;
@@ -24,9 +20,11 @@ import org.micromanager.utils.ImageUtils;
 import org.micromanager.utils.MDUtils;
 import org.micromanager.utils.ReportingUtils;
 
-public class ProgrammaticAcquisitor {
-	public static final String STACK_DIVIDER = "-- STACK DIVIDER --";
+import spim.DeviceManager;
+import spim.DeviceManager.SPIMDevice;
+import spim.progacq.AcqRow.DeviceValueSet;
 
+public class ProgrammaticAcquisitor {
 	/**
 	 * Takes a list of steps and concatenates them together recursively. This is
 	 * what builds out rows from a list of lists of positions.
@@ -124,24 +122,18 @@ public class ProgrammaticAcquisitor {
 		return finalRows;
 	}
 
-	private static void runDevicesAtRow(CMMCore core, String[] devices,
-			String[] positions, int step) throws Exception {
-		for (int i = 0; i < devices.length; ++i) {
-			String dev = devices[i];
-			String pos = positions[i];
-			try {
-				if (core.getDeviceType(dev).equals(DeviceType.StageDevice))
-					core.setPosition(dev, Double.parseDouble(pos));
-				else if (core.getDeviceType(dev).equals(
-						DeviceType.XYStageDevice))
-					core.setXYPosition(dev, parseX(pos), parseY(pos));
-				else
-					throw new Exception("Unknown device type for \"" + dev
-							+ "\"");
-			} catch (NumberFormatException e) {
-				throw new Exception("Malformed number \"" + pos
-						+ "\" for device \"" + dev + "\", row " + step, e);
-			}
+	private static void runDevicesAtRow(CMMCore core, spim.DeviceManager mgr, AcqRow row, int step) throws Exception {
+		for (SPIMDevice dev : row.getDevices()) {
+			String lbl = mgr.getLabel(dev);
+			DeviceValueSet[] sets = row.getValueSets(dev);
+
+			if (dev.getMMType().equals(DeviceType.StageDevice))
+				core.setPosition(lbl, sets[0].getStartPosition());
+			else if (dev.getMMType().equals(DeviceType.XYStageDevice))
+				core.setXYPosition(lbl, sets[0].getStartPosition(), sets[1].getStartPosition());
+			else
+				throw new Exception("Unknown device type for \"" + dev
+						+ "\"");
 		}
 		core.waitForSystem();
 	}
@@ -208,8 +200,9 @@ public class ProgrammaticAcquisitor {
 		if(params.isIllumFullStack())
 			core.setAutoShutter(false);
 
-		final String[] metaDevs = params.getMetaDevices();
-		String[] devices = params.getStepDevices();
+		final SPIMDevice[] metaDevs = params.getMetaDevices();
+
+		final DeviceManager mgr = params.getDeviceManager();
 
 		final AcqOutputHandler handler = params.getOutputHandler();
 
@@ -240,7 +233,7 @@ public class ProgrammaticAcquisitor {
 								};
 
 								TaggedImage ti = core.popNextTaggedImage();
-								handleSlice(core, metaDevs, acqBegan, ti, handler);
+								handleSlice(core, mgr, metaDevs, acqBegan, ti, handler);
 
 								if(params.isUpdateLive())
 									updateLiveImage(frame, ti);
@@ -270,7 +263,7 @@ public class ProgrammaticAcquisitor {
 				final int rown = step;
 
 				AntiDrift ad = null;
-				if(row.getZMode() != AcqRow.ZMode.CONTINUOUS_SWEEP && params.isAntiDriftOn()) {
+				if(row.getZContinuous() != true && params.isAntiDriftOn()) {
 					if((ad = driftCompMap.get(row)) == null) {
 						ad = params.getAntiDrift(row);
 						ad.setCallback(new AntiDrift.Callback() {
@@ -286,32 +279,30 @@ public class ProgrammaticAcquisitor {
 					ad.startNewStack();
 				};
 
-				runDevicesAtRow(core, devices, row.getPrimaryPositions(), step);
+				runDevicesAtRow(core, mgr, row, step);
 
 				if(params.isIllumFullStack())
 					core.setShutterOpen(true);
 
 				handler.beginStack(0);
 
-				switch(row.getZMode()) {
-				case SINGLE_POSITION:
+				if(row.getZStartPosition() == row.getZEndPosition()) {
 					core.waitForImageSynchro();
 					Thread.sleep(params.getSettleDelay());
 
 					if(!params.isContinuous()) {
 						core.snapImage();
-						handleSlice(core, metaDevs, acqBegan, core.getTaggedImage(), handler);
+						handleSlice(core, mgr, metaDevs, acqBegan, core.getTaggedImage(), handler);
 						if(ad != null)
-							tallyAntiDriftSlice(core, row, ad, core.getTaggedImage());
+							tallyAntiDriftSlice(core, mgr, row, ad, core.getTaggedImage());
 						if(params.isUpdateLive())
 							updateLiveImage(frame, core.getTaggedImage());
-					};
-					break;
-				case STEPPED_RANGE: {
-					double start = core.getPosition(row.getDevice());
-					double end = start + row.getEndPosition() - row.getStartPosition();
-					for(double zStart = start; zStart <= end; zStart += row.getStepSize()) {
-						core.setPosition(row.getDevice(), zStart);
+					}
+				} else if (!row.getZContinuous()) {
+					double start = core.getPosition(mgr.getLabel(SPIMDevice.STAGE_Z));
+					double end = start + row.getZEndPosition() - row.getZStartPosition();
+					for(double zStart = start; zStart <= end; zStart += row.getZStepSize()) {
+						core.setPosition(mgr.getLabel(SPIMDevice.STAGE_Z), zStart);
 						core.waitForImageSynchro();
 
 						try {
@@ -322,9 +313,9 @@ public class ProgrammaticAcquisitor {
 
 						if(!params.isContinuous()) {
 							core.snapImage();
-							handleSlice(core, metaDevs, acqBegan, core.getTaggedImage(), handler);
+							handleSlice(core, mgr, metaDevs, acqBegan, core.getTaggedImage(), handler);
 							if(ad != null)
-								tallyAntiDriftSlice(core, row, ad, core.getTaggedImage());
+								tallyAntiDriftSlice(core, mgr, row, ad, core.getTaggedImage());
 							if(params.isUpdateLive())
 								updateLiveImage(frame, core.getTaggedImage());
 						}
@@ -339,20 +330,16 @@ public class ProgrammaticAcquisitor {
 								params.getProgressListener().reportProgress(tp, rown, progress);
 							}
 						});
-					};
-					break;
-				}
-				case CONTINUOUS_SWEEP: {
-					core.setPosition(row.getDevice(), row.getStartPosition());
-					String oldVel = core.getProperty(row.getDevice(), "Velocity");
+					}
+				} else {
+					core.setPosition(mgr.getLabel(SPIMDevice.STAGE_Z), row.getZStartPosition());
+					String oldVel = core.getProperty(mgr.getLabel(SPIMDevice.STAGE_Z), "Velocity");
 
-					core.setProperty(row.getDevice(), "Velocity", row.getVelocity());
-					core.setPosition(row.getDevice(), row.getEndPosition());
+					core.setProperty(mgr.getLabel(SPIMDevice.STAGE_Z), "Velocity", row.getZVelocity());
+					core.setPosition(mgr.getLabel(SPIMDevice.STAGE_Z), row.getZEndPosition());
 
-					core.waitForDevice(row.getDevice());
-					core.setProperty(row.getDevice(), "Velocity", oldVel);
-					break;
-				}
+					core.waitForDevice(mgr.getLabel(SPIMDevice.STAGE_Z));
+					core.setProperty(mgr.getLabel(SPIMDevice.STAGE_Z), "Velocity", oldVel);
 				};
 
 				handler.finalizeStack(0);
@@ -420,64 +407,38 @@ public class ProgrammaticAcquisitor {
 		return handler.getImagePlus();
 	}
 
-	private static void tallyAntiDriftSlice(CMMCore core, AcqRow row, AntiDrift ad, TaggedImage img) throws Exception {
+	private static void tallyAntiDriftSlice(CMMCore core, DeviceManager mgr, AcqRow row, AntiDrift ad, TaggedImage img) throws Exception {
 		ImageProcessor ip = ImageUtils.makeProcessor(img);
 
-		ad.tallySlice(new Vector3D(0,0,core.getPosition(row.getDevice())-row.getStartPosition()), ip);
+		ad.tallySlice(new Vector3D(0,0,core.getPosition(mgr.getLabel(SPIMDevice.STAGE_Z))-row.getZStartPosition()), ip);
 	}
 
-	private static void handleSlice(CMMCore core, String[] devices, double start,
-			TaggedImage slice, AcqOutputHandler handler) throws Exception {
+	private static void handleSlice(CMMCore core, DeviceManager mgr,
+			SPIMDevice[] metaDevs, double start, TaggedImage slice,
+			AcqOutputHandler handler) throws Exception {
 
 		slice.tags.put("t", System.nanoTime() / 1e9 - start);
 
-		for(String dev : devices) {
+		for(SPIMDevice dev : metaDevs) {
 			try {
-				if(core.getDeviceType(dev) == DeviceType.StageDevice) {
-					slice.tags.put(dev, core.getPosition(dev));
-				} else if(core.getDeviceType(dev) == DeviceType.XYStageDevice) {
-					slice.tags.put(dev, core.getXPosition(dev) + "x" + core.getYPosition(dev));
+				if(DeviceType.StageDevice.equals(dev.getMMType())) {
+					slice.tags.put(dev.getText(), core.getPosition(mgr.getLabel(dev)));
+				} else if(DeviceType.XYStageDevice.equals(dev.getMMType())) {
+					slice.tags.put(dev.getText(), core.getXPosition(mgr.getLabel(dev)) + "x" + core.getYPosition(mgr.getLabel(dev)));
 				} else {
-					slice.tags.put(dev, "<unknown device type>");
+					slice.tags.put(dev.getText(), "<unknown device type>");
 				}
 			} catch(Throwable t) {
-				slice.tags.put(dev, "<<<Exception: " + t.getMessage() + ">>>");
+				slice.tags.put(dev.getText(), "<<<Exception: " + t.getMessage() + ">>>");
 			}
 		}
 
 		ImageProcessor ip = ImageUtils.makeProcessor(slice);
 
-		// FIXME: Don't assume the name is 'Picard Twister'...
-		handler.processSlice(ip, core.getXPosition(core.getXYStageDevice()),
-				core.getYPosition(core.getXYStageDevice()),
-				core.getPosition(core.getFocusDevice()),
-				core.getPosition("Picard Twister"),
+		handler.processSlice(ip, core.getXPosition(mgr.getLabel(SPIMDevice.STAGE_XY)),
+				core.getYPosition(mgr.getLabel(SPIMDevice.STAGE_XY)),
+				core.getPosition(mgr.getLabel(SPIMDevice.STAGE_Z)),
+				core.getPosition(mgr.getLabel(SPIMDevice.STAGE_THETA)),
 				System.nanoTime() / 1e9 - start);
-	}
-
-	/**
-	 * Simple function to pull the X coordinate out of an ordered pair string.
-	 * This function doesn't care at all if the string you pass it is wrong, so
-	 * don't pass it a wrong string. :)
-	 * 
-	 * @param pair
-	 *            An ordered pair.
-	 * @return The X coordinate of that ordered pair.
-	 */
-	private static double parseX(String pair) {
-		return Double.parseDouble(pair.substring(0, pair.indexOf(',')));
-	}
-
-	/**
-	 * Pulls the Y component of an ordered pair.
-	 * 
-	 * @see parseX
-	 * 
-	 * @param pair
-	 *            An ordered pair.
-	 * @return The Y coordinate of that ordered pair.
-	 */
-	private static double parseY(String pair) {
-		return Double.parseDouble(pair.substring(pair.indexOf(' ') + 1));
 	}
 };

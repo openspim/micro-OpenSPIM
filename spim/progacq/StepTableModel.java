@@ -3,29 +3,29 @@
  */
 package spim.progacq;
 
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Vector;
 
 import javax.swing.table.AbstractTableModel;
+
+import spim.DeviceManager.SPIMDevice;
 
 /**
  * @author Luke Stuyvenberg
  * 
  */
 public class StepTableModel extends AbstractTableModel implements
-		Iterable<String[]> {
+		Iterable<AcqRow> {
 	private static final long serialVersionUID = -7369997010095627461L;
 
-	private String[] columnNames;
-	private Vector<String[]> data;
+	private SPIMDevice[] devices;
+	private Vector<AcqRow> data;
 
-	public StepTableModel() {
+	public StepTableModel(SPIMDevice[] devices) {
 		super();
 
-		columnNames = new String[0];
-		data = new Vector<String[]>();
+		this.devices = devices;
+		data = new Vector<AcqRow>();
 	}
 
 	/*
@@ -45,14 +45,14 @@ public class StepTableModel extends AbstractTableModel implements
 	 */
 	@Override
 	public int getColumnCount() {
-		return columnNames.length;
+		return devices.length;
 	}
 
-	public String[] getColumnNames() {
-		return columnNames;
+	public SPIMDevice[] getColumns() {
+		return devices;
 	}
 
-	public Vector<String[]> getRows() {
+	public Vector<AcqRow> getRows() {
 		return data;
 	}
 
@@ -63,7 +63,7 @@ public class StepTableModel extends AbstractTableModel implements
 	 */
 	@Override
 	public Object getValueAt(int rowIndex, int columnIndex) {
-		return data.get(rowIndex)[columnIndex];
+		return data.get(rowIndex).describeValueSet(devices[columnIndex]);
 	}
 
 	/*
@@ -72,44 +72,8 @@ public class StepTableModel extends AbstractTableModel implements
 	 * @see java.lang.Iterable#iterator()
 	 */
 	@Override
-	public Iterator<String[]> iterator() {
+	public Iterator<AcqRow> iterator() {
 		return data.iterator();
-	}
-
-	/**
-	 * Reformats the table to use the newly-specified columns. Columns shared
-	 * between new and old save their data, the rest is dropped. This is a
-	 * somewhat expensive operation; try not to call it often...
-	 * 
-	 * @param columns
-	 *            The new vector of column headers to use.
-	 */
-	public void setColumns(List<String> columns) {
-		// Build a temporary map of our data.
-		Vector<HashMap<String, String>> tempData = new Vector<HashMap<String, String>>();
-		for (String[] row : data) {
-			HashMap<String, String> map = new HashMap<String, String>();
-			for (int i = 0; i < columnNames.length; ++i)
-				map.put(columnNames[i], row[i]);
-			tempData.add(map);
-		}
-
-		columnNames = columns.toArray(new String[columns.size()]);
-
-		data = new Vector<String[]>();
-
-		for (HashMap<String, String> row : tempData) {
-			String[] newRow = new String[columnNames.length];
-
-			for (int i = 0; i < columnNames.length; ++i)
-				newRow[i] = row.containsKey(columnNames[i]) ? row
-						.get(columnNames[i]) : "";
-
-			data.add(newRow);
-		}
-
-		this.fireTableStructureChanged();
-		this.fireTableDataChanged();
 	}
 
 	public void insertRow(Object[] values) {
@@ -118,14 +82,14 @@ public class StepTableModel extends AbstractTableModel implements
 	
 	public void insertRow(int index, Object[] values) {
 		// TODO: Handle this more gracefully? Fail silently? Chop?
-		if (values.length != columnNames.length)
+		if (values.length != devices.length)
 			throw new Error("Wrong colum count, silly!");
 
 		String[] fixed = new String[values.length];
 		for (int i = 0; i < values.length; ++i)
 			fixed[i] = values[i].toString();
 
-		data.add(index, fixed);
+		data.add(index, new AcqRow(devices, fixed));
 
 		this.fireTableDataChanged();
 	}
@@ -139,7 +103,7 @@ public class StepTableModel extends AbstractTableModel implements
 
 	@Override
 	public String getColumnName(int columnIndex) {
-		return columnNames[columnIndex];
+		return devices[columnIndex].getText();
 	}
 
 	@Override
@@ -154,6 +118,6 @@ public class StepTableModel extends AbstractTableModel implements
 
 	@Override
 	public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
-		data.get(rowIndex)[columnIndex] = aValue.toString();
+		data.get(rowIndex).setValueSet(devices[columnIndex], aValue.toString());
 	}
 };

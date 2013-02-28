@@ -1,103 +1,196 @@
 package spim.progacq;
 
+import java.util.EnumMap;
+
 import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 
+import spim.DeviceManager.SPIMDevice;
+
 public class AcqRow {
-	public enum ZMode {
-		SINGLE_POSITION,
-		STEPPED_RANGE,
-		CONTINUOUS_SWEEP
-	};
+	public class DeviceValueSet {
+		private boolean continuous;
+		private double start, end, stepOrSpeed;
 
-	private ZMode mode;
-	private String[] mainPositions;
-	private String specialDevLabel;
-	private double start;
-	private double end;
-	private double stepOrSpeed;
-
-	public AcqRow(String[] primarys, String device, String info) {
-		specialDevLabel = device;
-
-		if(info.contains("@")) {
-			mode = ZMode.CONTINUOUS_SWEEP;
-			start = Double.parseDouble(info.substring(0, info.indexOf('-')));
-			end = Double.parseDouble(info.substring(info.indexOf('-')+1,info.indexOf('@')));
-			stepOrSpeed = Double.parseDouble(info.substring(info.indexOf('@')+1));
-		} else if(info.contains(":")) {
-			mode = ZMode.STEPPED_RANGE;
-			start = Double.parseDouble(info.substring(0, info.indexOf(':')));
-			stepOrSpeed = Double.parseDouble(info.substring(info.indexOf(':')+1,info.lastIndexOf(':')));
-			end = Double.parseDouble(info.substring(info.lastIndexOf(':')+1));
-		} else {
-			mode = ZMode.SINGLE_POSITION;
-			start = Double.parseDouble(info);
+		public DeviceValueSet(double single) {
+			start = end = single;
 			stepOrSpeed = 0;
-			end = Double.parseDouble(info);
+			continuous = false;
 		}
 
-		mainPositions = new String[primarys.length + 1];
+		public DeviceValueSet(String range) {
+			if(range.indexOf('@') != -1) {
+				start = Double.parseDouble(range.substring(0,range.indexOf('-')));
+				end = Double.parseDouble(range.substring(range.indexOf('-')+1, range.indexOf('@')));
+				stepOrSpeed = Double.parseDouble(range.substring(range.indexOf('@')+1));
+				continuous = true;
+			} else if(range.indexOf(':') != -1) {
+				start = Double.parseDouble(range.substring(0,range.indexOf(':')));
+				stepOrSpeed = Double.parseDouble(range.substring(range.indexOf(':')+1,range.lastIndexOf(':')));
+				end = Double.parseDouble(range.substring(range.lastIndexOf(':')+1));
+				continuous = false;
+			} else {
+				try {
+					start = end = Double.parseDouble(range);
+					stepOrSpeed = 0;
+					continuous = false;
+				} catch(NumberFormatException nfe) {
+					throw new Error("Unknown device value description \"" + range + "\"");
+				}
+			}
+		}
 
-		for(int i = 0; i < primarys.length; ++i)
-			mainPositions[i] = primarys[i];
+		public DeviceValueSet(double start, double stepspeed, double end, boolean continuous) {
+			this.start = start;
+			this.stepOrSpeed = stepspeed;
+			this.end = end;
+			this.continuous = continuous;
+		}
 
-		mainPositions[primarys.length] = "" + start;
+		public double getStartPosition() {
+			return start;
+		}
+
+		public double getEndPosition() {
+			return end;
+		}
+
+		public double getStepSize() {
+			return (continuous ? -1 : stepOrSpeed);
+		}
+
+		public double getSpeed() {
+			return (continuous ? stepOrSpeed : 0);
+		}
+
+		public int getSteps() {
+			if(continuous)
+				return -1;
+
+			if(stepOrSpeed == 0)
+				return 1;
+			else
+				return (int)((end - start) / stepOrSpeed) + 1;
+		}
+
+		@Override
+		public String toString() {
+			if(stepOrSpeed == 0)
+				return Double.toString(start);
+
+			if(continuous)
+				return String.format("%f-%f@%d", start, end, (int) stepOrSpeed);
+			else
+				return String.format("%f:%f:%f", start, stepOrSpeed, end);
+		}
+
+		protected void translate(double by) {
+			start += by;
+			end += by;
+		}
 	}
 
-	public double getStartPosition() {
-		return start;
+	private EnumMap<SPIMDevice, DeviceValueSet[]> posMap;
+
+	public AcqRow(SPIMDevice[] devs, String[] infos) {
+		posMap = new EnumMap<SPIMDevice, DeviceValueSet[]>(SPIMDevice.class);
+
+		for(int i = 0; i < devs.length; ++i)
+			setValueSet(devs[i], infos[i]);
 	}
 
-	public double getEndPosition() {
-		return end;
+	public void setValueSet(SPIMDevice dev, String totalInfo) {
+		if(totalInfo == null) {
+			posMap.remove(dev);
+			return;
+		}
+
+		String[] subdevs = totalInfo.split(",");
+
+		DeviceValueSet[] points = new DeviceValueSet[subdevs.length];
+
+		for(int i = 0; i < subdevs.length; ++i)
+			points[i] = new DeviceValueSet(subdevs[i].trim());
+
+		posMap.put(dev, points);
+	}
+	
+	public DeviceValueSet[] getValueSets(SPIMDevice dev) {
+		return posMap.get(dev);
+	}
+	
+	public SPIMDevice[] getDevices() {
+		return posMap.keySet().toArray(new SPIMDevice[posMap.size()]);
 	}
 
-	public double getVelocity() {
-		return stepOrSpeed;
+	public String describeValueSet(SPIMDevice dev) {
+		DeviceValueSet[] sets = posMap.get(dev);
+
+		if(sets == null)
+			return "(null)";
+
+		String ret = "";
+
+		for(DeviceValueSet set : sets)
+			ret += set.toString() + (set == sets[sets.length - 1] ? "" : ", ");
+
+		return ret;
 	}
 
-	public double getStepSize() {
-		return stepOrSpeed;
+	public double getZStartPosition() {
+		return posMap.get(SPIMDevice.STAGE_Z)[0].getStartPosition();
+	}
+
+	public double getZEndPosition() {
+		return posMap.get(SPIMDevice.STAGE_Z)[0].getEndPosition();
+	}
+
+	public double getZVelocity() {
+		return posMap.get(SPIMDevice.STAGE_Z)[0].getSpeed();
+	}
+
+	public double getZStepSize() {
+		return posMap.get(SPIMDevice.STAGE_Z)[0].getStepSize();
+	}
+
+	public boolean getZContinuous() {
+		return posMap.get(SPIMDevice.STAGE_Z)[0].getSpeed() != 0;
 	}
 
 	public int getDepth() {
-		if(mode == ZMode.SINGLE_POSITION)
-			return 1;
-		else
-			return (int) ((end - start) / stepOrSpeed) + 1;
+		int out = 1;
+
+		for(DeviceValueSet[] sets : posMap.values())
+			for(DeviceValueSet set : sets)
+				out *= set.getSteps();
+
+		return out;
 	}
 
 	public double getX() {
-		return Double.parseDouble(mainPositions[0].substring(0, mainPositions[0].indexOf(',')));
+		return posMap.get(SPIMDevice.STAGE_XY)[0].getStartPosition();
 	}
 
 	public double getY() {
-		return Double.parseDouble(mainPositions[0].substring(mainPositions[0].indexOf(',') + 2));
+		return posMap.get(SPIMDevice.STAGE_XY)[1].getStartPosition();
 	}
 	
 	public double getTheta() {
-		return Double.parseDouble(mainPositions[1]);
-	}
-
-	public String[] getPrimaryPositions() {
-		return mainPositions;
-	}
-
-	public String getDevice() {
-		return specialDevLabel;
-	}
-
-	public ZMode getZMode() {
-		return mode;
+		return posMap.get(SPIMDevice.STAGE_THETA)[0].getStartPosition();
 	}
 
 	public void translate(Vector3D v) {
-		if(mainPositions.length != 3)
-			return;
+		if(posMap.get(SPIMDevice.STAGE_X) != null)
+			posMap.get(SPIMDevice.STAGE_X)[0].translate(v.getX());
 
-		mainPositions[0] = String.format("%f, %f", getX() + v.getX(), getY() + v.getY());
-		mainPositions[2] = Double.toString(getStartPosition() + v.getZ());
-		start += v.getZ();
-		end += v.getZ();
+		if(posMap.get(SPIMDevice.STAGE_Y) != null)
+			posMap.get(SPIMDevice.STAGE_Y)[0].translate(v.getY());
+
+		if(posMap.get(SPIMDevice.STAGE_XY) != null) {
+			posMap.get(SPIMDevice.STAGE_XY)[0].translate(v.getX());
+			posMap.get(SPIMDevice.STAGE_XY)[1].translate(v.getY());
+		}
+
+		if(posMap.get(SPIMDevice.STAGE_Z) != null)
+			posMap.get(SPIMDevice.STAGE_Z)[0].translate(v.getZ());
 	}
 }

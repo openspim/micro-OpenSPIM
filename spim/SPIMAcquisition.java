@@ -33,7 +33,6 @@ import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Dictionary;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
@@ -728,8 +727,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		JScrollPane tblScroller = new JScrollPane(acqPositionsTable = new JTable());
 		tblScroller.setPreferredSize(new Dimension(tblScroller.getSize().width, 256));
 
-		StepTableModel model = new StepTableModel();
-		model.setColumns(Arrays.asList(new String[] {"X/Y Stage", "Theta", "Z Stage"}));
+		StepTableModel model = new StepTableModel(new SPIMDevice[] {SPIMDevice.STAGE_XY, SPIMDevice.STAGE_THETA, SPIMDevice.STAGE_Z});
 
 		acqPositionsTable.setFillsViewportHeight(true);
 		acqPositionsTable.setModel(model);
@@ -1156,7 +1154,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	private void updateSizeEstimate() {
 		// First, determine the number of rows, and estimate the amount of
 		// storage required.
-		long count, bytesperimg;
+		long count = 0, bytesperimg;
 		if(SPIM_RANGES.equals(acqPosTabs.getSelectedComponent().getName())) {
 			try {
 				count = estimateRowCount(getRanges());
@@ -1165,7 +1163,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				return;
 			};
 		} else if(POSITION_LIST.equals(acqPosTabs.getSelectedComponent().getName())) {
-			count = buildRowsProper(((StepTableModel)acqPositionsTable.getModel()).getRows()).size();
+			for(AcqRow row : ((StepTableModel)acqPositionsTable.getModel()))
+				count += row.getDepth();
 		} else if(VIDEO_RECORDER.equals(acqPosTabs.getSelectedComponent().getName())) {
 			estimatesText.setText(" Dataset size depends on how long you record for.");
 			return;
@@ -1639,6 +1638,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	private AcqRow[] getBuiltRows() throws Exception {
 		List<AcqRow> rows = new ArrayList<AcqRow>();
 
+		SPIMDevice[] canonicalDevices = new SPIMDevice[] {SPIMDevice.STAGE_XY, SPIMDevice.STAGE_THETA, SPIMDevice.STAGE_Z};
+
 		if(SPIM_RANGES.equals(acqPosTabs.getSelectedComponent().getName())) {
 			double currentRot = mmc.getPosition(devMgr.getLabel(SPIMDevice.STAGE_THETA));
 
@@ -1661,17 +1662,12 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 //						else
 							z = ranges[3][0] + ":" + ranges[3][1] + ":" + ranges[3][2];
 
-						rows.add(new AcqRow(new String[] {basev.getX() + ", " + basev.getY(), "" + t}, devMgr.getLabel(SPIMDevice.STAGE_Z), z));
+						rows.add(new AcqRow(canonicalDevices, new String[] {basev.getX() + ", " + basev.getY(), "" + t, z}));
 					}
 				}
 			}
 		} else if(POSITION_LIST.equals(acqPosTabs.getSelectedComponent().getName())) {
-			for(String[] row : ((StepTableModel)acqPositionsTable.getModel()).getRows()) {
-				if(row[0].equals(ProgrammaticAcquisitor.STACK_DIVIDER))
-					continue;
-
-				rows.add(new AcqRow(Arrays.copyOfRange(row, 0, row.length - 1), devMgr.getLabel(SPIMDevice.STAGE_Z), row[row.length - 1]));
-			}
+			rows = ((StepTableModel)acqPositionsTable.getModel()).getRows();
 		}
 
 		return rows.toArray(new AcqRow[rows.size()]);
@@ -1698,11 +1694,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			} else {
 				out.add(row);
 			}
-
-			out.add(new String[] {ProgrammaticAcquisitor.STACK_DIVIDER,
-					ProgrammaticAcquisitor.STACK_DIVIDER,
-					ProgrammaticAcquisitor.STACK_DIVIDER});
-
 		}
 
 		return out;
@@ -1862,7 +1853,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 					}
 				};
 			} else {
-				final String devs[] = {xyStageLabel, twisterLabel, zStageLabel};
 				final AcqRow[] acqRows;
 
 				try {
@@ -1898,15 +1888,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 					timeStep = 0;
 				}
 
-				final AcqParams params = new AcqParams(mmc, devs, acqRows);
+				final AcqParams params = new AcqParams(mmc, devMgr, acqRows);
 				params.setTimeSeqCount(timeSeqs);
 				params.setTimeStepSeconds(timeStep);
 				params.setContinuous(continuousCheckbox.isSelected());
-
-				HashMap<String, String> nameMap = new HashMap<String, String>(3);
-				nameMap.put(xyStageLabel, "XY");
-				nameMap.put(twisterLabel, "Ang");
-				nameMap.put(zStageLabel, "Z");
 
 				final File output;
 				if(!continuousCheckbox.isSelected() && !"".equals(acqSaveDir.getText())) {
@@ -1971,7 +1956,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 						f = new AntiDrift.Factory() {
 							@Override
 							public AntiDrift manufacture(AcqParams p, AcqRow r) {
-								return new IntensityMeanAntiDrift(adparams, r.getEndPosition() - r.getStartPosition());
+								return new IntensityMeanAntiDrift(adparams, r.getZEndPosition() - r.getZStartPosition());
 							}
 						};
 					}
