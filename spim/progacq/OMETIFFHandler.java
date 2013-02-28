@@ -92,9 +92,9 @@ public class OMETIFFHandler implements AcqOutputHandler {
 				meta.setPixelsSizeC(new PositiveInteger(1), image);
 				meta.setPixelsSizeT(new PositiveInteger(timesteps), image);
 
-				meta.setPixelsPhysicalSizeX(new PositiveFloat(core.getPixelSizeUm()*core.getImageWidth()), image);
-				meta.setPixelsPhysicalSizeY(new PositiveFloat(core.getPixelSizeUm()*core.getImageHeight()), image);
-				meta.setPixelsPhysicalSizeZ(new PositiveFloat(1d), image);
+				meta.setPixelsPhysicalSizeX(new PositiveFloat(core.getPixelSizeUm()), image);
+				meta.setPixelsPhysicalSizeY(new PositiveFloat(core.getPixelSizeUm()), image);
+				meta.setPixelsPhysicalSizeZ(new PositiveFloat(row.getZStepSize()*1.5D), image); // TODO: This is hardcoded. Change the DAL.
 				meta.setPixelsTimeIncrement(new Double(deltat), image);
 			}
 
