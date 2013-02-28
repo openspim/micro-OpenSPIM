@@ -78,9 +78,9 @@ public class AcqRow {
 				return Double.toString(start);
 
 			if(continuous)
-				return String.format("%f-%f@%d", start, end, (int) stepOrSpeed);
+				return String.format("%.3f-%.3f@%d", start, end, (int) stepOrSpeed);
 			else
-				return String.format("%f:%f:%f", start, stepOrSpeed, end);
+				return String.format("%.3f:%.3f:%.3f", start, stepOrSpeed, end);
 		}
 
 		protected void translate(double by) {

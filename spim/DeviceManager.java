@@ -42,7 +42,7 @@ public class DeviceManager extends JFrame {
 		STAGE_Y ("Y Stage", DeviceType.StageDevice),
 		STAGE_XY ("XY Stage", DeviceType.XYStageDevice),
 		STAGE_Z ("Z Stage", DeviceType.StageDevice),
-		STAGE_THETA ("Rotator", DeviceType.StageDevice),
+		STAGE_THETA ("Theta Stage", DeviceType.StageDevice),
 		LASER1 ("Laser", DeviceType.ShutterDevice),
 		LASER2 ("Laser (2)", DeviceType.ShutterDevice),
 		CAMERA1 ("Camera", DeviceType.CameraDevice),
