@@ -4,8 +4,6 @@ import java.io.File;
 
 import ij.ImagePlus;
 import ij.process.ImageProcessor;
-import ij.process.ShortProcessor;
-
 import org.micromanager.utils.ReportingUtils;
 
 import loci.common.DataTools;
@@ -196,101 +194,5 @@ public class OMETIFFHandler implements AcqOutputHandler {
 		imageCounter = 0;
 
 		writer = null;
-	}
-
-
-	private static long WIDTH = 256;
-	private static long HEIGHT = 256;
-	private static long BITDEPTH = 16;
-	private static double UMPERPIX = (10D / 23D);
-
-	public static void main(String[] args) {
-		if(args.length < 5) {
-			args = new String[] {
-				"OMETIFFHandler.java",
-				"2",
-				"5",
-				"2",
-				"C:\\Documents and Settings\\LOCI\\Desktop\\blehtest\\"
-			};
-		}
-
-		// Hopefully this doesn't do anything horrible.
-		// EDIT: Well, this does something horrible. :(
-		class mockCore extends CMMCore {
-			mockCore() {
-			}
-			public long getImageBitDepth() {
-				return BITDEPTH;
-			}
-
-			public long getImageWidth() {
-				return WIDTH;
-			}
-
-			public long getImageHeight() {
-				return HEIGHT;
-			}
-
-			public double getPixelSizeUm() {
-				return UMPERPIX;
-			}
-		}
-
-		int stacks = Integer.parseInt(args[1]);
-		int depth = Integer.parseInt(args[2]);
-		int timePoints = Integer.parseInt(args[3]);
-
-		File outDir = new File(args[4]);
-
-		AcqRow[] rows = new AcqRow[stacks];
-		for(int xyt=0; xyt < stacks; ++xyt)
-			rows[xyt] = new AcqRow(new String[] {"Picard XY Stage", "Picard Twister", "t"},
-					"Picard Stage", "1:1:" + depth);
-
-		mockCore core = new mockCore();
-
-		OMETIFFHandler handler = new OMETIFFHandler(core, outDir, "Picard XY Stage", "Picard Twister", "Picard Stage", "t", rows, timePoints, 13);
-
-		for(int t=0; t < timePoints; ++t) {
-			for(int xyt=0; xyt < stacks; ++xyt) {
-				try {
-					handler.beginStack(0);
-				} catch(Exception e) {
-					ReportingUtils.logException("Error beginning stack: " + t + " " + xyt, e);
-					return;
-				}
-
-				for(int z=1; z <= depth; ++z) {
-					short[] pix = new short[(int) (WIDTH*HEIGHT)];
-
-					for(int y=0; y < HEIGHT; ++y)
-						for(int x=0; x < WIDTH; ++x)
-							pix[(int) (y*WIDTH + x)] = (short) (Math.pow(2,BITDEPTH-2)*(Math.sin((x - xyt*8D)*Math.PI*8/WIDTH)+1)*(Math.sin((y - t*8D)*Math.PI*8/HEIGHT)+1)*z/depth);
-
-					try {
-						handler.processSlice(new ShortProcessor((int) WIDTH, (int) HEIGHT, pix, null), 0, 0, z, xyt, t);
-					} catch(Exception e) {
-						ReportingUtils.logException("Error processing slice: " + t + " " + xyt + " " + z, e);
-						return;
-					}
-				}
-
-				try {
-					handler.finalizeStack(0);
-				} catch(Exception e) {
-					ReportingUtils.logException("Error finalizing stack: " + t + " " + xyt, e);
-					return;
-				}
-			}
-		}
-
-		try {
-			handler.finalizeAcquisition();
-		} catch (Exception e) {
-			ReportingUtils.logException("Error finalizing acquisition.", e);
-		}
-
-		core.delete();
 	}
 }

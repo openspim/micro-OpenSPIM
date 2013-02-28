@@ -1,6 +1,5 @@
 package spim;
 
-import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -44,9 +43,9 @@ public class DeviceManager extends JFrame {
 		STAGE_XY ("XY Stage", DeviceType.XYStageDevice),
 		STAGE_Z ("Z Stage", DeviceType.StageDevice),
 		STAGE_THETA ("Rotator", DeviceType.StageDevice),
-		LASER1 ("Laser (1)", DeviceType.ShutterDevice),
+		LASER1 ("Laser", DeviceType.ShutterDevice),
 		LASER2 ("Laser (2)", DeviceType.ShutterDevice),
-		CAMERA1 ("Camera (1)", DeviceType.CameraDevice),
+		CAMERA1 ("Camera", DeviceType.CameraDevice),
 		CAMERA2 ("Camera (2)", DeviceType.CameraDevice),
 		SYNCHRONIZER ("Synchronizer", DeviceType.SignalIODevice);
 
@@ -65,8 +64,8 @@ public class DeviceManager extends JFrame {
 			return this.mmtype;
 		}
 	};
-	
-	private class SPIMSetupDevices extends JPanel {
+
+	private static class SPIMSetupDevices extends JPanel {
 		private static final long serialVersionUID = 5356126433493461392L;
 
 		private EnumMap<SPIMDevice, String> labelMap;
@@ -115,8 +114,6 @@ public class DeviceManager extends JFrame {
 
 				add(put);
 			}
-
-			pack();
 		}
 
 		@Override
@@ -175,6 +172,31 @@ public class DeviceManager extends JFrame {
 
 		private boolean coreHasDevOfType(DeviceType t, String lbl) {
 			return strVecContains(core.getLoadedDevicesOfType(t), lbl);
+		}
+
+		private static String[] augmentNone(StrVector arg) {
+			String[] out = new String[(int) (arg.size() + 1)];
+
+			out[0] = "(none)";
+			for(int s = 0; s < arg.size(); ++s)
+				out[s + 1] = arg.get(s);
+
+			return out;
+		}
+
+		private static boolean strVecContains(StrVector v, String s) {
+			for(String s2 : v)
+				if(s2.equals(s))
+					return true;
+
+			return false;
+		}
+		
+		private static String cleanName(DeviceType type) {
+			String cleaned = type.toString().replace("Device", "");
+
+			java.util.regex.Pattern pat = java.util.regex.Pattern.compile("([a-z]|XY|IO)([A-Z])");
+			return pat.matcher(cleaned).replaceAll("$1 $2");
 		}
 	}
 
@@ -290,30 +312,5 @@ public class DeviceManager extends JFrame {
 
 		setups.remove(setup);
 		setupTabs.remove(setup);
-	}
-
-	private static String[] augmentNone(StrVector arg) {
-		String[] out = new String[(int) (arg.size() + 1)];
-
-		out[0] = "(none)";
-		for(int s = 0; s < arg.size(); ++s)
-			out[s + 1] = arg.get(s);
-
-		return out;
-	}
-
-	private static boolean strVecContains(StrVector v, String s) {
-		for(String s2 : v)
-			if(s2.equals(s))
-				return true;
-
-		return false;
-	}
-	
-	private static String cleanName(DeviceType type) {
-		String cleaned = type.toString().replace("Device", "");
-
-		java.util.regex.Pattern pat = java.util.regex.Pattern.compile("([a-z]|XY|IO)([A-Z])");
-		return pat.matcher(cleaned).replaceAll("$1 $2");
 	}
 }

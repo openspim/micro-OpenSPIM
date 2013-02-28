@@ -2,13 +2,14 @@ package spim.progacq;
 
 import java.io.File;
 
-import javax.swing.event.ChangeListener;
+import spim.DeviceManager;
+import spim.DeviceManager.SPIMDevice;
 
 import mmcorej.CMMCore;
 
 public class AcqParams {
 	private CMMCore			core;
-	private String[]		stepDevices;
+	private DeviceManager	devMgr;
 	private AcqRow[]		rows;
 
 	private double			timeStepSeconds;
@@ -20,7 +21,7 @@ public class AcqParams {
 
 	private ProgrammaticAcquisitor.AcqProgressCallback	progressListener;
 
-	private String[]		metaDevices;
+	private SPIMDevice[]		metaDevices;
 
 	private AntiDrift.Factory	adFactory;
 	private boolean				updateLive;
@@ -31,22 +32,22 @@ public class AcqParams {
 		this(null, null, null, 0D, 0, false, null, null, false, null);
 	}
 
-	public AcqParams(CMMCore icore, String[] idevices, AcqRow[] rows) {
-		this(icore, idevices, rows, 0D, 1, false, null, idevices, false, null);
+	public AcqParams(CMMCore icore, DeviceManager mgr, AcqRow[] rows) {
+		this(icore, mgr, rows, 0D, 1, false, null, rows[0].getDevices(), false, null);
 	}
 
-	public AcqParams(CMMCore core, String[] devs, AcqRow[] rows, double deltat, int count)
+	public AcqParams(CMMCore core, DeviceManager mgr, AcqRow[] rows, double deltat, int count)
 	{
-		this(core, devs, rows, deltat, count, false, null, devs, false, null);
+		this(core, mgr, rows, deltat, count, false, null, rows[0].getDevices(), false, null);
 	}
 
-	public AcqParams(CMMCore iCore, String[] iDevices, AcqRow[] iRows,
+	public AcqParams(CMMCore iCore, DeviceManager mgr, AcqRow[] iRows,
 			double iTimeStep, int iTimeSeqCnt, boolean iContinuous,
-			ProgrammaticAcquisitor.AcqProgressCallback iListener, String[] iMetaDevices, boolean saveIndv,
+			ProgrammaticAcquisitor.AcqProgressCallback iListener, SPIMDevice[] iMetaDevices, boolean saveIndv,
 			File rootDir) {
 		this(
 			iCore,
-			iDevices,
+			mgr,
 			iRows,
 			iTimeStep,
 			iTimeSeqCnt,
@@ -63,13 +64,13 @@ public class AcqParams {
 		);
 	}
 
-	public AcqParams(CMMCore iCore, String[] iDevs, AcqRow[] iRows,
+	public AcqParams(CMMCore iCore, DeviceManager mgr, AcqRow[] iRows,
 			double iTimeStep, int iTimeSeqCnt, boolean iContinuous,
-			ProgrammaticAcquisitor.AcqProgressCallback iListener, String[] iMetaDevices,
+			ProgrammaticAcquisitor.AcqProgressCallback iListener, SPIMDevice[] iMetaDevices,
 			AcqOutputHandler handler) {
 
 		setCore(iCore);
-		setStepDevices(iDevs);
+		setDeviceManager(mgr);
 		setRows(iRows);
 		setTimeStepSeconds(iTimeStep);
 		setTimeSeqCount(iTimeSeqCnt);
@@ -95,17 +96,17 @@ public class AcqParams {
 	}
 
 	/**
-	 * @return the stepDevices
+	 * @return the device manager
 	 */
-	public String[] getStepDevices() {
-		return stepDevices;
+	public DeviceManager getDeviceManager() {
+		return devMgr;
 	}
 
 	/**
 	 * @param stepDevices the stepDevices to set
 	 */
-	public void setStepDevices(String[] stepDevices) {
-		this.stepDevices = stepDevices;
+	public void setDeviceManager(DeviceManager mgr) {
+		this.devMgr = mgr;
 	}
 
 	/**
@@ -167,15 +168,15 @@ public class AcqParams {
 	/**
 	 * @return the metaDevices
 	 */
-	public String[] getMetaDevices() {
+	public SPIMDevice[] getMetaDevices() {
 		return metaDevices;
 	}
 
 	/**
-	 * @param metaDevices the metaDevices to set
+	 * @param iMetaDevices the metaDevices to set
 	 */
-	public void setMetaDevices(String[] metaDevices) {
-		this.metaDevices = metaDevices;
+	public void setMetaDevices(SPIMDevice[] iMetaDevices) {
+		this.metaDevices = iMetaDevices;
 	}
 
 	public AcqOutputHandler getOutputHandler() {

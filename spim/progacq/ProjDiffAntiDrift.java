@@ -383,10 +383,10 @@ public class ProjDiffAntiDrift extends AntiDrift {
 		lastCorrection = Vector3D.ZERO;
 		first = null;
 
-		loc = new Vector3D(r.getX(), r.getY(), r.getStartPosition());
+		loc = new Vector3D(r.getX(), r.getY(), r.getZStartPosition());
 		theta = r.getTheta();
 		tp = 1;
-		zstep = r.getStepSize();
+		zstep = r.getZStepSize();
 		zratio = zstep/p.getCore().getPixelSizeUm();
 
 		if(outDir != null) {
