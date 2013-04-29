@@ -228,12 +228,15 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		prefs = Preferences.userNodeForPackage(getClass());
 
 		devMgr = new DeviceManager(mmc);
+		
+		if(!devMgr.getSetup(0).isMinimalMicroscope())
+			JOptionPane.showMessageDialog(frame, "Your setup appears to be invalid. Please make sure you have at least a camera, an X/Y stage, and a laser set up.\nYou may need to restart Micro-Manager for the OpenSPIM plugin to detect a correct setup.");
 
 		ensurePixelResolution();
 		initUI();
 		configurationChanged();
 
-		if(!gui.isLiveModeOn())
+		if(!gui.isLiveModeOn() && devMgr.getSetup(0).isConnected(SPIMDevice.CAMERA1))
 			gui.enableLiveMode(true);
 
 		frame.setVisible(true);
@@ -856,7 +859,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		if(lbl == null)
 			lbl = mmc.getShutterDevice();
 
-		if(lbl != null) {
+		if(lbl != null && !lbl.isEmpty()) {
 			try {
 				// Coherent Cube specific properties!
 				minlp = (int)(Float.parseFloat(mmc.getProperty(lbl, "Minimum Laser Power")) * 100.0f);
@@ -1328,24 +1331,24 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		String laserLabel = devMgr.getLabel(SPIMDevice.LASER1);
 		String cameraLabel = devMgr.getLabel(SPIMDevice.CAMERA1);
 
-		if (xyStageLabel != null) {
+		if (xyStageLabel != null && !xyStageLabel.isEmpty()) {
 			int x = (int)mmc.getXPosition(xyStageLabel);
 			int y = (int)mmc.getYPosition(xyStageLabel);
 			xSlider.updateValueQuietly(x);
 			ySlider.updateValueQuietly(y);
 		}
 
-		if (zStageLabel != null) {
+		if (zStageLabel != null && !zStageLabel.isEmpty()) {
 			int z = (int)mmc.getPosition(zStageLabel);
 			zSlider.updateValueQuietly(z);
 		}
 
-		if (twisterLabel != null) {
+		if (twisterLabel != null && !twisterLabel.isEmpty()) {
 			int position = (int)mmc.getPosition(twisterLabel);
 			rotationSlider.updateValueQuietly(twisterPosition2Angle(position));
 		}
 
-		if (laserLabel != null) {
+		if (laserLabel != null && !laserLabel.isEmpty()) {
 			// Make sure we have the property before trying to use it. This
 			// prevents an annoying sort-of-loop from happening.
 			if(mmc.hasProperty(laserLabel, "PowerSetpoint") && acqThread == null) {
@@ -1357,7 +1360,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			}
 		}
 
-		if (cameraLabel != null) {
+		if (cameraLabel != null && !cameraLabel.isEmpty()) {
 			int exposure = (int)mmc.getExposure();
 			exposureSlider.updateValueQuietly(exposure);
 		}
