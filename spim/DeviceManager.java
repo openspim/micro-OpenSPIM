@@ -65,7 +65,7 @@ public class DeviceManager extends JFrame {
 		}
 	};
 
-	private static class SPIMSetupDevices extends JPanel {
+	public static class SPIMSetupDevices extends JPanel {
 		private static final long serialVersionUID = 5356126433493461392L;
 
 		private EnumMap<SPIMDevice, String> labelMap;
@@ -123,6 +123,55 @@ public class DeviceManager extends JFrame {
 
 		public String getDeviceLabel(SPIMDevice type) {
 			return labelMap.get(type);
+		}
+
+		public boolean isConnected(SPIMDevice type)
+		{
+			return coreHasDevOfType(type.getMMType(), getDeviceLabel(type));
+		}
+
+		public boolean isAllDevicesConnected()
+		{
+			for(SPIMDevice type : labelMap.keySet())
+				if(!isConnected(type))
+					return false;
+
+			return true;
+		}
+
+		public int getStageDimensions()
+		{
+			return
+				(isConnected(SPIMDevice.STAGE_XY) ? 2 :
+					((isConnected(SPIMDevice.STAGE_X) ? 1 : 0) +
+					(isConnected(SPIMDevice.STAGE_Y) ? 1 : 0))
+				) +
+				(isConnected(SPIMDevice.STAGE_Z) ? 1 : 0) +
+				(isConnected(SPIMDevice.STAGE_THETA) ? 1 : 0);
+		}
+
+		/**
+		 * Returns true if this setup consists of at least one camera, one
+		 * illumination device, and two stage dimensions.
+		 *
+		 * @return true if this constitutes a minimal microscope.
+		 */
+		public boolean isMinimalMicroscope()
+		{
+			return isConnected(SPIMDevice.CAMERA1) &&
+					isConnected(SPIMDevice.LASER1) &&
+					(getStageDimensions() >= 2);
+		}
+
+		/**
+		 * Returns true if this setup consists of at least one camera, one
+		 * illumination device, and four stage dimensions.
+		 *
+		 * @return true if this constitutes a basic SPIM setup.
+		 */
+		public boolean isBasicSPIM()
+		{
+			return isMinimalMicroscope() && getStageDimensions() >= 4;
 		}
 
 		private String getMMDefaultDevice(SPIMDevice type) {
@@ -222,13 +271,27 @@ public class DeviceManager extends JFrame {
 	 * 
 	 * @param type The device type to determine the label of.
 	 * @param setup Which attached setup to get the device of.
-	 * @return The correct device label, or null if not available.
+	 * @return The correct device label, or empty string if not available.
 	 */
 	public String getDeviceLabel(SPIMDevice type, int setup) {
+		if(setups.size() <= setup || !setups.get(setup).isConnected(type))
+			return "";
+
+		return setups.get(setup).getDeviceLabel(type);
+	}
+
+	/**
+	 * Returns the setup object for the given setup. Used by external classes to
+	 * check various attributes of the setup.
+	 *
+	 * @param setup Which attached setup to get the device of.
+	 * @return The setup object, or null if not available.
+	 */
+	public SPIMSetupDevices getSetup(int setup) {
 		if(setups.size() <= setup)
 			return null;
 
-		return setups.get(setup).getDeviceLabel(type);
+		return setups.get(setup);
 	}
 
 	public DeviceManager(CMMCore core) {
