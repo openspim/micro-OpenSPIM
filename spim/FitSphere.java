@@ -66,6 +66,7 @@ public class FitSphere {
 		double[] result = null;
 		try {
 			result = opt.optimize(5000000, MRF, GoalType.MINIMIZE, params).getPoint();
+			error = Math.sqrt(MRF.value(result));
 		} catch(Throwable t) {
 			ReportingUtils.logError(t, "Optimization failed!");
 		}
@@ -74,7 +75,6 @@ public class FitSphere {
 
 		center = new Vector3D(result[XC], result[YC], result[ZC]).add(mean);
 		radius = result[RADIUS];
-		error = Math.sqrt(MRF.value(result));
 	};
 
 	public Vector3D getCenter() {
