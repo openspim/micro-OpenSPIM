@@ -3,6 +3,9 @@ package spim.progacq;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import java.lang.InterruptedException;
+import java.nio.channels.ClosedByInterruptException;
+
 import ij.ImagePlus;
 import ij.process.ImageProcessor;
 
@@ -33,9 +36,12 @@ public class AsyncOutputWrapper implements AcqOutputHandler {
 			while(!Thread.interrupted()) try {
 				writeAll();
 			} catch (Exception e) {
-				if(!(e instanceof InterruptedException)) {
+				if(!(e instanceof InterruptedException) &&
+				   !(e instanceof ClosedByInterruptException) ) {
 					ij.IJ.log("Async writer failed!");
 					ij.IJ.handleException(e);
+				} else if(e instanceof ClosedByInterruptException) {
+					ij.IJ.log("Warning: asynchronous writer may have been cancelled before completing. (" + queue.size() + ")");
 				}
 			}
 		}
