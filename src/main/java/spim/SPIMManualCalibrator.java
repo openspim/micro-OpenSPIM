@@ -1,6 +1,7 @@
 package spim;
 
 import spim.LayoutUtils;
+import spim.setup.SPIMSetup;
 
 import java.awt.Color;
 import java.awt.Rectangle;
@@ -39,7 +40,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 
 	private CMMCore core;
 	private MMStudioMainFrame gui;
-	private String twisterLabel;
+	private SPIMSetup setup;
 
 	private Roi pixelSizeRoi;
 	private JButton psrRoiPickerBtn;
@@ -54,12 +55,12 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 	private final String PICK_ROI = "Pick ROI from Live Window";
 	private final String PICK_BEAD = "Pick Bead";
 
-	public SPIMManualCalibrator(CMMCore icore, MMStudioMainFrame igui, String itwister) {
+	public SPIMManualCalibrator(CMMCore icore, MMStudioMainFrame igui, SPIMSetup isetup) {
 		super("SPIM Calibration");
 
 		core = icore;
 		gui = igui;
-		twisterLabel = itwister;
+		setup = isetup;
 
 		setLayout(new BoxLayout(getContentPane(), BoxLayout.PAGE_AXIS));
 
@@ -163,7 +164,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 		dTheta.setText("25");
 
 		try {
-			thetaInit.setText("" + core.getPosition(twisterLabel));
+			thetaInit.setText("" + setup.getAngle());
 		} catch(Exception e) {
 			thetaInit.setText("0");
 			ReportingUtils.logError(e);
@@ -281,7 +282,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 	}
 
 	private double DTheta() {
-		return Double.parseDouble(dTheta.getText()) * Math.PI / 100.0D;
+		return Double.parseDouble(dTheta.getText()) * Math.PI / 180.0D;
 	}
 
 	private Vector3D yaxis = Vector3D.PLUS_J;
@@ -314,11 +315,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 		Vector3D endpos = axispos.add(r.applyTo(rotVecMid.subtract(axispos)));
 
 		try {
-			core.setPosition(twisterLabel, Double.parseDouble(thetaInit.getText()) + DTheta()*100.0D/Math.PI*2);
-
-			core.setXYPosition(core.getXYStageDevice(), endpos.getX(), endpos.getY());
-
-			core.setPosition(core.getFocusDevice(), endpos.getZ());
+			setup.setPosition(endpos, Double.parseDouble(thetaInit.getText()) + DTheta()*180.0D/Math.PI*2);
 
 			// Move our ROI to around the center of the image (where the point
 			// should be) and run detect().
@@ -350,21 +347,19 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 		// Peek the current ROI. Pan up and down through several frames, apply
 		// the gaussian fitter to each. We'll need to throw out some points.
 
-		double basez = core.getPosition(core.getFocusDevice());
+		double basez = setup.getZStage().getPosition();
 
 		GaussianFit fitter = new GaussianFit(3, 1);
 
 		if(gui.getImageWin() == null || gui.getImageWin().getImagePlus().getRoi() == null)
 			return null;
 
-		double cx = 0;
-		double cy = 0;
-		double cz = 0;
+		Vector3D c = Vector3D.ZERO;
 		double intsum = 0;
 
 		for(double z = basez - detect_delta; z < basez + detect_delta; ++z) {
-			core.setPosition(core.getFocusDevice(), z);
-			core.waitForDevice(core.getFocusDevice());
+			setup.getZStage().setPosition(z);
+			setup.getZStage().waitFor();
 
 			ImageProcessor ip = gui.getImageWin().getImagePlus().getProcessor();
 
@@ -380,20 +375,16 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 				double x = (ip.getRoi().getMinX() + params[GaussianFit.XC] - ip.getWidth()/2)*getUmPerPixel();
 				double y = (ip.getRoi().getMinY() + params[GaussianFit.YC] - ip.getHeight()/2)*getUmPerPixel();
 
-				cx += (core.getXPosition(core.getXYStageDevice()) + x)*INT;
-				cy += (core.getYPosition(core.getXYStageDevice()) + y)*INT;
-				cz += z*INT;
+				c = c.add(INT, setup.getPosition().add(new Vector3D(x, y, 0)));
 			}
 		}
 
-		core.setPosition(core.getFocusDevice(), basez);
+		setup.getZStage().setPosition(basez);
 
-		cx /= intsum;
-		cy /= intsum;
-		cz /= intsum;
+		c = c.scalarMultiply(1.0/intsum);
 
 //		System.out.println("~Pos: " + vToString(new Vector3D(cx,cy,cz)));
-		return new Vector3D(cx,cy,cz);
+		return c;
 	}
 
 	private Line rotAxis;
@@ -476,11 +467,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 			double x = (ip.getRoi().getMinX() + params[GaussianFit.XC] - ip.getWidth()/2)*getUmPerPixel();
 			double y = (ip.getRoi().getMinY() + params[GaussianFit.YC] - ip.getHeight()/2)*getUmPerPixel();
 
-			x += core.getXPosition(core.getXYStageDevice());
-			y += core.getYPosition(core.getXYStageDevice());
-			double z = core.getPosition(core.getFocusDevice());
-
-			return new Vector3D(x, y, z);
+			return setup.getPosition().add(new Vector3D(x, y, 0));
 		} catch(Throwable e) {
 			ReportingUtils.logError(e);
 			return null;
@@ -558,14 +545,10 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 			};
 
 			try {
-				core.setPosition(twisterLabel, thetaDest);
+				setup.getThetaStage().setPosition(thetaDest);
 
-				if((ae.getModifiers() & ActionEvent.CTRL_MASK) != 0 && destVec != null) {
-					core.setXYPosition(core.getXYStageDevice(), destVec.getX(),
-							destVec.getY());
-
-					core.setPosition(core.getFocusDevice(), destVec.getZ());
-				}
+				if((ae.getModifiers() & ActionEvent.CTRL_MASK) != 0 && destVec != null)
+					setup.setPosition(destVec);
 			} catch(Exception e) {
 				ReportingUtils.logError(e);
 
