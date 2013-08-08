@@ -8,7 +8,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 public class LayoutUtils {
-	public static JComponent titled(String title, JComponent c) {
+	public static <T extends JComponent> T titled(String title, T c) {
 		c.setBorder(BorderFactory.createTitledBorder(title));
 
 		return c;
