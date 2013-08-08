@@ -2,14 +2,14 @@ package spim.progacq;
 
 import java.io.File;
 
-import spim.DeviceManager;
-import spim.DeviceManager.SPIMDevice;
+import spim.setup.SPIMSetup;
+import spim.setup.SPIMSetup.SPIMDevice;
 
 import mmcorej.CMMCore;
 
 public class AcqParams {
 	private CMMCore			core;
-	private DeviceManager	devMgr;
+	private SPIMSetup		setup;
 	private AcqRow[]		rows;
 
 	private double			timeStepSeconds;
@@ -32,22 +32,22 @@ public class AcqParams {
 		this(null, null, null, 0D, 0, false, null, null, false, null);
 	}
 
-	public AcqParams(CMMCore icore, DeviceManager mgr, AcqRow[] rows) {
-		this(icore, mgr, rows, 0D, 1, false, null, rows[0].getDevices(), false, null);
+	public AcqParams(CMMCore icore, SPIMSetup setup, AcqRow[] rows) {
+		this(icore, setup, rows, 0D, 1, false, null, rows[0].getDevices(), false, null);
 	}
 
-	public AcqParams(CMMCore core, DeviceManager mgr, AcqRow[] rows, double deltat, int count)
+	public AcqParams(CMMCore core, SPIMSetup setup, AcqRow[] rows, double deltat, int count)
 	{
-		this(core, mgr, rows, deltat, count, false, null, rows[0].getDevices(), false, null);
+		this(core, setup, rows, deltat, count, false, null, rows[0].getDevices(), false, null);
 	}
 
-	public AcqParams(CMMCore iCore, DeviceManager mgr, AcqRow[] iRows,
+	public AcqParams(CMMCore iCore, SPIMSetup setup, AcqRow[] iRows,
 			double iTimeStep, int iTimeSeqCnt, boolean iContinuous,
 			ProgrammaticAcquisitor.AcqProgressCallback iListener, SPIMDevice[] iMetaDevices, boolean saveIndv,
 			File rootDir) {
 		this(
 			iCore,
-			mgr,
+			setup,
 			iRows,
 			iTimeStep,
 			iTimeSeqCnt,
@@ -64,14 +64,14 @@ public class AcqParams {
 		);
 	}
 
-	public AcqParams(CMMCore iCore, DeviceManager mgr, AcqRow[] iRows,
+	public AcqParams(CMMCore iCore, SPIMSetup setup, AcqRow[] iRows,
 			double iTimeStep, int iTimeSeqCnt, boolean iContinuous,
 			ProgrammaticAcquisitor.AcqProgressCallback iListener, SPIMDevice[] iMetaDevices,
 			AcqOutputHandler handler) {
 
 		setCore(iCore);
-		setDeviceManager(mgr);
 		setRows(iRows);
+		setSetup(setup);
 		setTimeStepSeconds(iTimeStep);
 		setTimeSeqCount(iTimeSeqCnt);
 		setContinuous(iContinuous);
@@ -93,20 +93,6 @@ public class AcqParams {
 	 */
 	public void setCore(CMMCore core) {
 		this.core = core;
-	}
-
-	/**
-	 * @return the device manager
-	 */
-	public DeviceManager getDeviceManager() {
-		return devMgr;
-	}
-
-	/**
-	 * @param stepDevices the stepDevices to set
-	 */
-	public void setDeviceManager(DeviceManager mgr) {
-		this.devMgr = mgr;
 	}
 
 	/**
@@ -229,6 +215,14 @@ public class AcqParams {
 
 	public void setSettleDelay(int zWaitMillis) {
 		this.zWaitMillis = zWaitMillis;
+	}
+
+	public SPIMSetup getSetup() {
+		return setup;
+	}
+
+	public void setSetup(SPIMSetup setup) {
+		this.setup = setup;
 	}
 
 }

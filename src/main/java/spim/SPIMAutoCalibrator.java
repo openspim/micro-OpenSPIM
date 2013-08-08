@@ -53,6 +53,8 @@ import org.micromanager.utils.MDUtils;
 import org.micromanager.utils.MMScriptException;
 import org.micromanager.utils.ReportingUtils;
 
+import spim.setup.SPIMSetup;
+
 import edu.valelab.GaussianFit.GaussianFit;
 
 public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, ActionListener, MouseListener, MouseMotionListener {
@@ -74,7 +76,6 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 	private CMMCore core;
 	private MMStudioMainFrame gui;
-	private String twisterLabel;
 
 	private JList pointsTable;
 
@@ -90,13 +91,15 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	private JSpinner intbgrThresh;
 	private JCheckBox visualFit;
 	private JCheckBox hypersphere;
+	
+	private SPIMSetup setup;
 
-	public SPIMAutoCalibrator(CMMCore core, MMStudioMainFrame gui, String itwister) {
+	public SPIMAutoCalibrator(CMMCore core, MMStudioMainFrame gui, SPIMSetup isetup) {
 		super("SPIM Automatic Calibration");
 
 		this.core = core;
 		this.gui = gui;
-		this.twisterLabel = itwister;
+		setup = isetup;
 
 		rotAxis = null;
 
@@ -382,11 +385,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		if(modelSize >= 3 && complexGuessZ.isSelected()) {
 			Line a = fitAxis();
 
-			Vector3D cur = new Vector3D(
-					core.getXPosition(core.getXYStageDevice()),
-					core.getYPosition(core.getXYStageDevice()),
-					core.getPosition(core.getFocusDevice())
-				);
+			Vector3D cur = setup.getPosition();
 
 			Vector3D res = new Rotation(a.getDirection(),
 					-1*(Math.PI/100)).applyTo(cur);
@@ -398,7 +397,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 			return recent.getZ() + (recent.getZ() - older.getZ());
 		} else {
-			return core.getPosition(core.getFocusDevice());
+			return setup.getZStage().getPosition();
 		}
 	}
 
@@ -407,7 +406,8 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 		GaussianFit fitter = new GaussianFit(3, 1, true, true);
 
-		double cx = 0, cy = 0, cz = 0, intsum = 0;
+		Vector3D c = Vector3D.ZERO;
+		double intsum = 0;
 
 		double maxInt = -1e6;
 		double maxZ = -1;
@@ -421,8 +421,8 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		ImageStack stack = new ImageStack(roi.width, roi.height);
 
 		for(double z = basez - scanDelta; z <= basez + scanDelta; ++z) {
-			core.setPosition(core.getFocusDevice(), z);
-			core.waitForDevice(core.getFocusDevice());
+			setup.getZStage().setPosition(z);
+			setup.getZStage().waitFor();
 			Thread.sleep(15);
 
 			core.snapImage();
@@ -449,29 +449,26 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			ReportingUtils.logMessage(String.format("!!!--- Gaussian fit: C=%.2f, %.2f, INT=%.2f, BGR=%.2f.",
 					x, y, params[GaussianFit.INT], params[GaussianFit.BGR]));
 
-			double offsx = core.getXPosition(core.getXYStageDevice()) +
-					(ip.getRoi().getMinX() + x -
-					ip.getWidth()/2)*getUmPerPixel();
+			Vector3D curPos = setup.getPosition();
 
-			double offsy = core.getYPosition(core.getXYStageDevice()) +
-					(ip.getRoi().getMinY() + y -
-					ip.getHeight()/2)*getUmPerPixel();
-
-			double sigma = Math.sqrt(Math.pow(sx, 2) + Math.pow(sx, 2));
+			Vector3D beadPos = curPos.add(new Vector3D(
+					(ip.getRoi().getMinX() + x - ip.getWidth()/2)*getUmPerPixel(),
+					(ip.getRoi().getMinY() + y - ip.getHeight()/2)*getUmPerPixel(),
+					0
+			));
+			
+			double sigma = Math.sqrt(sx*sx + sy*sy);
 
 			if(intbgr >= (Double)intbgrThresh.getValue() &&
 					x >= 0 && y >= 0 &&
 					x < cropped.getWidth() && y < cropped.getHeight()) {
+				ReportingUtils.logMessage("!!!--- Including z=" + z + " (" + curPos.getZ() + "): " + beadPos.getX() + ", " + beadPos.getY() + ":");
+				ReportingUtils.logMessage(curPos.getX() + " + (" + ip.getRoi().getMinX() + " + " + x + " - " + ip.getWidth() + "/2)*" + getUmPerPixel() + ")*" + intbgr + ";");
+				ReportingUtils.logMessage(curPos.getY() + " + (" + ip.getRoi().getMinY() + " + " + y + " - " + ip.getHeight() + "/2)*" + getUmPerPixel() + ")*" + intbgr + ";");
+
 				intsum += intbgr;
+				c = c.add(intbgr, beadPos);
 
-				ReportingUtils.logMessage("!!!--- Including z=" + z + " (" + core.getPosition(core.getFocusDevice()) + "): " + offsx + ", " + offsy + ":");
-				ReportingUtils.logMessage(core.getXPosition(core.getXYStageDevice()) + " + (" + ip.getRoi().getMinX() + " + " + x + " - " + ip.getWidth() + "/2)*" + getUmPerPixel() + ")*" + intbgr + ";");
-				ReportingUtils.logMessage(core.getYPosition(core.getXYStageDevice()) + " + (" + ip.getRoi().getMinY() + " + " + y + " - " + ip.getHeight() + "/2)*" + getUmPerPixel() + ")*" + intbgr + ";");
-
-				cx += offsx*intbgr;
-				cy += offsy*intbgr;
-				cz += core.getPosition(core.getFocusDevice())*intbgr;
-				
 				java.awt.Color overlayColor = java.awt.Color.RED;
 
 				if(intbgr > maxInt) {
@@ -498,28 +495,24 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 				if(visualFit.isSelected())
 					MMStudioMainFrame.getSimpleDisplay().getImagePlus().setOverlay(null);
 				
-				ReportingUtils.logMessage("!!!--- Throwing out " + offsx + ", " + offsy + ", " + z + "; intbgr = " + intbgr);
+				ReportingUtils.logMessage("!!!--- Throwing out " + beadPos.getX() + ", " + beadPos.getY() + ", " + z + "; intbgr = " + intbgr);
 			}
 		}
 
-		core.setPosition(core.getFocusDevice(), basez);
-		core.waitForDevice(core.getFocusDevice());
+		setup.getZStage().setPosition(basez);
+		setup.getZStage().waitFor();
 
-		cx /= intsum;
-		cy /= intsum;
-		cz /= intsum;
+		c = c.scalarMultiply(1/intsum);
 
 		if(zmethod.getSelectedItem().equals(ZMODE_MAX_INTENSITY)) {
-			cz = maxZ;
+			c = new Vector3D(c.getX(), c.getY(), maxZ);
 		} else if(zmethod.getSelectedItem().equals(ZMODE_MIN_SIGMA)) {
-			cz = bestZ;
+			c = new Vector3D(c.getX(), c.getY(), bestZ);
 		}
 
-		Vector3D ret = new Vector3D(cx, cy, cz);
+		ReportingUtils.logMessage("!!!--- RETURNING " + vToS(c));
 
-		ReportingUtils.logMessage("!!!--- RETURNING " + vToS(ret));
-
-		return ret;
+		return c;
 	};
 
 	private void addTags(TaggedImage ti, int channel) throws JSONException {
@@ -544,14 +537,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		if(next.isNaN())
 			return false;
 
-		try {
-			core.setXYPosition(core.getXYStageDevice(), next.getX(), next.getY());
-			core.setPosition(core.getFocusDevice(), next.getZ());
-		} catch(Exception e) {
-			ReportingUtils.logError(e);
-			JOptionPane.showMessageDialog(this, "Couldn't recenter: " + e.getMessage());
-			return false;
-		};
+		setup.setPosition(next);
 
 		((DefaultListModel)pointsTable.getModel()).addElement(next);
 
@@ -583,8 +569,8 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			exitStatus = null;
 
 			try {
-				core.setPosition(twisterLabel, (core.getPosition(twisterLabel) + 1));
-				core.waitForDevice(twisterLabel);
+				setup.getThetaStage().setPosition(setup.getAngle() + setup.getThetaStage().getStepSize());
+				setup.getThetaStage().waitFor();
 				Thread.sleep(50);
 				if(!getNextBead()) {
 					JOptionPane.showMessageDialog(SPIMAutoCalibrator.this,
@@ -665,14 +651,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		} else if(BTN_REVISE.equals(ae.getActionCommand())) {
 			DefaultListModel mdl = (DefaultListModel)pointsTable.getModel();
 
-			try {
-				mdl.set(pointsTable.getSelectedIndex(),
-						new Vector3D(core.getXPosition(core.getXYStageDevice()),
-								core.getYPosition(core.getXYStageDevice()),
-								core.getPosition(core.getFocusDevice())));
-			} catch(Exception e) {
-				JOptionPane.showMessageDialog(this, "Couldn't fetch: " + e.getMessage());
-			}
+			mdl.set(pointsTable.getSelectedIndex(), setup.getPosition());
 		} else if(BTN_REMOVE.equals(ae.getActionCommand())) {
 			DefaultListModel mdl = (DefaultListModel)pointsTable.getModel();
 
