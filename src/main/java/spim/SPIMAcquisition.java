@@ -125,8 +125,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	private SPIMCalibrator calibration;
 
 	// TODO: read these from the properties
-	protected int motorMin = 0, motorMax = 5000,
-		twisterMin = -180, twisterMax = 180;
+	protected double motorMin = 0, motorMax = 9000, motorStep = 1.5,
+		twisterMin = -180, twisterMax = 180, twisterStep = 2;
 
 	protected ScriptInterface app;
 	protected CMMCore mmc;
@@ -136,12 +136,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	protected DeviceManager devMgr;
 
 	protected JFrame frame;
-	protected IntegerField xPosition, yPosition, zPosition, rotation,
-		stepsPerRotation, degreesPerStep, laserPower, exposure, settleTime;
-	protected MotorSlider xSlider, ySlider, zSlider, rotationSlider,
-		laserSlider, exposureSlider;
-	protected LimitedRangeCheckbox limitedXRange, limitedYRange,
-		limitedZRange;
+	protected IntegerField settleTime;
+	protected JTextField xPosition, yPosition, zPosition, rotation, laserPower, exposure;
+	protected SteppedSlider xSlider, ySlider, zSlider, rotationSlider, laserSlider, exposureSlider;
 	protected JCheckBox liveCheckbox, registrationCheckbox, continuousCheckbox;
 	protected JButton speedControl, ohSnap;
 
@@ -372,80 +369,50 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		left.setLayout(new BoxLayout(left, BoxLayout.PAGE_AXIS));
 		left.setBorder(BorderFactory.createTitledBorder("Position/Angle"));
 		
-		double xMin = setup.getXStage() != null ? (int) setup.getXStage().getMinPosition() : this.motorMin;
-		double xMax = setup.getXStage() != null ? (int) setup.getXStage().getMaxPosition() : this.motorMax;
-		double yMin = setup.getYStage() != null ? (int) setup.getYStage().getMinPosition() : this.motorMin;
-		double yMax = setup.getYStage() != null ? (int) setup.getYStage().getMaxPosition() : this.motorMax;
-		double zMin = setup.getZStage() != null ? (int) setup.getZStage().getMinPosition() : this.motorMin;
-		double zMax = setup.getZStage() != null ? (int) setup.getZStage().getMaxPosition() : this.motorMax;
-		double tMin = setup.getThetaStage() != null ? (int) setup.getThetaStage().getMinPosition() : this.twisterMin;
-		double tMax = setup.getThetaStage() != null ? (int) setup.getThetaStage().getMaxPosition() : this.twisterMax;
+		double xMin = setup.getXStage() != null ? setup.getXStage().getMinPosition() : this.motorMin;
+		double xMax = setup.getXStage() != null ? setup.getXStage().getMaxPosition() : this.motorMax;
+		double xStp = setup.getXStage() != null ? setup.getXStage().getStepSize() : this.motorStep;
+		double yMin = setup.getYStage() != null ? setup.getYStage().getMinPosition() : this.motorMin;
+		double yMax = setup.getYStage() != null ? setup.getYStage().getMaxPosition() : this.motorMax;
+		double yStp = setup.getXStage() != null ? setup.getYStage().getStepSize() : this.motorStep;
+		double zMin = setup.getZStage() != null ? setup.getZStage().getMinPosition() : this.motorMin;
+		double zMax = setup.getZStage() != null ? setup.getZStage().getMaxPosition() : this.motorMax;
+		double zStp = setup.getXStage() != null ? setup.getZStage().getStepSize() : this.motorStep;
+		double tMin = setup.getThetaStage() != null ? setup.getThetaStage().getMinPosition() : this.twisterMin;
+		double tMax = setup.getThetaStage() != null ? setup.getThetaStage().getMaxPosition() : this.twisterMax;
+		double tStp = setup.getXStage() != null ? setup.getThetaStage().getStepSize() : this.twisterStep;
 
-		xSlider = new MotorSlider((int) xMin, (int) xMax, 1) {
+		xSlider = new SteppedSlider("X Stage", xMin, xMax, xStp, setup.getXStage().getPosition(), SteppedSlider.INCREMENT_BUTTONS | SteppedSlider.CLAMP_VALUE | SteppedSlider.RANGE_LIMITS) {
 			@Override
-			public void valueChanged(int value) {
-				try {
-					setup.getXStage().setPosition(value);
-				} catch (Exception e) {
-					IJ.handleException(e);
-				}
-				maybeUpdateImage();
+			public void valueChanged() {
+				setup.getXStage().setPosition(getValue());
 			}
 		};
-		limitedXRange = new LimitedRangeCheckbox("Limit range", xSlider, 1000, 5000, "range.x");
-		ySlider = new MotorSlider((int) yMin, (int) yMax, 1) {
-			@Override
-			public void valueChanged(int value) {
-				try {
-					setup.getYStage().setPosition(value);
-				} catch (Exception e) {
-					IJ.handleException(e);
-				}
-				maybeUpdateImage();
-			}
-		};
-		limitedYRange = new LimitedRangeCheckbox("Limit range", ySlider, 1000, 5000, "range.y");
-		zSlider = new MotorSlider((int) zMin, (int) zMax, 1) {
-			@Override
-			public void valueChanged(int value) {
-				try {
-					setup.getZStage().setPosition(value);
-				} catch (Exception e) {
-					IJ.handleException(e);
-				}
-				maybeUpdateImage();
-			}
-		};
-		limitedZRange = new LimitedRangeCheckbox("Limit range", zSlider, 500, 2500, "range.z");
-		rotationSlider = new MotorSlider((int) tMin, (int) tMax, 0) {
-			@Override
-			public void valueChanged(int value) {
-				try {
-					setup.getThetaStage().setPosition(value);
-				} catch (Exception e) {
-					IJ.handleException(e);
-				}
-				maybeUpdateImage();
-			}
-		};
+		xPosition = xSlider.getValueBox();
 
-		xPosition = new IntegerSliderField(xSlider);
-		yPosition = new IntegerSliderField(ySlider);
-		zPosition = new IntegerSliderField(zSlider);
-		rotation = new IntegerSliderField(rotationSlider);
+		ySlider = new SteppedSlider("Y Stage", yMin, yMax, yStp, setup.getYStage().getPosition(), SteppedSlider.INCREMENT_BUTTONS | SteppedSlider.CLAMP_VALUE | SteppedSlider.RANGE_LIMITS) {
+			@Override
+			public void valueChanged() {
+				setup.getYStage().setPosition(getValue());
+			}
+		};
+		yPosition = ySlider.getValueBox();
 
-		degreesPerStep = new IntegerField(90, "degrees.per.rotation") {
+		zSlider = new SteppedSlider("Z Stage", zMin, zMax, zStp, setup.getZStage().getPosition(), SteppedSlider.INCREMENT_BUTTONS | SteppedSlider.CLAMP_VALUE | SteppedSlider.RANGE_LIMITS) {
 			@Override
-			public void valueChanged(int value) {
-				stepsPerRotation.setText("" + (360 / value));
+			public void valueChanged() {
+				setup.getZStage().setPosition(getValue());
 			}
 		};
-		stepsPerRotation = new IntegerField(360 / degreesPerStep.getValue()) {
+		zPosition = zSlider.getValueBox();
+
+		rotationSlider = new SteppedSlider("Theta Stage", tMin, tMax, tStp, setup.getThetaStage().getPosition(), SteppedSlider.INCREMENT_BUTTONS) {
 			@Override
-			public void valueChanged(int value) {
-				degreesPerStep.setText("" + (360 / value));
+			public void valueChanged() {
+				setup.getThetaStage().setPosition(getValue());
 			}
 		};
+		rotation = rotationSlider.getValueBox();
 
 		JButton calibrateButton = new JButton("Calibrate...");
 		calibrateButton.addActionListener(new ActionListener() {
@@ -483,14 +450,15 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		});
 
 		addLine(left, Justification.LEFT, "x:", xPosition, "y:", yPosition, "z:", zPosition, "angle:", rotation);
-		addLine(left, Justification.STRETCH, "x:", xSlider);
-		addLine(left, Justification.RIGHT, limitedXRange);
-		addLine(left, Justification.STRETCH, "y:", ySlider);
-		addLine(left, Justification.RIGHT, limitedYRange);
-		addLine(left, Justification.STRETCH, "z:", zSlider);
-		addLine(left, Justification.RIGHT, limitedZRange);
-		addLine(left, Justification.STRETCH, "rotation:", rotationSlider);
-		addLine(left, Justification.RIGHT, "steps/rotation:", stepsPerRotation, "degrees/step:", degreesPerStep);
+		addLine(left, Justification.STRETCH, xSlider);
+		left.add(Box.createVerticalGlue());
+		addLine(left, Justification.STRETCH, ySlider);
+		left.add(Box.createVerticalGlue());
+		addLine(left, Justification.STRETCH, zSlider);
+		left.add(Box.createVerticalGlue());
+		addLine(left, Justification.STRETCH, rotationSlider);
+		left.add(Box.createVerticalGlue());
+		left.add(Box.createVerticalGlue());
 		addLine(left, Justification.RIGHT, devMgrBtn, pixCalibBtn, calibrateButton);
 
 		JPanel stageControls = new JPanel();
@@ -850,12 +818,12 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		} catch (Throwable e) {
 			ReportingUtils.logError(e);
 		}
-
-		laserSlider = new MotorSlider(minlp, maxlp, deflp, "laser.power") {
+		
+		laserSlider = new SteppedSlider("Laser Power:", minlp, maxlp, 1, deflp, SteppedSlider.LABEL_LEFT | SteppedSlider.INCREMENT_BUTTONS) {
 			@Override
-			public void valueChanged(int value) {
+			public void valueChanged() {
 				try {
-					setup.getLaser().setPower(value / 1000D); // laser api is in W
+					setup.getLaser().setPower(getValue() / 1000D); // laser api is in W
 				} catch (Exception e) {
 					ReportingUtils.logError(e);
 				}
@@ -870,19 +838,19 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		};
 
 		// TODO: find out correct values
-		exposureSlider = new MotorSlider(10, 1000, defExposure, "exposure") {
+		exposureSlider = new SteppedSlider("Exposure:", 10, 1000, 1, defExposure, SteppedSlider.LABEL_LEFT | SteppedSlider.INCREMENT_BUTTONS) {
 			@Override
-			public void valueChanged(int value) {
+			public void valueChanged() {
 				try {
-					mmc.setExposure(value);
+					mmc.setExposure(getValue());
 				} catch (Exception e) {
 					IJ.handleException(e);
 				}
 			}
 		};
 
-		laserPower = new IntegerSliderField(laserSlider);
-		exposure = new IntegerSliderField(exposureSlider);
+		laserPower = laserSlider.getValueBox();
+		exposure = exposureSlider.getValueBox();
 
 		liveCheckbox = new JCheckBox("Update Live View");
 		updateLiveImage = gui.isLiveModeOn();
@@ -979,7 +947,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		settleTime = new IntegerField(0, "settle.delay") {
 			@Override
 			public void valueChanged(int value) {
-				degreesPerStep.setText("" + (360 / value));
+//				degreesPerStep.setText("" + (360 / value)); // what?
 			}
 		};
 
@@ -1245,14 +1213,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		rotation.setEnabled(acqThread == null && twisterLabel != null);
 
 		xSlider.setEnabled(acqThread == null && xStageLabel != null);
-		limitedXRange.setEnabled(acqThread == null && xStageLabel != null);
 		ySlider.setEnabled(acqThread == null && yStageLabel != null);
-		limitedYRange.setEnabled(acqThread == null && yStageLabel != null);
 		zSlider.setEnabled(acqThread == null && zStageLabel != null);
-		limitedZRange.setEnabled(acqThread == null && zStageLabel != null);
 		rotationSlider.setEnabled(acqThread == null && twisterLabel != null);
-		stepsPerRotation.setEnabled(acqThread == null && twisterLabel != null);
-		degreesPerStep.setEnabled(acqThread == null && twisterLabel != null);
 
 		laserPower.setEnabled(acqThread == null && laserLabel != null);
 		exposure.setEnabled(acqThread == null && cameraLabel != null);
@@ -1315,22 +1278,22 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		exposureSlider.setEnabled(setup.isConnected(SPIMDevice.CAMERA1));
 
 		if (xSlider.isEnabled())
-			xSlider.updateValueQuietly((int) setup.getXStage().getPosition());
+			xSlider.trySetValue(setup.getXStage().getPosition(), false);
 
 		if (ySlider.isEnabled())
-			ySlider.updateValueQuietly((int) setup.getYStage().getPosition());
+			ySlider.trySetValue(setup.getYStage().getPosition(), false);
 
 		if (zSlider.isEnabled())
-			zSlider.updateValueQuietly((int) setup.getZStage().getPosition());
+			zSlider.trySetValue(setup.getZStage().getPosition(), false);
 
 		if (rotationSlider.isEnabled())
-			rotationSlider.updateValueQuietly((int) setup.getAngle());
+			rotationSlider.trySetValue(setup.getAngle(), false);
 
 		if (laserSlider.isEnabled())
-			laserSlider.updateValueQuietly((int) (setup.getLaser().getPower() * 1000)); // slider is in mW
+			laserSlider.trySetValue(setup.getLaser().getPower() * 1000D, false);
 
 		if (exposureSlider.isEnabled())
-			exposureSlider.updateValueQuietly((int) mmc.getExposure());
+			exposureSlider.trySetValue(mmc.getExposure(), false);
 	}
 
 	private int mouseStartX = -1;
