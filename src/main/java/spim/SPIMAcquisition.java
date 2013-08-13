@@ -617,9 +617,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		JButton acqMakeSlices = new JButton("Stack at this Z plus:");
 
 		// TODO: Decide good ranges for these...
-		final JSpinner acqSliceRange = new JSpinner(new SpinnerNumberModel(50, -1000, 1000, 5));
+		double zstep = (setup.getZStage() != null ? setup.getZStage().getStepSize() : 1);
+
+		final JSpinner acqSliceRange = new JSpinner(new SpinnerNumberModel(zstep*50, zstep*-1000, zstep*1000, zstep));
 		acqSliceRange.setMaximumSize(acqSliceRange.getPreferredSize());
-		final JSpinner acqSliceStep = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
+		final JSpinner acqSliceStep = new JSpinner(new SpinnerNumberModel(zstep, zstep, zstep*100, zstep));
 		acqSliceStep.setMaximumSize(acqSliceStep.getPreferredSize());
 
 		acqMakeSlices.addActionListener(new ActionListener() {
@@ -630,10 +632,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				Vector3D xyz = setup.getPosition();
 				double theta = setup.getAngle();
 
-				int range = (Integer)acqSliceRange.getValue();
-				int step = (Integer)acqSliceStep.getValue();
+				double range = (Double)acqSliceRange.getValue();
+				double step = (Double)acqSliceStep.getValue();
 
-				model.insertRow(xyz.getX(), xyz.getY(), theta, xyz.getZ() + ":" + step + ":" + (xyz.getZ() + range));
+				model.insertRow(xyz.getX(), xyz.getY(), theta, String.format("%.3f:%.3f:%.3f", xyz.getZ(), step, (xyz.getZ() + range)));
 			}
 		});
 
