@@ -57,10 +57,10 @@ public class PicardXYStage {
 		public void setPosition(double pos) {
 			try {
 				if (iAmX) {
-					core.setXYPosition(label, Math.round(pos / getStepSize()), Math.round(PicardXYStage.this.destY / getStepSize()));
+					core.setXYPosition(label, pos, PicardXYStage.this.destY);
 					PicardXYStage.this.destX = pos;
 				} else {
-					core.setXYPosition(label, Math.round(PicardXYStage.this.destX / getStepSize()), Math.round(pos / getStepSize()));
+					core.setXYPosition(label, PicardXYStage.this.destX, pos);
 					PicardXYStage.this.destY = pos;
 				}
 			} catch (Exception e) {
@@ -72,9 +72,9 @@ public class PicardXYStage {
 		public double getPosition() {
 			try {
 				if (iAmX)
-					return core.getXPosition(label) * getStepSize();
+					return core.getXPosition(label);
 				else
-					return core.getYPosition(label) * getStepSize();
+					return core.getYPosition(label);
 			} catch (Exception e) {
 				ReportingUtils.logException("Couldn't get " + (iAmX ? "X" : "Y") + " position on " + label, e);
 				return 0;
