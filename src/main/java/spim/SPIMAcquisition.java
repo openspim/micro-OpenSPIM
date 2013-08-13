@@ -481,7 +481,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		JPanel xy_x = new JPanel();
 		xy_x.setBorder(BorderFactory.createTitledBorder("Stage X"));
 
-		acqRangeX = new RangeSlider((double)xMin, (double)xMax);
+		acqRangeX = new RangeSlider(xSlider.getMinimum(), xSlider.getMaximum());
 
 		xy_x.add(acqRangeX);
 		xy_x.setMaximumSize(xy_x.getPreferredSize());
@@ -491,7 +491,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		JPanel xy_y = new JPanel();
 		xy_y.setBorder(BorderFactory.createTitledBorder("Stage Y"));
 
-		acqRangeY = new RangeSlider((double)yMin, (double)yMax);
+		acqRangeY = new RangeSlider(ySlider.getMinimum(), ySlider.getMaximum());
 
 		xy_y.add(acqRangeY);
 		xy_y.setMaximumSize(xy_y.getPreferredSize());
@@ -525,7 +525,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		z.add(Box.createRigidArea(new Dimension(10, 4)));
 
-		acqRangeZ = new RangeSlider((double)zMin, (double)zMax);
+		acqRangeZ = new RangeSlider(zSlider.getMinimum(), zSlider.getMaximum());
 
 		z.add(acqRangeZ);
 		z.setMaximumSize(z.getPreferredSize());
@@ -556,7 +556,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		t.add(Box.createRigidArea(new Dimension(10, 4)));
 
-		acqRangeTheta = new RangeSlider((double)tMin, (double)tMax);
+		acqRangeTheta = new RangeSlider(rotationSlider.getMinimum(), rotationSlider.getMaximum());
 
 		t.add(acqRangeTheta);
 		t.setMaximumSize(t.getPreferredSize());
