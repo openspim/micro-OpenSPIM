@@ -34,22 +34,6 @@ public class PicardStage extends Stage {
 		super(core, label);
 	}
 
-	/**
-	 * Override this to automatically include step size.
-	 */
-	@Override
-	public void setPosition(double pos) {
-		super.setPosition(Math.round(pos / getStepSize()));
-	}
-
-	/**
-	 * Override this to automatically include step size.
-	 */
-	@Override
-	public double getPosition() {
-		return super.getPosition() * getStepSize();
-	}
-
 	@Override
 	public double getVelocity() {
 		return getPropertyDouble("Velocity");
