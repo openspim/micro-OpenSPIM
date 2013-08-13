@@ -1,6 +1,5 @@
 package spim;
 
-import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
@@ -36,18 +35,19 @@ public abstract class SteppedSlider extends JPanel implements ActionListener, Ch
 	private double min, max, step, value;
 	private double normalMin, normalMax;
 
+	private JLabel titleLabel, toLabel;
 	private JSlider slider;
 	private JCheckBox limitRange;
 	private DoubleField limitMin, limitMax, valueBox;
 	private JButton decrement, increment;
-	private boolean clamp;
+	private int options;
 
 	public SteppedSlider(String label, double min, double max, double step, double current, int options) {
 		this.min = normalMin = min;
 		this.max = normalMax = max;
 		this.step = step;
 		this.value = current;
-		this.clamp = (options & CLAMP_VALUE) != 0;
+		this.options = options;
 
 		if ((options & INCREMENT_BUTTONS) != 0) {
 			decrement = new JButton("-");
@@ -100,21 +100,21 @@ public abstract class SteppedSlider extends JPanel implements ActionListener, Ch
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 
 		if ((options & LABEL_LEFT) == 0)
-			add(LayoutUtils.horizPanel(Box.createHorizontalGlue(), new JLabel(label), Box.createHorizontalGlue()));
+			add(LayoutUtils.horizPanel(Box.createHorizontalGlue(), titleLabel = new JLabel(label), Box.createHorizontalGlue()));
 
 		JPanel sliderBox = new JPanel();
 		sliderBox.setLayout(new BoxLayout(sliderBox, BoxLayout.X_AXIS));
 
 		int sliderHeight = slider.getPreferredSize().height;
 
+		if ((options & LABEL_LEFT) != 0)
+			sliderBox.add(titleLabel = new JLabel(label));
+
 		if ((options & INCREMENT_BUTTONS) != 0) {
 			decrement.setPreferredSize(new Dimension(sliderHeight, sliderHeight));
 			decrement.setMargin(new Insets(sliderHeight / 2 - 6, sliderHeight / 2 - 6, sliderHeight / 2 - 6, sliderHeight / 2 - 6));
 			sliderBox.add(decrement);
 		}
-
-		if ((options & LABEL_LEFT) != 0)
-			sliderBox.add(new JLabel(label));
 
 		sliderBox.add(slider);
 
@@ -131,7 +131,6 @@ public abstract class SteppedSlider extends JPanel implements ActionListener, Ch
 			bottomBox.setLayout(new BoxLayout(bottomBox, BoxLayout.X_AXIS));
 
 			if ((options & PLACE_VALUE_BOX) != 0) {
-				bottomBox.add(Box.createHorizontalStrut(4));
 				bottomBox.add(new JLabel("Current: "));
 				bottomBox.add(valueBox);
 			}
@@ -140,9 +139,8 @@ public abstract class SteppedSlider extends JPanel implements ActionListener, Ch
 				bottomBox.add(Box.createHorizontalGlue());
 				bottomBox.add(limitRange);
 				bottomBox.add(limitMin);
-				bottomBox.add(new JLabel(" to "));
+				bottomBox.add(toLabel = new JLabel(" to "));
 				bottomBox.add(limitMax);
-				bottomBox.add(Box.createHorizontalStrut(4));
 			}
 
 			add(bottomBox);
@@ -150,7 +148,7 @@ public abstract class SteppedSlider extends JPanel implements ActionListener, Ch
 	}
 
 	public void trySetValue(final double value, final boolean raiseEvent) {
-		if (slider.getValueIsAdjusting())
+		if (slider.getValueIsAdjusting() || this.value == value)
 			return;
 
 		setValue(value, raiseEvent);
@@ -159,30 +157,31 @@ public abstract class SteppedSlider extends JPanel implements ActionListener, Ch
 	public void setValue(final double value, final boolean raiseEvent) {
 		this.value = value;
 
-		updateDisplay();
+		updateDisplay.run();
 
 		if (raiseEvent)
 			valueChanged();
 	}
 
-	protected void updateDisplay() {
-		if (!SwingUtilities.isEventDispatchThread()) {
-			SwingUtilities.invokeLater(new Runnable() {
-				@Override
-				public void run() {
-					updateDisplay();
-				}
-			});
-			return;
+	protected Runnable updateDisplay = new Runnable() {
+		@Override
+		public void run() {
+			if (!SwingUtilities.isEventDispatchThread()) {
+				SwingUtilities.invokeLater(this);
+				return;
+			}
+
+			if (valueBox.getValue() != value)
+				valueBox.setValue(value);
+
+			// This is inelegant, but I don't have many other ideas. And it works pretty fluidly.
+			if (slider.getValue() != (int) (value / step)) {
+				slider.removeChangeListener(SteppedSlider.this);
+				slider.setValue((int) (value / step));
+				slider.addChangeListener(SteppedSlider.this);
+			}
 		}
-
-		valueBox.setValue(value);
-
-		// This is inelegant, but I don't have many other ideas. And it works pretty fluidly.
-		slider.removeChangeListener(this);
-		slider.setValue((int) (value / step));
-		slider.addChangeListener(this);
-	}
+	};
 
 	public void setValue(double value) {
 		setValue(value, true);
@@ -192,8 +191,38 @@ public abstract class SteppedSlider extends JPanel implements ActionListener, Ch
 		return value;
 	}
 
+	public double getMinimum() {
+		return min;
+	}
+
+	public double getMaximum() {
+		return max;
+	}
+
 	public JTextField getValueBox() {
 		return valueBox;
+	}
+
+	public void setEnabled(boolean enable) {
+		super.setEnabled(enable);
+
+		valueBox.setEnabled(enable);
+		slider.setEnabled(enable);
+		titleLabel.setEnabled(enable);
+
+		if (increment != null)
+			increment.setEnabled(enable);
+		if (decrement != null)
+			decrement.setEnabled(enable);
+
+		if (limitRange != null)
+			limitRange.setEnabled(enable);
+		if (limitMin != null)
+			limitMin.setEnabled(enable);
+		if (toLabel != null)
+			toLabel.setEnabled(enable);
+		if (limitMax != null)
+			limitMax.setEnabled(enable);
 	}
 
 	public abstract void valueChanged();
@@ -207,7 +236,7 @@ public abstract class SteppedSlider extends JPanel implements ActionListener, Ch
 
 		double value = getValue() + delta;
 
-		if (clamp)
+		if ((this.options & CLAMP_VALUE) != 0)
 			value = Math.min(max, Math.max(min, value));
 
 		setValue(value);
@@ -260,7 +289,7 @@ public abstract class SteppedSlider extends JPanel implements ActionListener, Ch
 
 	private static abstract class DoubleField extends JTextField implements KeyListener, FocusListener {
 		public DoubleField(double val) {
-			super(Double.toString(val), 6);
+			super(String.format("%.2f", val), 6);
 
 			addKeyListener(this);
 			addFocusListener(this);
