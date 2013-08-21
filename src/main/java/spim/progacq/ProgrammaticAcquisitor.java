@@ -25,6 +25,73 @@ import spim.DeviceManager.SPIMDevice;
 import spim.progacq.AcqRow.DeviceValueSet;
 
 public class ProgrammaticAcquisitor {
+	public static class Profiler {
+		private Map<String, Profiler> children;
+		private String name;
+		private double timer;
+
+		public Profiler(String name) {
+			this.name = name;
+			children = new java.util.Hashtable<String, Profiler>();
+			timer = 0;
+		}
+
+		public void start() {
+			timer -= System.nanoTime() / 1e9;
+		}
+
+		public void stop() {
+			timer += System.nanoTime() / 1e9;
+		}
+
+		public double getTimer() {
+			return timer;
+		}
+
+		@Override
+		public String toString() {
+			return "Profiler(\"" + name + "\")[" + children.size() + " children]";
+		}
+
+		public Profiler get(String child) {
+			return children.get(child);
+		}
+
+		public void create(String child) {
+			children.put(child, new Profiler(child));
+		}
+
+		public String getLogText() {
+			return getLogText(0);
+		}
+
+		private void tabs(StringBuilder sb, int c) {
+			for(int i=0; i < c; ++i)
+				sb.append("    ");
+		}
+
+		protected String getLogText(int indent) {
+			StringBuilder sb = new StringBuilder(256);
+			tabs(sb, indent);
+			sb.append(toString());
+			sb.append(": ");
+			sb.append(String.format("%.4f", getTimer()));
+			sb.append("s\n");
+
+			for(Profiler child : children.values()) {
+				sb.append(child.getLogText(indent + 1));
+				tabs(sb, indent + 1);
+				sb.append("(");
+				sb.append(String.format("%.4f", child.getTimer() / getTimer() * 100));
+				sb.append("%)\n");
+			};
+
+			return sb.toString();
+		}
+	}
+
+	static public boolean profile = true;
+
 	/**
 	 * Takes a list of steps and concatenates them together recursively. This is
 	 * what builds out rows from a list of lists of positions.
@@ -189,6 +256,21 @@ public class ProgrammaticAcquisitor {
 		if(params.isContinuous() && params.isAntiDriftOn())
 			throw new IllegalArgumentException("No continuous acquisition w/ anti-drift!");
 
+		final Profiler prof = (profile ? new Profiler("performAcquisition") : null);
+
+		if(profile)
+		{
+			prof.create("Setup");
+			prof.create("Output");
+			prof.create("Movement");
+			prof.create("Acquisition");
+
+			prof.start();
+		}
+
+		if(profile)
+			prof.get("Setup").start();
+
 		final CMMCore core = params.getCore();
 
 		final MMStudioMainFrame frame = MMStudioMainFrame.getInstance();
@@ -213,6 +295,9 @@ public class ProgrammaticAcquisitor {
 			driftCompMap = new HashMap<AcqRow, AntiDrift>(params.getRows().length);
 		else
 			driftCompMap = null;
+
+		if(profile)
+			prof.get("Setup").stop();
 
 		for(int timeSeq = 0; timeSeq < params.getTimeSeqCount(); ++timeSeq) {
 			Thread continuousThread = null;
@@ -279,12 +364,24 @@ public class ProgrammaticAcquisitor {
 					ad.startNewStack();
 				};
 
+				if(profile)
+					prof.get("Movement").start();
+
 				runDevicesAtRow(core, mgr, row, step);
+
+				if(profile)
+					prof.get("Movement").stop();
 
 				if(params.isIllumFullStack())
 					core.setShutterOpen(true);
 
+				if(profile)
+					prof.get("Output").start();
+
 				handler.beginStack(0);
+
+				if(profile)
+					prof.get("Output").stop();
 
 				if(row.getZStartPosition() == row.getZEndPosition()) {
 					core.waitForImageSynchro();
@@ -304,6 +401,9 @@ public class ProgrammaticAcquisitor {
 					double start = core.getPosition(mgr.getLabel(SPIMDevice.STAGE_Z));
 					double end = start + row.getZEndPosition() - row.getZStartPosition();
 					for(double zStart = start; zStart <= end; zStart += row.getZStepSize()) {
+						if(profile)
+							prof.get("Movement").start();
+
 						core.setPosition(mgr.getLabel(SPIMDevice.STAGE_Z), zStart);
 						core.waitForImageSynchro();
 
@@ -313,15 +413,33 @@ public class ProgrammaticAcquisitor {
 							return cleanAbort(params, liveOn, autoShutter, continuousThread);
 						}
 
+						if(profile)
+							prof.get("Movement").stop();
+
 						if(!params.isContinuous()) {
+							if(profile)
+								prof.get("Acquisition").start();
+
 							core.snapImage();
+
+							if(profile)
+								prof.get("Acquisition").stop();
+
+							if(profile)
+								prof.get("Output").start();
+
 							TaggedImage ti = core.getTaggedImage();
 							handleSlice(core, mgr, metaDevs, acqBegan, ti, handler);
+
+							if(profile)
+								prof.get("Output").stop();
+
 							if(ad != null)
 								tallyAntiDriftSlice(core, mgr, row, ad, ti);
 							if(params.isUpdateLive())
 								updateLiveImage(frame, ti);
 						}
+
 
 						double stackProg = Math.max(Math.min((zStart - start)/(end - start),1),0);
 
@@ -345,7 +463,13 @@ public class ProgrammaticAcquisitor {
 					core.setProperty(mgr.getLabel(SPIMDevice.STAGE_Z), "Velocity", oldVel);
 				};
 
+				if(profile)
+					prof.get("Output").start();
+
 				handler.finalizeStack(0);
+
+				if(profile)
+					prof.get("Output").stop();
 
 				if(params.isIllumFullStack())
 					core.setShutterOpen(false);
@@ -398,7 +522,13 @@ public class ProgrammaticAcquisitor {
 			}
 		}
 
+		if(profile)
+			prof.get("Output").start();
+
 		handler.finalizeAcquisition();
+
+		if(profile)
+			prof.get("Output").stop();
 
 		if(autoShutter)
 			core.setAutoShutter(true);
@@ -406,6 +536,12 @@ public class ProgrammaticAcquisitor {
 		// TEMPORARY: Don't re-enable live mode. This keeps our laser off.
 //		if(liveOn)
 //			frame.enableLiveMode(true);
+
+		if(profile)
+		{
+			prof.stop();
+			ij.IJ.log(prof.getLogText());
+		}
 
 		return handler.getImagePlus();
 	}
