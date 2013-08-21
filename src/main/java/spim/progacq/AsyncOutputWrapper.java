@@ -3,6 +3,7 @@ package spim.progacq;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import java.awt.Color;
 import java.lang.InterruptedException;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.nio.channels.ClosedByInterruptException;
@@ -45,14 +46,59 @@ public class AsyncOutputWrapper implements AcqOutputHandler, UncaughtExceptionHa
 	private volatile boolean finishing;
 
 	private Runnable writerOp = new Runnable() {
+		volatile boolean writing = false;
+
 		@Override
 		public void run() {
+			Thread status = new Thread("Async Writer Monitor Daemon") {
+				@Override
+				public void run() {
+					ImageProcessor statusImg = new ij.process.ByteProcessor(256, 128);
+					statusImg.setColor(Color.WHITE);
+					statusImg.fill();
+					statusImg.setColor(Color.BLACK);
+					ImagePlus imp = new ImagePlus("Async Status", statusImg);
+					imp.show();
+
+					while(!Thread.interrupted()) {
+						int n = AsyncOutputWrapper.this.queue.size();
+						int m = AsyncOutputWrapper.this.queue.remainingCapacity();
+						String statStr = n + "/" + (n + m) + (writing ? " (Writing)" : " (Idle)");
+
+						int y = 16 + (int) (((double)m / (double)(n + m)) * (statusImg.getHeight() - 16));
+
+						statusImg.setColor(Color.WHITE);
+						statusImg.copyBits(statusImg, -1, 0, ij.process.Blitter.COPY);
+						statusImg.drawLine(statusImg.getWidth() - 1, 0, statusImg.getWidth() - 1, statusImg.getHeight());
+						statusImg.fill(new ij.gui.Roi(0, 0, statusImg.getWidth(), 16));
+						statusImg.setColor(Color.BLACK);
+						statusImg.drawPixel(statusImg.getWidth() - 1, y);
+						statusImg.drawString(statStr, 4, 16, Color.WHITE);
+						imp.updateAndDraw();
+
+						try {
+							Thread.sleep(25);
+						} catch (InterruptedException e) {
+							break;
+						}
+					}
+
+					imp.close();
+				}
+			};
+			status.setDaemon(true);
+			status.start();
+
 			try {
 				while(!Thread.interrupted() && !AsyncOutputWrapper.this.finishing) {
+					this.writing = true;
 					handleNext();
+					this.writing = false;
 				}
 
+				this.writing = true;
 				handleAll();
+				this.writing = false;
 
 				status.interrupt();
 				status.join();
