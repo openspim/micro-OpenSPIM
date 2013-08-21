@@ -81,11 +81,9 @@ public class ProgrammaticAcquisitor {
 			sb.append("s\n");
 
 			for(Profiler child : children.values()) {
+				tabs(sb, indent);
+				sb.append(String.format("%.4f%%:", child.getTimer() / getTimer() * 100));
 				sb.append(child.getLogText(indent + 1));
-				tabs(sb, indent + 1);
-				sb.append("(");
-				sb.append(String.format("%.4f", child.getTimer() / getTimer() * 100));
-				sb.append("%)\n");
 			};
 
 			return sb.toString();
