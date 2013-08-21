@@ -1801,7 +1801,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 						acqRows, timeSeqs, timeStep
 					);
 					if(asyncCheckbox.isSelected())
-						handler = new AsyncOutputWrapper(handler, (ij.IJ.maxMemory() - ij.IJ.currentMemory())/(mmc.getImageWidth()*mmc.getImageHeight()*mmc.getBytesPerPixel()*2));
+						handler = new AsyncOutputWrapper(handler, (ij.IJ.maxMemory() - ij.IJ.currentMemory())/(mmc.getImageWidth()*mmc.getImageHeight()*mmc.getBytesPerPixel()*2), true);
 
 					params.setOutputHandler(handler);
 				} else {
