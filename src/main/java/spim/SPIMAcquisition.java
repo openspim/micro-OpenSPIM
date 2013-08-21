@@ -925,6 +925,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		bottom.add(timeoutBox);
 
 		asyncMonitorCheckbox = new JCheckBox(/*"Monitor Async Output"*/);
+		acqProfileCheckbox = new JCheckBox(/*"Profile Acquisition"*/);
 
 		acqOptionsFrame = new JFrame("Acquisition Options");
 		JPanel optsPanel = new JPanel();
@@ -1793,6 +1794,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				params.setUpdateLive(liveCheckbox.isSelected());
 				params.setIllumFullStack(laseStackCheckbox.isSelected());
 				params.setSettleDelay(((Number) settleTime.getValue()).intValue());
+				params.setDoProfiling(acqProfileCheckbox.isSelected());
 
 				acqProgress.setEnabled(true);
 
