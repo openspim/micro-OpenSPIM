@@ -8,7 +8,7 @@ import java.util.Vector;
 
 import javax.swing.table.AbstractTableModel;
 
-import spim.DeviceManager.SPIMDevice;
+import spim.setup.SPIMSetup.SPIMDevice;
 
 /**
  * @author Luke Stuyvenberg
@@ -21,7 +21,7 @@ public class StepTableModel extends AbstractTableModel implements
 	private SPIMDevice[] devices;
 	private Vector<AcqRow> data;
 
-	public StepTableModel(SPIMDevice[] devices) {
+	public StepTableModel(SPIMDevice... devices) {
 		super();
 
 		this.devices = devices;
@@ -76,11 +76,11 @@ public class StepTableModel extends AbstractTableModel implements
 		return data.iterator();
 	}
 
-	public void insertRow(Object[] values) {
+	public void insertRow(Object... values) {
 		insertRow(data.size(), values);
 	}
 	
-	public void insertRow(int index, Object[] values) {
+	public void insertRow(int index, Object... values) {
 		// TODO: Handle this more gracefully? Fail silently? Chop?
 		if (values.length != devices.length)
 			throw new Error("Wrong colum count, silly!");

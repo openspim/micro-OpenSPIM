@@ -4,7 +4,7 @@ import java.util.EnumMap;
 
 import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 
-import spim.DeviceManager.SPIMDevice;
+import spim.setup.SPIMSetup.SPIMDevice;
 
 public class AcqRow {
 	public class DeviceValueSet {
@@ -89,10 +89,10 @@ public class AcqRow {
 		}
 	}
 
-	private EnumMap<SPIMDevice, DeviceValueSet[]> posMap;
+	private EnumMap<SPIMDevice, DeviceValueSet> posMap;
 
 	public AcqRow(SPIMDevice[] devs, String[] infos) {
-		posMap = new EnumMap<SPIMDevice, DeviceValueSet[]>(SPIMDevice.class);
+		posMap = new EnumMap<SPIMDevice, DeviceValueSet>(SPIMDevice.class);
 
 		for(int i = 0; i < devs.length; ++i)
 			setValueSet(devs[i], infos[i]);
@@ -104,17 +104,10 @@ public class AcqRow {
 			return;
 		}
 
-		String[] subdevs = totalInfo.split(",");
-
-		DeviceValueSet[] points = new DeviceValueSet[subdevs.length];
-
-		for(int i = 0; i < subdevs.length; ++i)
-			points[i] = new DeviceValueSet(subdevs[i].trim());
-
-		posMap.put(dev, points);
+		posMap.put(dev, new DeviceValueSet(totalInfo.trim()));
 	}
 	
-	public DeviceValueSet[] getValueSets(SPIMDevice dev) {
+	public DeviceValueSet getValueSet(SPIMDevice dev) {
 		return posMap.get(dev);
 	}
 	
@@ -123,74 +116,53 @@ public class AcqRow {
 	}
 
 	public String describeValueSet(SPIMDevice dev) {
-		DeviceValueSet[] sets = posMap.get(dev);
-
-		if(sets == null)
-			return "(null)";
-
-		String ret = "";
-
-		for(DeviceValueSet set : sets)
-			ret += set.toString() + (set == sets[sets.length - 1] ? "" : ", ");
-
-		return ret;
+		return "" + posMap.get(dev);
 	}
 
 	public double getZStartPosition() {
-		return posMap.get(SPIMDevice.STAGE_Z)[0].getStartPosition();
+		return posMap.get(SPIMDevice.STAGE_Z).getStartPosition();
 	}
 
 	public double getZEndPosition() {
-		return posMap.get(SPIMDevice.STAGE_Z)[0].getEndPosition();
+		return posMap.get(SPIMDevice.STAGE_Z).getEndPosition();
 	}
 
 	public double getZVelocity() {
-		return posMap.get(SPIMDevice.STAGE_Z)[0].getSpeed();
+		return posMap.get(SPIMDevice.STAGE_Z).getSpeed();
 	}
 
 	public double getZStepSize() {
-		return posMap.get(SPIMDevice.STAGE_Z)[0].getStepSize();
+		return posMap.get(SPIMDevice.STAGE_Z).getStepSize();
 	}
 
 	public boolean getZContinuous() {
-		return posMap.get(SPIMDevice.STAGE_Z)[0].getSpeed() != 0;
+		return posMap.get(SPIMDevice.STAGE_Z).getSpeed() != 0;
 	}
 
 	public int getDepth() {
 		int out = 1;
 
-		for(DeviceValueSet[] sets : posMap.values())
-			for(DeviceValueSet set : sets)
-				out *= set.getSteps();
+		for(DeviceValueSet set : posMap.values())
+			out *= set.getSteps();
 
 		return out;
 	}
 
 	public double getX() {
-		return posMap.get(SPIMDevice.STAGE_XY)[0].getStartPosition();
+		return posMap.get(SPIMDevice.STAGE_X).getStartPosition();
 	}
 
 	public double getY() {
-		return posMap.get(SPIMDevice.STAGE_XY)[1].getStartPosition();
+		return posMap.get(SPIMDevice.STAGE_X).getStartPosition();
 	}
 	
 	public double getTheta() {
-		return posMap.get(SPIMDevice.STAGE_THETA)[0].getStartPosition();
+		return posMap.get(SPIMDevice.STAGE_THETA).getStartPosition();
 	}
 
 	public void translate(Vector3D v) {
-		if(posMap.get(SPIMDevice.STAGE_X) != null)
-			posMap.get(SPIMDevice.STAGE_X)[0].translate(v.getX());
-
-		if(posMap.get(SPIMDevice.STAGE_Y) != null)
-			posMap.get(SPIMDevice.STAGE_Y)[0].translate(v.getY());
-
-		if(posMap.get(SPIMDevice.STAGE_XY) != null) {
-			posMap.get(SPIMDevice.STAGE_XY)[0].translate(v.getX());
-			posMap.get(SPIMDevice.STAGE_XY)[1].translate(v.getY());
-		}
-
-		if(posMap.get(SPIMDevice.STAGE_Z) != null)
-			posMap.get(SPIMDevice.STAGE_Z)[0].translate(v.getZ());
+		posMap.get(SPIMDevice.STAGE_X).translate(v.getX());
+		posMap.get(SPIMDevice.STAGE_Y).translate(v.getY());
+		posMap.get(SPIMDevice.STAGE_Z).translate(v.getZ());
 	}
 }
