@@ -3,6 +3,7 @@ package spim.progacq;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import java.awt.Color;
 import java.lang.InterruptedException;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.nio.channels.ClosedByInterruptException;
@@ -15,8 +16,15 @@ import ij.process.ImageProcessor;
 import mmcorej.TaggedImage;
 
 public class AsyncOutputWrapper implements AcqOutputHandler, UncaughtExceptionHandler {
-	private class IPC {
-		public IPC(ImageProcessor ip, double x, double y, double z, double t, double dt) {
+	private static class IPC {
+		public static enum Type {
+			StartStack,
+			Slice,
+			EndStack,
+		}
+
+		public IPC(Type type, ImageProcessor ip, double x, double y, double z, double t, double dt) {
+			this.type = type;
 			this.ip = ip;
 			this.x = x;
 			this.y = y;
@@ -27,31 +35,88 @@ public class AsyncOutputWrapper implements AcqOutputHandler, UncaughtExceptionHa
 
 		public ImageProcessor ip;
 		public double x, y, z, t, dt;
+		public Type type;
 	}
 
 	private AcqOutputHandler handler;
-	private Thread writerThread;
+	private Thread writerThread, monitorThread;
 	private BlockingQueue<IPC> queue;
 	private Exception rethrow;
+
+	private volatile boolean finishing;
+	private volatile boolean writing = false;
+
+	private Runnable monitorOp = new Runnable() {
+		@Override
+		public void run() {
+			ImageProcessor statusImg = new ij.process.ByteProcessor(256, 128);
+			statusImg.setColor(Color.WHITE);
+			statusImg.fill();
+			statusImg.setColor(Color.BLACK);
+			ImagePlus imp = new ImagePlus("Async Status", statusImg);
+			imp.show();
+
+			while(!Thread.interrupted()) {
+				int n = AsyncOutputWrapper.this.queue.size();
+				int m = AsyncOutputWrapper.this.queue.remainingCapacity();
+				String statStr = n + "/" + (n + m) + (AsyncOutputWrapper.this.writing ? " (Writing)" : " (Idle)");
+
+				int y = 16 + (int) (((double)m / (double)(n + m)) * (statusImg.getHeight() - 16));
+
+				statusImg.setColor(Color.WHITE);
+				statusImg.copyBits(statusImg, -1, 0, ij.process.Blitter.COPY);
+				statusImg.drawLine(statusImg.getWidth() - 1, 0, statusImg.getWidth() - 1, statusImg.getHeight());
+				statusImg.fill(new ij.gui.Roi(0, 0, statusImg.getWidth(), 16));
+				if(AsyncOutputWrapper.this.writing)
+				{
+					statusImg.setColor(Color.RED);
+					statusImg.drawPixel(statusImg.getWidth() - 1, statusImg.getHeight() - 1);
+				}
+				statusImg.setColor(Color.BLACK);
+				statusImg.drawPixel(statusImg.getWidth() - 1, y);
+				statusImg.drawString(statStr, 4, 16, Color.WHITE);
+				imp.updateAndDraw();
+
+				try {
+					Thread.sleep(50);
+				} catch (InterruptedException e) {
+					break;
+				}
+			}
+
+			imp.close();
+		}
+	};
 
 	private Runnable writerOp = new Runnable() {
 		@Override
 		public void run() {
-			while(!Thread.interrupted()) try {
-				writeAll();
-			} catch (Exception e) {
-				if(!(e instanceof InterruptedException) &&
-				   !(e instanceof ClosedByInterruptException) ) {
-					ij.IJ.log("Async writer failed!");
-					throw new RuntimeException(e);
-				} else if(e instanceof ClosedByInterruptException) {
-					ij.IJ.log("Warning: asynchronous writer may have been cancelled before completing. (" + queue.size() + ")");
+			try {
+				while(!Thread.interrupted() && !AsyncOutputWrapper.this.finishing)
+				{
+					Thread.sleep(100);
+					handleNext();
 				}
+
+				handleAll();
+			} catch (InterruptedException ie) {
+				// Something under writeNext noticed the thread was being interrupted and whined.
+				// Log a message/stack trace, but we're too mellow to actually throw a fit.
+				ReportingUtils.logError(ie);
+			} catch (ClosedByInterruptException cbie) {
+				// The writing to disk was interrupted. This can be a serious problem; the last slice in queue probably wasn't
+				// written correctly... May need to catch this earlier on; see writeNext?
+				ij.IJ.log("Warning: asynchronous writer may have been cancelled before completing. (" + queue.size() + ")");
+				ReportingUtils.logError(cbie);
+			} catch (Exception e) {
+				ij.IJ.log("Async writer failed!");
+				throw new RuntimeException(e);
 			}
 		}
 	};
 
-	public AsyncOutputWrapper(AcqOutputHandler handlerRef, long cap) {
+	public AsyncOutputWrapper(AcqOutputHandler handlerRef, long cap, boolean monitor) {
+		finishing = false;
 		handler = handlerRef;
 		queue = new LinkedBlockingQueue<IPC>((int) cap);
 		writerThread = new Thread(writerOp, "Async Output Handler Thread");
@@ -60,6 +125,14 @@ public class AsyncOutputWrapper implements AcqOutputHandler, UncaughtExceptionHa
 
 		rethrow = null;
 		writerThread.start();
+
+		if(monitor) {
+			monitorThread = new Thread(monitorOp, "Async Output Monitor Daemon");
+			monitorThread.setDaemon(true);
+			monitorThread.start();
+		} else {
+			monitorThread = null;
+		}
 	}
 
 	@Override
@@ -67,7 +140,7 @@ public class AsyncOutputWrapper implements AcqOutputHandler, UncaughtExceptionHa
 		if(rethrow != null)
 			throw rethrow;
 
-		writeAll();
+		handleAll();
 
 		synchronized(handler) {
 			return handler.getImagePlus();
@@ -79,8 +152,10 @@ public class AsyncOutputWrapper implements AcqOutputHandler, UncaughtExceptionHa
 		if(rethrow != null)
 			throw rethrow;
 
-		synchronized(handler) {
-			handler.beginStack(axis);
+		IPC store = new IPC(IPC.Type.StartStack, null, 0, 0, 0, 0, (double) axis);
+		if(!queue.offer(store)) {
+			handleNext();
+			queue.put(store);
 		}
 	}
 
@@ -90,9 +165,9 @@ public class AsyncOutputWrapper implements AcqOutputHandler, UncaughtExceptionHa
 		if(rethrow != null)
 			throw rethrow;
 
-		IPC store = new IPC(ip, X, Y, Z, theta, deltaT);
+		IPC store = new IPC(IPC.Type.Slice, ip, X, Y, Z, theta, deltaT);
 		if(!queue.offer(store)) {
-			writeNext();
+			handleNext();
 			queue.put(store);
 		}
 	}
@@ -102,10 +177,10 @@ public class AsyncOutputWrapper implements AcqOutputHandler, UncaughtExceptionHa
 		if(rethrow != null)
 			throw rethrow;
 
-		writeAll();
-
-		synchronized(handler) {
-			handler.finalizeStack(depth);
+		IPC store = new IPC(IPC.Type.EndStack, null, 0, 0, 0, 0, (double) depth);
+		if(!queue.offer(store)) {
+			handleNext();
+			queue.put(store);
 		}
 	}
 
@@ -114,31 +189,60 @@ public class AsyncOutputWrapper implements AcqOutputHandler, UncaughtExceptionHa
 		if(rethrow != null)
 			throw rethrow;
 
-		writeAll();
-		writerThread.interrupt();
-		writerThread.join();
+		finishing = true; // Tell the writer thread to finish up...
+		writerThread.setPriority(Thread.MAX_PRIORITY); // ...and give it more CPU time.
+
+		try {
+			// Wait an hour before cancelling the output. Don't force an interrupt unless it's taking forever;
+			// interrupts can mess up the output.
+			writerThread.join(60 * 60 * 1000);
+		} catch(InterruptedException ie) {
+			ReportingUtils.logException("Couldn't keep waiting...", ie);
+		} finally {
+			if(writerThread.isAlive()) {
+				writerThread.interrupt();
+				writerThread.join();
+				handleAll();
+			}
+
+			if(monitorThread != null && monitorThread.isAlive()) {
+				monitorThread.interrupt();
+				monitorThread.join();
+			}
+		}
 
 		synchronized(handler) {
 			handler.finalizeAcquisition();
 		}
 	}
 
-	private void writeNext() throws Exception {
+	private synchronized void handleNext() throws Exception {
 		if(rethrow != null)
 			throw rethrow;
 
-		IPC write = queue.poll();
-		if(write != null)
-		{
+		IPC write = queue.peek();
+		if(write != null) {
 			synchronized(handler) {
-				handler.processSlice(write.ip, write.x, write.y, write.z, write.t, write.dt);
+				writing = true;
+				switch(write.type){
+				case StartStack:
+					handler.beginStack((int) write.dt);
+					break;
+				case Slice:
+					handler.processSlice(write.ip, write.x, write.y, write.z, write.t, write.dt);
+					break;
+				case EndStack:
+					handler.finalizeStack((int) write.dt);
+					break;
+				}
+				writing = false;
 			}
+			queue.remove(write);
 		}
 	}
 
-	private void writeAll() throws Exception {
-		if(rethrow != null)
-		{
+	private void handleAll() throws Exception {
+		if(rethrow != null) {
 			if(Thread.currentThread() != writerThread)
 				throw rethrow;
 			else
@@ -146,7 +250,7 @@ public class AsyncOutputWrapper implements AcqOutputHandler, UncaughtExceptionHa
 		};
 
 		while(!queue.isEmpty())
-			writeNext();
+			handleNext();
 	}
 
 	@Override
