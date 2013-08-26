@@ -3,15 +3,11 @@ package spim.setup;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.micromanager.utils.ReportingUtils;
-
+import mmcorej.CMMCore;
 import spim.setup.Device.Factory;
 import spim.setup.SPIMSetup.SPIMDevice;
 
-import mmcorej.CMMCore;
-import mmcorej.DeviceType;
-
-public class PicardXYStage {
+public class PicardXYStage extends GenericXYStage {
 	static {
 		Factory factX = new Factory() {
 			@Override
@@ -31,60 +27,33 @@ public class PicardXYStage {
 		Device.installFactory(factY, "Picard XY Stage", SPIMDevice.STAGE_Y);
 	}
 
-	private double destX, destY;
-	private SubStage stageX, stageY;
-
 	public PicardXYStage() {
-		stageX = stageY = null;
-		destX = destY = 0;
+		super();
 	}
 
-	public class SubStage extends PicardStage {
-		private boolean iAmX;
-
-		public SubStage(CMMCore core, String label, boolean isX) {
-			super(core, label);
-
-			iAmX = isX;
-
-			if (isX)
-				PicardXYStage.this.destX = getPosition();
-			else
-				PicardXYStage.this.destY = getPosition();
+	public class PicardSubStage extends GenericXYStage.SubStage {
+		public PicardSubStage(CMMCore core, String label, boolean isX) {
+			super(core, label, isX);
 		}
 
 		@Override
-		public void setPosition(double pos) {
-			try {
-				if (iAmX) {
-					core.setXYPosition(label, pos, PicardXYStage.this.destY);
-					PicardXYStage.this.destX = pos;
-				} else {
-					core.setXYPosition(label, PicardXYStage.this.destX, pos);
-					PicardXYStage.this.destY = pos;
-				}
-			} catch (Exception e) {
-				ReportingUtils.logException("Couldn't set " + (iAmX ? "X" : "Y") + " position on " + label, e);
-			}
+		public void setVelocity(double velocity) throws IllegalArgumentException {
+			if(velocity < 1 || velocity > 10 || Math.round(velocity) != velocity)
+				throw new IllegalArgumentException("Velocity is not in 1..10 or is not an integer.");
+
+			super.setVelocity(velocity);
 		}
 
 		@Override
-		public double getPosition() {
-			try {
-				if (iAmX)
-					return core.getXPosition(label);
-				else
-					return core.getYPosition(label);
-			} catch (Exception e) {
-				ReportingUtils.logException("Couldn't get " + (iAmX ? "X" : "Y") + " position on " + label, e);
-				return 0;
-			}
+		public double getMinPosition() {
+			return 0;
 		}
 
 		@Override
-		public DeviceType getMMType() {
-			return DeviceType.XYStageDevice;
+		public double getMaxPosition() {
+			return 9000;
 		}
+
 	}
 
 	private static Map<String, PicardXYStage> labelToInstanceMap = new HashMap<String, PicardXYStage>();
@@ -98,9 +67,9 @@ public class PicardXYStage {
 		}
 
 		if (X && instance.stageX == null)
-			instance.stageX = instance.new SubStage(core, label, true);
+			instance.stageX = instance.new PicardSubStage(core, label, true);
 		else if (!X && instance.stageY == null)
-			instance.stageY = instance.new SubStage(core, label, false);
+			instance.stageY = instance.new PicardSubStage(core, label, false);
 
 		return X ? instance.stageX : instance.stageY;
 	}
