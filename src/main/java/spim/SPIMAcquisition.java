@@ -27,6 +27,7 @@ import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.FilenameFilter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1752,11 +1753,18 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 					}
 
 					if(output.list().length != 0) {
-						int res = JOptionPane.showConfirmDialog(null, "The destination directory is not empty. Save here anyway?", "Confirm Overwrite", JOptionPane.YES_NO_OPTION);
+						int res = JOptionPane.showConfirmDialog(null, "The destination directory is not empty. Save here anyway?\nWarning: Any OME-TIFF files in the directory will be deleted!", "Confirm Overwrite", JOptionPane.YES_NO_OPTION);
 						if(res == JOptionPane.NO_OPTION)
 							return;
 
-						for(File f : output.listFiles())
+						File[] list = output.listFiles(new FilenameFilter() {
+							@Override
+							public boolean accept(File dir, String name) {
+								return (name.endsWith(".ome.tiff"));
+							}
+						});
+
+						for(File f : list)
 							if(!f.delete())
 								if(JOptionPane.showConfirmDialog(null, "Couldn't clean destination directory (" + f.getName() + "). Continue anyway?", "Confirm Append", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION)
 									return;
