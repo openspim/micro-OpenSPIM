@@ -12,6 +12,7 @@ import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.Point;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -140,6 +141,8 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	protected SteppedSlider xSlider, ySlider, zSlider, rotationSlider, laserSlider, exposureSlider;
 	protected JCheckBox liveCheckbox, registrationCheckbox, continuousCheckbox;
 	protected JButton speedControl, ohSnap;
+	protected JFrame acqOptionsFrame;
+	protected JCheckBox asyncMonitorCheckbox;
 
 	protected boolean updateLiveImage;
 
@@ -806,7 +809,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			}
 		});
 
-		registrationCheckbox = new JCheckBox("Perform SPIM registration");
+		registrationCheckbox = new JCheckBox(/*"Perform SPIM registration"*/);
 		registrationCheckbox.setSelected(false);
 		registrationCheckbox.setEnabled(false);
 
@@ -824,7 +827,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		final JButton pickDirBtn = new JButton("Browse");
 
-		continuousCheckbox = new JCheckBox("Snap Continously");
+		continuousCheckbox = new JCheckBox(/*"Snap Continously"*/);
 		continuousCheckbox.setSelected(false);
 		continuousCheckbox.setEnabled(false);
 		continuousCheckbox.addItemListener(new ItemListener() {
@@ -869,7 +872,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		addLine(right, Justification.RIGHT, "Laser power (mW):", laserPower, "Exposure (ms):", exposure);
 		addLine(right, Justification.STRETCH, laserSlider);
 		addLine(right, Justification.STRETCH, exposureSlider);
-		addLine(right, Justification.RIGHT, speedControl, "Z settle time (ms):", settleTime, continuousCheckbox, antiDriftCheckbox, liveCheckbox, laseStackCheckbox /*registrationCheckbox*/);
+		addLine(right, Justification.RIGHT, speedControl, antiDriftCheckbox, liveCheckbox, laseStackCheckbox);
 		addLine(right, Justification.RIGHT, "Output directory:", acqSaveDir, pickDirBtn, asyncCheckbox);
 
 		JPanel bottom = new JPanel();
@@ -919,6 +922,33 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		timeoutBox.add(acqTimeoutValBox);
 
 		bottom.add(timeoutBox);
+
+		asyncMonitorCheckbox = new JCheckBox(/*"Monitor Async Output"*/);
+
+		acqOptionsFrame = new JFrame("Acquisition Options");
+		JPanel optsPanel = new JPanel();
+		optsPanel.setLayout(new GridLayout(4, 2));
+		optsPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
+		optsPanel.add(rightAlign("Continuous Mode:")); optsPanel.add(continuousCheckbox);
+		optsPanel.add(rightAlign("SPIM Registration:")); optsPanel.add(registrationCheckbox);
+		optsPanel.add(rightAlign("Monitor Async Output:")); optsPanel.add(asyncMonitorCheckbox);
+		optsPanel.add(rightAlign("Z settle time (ms):")); optsPanel.add(LayoutUtils.horizPanel(settleTime, Box.createHorizontalGlue()));
+		acqOptionsFrame.add(optsPanel);
+		acqOptionsFrame.pack();
+
+		JButton showMoreOptions = new JButton("Show Dialog");
+		showMoreOptions.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent ae) {
+				Point screen = ((Component) ae.getSource()).getLocationOnScreen();
+				int w = ((Component) ae.getSource()).getWidth();
+				int h = ((Component) ae.getSource()).getHeight();
+				acqOptionsFrame.setVisible(true);
+				acqOptionsFrame.setLocation(screen.x + w/2 - acqOptionsFrame.getWidth()/2, screen.y + h);
+			}
+		});
+
+		bottom.add(LayoutUtils.horizPanel("More Options", showMoreOptions));
 
 		JPanel goBtnPnl = new JPanel();
 		goBtnPnl.setLayout(new GridLayout(2,1));
@@ -1280,6 +1310,10 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	public void keyTyped(KeyEvent ke) {}
 
 	// UI helpers
+
+	protected static Component rightAlign(String text) {
+		return LayoutUtils.horizPanel(Box.createHorizontalGlue(), new JLabel(text));
+	}
 
 	protected enum Justification {
 		LEFT, STRETCH, RIGHT
@@ -1733,7 +1767,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 						acqRows, timeSeqs, timeStep
 					);
 					if(asyncCheckbox.isSelected())
-						handler = new AsyncOutputWrapper(handler, (ij.IJ.maxMemory() - ij.IJ.currentMemory())/(mmc.getImageWidth()*mmc.getImageHeight()*mmc.getBytesPerPixel()*2), true);
+						handler = new AsyncOutputWrapper(handler, (ij.IJ.maxMemory() - ij.IJ.currentMemory())/(mmc.getImageWidth()*mmc.getImageHeight()*mmc.getBytesPerPixel()*2), asyncMonitorCheckbox.isSelected());
 
 					params.setOutputHandler(handler);
 				} else {
