@@ -1,10 +1,7 @@
 package spim.setup;
 
-import java.util.Arrays;
-import java.util.Collection;
-
-import spim.setup.SPIMSetup.SPIMDevice;
 import mmcorej.CMMCore;
+import spim.setup.SPIMSetup.SPIMDevice;
 
 public class PicardStage extends Stage {
 	/*
@@ -32,29 +29,6 @@ public class PicardStage extends Stage {
 
 	public PicardStage(CMMCore core, String label) {
 		super(core, label);
-	}
-
-	@Override
-	public double getVelocity() {
-		return getPropertyDouble("Velocity");
-	}
-
-	@Override
-	public void setVelocity(double velocity) throws IllegalArgumentException {
-		if(velocity < 1 || velocity > 10 || Math.round(velocity) != velocity)
-			throw new IllegalArgumentException("Velocity is not in 1..10 or is not an integer.");
-
-		setProperty("Velocity", velocity);
-	}
-	
-	@Override
-	public Collection<Double> getAllowedVelocities() {
-		return Arrays.asList(1D, 2D, 3D, 4D, 5D, 6D, 7D, 8D, 9D, 10D);
-	}
-
-	@Override
-	public double getStepSize() {
-		return 1.5;
 	}
 
 	@Override

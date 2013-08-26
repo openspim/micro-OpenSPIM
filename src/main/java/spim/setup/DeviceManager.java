@@ -69,6 +69,15 @@ public class DeviceManager extends JPanel implements ItemListener, EventListener
 				ReportingUtils.logError(t);
 			}
 
+		try {
+			String defaultDevice = setup.getDefaultDeviceLabel(type);
+
+			if(defaultDevice != null && !defaultDevice.isEmpty() && !devices.contains(defaultDevice))
+				devices.add(defaultDevice);
+		} catch (Throwable t) {
+			ReportingUtils.logError(t);
+		}
+
 		devices.add("(none)");
 
 		JComboBox combo = new JComboBox(devices);
