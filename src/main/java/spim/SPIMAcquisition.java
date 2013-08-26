@@ -688,12 +688,13 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 					TableModel mdl = ((JTable)me.getComponent()).getModel();
 					int row = ((JTable)me.getComponent()).getSelectedRow();
 
-					String xy = (String) mdl.getValueAt(row, 0);
-					String t = (String) mdl.getValueAt(row, 1);
-					String zr = (String) mdl.getValueAt(row, 2);
+					String x = (String) mdl.getValueAt(row, 0);
+					String y = (String) mdl.getValueAt(row, 1);
+					String t = (String) mdl.getValueAt(row, 2);
+					String zr = (String) mdl.getValueAt(row, 3);
 
-					double x = Double.parseDouble(xy.substring(0,xy.indexOf(',')));
-					double y = Double.parseDouble(xy.substring(xy.indexOf(',')+2));
+					double xd = Double.parseDouble(x);
+					double yd = Double.parseDouble(y);
 					double td = Double.parseDouble(t);
 
 					double z = 0;
@@ -704,7 +705,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 					else
 						z = Double.parseDouble(zr);
 
-					setup.setPosition(x, y, z, td);
+					setup.setPosition(xd, yd, z, td);
 				}
 			}
 		});
@@ -1404,7 +1405,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 	protected void setZStageVelocity() {
 		try {
-			Double[] allowedDoubles = (Double[]) setup.getZStage().getAllowedVelocities().toArray();
+			Double[] allowedDoubles = (Double[]) setup.getZStage().getAllowedVelocities().toArray(new Double[0]);
 			String[] allowedValues = new String[allowedDoubles.length];
 			for(int i=0; i < allowedDoubles.length; ++i)
 				allowedValues[i] = allowedDoubles[i].toString();
