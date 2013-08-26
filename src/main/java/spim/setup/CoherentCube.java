@@ -1,7 +1,7 @@
 package spim.setup;
 
-import spim.setup.SPIMSetup.SPIMDevice;
 import mmcorej.CMMCore;
+import spim.setup.SPIMSetup.SPIMDevice;
 
 public class CoherentCube extends Laser {
 	static {
@@ -29,12 +29,12 @@ public class CoherentCube extends Laser {
 
 	@Override
 	public double getMinPower() {
-		return 0;
+		return getPropertyDouble("Minimum Laser Power") / 1000.0;
 	}
 
 	@Override
 	public double getMaxPower() {
-		return 0.05; // 50 mW
+		return getPropertyDouble("Maximum Laser Power") / 1000.0;
 	}
 
 }

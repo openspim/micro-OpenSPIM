@@ -1,13 +1,25 @@
 package spim.setup;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import org.micromanager.utils.ReportingUtils;
+
+import spim.setup.SPIMSetup.SPIMDevice;
 
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 
-public abstract class Stage extends Device {
+public class Stage extends Device {
+	static {
+		Device.installFactory(new Factory() {
+			public Device manufacture(CMMCore core, String label) {
+				return new Stage(core, label);
+			}
+		}, "*", SPIMDevice.STAGE_Z);
+	}
+
 	public Stage(CMMCore core, String label) {
 		super(core, label);
 	}
@@ -46,7 +58,12 @@ public abstract class Stage extends Device {
 	 * @throws UnsupportedOperationException If the stage does not support
 	 *             variable velocity.
 	 */
-	public abstract double getVelocity();
+	public double getVelocity() {
+		if(hasProperty("Velocity"))
+			return getPropertyDouble("Velocity");
+		else
+			return 1.0;
+	}
 
 	/**
 	 * Set the stage's velocity in um/s.
@@ -54,36 +71,73 @@ public abstract class Stage extends Device {
 	 * @param velocity new velocity
 	 * @throws UnsupportedOperationException If the stage does not support
 	 *             variable velocity.
+	 * @throws IllegalArgumentException Mostly if the value passed is not in
+	 * 			   getAllowedVelocities.
 	 */
-	public abstract void setVelocity(double velocity) throws IllegalArgumentException;
+	public void setVelocity(double velocity) throws UnsupportedOperationException, IllegalArgumentException {
+		if(hasProperty("Velocity"))
+			if(getAllowedVelocities().contains(velocity))
+				setProperty("Velocity", velocity);
+			else
+				throw new IllegalArgumentException();
+		else
+			throw new UnsupportedOperationException();
+	}
 
 	/**
 	 * Get the possible velocities of the motor in um/s (maybe).
 	 * 
 	 * @return A collection of the allowed velocities.
 	 */
-	public abstract Collection<Double> getAllowedVelocities();
+	public Collection<Double> getAllowedVelocities() {
+		if(!hasProperty("Velocity"))
+			return null;
+		
+		Collection<String> vals = getPropertyAllowedValues("Velocity");
+		List<Double> list = new ArrayList<Double>(vals.size());
+		
+		for(String val : vals)
+			list.add(Double.parseDouble(val));
+		
+		return list;
+	}
 
 	/**
 	 * Get the length of a motor step in um.
 	 * 
 	 * @return um/step of the motor
 	 */
-	public abstract double getStepSize();
+	public double getStepSize() {
+		if(hasProperty("StepSize"))
+			return getPropertyDouble("StepSize");
+		else
+			return 1.0;
+	}
 
 	/**
 	 * Get the minimum possible position in um.
 	 * 
 	 * @return min position in um
 	 */
-	public abstract double getMinPosition();
+	public double getMinPosition() {
+		if(hasProperty("Min"))
+			return getPropertyDouble("Min");
+		else
+			return 0.0;
+	}
 
 	/**
 	 * Get the maximum possible position in um.
 	 * 
 	 * @return max position in um
 	 */
-	public abstract double getMaxPosition();
+	public double getMaxPosition()
+	{
+		if(hasProperty("Max"))
+			return getPropertyDouble("Max");
+		else
+			return 10000.0; // *** this is why you should implement your own stages.
+	}
 
 	public DeviceType getMMType() {
 		return DeviceType.StageDevice;

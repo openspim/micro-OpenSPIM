@@ -136,8 +136,8 @@ public class SPIMSetup {
 		return (Laser) deviceMap.get(SPIMDevice.LASER1);
 	}
 
-	public Device getCamera() {
-		return deviceMap.get(SPIMDevice.CAMERA1);
+	public Camera getCamera() {
+		return (Camera) deviceMap.get(SPIMDevice.CAMERA1);
 	}
 
 	public Device getSynchronizer() {
@@ -218,7 +218,7 @@ public class SPIMSetup {
 
 		try {
 			for (SPIMDevice dev : SPIMDevice.values())
-				setup.deviceMap.put(dev, setup.getDefaultDevice(dev));
+				setup.deviceMap.put(dev, setup.constructIfValid(dev, setup.getDefaultDeviceLabel(dev)));
 		} catch (Exception e) {
 			ReportingUtils.logException("Couldn't build default setup.", e);
 			return null;
@@ -227,35 +227,35 @@ public class SPIMSetup {
 		return setup;
 	}
 
-	private Device getDefaultDevice(SPIMDevice dev) throws Exception {
+	public String getDefaultDeviceLabel(SPIMDevice dev) throws Exception {
 		switch (dev) {
 		case STAGE_X:
 		case STAGE_Y:
-			return constructIfValid(dev, core.getXYStageDevice());
+			return core.getXYStageDevice();
 
 		case STAGE_Z:
-			return constructIfValid(dev, core.getFocusDevice());
+			return core.getFocusDevice();
 
 		case STAGE_THETA:
 			// TODO: In my ideal stage setup (three unique linear stages) this
 			// wouldn't work.
 			// The X and Y stages would also be StageDevices. I haven't thought
 			// of a workaround yet. :(
-			return constructIfValid(dev, labelOfSecondary(DeviceType.StageDevice, core.getFocusDevice()));
+			return labelOfSecondary(DeviceType.StageDevice, core.getFocusDevice());
 
 		case LASER1:
-			return constructIfValid(dev, core.getShutterDevice());
+			return core.getShutterDevice();
 
 		case LASER2:
 			// TODO: This might not be exact -- Arduino might end up showing up
 			// as a shutter.
-			return constructIfValid(dev, labelOfSecondary(DeviceType.ShutterDevice, core.getShutterDevice()));
+			return labelOfSecondary(DeviceType.ShutterDevice, core.getShutterDevice());
 
 		case CAMERA1:
-			return constructIfValid(dev, core.getCameraDevice());
+			return core.getCameraDevice();
 
 		case CAMERA2:
-			return constructIfValid(dev, labelOfSecondary(DeviceType.CameraDevice, core.getCameraDevice()));
+			return labelOfSecondary(DeviceType.CameraDevice, core.getCameraDevice());
 
 		case SYNCHRONIZER:
 			// wot
