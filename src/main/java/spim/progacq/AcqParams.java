@@ -27,6 +27,8 @@ public class AcqParams {
 	private boolean				updateLive;
 	private boolean				illumFullStack;
 	private int					zWaitMillis;
+	
+	private boolean				profile;
 
 	public AcqParams() {
 		this(null, null, null, 0D, 0, false, null, null, false, null);
@@ -223,6 +225,14 @@ public class AcqParams {
 
 	public void setSetup(SPIMSetup setup) {
 		this.setup = setup;
+	}
+
+	public boolean doProfiling() {
+		return profile;
+	}
+
+	public void setDoProfiling(boolean profile) {
+		this.profile = profile;
 	}
 
 }

@@ -143,7 +143,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	protected JCheckBox liveCheckbox, registrationCheckbox, continuousCheckbox;
 	protected JButton speedControl, ohSnap;
 	protected JFrame acqOptionsFrame;
-	protected JCheckBox asyncMonitorCheckbox;
+	protected JCheckBox asyncMonitorCheckbox, acqProfileCheckbox;
 
 	protected boolean updateLiveImage;
 
@@ -925,15 +925,17 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		bottom.add(timeoutBox);
 
 		asyncMonitorCheckbox = new JCheckBox(/*"Monitor Async Output"*/);
+		acqProfileCheckbox = new JCheckBox(/*"Profile Acquisition"*/);
 
 		acqOptionsFrame = new JFrame("Acquisition Options");
 		JPanel optsPanel = new JPanel();
-		optsPanel.setLayout(new GridLayout(4, 2));
+		optsPanel.setLayout(new GridLayout(5, 2));
 		optsPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 		optsPanel.add(rightAlign("Continuous Mode:")); optsPanel.add(continuousCheckbox);
 		optsPanel.add(rightAlign("SPIM Registration:")); optsPanel.add(registrationCheckbox);
 		optsPanel.add(rightAlign("Monitor Async Output:")); optsPanel.add(asyncMonitorCheckbox);
 		optsPanel.add(rightAlign("Z settle time (ms):")); optsPanel.add(LayoutUtils.horizPanel(settleTime, Box.createHorizontalGlue()));
+		optsPanel.add(rightAlign("Profile Acquisition:")); optsPanel.add(acqProfileCheckbox);
 		acqOptionsFrame.add(optsPanel);
 		acqOptionsFrame.pack();
 
@@ -1793,6 +1795,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				params.setUpdateLive(liveCheckbox.isSelected());
 				params.setIllumFullStack(laseStackCheckbox.isSelected());
 				params.setSettleDelay(((Number) settleTime.getValue()).intValue());
+				params.setDoProfiling(acqProfileCheckbox.isSelected());
 
 				acqProgress.setEnabled(true);
 
