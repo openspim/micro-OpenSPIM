@@ -173,6 +173,18 @@ public class ProgrammaticAcquisitor {
 		}
 	}
 
+	private static TaggedImage snapImage(SPIMSetup setup, boolean manualLaser) throws Exception {
+		if(manualLaser)
+			setup.getLaser().setPoweredOn(true);
+
+		TaggedImage ti = setup.getCamera().snapImage();
+
+		if(manualLaser)
+			setup.getLaser().setPoweredOn(false);
+
+		return ti;
+	}
+
 	public interface AcqProgressCallback {
 		public abstract void reportProgress(int tp, int row, double overall);
 	}
@@ -197,8 +209,7 @@ public class ProgrammaticAcquisitor {
 			frame.enableLiveMode(false);
 
 		boolean autoShutter = core.getAutoShutter();
-		if(params.isIllumFullStack())
-			core.setAutoShutter(false);
+		core.setAutoShutter(false);
 
 		final SPIMDevice[] metaDevs = params.getMetaDevices();
 
@@ -223,6 +234,8 @@ public class ProgrammaticAcquisitor {
 					@Override
 					public void run() {
 						try {
+							setup.getLaser().setPoweredOn(true);
+
 							core.clearCircularBuffer();
 							core.startContinuousSequenceAcquisition(0);
 
@@ -233,13 +246,15 @@ public class ProgrammaticAcquisitor {
 								};
 
 								TaggedImage ti = core.popNextTaggedImage();
-								handleSlice(core, setup, metaDevs, acqBegan, ti, handler);
+								handleSlice(core, setup, metaDevs, acqBegan, ImageUtils.makeProcessor(ti), handler);
 
 								if(params.isUpdateLive())
 									updateLiveImage(frame, ti);
 							}
 
 							core.stopSequenceAcquisition();
+
+							setup.getLaser().setPoweredOn(false);
 						} catch (Throwable e) {
 							lastExc = e;
 						}
@@ -282,7 +297,7 @@ public class ProgrammaticAcquisitor {
 				runDevicesAtRow(core, setup, row, step);
 
 				if(params.isIllumFullStack())
-					core.setShutterOpen(true);
+					setup.getLaser().setPoweredOn(true);
 
 				handler.beginStack(0);
 
@@ -291,12 +306,12 @@ public class ProgrammaticAcquisitor {
 					Thread.sleep(params.getSettleDelay());
 
 					if(!params.isContinuous()) {
-						core.snapImage();
+						TaggedImage ti = snapImage(setup, !params.isIllumFullStack());
+						ImageProcessor ip = ImageUtils.makeProcessor(ti);
 
-						TaggedImage ti = core.getTaggedImage();
-						handleSlice(core, setup, metaDevs, acqBegan, ti, handler);
+						handleSlice(core, setup, metaDevs, acqBegan, ip, handler);
 						if(ad != null)
-							tallyAntiDriftSlice(core, setup, row, ad, ti);
+							tallyAntiDriftSlice(core, setup, row, ad, ip);
 						if(params.isUpdateLive())
 							updateLiveImage(frame, ti);
 					};
@@ -314,11 +329,11 @@ public class ProgrammaticAcquisitor {
 						}
 
 						if(!params.isContinuous()) {
-							core.snapImage();
-							TaggedImage ti = core.getTaggedImage();
-							handleSlice(core, setup, metaDevs, acqBegan, ti, handler);
+							TaggedImage ti = snapImage(setup, !params.isIllumFullStack());
+							ImageProcessor ip = ImageUtils.makeProcessor(ti);
+							handleSlice(core, setup, metaDevs, acqBegan, ip, handler);
 							if(ad != null)
-								tallyAntiDriftSlice(core, setup, row, ad, ti);
+								tallyAntiDriftSlice(core, setup, row, ad, ip);
 							if(params.isUpdateLive())
 								updateLiveImage(frame, ti);
 						}
@@ -348,7 +363,7 @@ public class ProgrammaticAcquisitor {
 				handler.finalizeStack(0);
 
 				if(params.isIllumFullStack())
-					core.setShutterOpen(false);
+					setup.getLaser().setPoweredOn(false);
 
 				if(ad != null) {
 					ad.finishStack();
@@ -388,7 +403,7 @@ public class ProgrammaticAcquisitor {
 	
 				if(wait > 0D)
 					try {
-					Thread.sleep((long)(wait * 1e3));
+						Thread.sleep((long)(wait * 1e3));
 					} catch(InterruptedException ie) {
 						return cleanAbort(params, liveOn, autoShutter, continuousThread);
 					}
@@ -410,16 +425,14 @@ public class ProgrammaticAcquisitor {
 		return handler.getImagePlus();
 	}
 
-	private static void tallyAntiDriftSlice(CMMCore core, SPIMSetup setup, AcqRow row, AntiDrift ad, TaggedImage img) throws Exception {
-		ImageProcessor ip = ImageUtils.makeProcessor(img);
-
+	private static void tallyAntiDriftSlice(CMMCore core, SPIMSetup setup, AcqRow row, AntiDrift ad, ImageProcessor ip) throws Exception {
 		ad.tallySlice(new Vector3D(0,0,setup.getZStage().getPosition()-row.getZStartPosition()), ip);
 	}
 
 	private static void handleSlice(CMMCore core, SPIMSetup setup,
-			SPIMDevice[] metaDevs, double start, TaggedImage slice,
+			SPIMDevice[] metaDevs, double start, ImageProcessor ip,
 			AcqOutputHandler handler) throws Exception {
-
+/*
 		slice.tags.put("t", System.nanoTime() / 1e9 - start);
 
 		for(SPIMDevice devType : metaDevs) {
@@ -434,9 +447,7 @@ public class ProgrammaticAcquisitor {
 				slice.tags.put(devType.getText(), "<<<Exception: " + t.getMessage() + ">>>");
 			}
 		}
-
-		ImageProcessor ip = ImageUtils.makeProcessor(slice);
-
+*/
 		handler.processSlice(ip, setup.getXStage().getPosition(),
 				setup.getYStage().getPosition(),
 				setup.getZStage().getPosition(),
