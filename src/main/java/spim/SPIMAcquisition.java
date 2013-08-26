@@ -48,7 +48,6 @@ import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
-import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -84,8 +83,6 @@ import spim.progacq.AcqParams;
 import spim.progacq.AcqRow;
 import spim.progacq.AntiDrift;
 import spim.progacq.AsyncOutputWrapper;
-import spim.progacq.IntensityMeanAntiDrift;
-import spim.progacq.ManualAntiDrift;
 import spim.progacq.OMETIFFHandler;
 import spim.progacq.ProgrammaticAcquisitor;
 import spim.progacq.ProjDiffAntiDrift;
@@ -162,24 +159,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	private JTabbedPane acqPosTabs;
 	private JLabel estimatesText;
 
-	private final String AD_MODE_MANUAL = "Manual Select";
-	private final String AD_MODE_PROJECTIONS = "Projections";
-	private final String AD_MODE_INTCENT = "Center of Intensity";
-
-	private final String[] AntiDriftModeNames = {
-		AD_MODE_MANUAL, AD_MODE_PROJECTIONS, AD_MODE_INTCENT
-	};
-
-	protected JFrame adPane;
-	protected JComboBox adModeCmbo;
-	protected JCheckBox adAutoThresh;
-	protected JTextField adThreshMin;
-	protected JTextField adThreshMax;
-	protected JTextField adOldWeight;
-	protected JTextField adResetMagn;
-	protected JCheckBox adAbsolute;
-	protected JCheckBox adVisualize;
-	protected JComponent adAutoControls;
 	private JCheckBox asyncCheckbox;
 
 	// MMPlugin stuff
@@ -859,53 +838,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		antiDriftCheckbox = new JCheckBox("Use Anti-Drift");
 		antiDriftCheckbox.setSelected(false);
 		antiDriftCheckbox.setEnabled(true);
-		antiDriftCheckbox.addItemListener(new ItemListener() {
-			@Override
-			public void itemStateChanged(ItemEvent ie) {
-				if(antiDriftCheckbox.isSelected()) {
-					if(SPIMAcquisition.this.adPane == null) {
-						JFrame fr = new JFrame("AD Settings");
-						fr.setLayout(new BoxLayout(fr.getContentPane(), BoxLayout.PAGE_AXIS));
-
-						fr.add(SPIMAcquisition.this.adModeCmbo = new JComboBox(AntiDriftModeNames));
-
-						fr.add(SPIMAcquisition.this.adAutoControls = LayoutUtils.titled("Automatic", (JComponent) LayoutUtils.vertPanel(
-							SPIMAcquisition.this.adAbsolute = new JCheckBox("Absolute"),
-							LayoutUtils.titled("Thresholding", (JComponent) LayoutUtils.vertPanel(
-								SPIMAcquisition.this.adAutoThresh = new JCheckBox("Auto"),
-								LayoutUtils.labelMe(SPIMAcquisition.this.adThreshMin = new JTextField("350"), "Min:"),
-								LayoutUtils.labelMe(SPIMAcquisition.this.adThreshMax = new JTextField("4096"), "Max:")
-							)),
-							LayoutUtils.labelMe(SPIMAcquisition.this.adOldWeight = new JTextField("0.0"), "Old Weight (0..2):"),
-							LayoutUtils.labelMe(SPIMAcquisition.this.adResetMagn = new JTextField("-1"), "Reset Magn.:"),
-							SPIMAcquisition.this.adVisualize = new JCheckBox("Visualize")
-						)));
-						fr.pack();
-
-						adPane = fr;
-
-						adAutoThresh.addItemListener(new ItemListener() {
-							@Override
-							public void itemStateChanged(ItemEvent ie) {
-								adThreshMin.setText(adAutoThresh.isSelected() ? "0.1" : "350");
-								adThreshMax.setText(adAutoThresh.isSelected() ? "0.4" : "4096");
-							}
-						});
-
-						adModeCmbo.setSelectedItem(AD_MODE_PROJECTIONS);
-						adModeCmbo.addItemListener(new ItemListener() {
-							@Override
-							public void itemStateChanged(ItemEvent ie) {
-								adAutoControls.setVisible(AD_MODE_INTCENT.equals(adModeCmbo.getSelectedItem()));
-								adPane.pack();
-							}
-						});
-					}
-
-					SPIMAcquisition.this.adPane.setVisible(true);
-				}
-			}
-		});
 
 		settleTime = new JSpinner(new SpinnerNumberModel(10, 0, 1000, 1));
 
@@ -1808,44 +1740,13 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 					output = null;
 				}
 
-				if(antiDriftCheckbox.isSelected()) {
-					AntiDrift.Factory f = null;
-
-					if(AD_MODE_MANUAL.equals(adModeCmbo.getSelectedItem())) {
-						f = new AntiDrift.Factory() {
-							@Override
-							public AntiDrift manufacture(AcqParams p, AcqRow r) {
-								return new ManualAntiDrift(p, r);
-							}
-						};
-					} else if(AD_MODE_PROJECTIONS.equals(adModeCmbo.getSelectedItem())) {
-						f = new AntiDrift.Factory() {
-							@Override
-							public AntiDrift manufacture(AcqParams p, AcqRow r) {
-								return new ProjDiffAntiDrift(output, p, r);
-							}
-						};
-					} else if(AD_MODE_INTCENT.equals(adModeCmbo.getSelectedItem())) {
-						final double[] adparams = new double[7];
-
-						adparams[0] = (adAutoThresh.isSelected() ? 1 : -1);
-						adparams[1] = Double.parseDouble(adThreshMin.getText());
-						adparams[2] = Double.parseDouble(adThreshMax.getText());
-						adparams[3] = Double.parseDouble(adOldWeight.getText());
-						adparams[4] = Double.parseDouble(adResetMagn.getText());
-						adparams[5] = (adAbsolute.isSelected() ? 1 : -1);
-						adparams[6] = (adVisualize.isSelected() ? 1 : -1);
-
-						f = new AntiDrift.Factory() {
-							@Override
-							public AntiDrift manufacture(AcqParams p, AcqRow r) {
-								return new IntensityMeanAntiDrift(adparams, r.getZEndPosition() - r.getZStartPosition());
-							}
-						};
-					}
-					
-					params.setAntiDrift(f);
-				}
+				if(antiDriftCheckbox.isSelected())
+					params.setAntiDrift(new AntiDrift.Factory() {
+						@Override
+						public AntiDrift manufacture(AcqParams p, AcqRow r) {
+							return new ProjDiffAntiDrift(output, p, r);
+						}
+					});
 
 				params.setUpdateLive(liveCheckbox.isSelected());
 				params.setIllumFullStack(laseStackCheckbox.isSelected());
