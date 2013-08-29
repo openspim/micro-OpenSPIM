@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
@@ -158,29 +159,20 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		pack();
 
 		tweaksFrame = new JFrame("Scanning Tweaks");
-		tweaksFrame.setLayout(new GridLayout(8, 1));
+		tweaksFrame.getRootPane().setBorder(javax.swing.BorderFactory.createEmptyBorder(2, 2, 2, 2));
 
 		JButton importList;
 
-		LayoutUtils.addAll((JComponent) tweaksFrame.getContentPane(),
-			LayoutUtils.horizPanel(
-				new JLabel("First delta:"),
-				firstDelta = new JSpinner(new SpinnerNumberModel(10.0, 1.0, 30.0, 1.0))
-			),
-			LayoutUtils.horizPanel(
-				new JLabel("Second delta:"),
-				secondDelta = new JSpinner(new SpinnerNumberModel(20.0, 5.0, 50.0, 1.0))
-			),
-			zmethod = new JComboBox(new String[] {ZMODE_MAX_INTENSITY, ZMODE_WEIGHTED_AVG, ZMODE_MIN_SIGMA}),
-			complexGuessZ = new JCheckBox("Complex Z Guessing"),
-			LayoutUtils.horizPanel(
-				new JLabel("IntBGR:"),
-				intbgrThresh = new JSpinner(new SpinnerNumberModel(0.20, 0.0, 0.5, 0.01))
-			),
-			importList = new JButton("Import..."),
-			visualFit = new JCheckBox("Fitting Overlays"),
-			hypersphere = new JCheckBox("Fit Hypersphere")
-		);
+		tweaksFrame.add(LayoutUtils.form(
+			"First delta:",			firstDelta = new JSpinner(new SpinnerNumberModel(10.0, 1.0, 30.0, 1.0)),
+			"Second delta:",		secondDelta = new JSpinner(new SpinnerNumberModel(20.0, 5.0, 50.0, 1.0)),
+			"Z determination:",		zmethod = new JComboBox(new String[] {ZMODE_MAX_INTENSITY, ZMODE_WEIGHTED_AVG, ZMODE_MIN_SIGMA}),
+			"Complex Z guessing:",	complexGuessZ = new JCheckBox(/*"Complex Z Guessing"*/),
+			"Min Intensity/BG:",	intbgrThresh = new JSpinner(new SpinnerNumberModel(0.20, 0.0, 0.5, 0.01)),
+			"Import list:",			importList = new JButton("Import..."),
+			"Fitting overlays:",	visualFit = new JCheckBox(/*"Fitting Overlays"*/),
+			"Hypersphere fitter:",	hypersphere = new JCheckBox(/*"Fit Hypersphere"*/)
+		));
 
 		importList.addActionListener(this);
 
