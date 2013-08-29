@@ -208,8 +208,9 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		return getUmPerPixel() != 0 && rotAxis != null;
 	}
 
-	private Vector2D quickFit(Point mouse) throws Exception {
+	private Vector2D quickFit() throws Exception {
 		ImagePlus img = MMStudioMainFrame.getSimpleDisplay().getImagePlus();
+		Point mouse = img.getCanvas().getCursorLoc();
 
 		ImageProcessor ip = img.getProcessor();
 
@@ -269,7 +270,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			return;
 
 		try {
-			quickFit(arg0.getPoint());
+			quickFit();
 		} catch (Exception e) {
 			ReportingUtils.logError(e);
 		}
@@ -282,7 +283,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 		if(me.isControlDown())
 			try {
-				ReportingUtils.logMessage(quickFit(me.getPoint()).toString());
+				ReportingUtils.logMessage(quickFit().toString());
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -305,7 +306,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 	private Vector2D point1, point2;
 	private boolean inMeasureMode;
-	private double umPerPix = 0.43478260869565217391304347826087;
+	private double umPerPix = 0.652;
 
 	@Override
 	public void mousePressed(MouseEvent arg0) {
@@ -322,9 +323,9 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 		try {
 			if(point1 == null || point2 != null) {
-				point1 = quickFit(arg0.getPoint());
+				point1 = quickFit();
 			} else if(point1 != null && point2 == null) {
-				point2 = quickFit(arg0.getPoint());
+				point2 = quickFit();
 
 				String dist = JOptionPane.showInputDialog("Distance: " + point2.distance(point1) + " pixels; um?");
 
@@ -412,13 +413,12 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		Rectangle roi = MMStudioMainFrame.getSimpleDisplay().getImagePlus().getProcessor().getRoi();
 		ImageStack stack = new ImageStack(roi.width, roi.height);
 
-		for(double z = basez - scanDelta; z <= basez + scanDelta; ++z) {
+		for(double z = basez - scanDelta; z <= basez + scanDelta; z += setup.getZStage().getStepSize()) {
 			setup.getZStage().setPosition(z);
 			setup.getZStage().waitFor();
 			Thread.sleep(15);
 
-			core.snapImage();
-			TaggedImage ti = core.getTaggedImage();
+			TaggedImage ti = setup.getCamera().snapImage();
 			addTags(ti, 0);
 			gui.addImage(MMStudioMainFrame.SIMPLE_ACQ, ti, true, true);
 
@@ -606,6 +606,8 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 				public void run() {
 					boolean live = gui.getLiveMode(); 
 					gui.enableLiveMode(false);
+					core.setAutoShutter(false);
+					setup.getLaser().setPoweredOn(true);
 
 					do {
 						getNextBeadRunnable.run();
@@ -613,6 +615,8 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 						(getNextBeadRunnable.getValue() == null ||
 						getNextBeadRunnable.getValue() != false));
 					
+					setup.getLaser().setPoweredOn(false);
+					core.setAutoShutter(true);
 					gui.enableLiveMode(live);
 					SPIMAutoCalibrator.this.scanStopped();
 				}
@@ -640,6 +644,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			scanningThread = null;
 		} else if("Tweak Scan".equals(ae.getActionCommand())) {
 			tweaksFrame.setVisible(true);
+			tweaksFrame.setLocation(new Point(getLocation().x + getWidth(), getLocation().y));
 		} else if(BTN_REVISE.equals(ae.getActionCommand())) {
 			DefaultListModel mdl = (DefaultListModel)pointsTable.getModel();
 
