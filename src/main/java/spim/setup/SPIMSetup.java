@@ -11,6 +11,7 @@ import org.micromanager.utils.ReportingUtils;
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 import mmcorej.StrVector;
+import mmcorej.TaggedImage;
 
 public class SPIMSetup {
 	public static enum SPIMDevice {
@@ -142,6 +143,18 @@ public class SPIMSetup {
 
 	public Device getSynchronizer() {
 		return deviceMap.get(SPIMDevice.SYNCHRONIZER);
+	}
+
+	public TaggedImage snapImage() {
+		if(!core.getAutoShutter())
+			getLaser().setPoweredOn(true);
+
+		TaggedImage ret = getCamera().snapImage();
+
+		if(!core.getAutoShutter())
+			getLaser().setPoweredOn(false);
+
+		return ret;
 	}
 
 	/*
