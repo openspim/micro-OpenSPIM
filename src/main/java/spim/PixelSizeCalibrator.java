@@ -17,6 +17,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
@@ -39,7 +40,6 @@ import org.micromanager.utils.ImageUtils;
 import mmcorej.CMMCore;
 
 import spim.LayoutUtils;
-import spim.progacq.ProgrammaticAcquisitor;
 
 public class PixelSizeCalibrator extends JFrame implements MouseListener,
 		ActionListener {
@@ -66,6 +66,7 @@ public class PixelSizeCalibrator extends JFrame implements MouseListener,
 	public PixelSizeCalibrator(CMMCore icore, MMStudioMainFrame igui) {
 		super("Pixel Size Calibration");
 
+		this.getRootPane().setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
 		this.getContentPane().setLayout(new BoxLayout(this.getContentPane(), BoxLayout.PAGE_AXIS));
 
 		JButton refreshBtn = new JButton(UPDATE_IMAGE_BTN);
@@ -115,7 +116,7 @@ public class PixelSizeCalibrator extends JFrame implements MouseListener,
 			applyBtn
 		));
 
-		JButton dbgBtn = new JButton("Debug");
+		JButton dbgBtn = new JButton("Debug: Use last image");
 		dbgBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
@@ -166,7 +167,20 @@ public class PixelSizeCalibrator extends JFrame implements MouseListener,
 		if(UPDATE_IMAGE_BTN.equals(ae.getActionCommand())) {
 			fetchFreshImage();
 		} else if(APPLY_BTN.equals(ae.getActionCommand())) {
-			setVisible(false);
+			if(umPerPix > 0) try {
+				core.definePixelSizeConfig("SPIM", "Core", "Initialize", "1");
+				core.setPixelSizeUm("SPIM", umPerPix);
+
+				if(workingImage != null)
+				{
+					workingImage.changes = false;
+					workingImage.close();
+				}
+
+				setVisible(false);
+			} catch(Exception e) {
+				IJ.handleException(e);
+			}
 		}
 	}
 
@@ -218,9 +232,6 @@ public class PixelSizeCalibrator extends JFrame implements MouseListener,
 
 		GridLineFinder l1 = new GridLineFinder(r1, roiangle);
 		GridLineFinder l2 = new GridLineFinder(r2, roiangle);
-
-		new ImagePlus("R1", r1).show();
-		new ImagePlus("R2", r2).show();
 
 		IJ.log("Theta1: " + l1.getAngle() + ", theta2: " + l2.getAngle());
 		IJ.log("X1: " + l1.getX() + ", Y1: " + l1.getY());
