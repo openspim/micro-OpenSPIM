@@ -1248,11 +1248,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		Vector3D rotOrigin = calibration.getRotationOrigin();
 		Vector3D rotAxis = calibration.getRotationAxis();
 
-		ReportingUtils.logMessage("Rotating about axis " + rotAxis.toString() + " at " + rotOrigin.toString());
-
 		// Reverse dtheta; for our twister motor, negative dtheta is CCW, the
-		// direction of rotation for commons math (about +k).
-		Rotation rot = new Rotation(rotAxis, -dtheta * Math.PI / 100D);
+		// direction of rotation for commons math (about +j).
+		Rotation rot = new Rotation(rotAxis, -dtheta * Math.PI / 180D);
 
 		return rotOrigin.add(rot.applyTo(pos.subtract(rotOrigin)));
 	}
@@ -1291,9 +1289,9 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				// setXYPosition and first setPosition lines below are noops.
 				Vector3D xyz = applyCalibratedRotation(new Vector3D(
 						stageStart[0], stageStart[1], stageStart[2]),
-						delta * 0.1);
+						delta * 0.2);
 
-				setup.setPosition(xyz, stageStart[3] + delta * 0.1);
+				setup.setPosition(xyz, stageStart[3] + delta * 0.2);
 			} catch (Exception e) {
 				ReportingUtils.logException("Couldn't move stage: ", e);
 			}
