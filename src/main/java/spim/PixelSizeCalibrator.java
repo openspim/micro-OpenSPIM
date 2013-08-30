@@ -233,9 +233,6 @@ public class PixelSizeCalibrator extends JFrame implements MouseListener,
 		GridLineFinder l1 = new GridLineFinder(r1, roiangle);
 		GridLineFinder l2 = new GridLineFinder(r2, roiangle);
 
-		new ImagePlus("R1", r1).show();
-		new ImagePlus("R2", r2).show();
-
 		IJ.log("Theta1: " + l1.getAngle() + ", theta2: " + l2.getAngle());
 		IJ.log("X1: " + l1.getX() + ", Y1: " + l1.getY());
 		IJ.log("X2: " + l2.getX() + ", Y2: " + l2.getY());
