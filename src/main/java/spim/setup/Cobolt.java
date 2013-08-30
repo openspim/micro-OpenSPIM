@@ -17,42 +17,23 @@ public class Cobolt extends Laser {
 		super(core, label);
 	}
 
-	/**
-	 * Power the laser off or on.
-	 * 
-	 * @param open True to turn on, false to turn off.
-	 */
-	public void setPoweredOn(boolean open) {
-		setProperty("Laser", open ? "On" : "Off");
-	}
-
-	/**
-	 * Get the laser's power status.
-	 * 
-	 * @return True of the laser is on, false if off.
-	 */
-	public boolean getPoweredOn() {
-		return getProperty("Laser") == "On";
-	}
-
 	@Override
 	public void setPower(double power) {
-		setProperty("Power", power);
+		setProperty("PowerSetpoint", power * 1000);
 	}
 
 	@Override
 	public double getPower() {
-		return getPropertyDouble("Power");
+		return getPropertyDouble("PowerSetpoint") / 1000;
 	}
 
 	@Override
 	public double getMinPower() {
-		return 0;
+		return getPropertyDouble("Minimum Laser Power") / 1000.0;
 	}
 
 	@Override
 	public double getMaxPower() {
-		return 0.05;  // 50 mW. I don't know if this truly the maximum power, but I certainly wouldn't suggest more on a live sample.
+		return getPropertyDouble("Maximum Laser Power") / 1000.0;
 	}
-
 }
