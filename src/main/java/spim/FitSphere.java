@@ -22,24 +22,24 @@ public class FitSphere {
 	double error;
 
 	public FitSphere(final Vector3D[] points) {
+		double[] params = new double[PARAMLEN];
+
 		Vector3D mean = Vector3D.ZERO;
 
-		for(Vector3D point : points)
-			mean = mean.add(point.scalarMultiply(1D/(double)points.length));
+		for(Vector3D point : points) {
+			mean = mean.add(1D/(double)points.length, point);
+
+			if(point.distance(points[0])/2 > params[RADIUS])
+				params[RADIUS] = point.distance(points[0])/2;
+		}
 
 		ReportingUtils.logMessage("MEAN: " + mean.toString());
 
-		final Vector3D endMean = new Vector3D(mean.getX(), mean.getY(), mean.getZ());
-		
-		double[] params = new double[PARAMLEN];
-		params[RADIUS] = 0.5*points[0].subtract(points[points.length-1]).getNorm();
-
-		Vector3D centerGuess = points[points.length/2].subtract(mean).add(mean.subtract(points[points.length/2]).normalize().scalarMultiply(params[RADIUS]));
-		params[XC] = centerGuess.getX(); params[YC] = centerGuess.getY(); params[ZC] = centerGuess.getZ();
+		params[XC] = mean.getX(); params[YC] = mean.getY(); params[ZC] = mean.getZ();
 
 		double[] steps = new double[PARAMLEN];
-		steps[XC] = steps[YC] = steps[ZC] = 0.001;
-		steps[RADIUS] = 0.00001;
+		steps[XC] = steps[YC] = steps[ZC] = 0.1;
+		steps[RADIUS] = 0.001;
 
 		ReportingUtils.logMessage("Initial parameters: " + Arrays.toString(params) + ", steps: " + Arrays.toString(steps));
 
@@ -50,9 +50,7 @@ public class FitSphere {
 
 				double err = 0;
 				for(Vector3D point : points)
-					err += Math.pow(point.subtract(endMean).subtract(center).getNorm() - params[RADIUS], 2D);
-
-//				ReportingUtils.logMessage("value(" + Arrays.toString(params) + "): endMean=" + endMean.toString() + ", err=" + err);
+					err += Math.pow(point.distance(center) - params[RADIUS], 2D);
 
 				return err;
 			}
@@ -65,7 +63,7 @@ public class FitSphere {
 
 		double[] result = null;
 		try {
-			result = opt.optimize(5000000, MRF, GoalType.MINIMIZE, params).getPoint();
+			result = opt.optimize(Integer.MAX_VALUE, MRF, GoalType.MINIMIZE, params).getPoint();
 			error = Math.sqrt(MRF.value(result));
 		} catch(Throwable t) {
 			ReportingUtils.logError(t, "Optimization failed!");
@@ -73,7 +71,7 @@ public class FitSphere {
 
 		ReportingUtils.logMessage("Fit: " + Arrays.toString(result));
 
-		center = new Vector3D(result[XC], result[YC], result[ZC]).add(mean);
+		center = new Vector3D(result[XC], result[YC], result[ZC]);
 		radius = result[RADIUS];
 	};
 
