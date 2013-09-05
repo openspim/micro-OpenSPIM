@@ -193,27 +193,18 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	}
 
 	@Override
-	public double getUmPerPixel() {
-		// TODO Auto-generated method stub
-		return umPerPix;
-	}
-
-	@Override
 	public Vector3D getRotationOrigin() {
-		// TODO Auto-generated method stub
 		return rotAxis != null ? rotAxis.getOrigin() : null;
 	}
 
 	@Override
 	public Vector3D getRotationAxis() {
-		// TODO Auto-generated method stub
 		return rotAxis != null ? rotAxis.getDirection() : null;
 	}
 
 	@Override
 	public boolean getIsCalibrated() {
-		// TODO Auto-generated method stub
-		return getUmPerPixel() != 0 && rotAxis != null;
+		return rotAxis != null;
 	}
 
 	private Vector3D findLocalBestXY(ImageProcessor ip) {
@@ -309,21 +300,6 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	}
 
 	@Override
-	public void mouseDragged(MouseEvent arg0) {
-		if(!inMeasureMode)
-			return;
-
-		if(!gui.getImageWin().isFocused())
-			return;
-
-		try {
-			quickFit();
-		} catch (Exception e) {
-			ReportingUtils.logError(e);
-		}
-	}
-
-	@Override
 	public void mouseMoved(MouseEvent me) {
 		if(!gui.getImageWin().isFocused())
 			return;
@@ -337,53 +313,22 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	}
 
 	@Override
-	public void mouseClicked(MouseEvent arg0) {
-		// TODO Auto-generated method stub
-	}
+	public void mouseDragged(MouseEvent arg0) {}
 
 	@Override
-	public void mouseEntered(MouseEvent arg0) {
-		// TODO Auto-generated method stub
-	}
+	public void mouseClicked(MouseEvent arg0) {}
 
 	@Override
-	public void mouseExited(MouseEvent arg0) {
-		// TODO Auto-generated method stub
-	}
-
-	private Vector2D point1, point2;
-	private boolean inMeasureMode;
-	private double umPerPix = 0.652;
+	public void mouseEntered(MouseEvent arg0) {}
 
 	@Override
-	public void mousePressed(MouseEvent arg0) {
-		// TODO Auto-generated method stub
-	}
+	public void mouseExited(MouseEvent arg0) {}
 
 	@Override
-	public void mouseReleased(MouseEvent arg0) {
-		if(!inMeasureMode)
-			return;
+	public void mousePressed(MouseEvent arg0) {}
 
-		if(!gui.getImageWin().isFocused())
-			return;
-
-		try {
-			if(point1 == null || point2 != null) {
-				point1 = quickFit();
-			} else if(point1 != null && point2 == null) {
-				point2 = quickFit();
-
-				String dist = JOptionPane.showInputDialog("Distance: " + point2.distance(point1) + " pixels; um?");
-
-				double pix = Double.parseDouble(dist);
-
-				umPerPix = point2.distance(point1) / pix;
-			}
-		} catch (Exception e) {
-			ReportingUtils.logError(e);
-		}
-	}
+	@Override
+	public void mouseReleased(MouseEvent arg0) {}
 
 	private Line fitAxis() {
 		Object[] vectors = ((DefaultListModel)pointsTable.getModel()).toArray();
@@ -483,18 +428,14 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			Vector3D curPos = setup.getPosition();
 
 			Vector3D beadPos = curPos.add(new Vector3D(
-					(ip.getRoi().getMinX() + loc.getX() - ip.getWidth()/2)*getUmPerPixel(),
-					(ip.getRoi().getMinY() + loc.getY() - ip.getHeight()/2)*getUmPerPixel(),
+					(ip.getRoi().getMinX() + loc.getX() - ip.getWidth()/2)*setup.getCore().getPixelSizeUm(),
+					(ip.getRoi().getMinY() + loc.getY() - ip.getHeight()/2)*setup.getCore().getPixelSizeUm(),
 					0
 			));
 
 			if(loc.getZ() >= (Double)intbgrThresh.getValue() &&
 					loc.getX() >= 0 && loc.getY() >= 0 &&
 					loc.getX() < cropped.getWidth() && loc.getY() < cropped.getHeight()) {
-				ReportingUtils.logMessage("Including z=" + z + " (" + curPos.getZ() + "): " + beadPos.getX() + ", " + beadPos.getY() + ":");
-				ReportingUtils.logMessage(curPos.getX() + " + (" + ip.getRoi().getMinX() + " + " + loc.getX() + " - " + ip.getWidth() + "/2)*" + getUmPerPixel() + ")*" + loc.getZ() + ";");
-				ReportingUtils.logMessage(curPos.getY() + " + (" + ip.getRoi().getMinY() + " + " + loc.getY() + " - " + ip.getHeight() + "/2)*" + getUmPerPixel() + ")*" + loc.getZ() + ";");
-
 				intsum += loc.getZ();
 				c = c.add(loc.getZ(), beadPos);
 
