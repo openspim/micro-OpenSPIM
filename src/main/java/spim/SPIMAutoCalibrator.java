@@ -4,7 +4,6 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.OvalRoi;
 import ij.gui.Overlay;
-import ij.gui.PointRoi;
 import ij.gui.Roi;
 import ij.process.ImageProcessor;
 import ij3d.Image3DUniverse;
@@ -22,7 +21,6 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
@@ -67,7 +65,6 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	private static final String XYMODE_MAX_INTENSITY = "Max Intens.";
 
 	private static final String ZMODE_WEIGHTED_AVG = "Weighted Avg.";
-	private static final String ZMODE_MIN_SIGMA = "Min Sigma";
 	private static final String ZMODE_MAX_INTENSITY = "Max Intens.";
 
 	private static final String BTN_INTERRUPT_SCAN = "Interrupt";
@@ -77,10 +74,13 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	private static final String BTN_REMOVE = "Remove Sel.";
 	private static final String BTN_RECALCULATE = "Recalculate";
 	private static final String BTN_REVERSE = "Reverse Axis";
+	private static final String BTN_TWEAKS_FRAME = "Tweak Scan";
+	private static final String BTN_IMPORT = "Import...";
 
 	private static final long serialVersionUID = -2162347623413462344L;
 
 	private Line rotAxis;
+	private double radius;
 
 	private CMMCore core;
 	private MMStudioMainFrame gui;
@@ -88,9 +88,8 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	private JList pointsTable;
 
 	private JLabel rotAxisLbl;
-
 	private JLabel rotOrigLbl;
-	
+
 	private JFrame tweaksFrame;
 	private JSpinner firstDelta;
 	private JSpinner secondDelta;
@@ -99,7 +98,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	private JSpinner intbgrThresh;
 	private JCheckBox visualFit;
 	private JCheckBox hypersphere;
-	
+
 	private SPIMSetup setup;
 
 	public SPIMAutoCalibrator(CMMCore core, MMStudioMainFrame gui, SPIMSetup isetup) {
@@ -134,7 +133,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		JButton show3Dplot = new JButton(BTN_3DPLOT);
 		show3Dplot.addActionListener(this);
 
-		JButton tweakScan = new JButton("Tweak Scan");
+		JButton tweakScan = new JButton(BTN_TWEAKS_FRAME);
 		tweakScan.addActionListener(this);
 
 		LayoutUtils.addAll(btnsPanel,
@@ -174,10 +173,10 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			"First delta:",			firstDelta = new JSpinner(new SpinnerNumberModel(10.0, 1.0, 30.0, 1.0)),
 			"Second delta:",		secondDelta = new JSpinner(new SpinnerNumberModel(20.0, 5.0, 50.0, 1.0)),
 			"X/Y determination:",	xymethod = new JComboBox(new String[] {XYMODE_GAUSSIAN_FIT, XYMODE_WEIGHTED_AVG, XYMODE_MAX_INTENSITY}),
-			"Z determination:",		zmethod = new JComboBox(new String[] {ZMODE_MAX_INTENSITY, ZMODE_WEIGHTED_AVG/*, ZMODE_MIN_SIGMA*/}),
+			"Z determination:",		zmethod = new JComboBox(new String[] {ZMODE_MAX_INTENSITY, ZMODE_WEIGHTED_AVG}),
 			"Complex Z guessing:",	complexGuessZ = new JCheckBox(/*"Complex Z Guessing"*/),
 			"Min Intensity/BG:",	intbgrThresh = new JSpinner(new SpinnerNumberModel(1.3, 1.0, 5.0, 0.1)),
-			"Import list:",			importList = new JButton("Import..."),
+			"Import list:",			importList = new JButton(BTN_IMPORT),
 			"Fitting overlays:",	visualFit = new JCheckBox(/*"Fitting Overlays"*/),
 			"Hypersphere fitter:",	hypersphere = new JCheckBox(/*"Fit Hypersphere"*/)
 		));
@@ -344,6 +343,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 			ReportingUtils.logMessage("Circle fit: " + circle.getCenter() + ", radius " + circle.getRadius() + ", error " + circle.getError());
 
+			radius = circle.getRadius();
 			return new Line(circle.getCenter(), circle.getCenter().add(Vector3D.PLUS_J));
 		} else {
 			Collection<double[]> doublePoints = new LinkedList<double[]>();
@@ -360,6 +360,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			double[] center = circle.getCenter();
 			Vector3D axisPoint = new Vector3D(center[0], center[1], center[2]);
 
+			radius = circle.getRadius();
 			return new Line(axisPoint, axisPoint.add(Vector3D.PLUS_J));
 		}
 	};
@@ -394,9 +395,6 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 		double maxInt = -1e6;
 		double maxZ = -1;
-
-//		double minSigma = 1e6;
-//		double bestZ = -1;
 
 		ReportingUtils.logMessage(String.format("!!!--- SCANNING %.2f to %.2f", basez - scanDelta, basez + scanDelta));
 
@@ -447,14 +445,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 					if(ZMODE_MAX_INTENSITY.equals(zmethod.getSelectedItem()))
 						overlayColor = java.awt.Color.GREEN;
 				}
-/*
-				if(sigma < minSigma) {
-					minSigma = sigma;
-					bestZ = z;
-					if(ZMODE_MIN_SIGMA.equals(zmethod.getSelectedItem()))
-							overlayColor = java.awt.Color.GREEN;
-				}
-*/
+
 				if(visualFit.isSelected())
 					MMStudioMainFrame.getSimpleDisplay().getImagePlus().setOverlay(
 							new OvalRoi((int)(roi.x + loc.getX() - 2), (int)(roi.y + loc.getY() - 2), 4, 4),
@@ -463,8 +454,6 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			} else {
 				if(visualFit.isSelected())
 					MMStudioMainFrame.getSimpleDisplay().getImagePlus().setOverlay(null);
-				
-				ReportingUtils.logMessage("Throwing out " + beadPos.getX() + ", " + beadPos.getY() + ", " + z + "; intbgr = " + loc.getZ());
 			}
 		}
 
@@ -473,11 +462,8 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 		c = c.scalarMultiply(1/intsum);
 
-		if(zmethod.getSelectedItem().equals(ZMODE_MAX_INTENSITY)) {
+		if(zmethod.getSelectedItem().equals(ZMODE_MAX_INTENSITY))
 			c = new Vector3D(c.getX(), c.getY(), maxZ);
-		} else if(zmethod.getSelectedItem().equals(ZMODE_MIN_SIGMA)) {
-			//c = new Vector3D(c.getX(), c.getY(), bestZ);
-		}
 
 		ReportingUtils.logMessage("RETURNING " + vToS(c));
 
@@ -619,7 +605,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			}
 			
 			scanningThread = null;
-		} else if("Tweak Scan".equals(ae.getActionCommand())) {
+		} else if(BTN_TWEAKS_FRAME.equals(ae.getActionCommand())) {
 			tweaksFrame.setVisible(true);
 			tweaksFrame.setLocation(new Point(getLocation().x + getWidth(), getLocation().y));
 		} else if(BTN_REVISE.equals(ae.getActionCommand())) {
@@ -650,15 +636,22 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			Image3DUniverse univ = new Image3DUniverse(512,512);
 
 			List<Point3f> points = new LinkedList<Point3f>();
+			double avgY = 0;
 			for(int i = 0; i < pointsTable.getModel().getSize(); ++i) {
 				Vector3D p = (Vector3D)pointsTable.getModel().getElementAt(i);
 				points.add(new Point3f(new float[] {(float) p.getX(), (float) p.getY(), (float) p.getZ()}));
+				avgY += p.getY() / pointsTable.getModel().getSize();
 			}
 
 			univ.addIcospheres(points, new Color3f(1,0,0), 2, 4, "Beads");
 
+			if(rotAxis != null)
+				univ.addLineMesh(customnode.MeshMaker.createDisc(rotAxis.getOrigin().getX(), avgY, rotAxis.getOrigin().getZ(),
+						rotAxis.getDirection().getX(), rotAxis.getDirection().getY(), rotAxis.getDirection().getZ(),
+						radius, points.size() / 4), new Color3f(0,1,0), "Circle Fit", false);
+
 			univ.show();
-		} else if("Import...".equals(ae.getActionCommand())) {
+		} else if(BTN_IMPORT.equals(ae.getActionCommand())) {
 			String res = JOptionPane.showInputDialog(this, "Paste the data:");
 
 			if(res == null)
