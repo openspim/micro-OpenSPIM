@@ -1102,7 +1102,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	protected ActionListener importStagePosition = new ActionListener() {
 		@Override
 		public void actionPerformed(ActionEvent ae) {
-			double range = ((Integer)acqFetchDelta.getValue()).doubleValue();
+			double range = ((Double)acqFetchDelta.getValue()).doubleValue();
 			double value = 0;
 
 			RangeSlider target = null;
