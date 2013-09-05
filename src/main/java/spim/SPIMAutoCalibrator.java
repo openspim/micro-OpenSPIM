@@ -3,6 +3,9 @@ package spim;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.OvalRoi;
+import ij.gui.Overlay;
+import ij.gui.PointRoi;
+import ij.gui.Roi;
 import ij.process.ImageProcessor;
 import ij3d.Image3DUniverse;
 
@@ -59,6 +62,10 @@ import spim.setup.SPIMSetup;
 import edu.valelab.GaussianFit.GaussianFit;
 
 public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, ActionListener, MouseListener, MouseMotionListener {
+	private static final String XYMODE_GAUSSIAN_FIT = "Gaussian (Beads)";
+	private static final String XYMODE_WEIGHTED_AVG = "Weighted Avg.";
+	private static final String XYMODE_MAX_INTENSITY = "Max Intens.";
+
 	private static final String ZMODE_WEIGHTED_AVG = "Weighted Avg.";
 	private static final String ZMODE_MIN_SIGMA = "Min Sigma";
 	private static final String ZMODE_MAX_INTENSITY = "Max Intens.";
@@ -87,7 +94,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	private JFrame tweaksFrame;
 	private JSpinner firstDelta;
 	private JSpinner secondDelta;
-	private JComboBox zmethod;
+	private JComboBox xymethod, zmethod;
 	private JCheckBox complexGuessZ;
 	private JSpinner intbgrThresh;
 	private JCheckBox visualFit;
@@ -166,9 +173,10 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		tweaksFrame.add(LayoutUtils.form(
 			"First delta:",			firstDelta = new JSpinner(new SpinnerNumberModel(10.0, 1.0, 30.0, 1.0)),
 			"Second delta:",		secondDelta = new JSpinner(new SpinnerNumberModel(20.0, 5.0, 50.0, 1.0)),
-			"Z determination:",		zmethod = new JComboBox(new String[] {ZMODE_MAX_INTENSITY, ZMODE_WEIGHTED_AVG, ZMODE_MIN_SIGMA}),
+			"X/Y determination:",	xymethod = new JComboBox(new String[] {XYMODE_GAUSSIAN_FIT, XYMODE_WEIGHTED_AVG, XYMODE_MAX_INTENSITY}),
+			"Z determination:",		zmethod = new JComboBox(new String[] {ZMODE_MAX_INTENSITY, ZMODE_WEIGHTED_AVG/*, ZMODE_MIN_SIGMA*/}),
 			"Complex Z guessing:",	complexGuessZ = new JCheckBox(/*"Complex Z Guessing"*/),
-			"Min Intensity/BG:",	intbgrThresh = new JSpinner(new SpinnerNumberModel(0.20, 0.0, 0.5, 0.01)),
+			"Min Intensity/BG:",	intbgrThresh = new JSpinner(new SpinnerNumberModel(1.3, 1.0, 5.0, 0.1)),
 			"Import list:",			importList = new JButton("Import..."),
 			"Fitting overlays:",	visualFit = new JCheckBox(/*"Fitting Overlays"*/),
 			"Hypersphere fitter:",	hypersphere = new JCheckBox(/*"Fit Hypersphere"*/)
@@ -208,13 +216,57 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		return getUmPerPixel() != 0 && rotAxis != null;
 	}
 
+	private Vector3D findLocalBestXY(ImageProcessor ip) {
+		if(XYMODE_GAUSSIAN_FIT.equals(xymethod.getSelectedItem())) {
+			double[] params = new GaussianFit(2, 1, true, true).doGaussianFit(ip, (int) 1e4);
+
+			return new Vector3D(params[GaussianFit.XC], params[GaussianFit.YC], params[GaussianFit.INT] / params[GaussianFit.BGR]);
+		} else {
+			double edgeAvg = 0;
+			double x = 0, y = 0;
+			double max = 0;
+			double sum = 0;
+
+			for(int iy = 0; iy < ip.getHeight(); ++iy) {
+				for(int ix = 0; ix < ip.getWidth(); ++ix) {
+					double val = ip.getPixelValue(ix, iy);
+
+					if(iy == 0 || ix == 0 || iy == ip.getHeight() - 1 || ix == ip.getHeight() - 1)
+						edgeAvg += val / (2*ip.getWidth() + 2*ip.getHeight() - 4);
+
+					if(XYMODE_WEIGHTED_AVG.equals(xymethod.getSelectedItem())) {
+						x += ix*val;
+						y += iy*val;
+						sum += val;
+					}
+
+					if(val > max) {
+						max = val;
+
+						if(XYMODE_MAX_INTENSITY.equals(xymethod.getSelectedItem())) {
+							x = ix;
+							y = iy;
+						}
+					}
+				}
+			}
+
+			if(XYMODE_WEIGHTED_AVG.equals(xymethod.getSelectedItem())) {
+				x /= sum;
+				y /= sum;
+			}
+
+			return new Vector3D(x, y, max / edgeAvg);
+		}
+	}
+
 	private Vector2D quickFit() throws Exception {
 		ImagePlus img = MMStudioMainFrame.getSimpleDisplay().getImagePlus();
 		Point mouse = img.getCanvas().getCursorLoc();
 
 		ImageProcessor ip = img.getProcessor();
 
-		Rectangle oldRoi = ip.getRoi();
+		Roi oldRoi = img.getRoi();
 
 		Rectangle croppedRoi = new Rectangle(
 				(int) mouse.getX() - img.getWidth()/40,
@@ -224,40 +276,35 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		img.setRoi(croppedRoi);
 
 		ImageProcessor cropped = ip.crop();
-		double[] params = new GaussianFit(2, 1, true, true).doGaussianFit(cropped, (int) 1e4);
+		Vector3D loc = findLocalBestXY(cropped);
 
-		ip.setRoi(oldRoi);
+		img.setRoi(oldRoi);
 
-		double intbgr = params[GaussianFit.INT] / params[GaussianFit.BGR];
+		Overlay o = new Overlay(new Roi(croppedRoi));
 
-		double x = params[GaussianFit.XC];
-		double y = params[GaussianFit.YC];
-		double sx = params[GaussianFit.S1];
-		double sy = params[GaussianFit.S2];
+		if(loc.getZ() >= (Double)intbgrThresh.getValue() &&
+			loc.getX() >= 0 && loc.getX() < cropped.getWidth() &&
+			loc.getY() >= 0 && loc.getY() < cropped.getHeight()) {
 
-		if(intbgr >= (Double)intbgrThresh.getValue() &&
-			x >= 0 && x < cropped.getWidth() &&
-			y >= 0 && y < cropped.getHeight()) {
-			img.setOverlay(new OvalRoi((int)(croppedRoi.x + x - sx),
-					(int)(croppedRoi.y + y - sy), (int)(2*sx), 2*(int)(2*sy)),
-					java.awt.Color.GREEN, 0, java.awt.Color.GREEN);
+			OvalRoi roi = new OvalRoi(croppedRoi.x + loc.getX() - 4, croppedRoi.y + loc.getY() - 4, 8, 8);
+			roi.setStrokeColor(java.awt.Color.GREEN);
+			img.setRoi(roi);
+			o.setStrokeColor(java.awt.Color.GREEN);
+			o.add(roi);
 
-			return new Vector2D(croppedRoi.x + x, croppedRoi.y + y);
+			ip.setOverlay(o);
 
-//			double Vx = core.getXPosition(core.getXYStageDevice()) +
-//					(croppedRoi.x + x - img.getWidth()/2)*getUmPerPixel();
-//			double Vy = core.getYPosition(core.getXYStageDevice()) +
-//					(croppedRoi.y + y - img.getHeight()/2)*getUmPerPixel();
-
-//			return new Vector3D(Vx, Vy, core.getPosition(core.getFocusDevice()));
+			return new Vector2D(croppedRoi.x + loc.getX(), croppedRoi.y + loc.getY());
 		} else {
-			img.setOverlay(new OvalRoi((int)(croppedRoi.x + x - sx),
-					(int)(croppedRoi.y + y - sy), (int)(2*sx), 2*(int)(2*sy)),
-					java.awt.Color.RED, 0, java.awt.Color.RED);
+			OvalRoi roi = new OvalRoi(croppedRoi.x + loc.getX() - 4, croppedRoi.y + loc.getY() - 4, 8, 8);
+			roi.setStrokeColor(java.awt.Color.RED);
+			img.setRoi(roi);
+			o.setStrokeColor(java.awt.Color.RED);
+			o.add(roi);
+
+			ip.setOverlay(o);
 
 			return new Vector2D(mouse.getX(), mouse.getY());
-
-//			return Vector3D.NaN;
 		}
 	}
 
@@ -397,16 +444,14 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	private Vector3D scanBead(double scanDelta) throws Exception {
 		double basez = guessZ();
 
-		GaussianFit fitter = new GaussianFit(3, 1, true, true);
-
 		Vector3D c = Vector3D.ZERO;
 		double intsum = 0;
 
 		double maxInt = -1e6;
 		double maxZ = -1;
-		
-		double minSigma = 1e6;
-		double bestZ = -1;
+
+//		double minSigma = 1e6;
+//		double bestZ = -1;
 
 		ReportingUtils.logMessage(String.format("!!!--- SCANNING %.2f to %.2f", basez - scanDelta, basez + scanDelta));
 
@@ -430,64 +475,55 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 			stack.addSlice(cropped);
 
-			double[] params = fitter.doGaussianFit(cropped, Integer.MAX_VALUE);
-			double intbgr = params[GaussianFit.INT] / params[GaussianFit.BGR];
-			
-			double x = params[GaussianFit.XC];
-			double y = params[GaussianFit.YC];
-			double sx = params[GaussianFit.S1];
-			double sy = params[GaussianFit.S2];
+			Vector3D loc = findLocalBestXY(cropped);
 
-			ReportingUtils.logMessage(String.format("!!!--- Gaussian fit: C=%.2f, %.2f, INT=%.2f, BGR=%.2f.",
-					x, y, params[GaussianFit.INT], params[GaussianFit.BGR]));
+			ReportingUtils.logMessage(String.format("!!!--- Gaussian fit: C=%.2f, %.2f, INT/BGR=%.2f.",
+					loc.getX(), loc.getY(), loc.getZ()));
 
 			Vector3D curPos = setup.getPosition();
 
 			Vector3D beadPos = curPos.add(new Vector3D(
-					(ip.getRoi().getMinX() + x - ip.getWidth()/2)*getUmPerPixel(),
-					(ip.getRoi().getMinY() + y - ip.getHeight()/2)*getUmPerPixel(),
+					(ip.getRoi().getMinX() + loc.getX() - ip.getWidth()/2)*getUmPerPixel(),
+					(ip.getRoi().getMinY() + loc.getY() - ip.getHeight()/2)*getUmPerPixel(),
 					0
 			));
-			
-			double sigma = Math.sqrt(sx*sx + sy*sy);
 
-			if(intbgr >= (Double)intbgrThresh.getValue() &&
-					x >= 0 && y >= 0 &&
-					x < cropped.getWidth() && y < cropped.getHeight()) {
-				ReportingUtils.logMessage("!!!--- Including z=" + z + " (" + curPos.getZ() + "): " + beadPos.getX() + ", " + beadPos.getY() + ":");
-				ReportingUtils.logMessage(curPos.getX() + " + (" + ip.getRoi().getMinX() + " + " + x + " - " + ip.getWidth() + "/2)*" + getUmPerPixel() + ")*" + intbgr + ";");
-				ReportingUtils.logMessage(curPos.getY() + " + (" + ip.getRoi().getMinY() + " + " + y + " - " + ip.getHeight() + "/2)*" + getUmPerPixel() + ")*" + intbgr + ";");
+			if(loc.getZ() >= (Double)intbgrThresh.getValue() &&
+					loc.getX() >= 0 && loc.getY() >= 0 &&
+					loc.getX() < cropped.getWidth() && loc.getY() < cropped.getHeight()) {
+				ReportingUtils.logMessage("Including z=" + z + " (" + curPos.getZ() + "): " + beadPos.getX() + ", " + beadPos.getY() + ":");
+				ReportingUtils.logMessage(curPos.getX() + " + (" + ip.getRoi().getMinX() + " + " + loc.getX() + " - " + ip.getWidth() + "/2)*" + getUmPerPixel() + ")*" + loc.getZ() + ";");
+				ReportingUtils.logMessage(curPos.getY() + " + (" + ip.getRoi().getMinY() + " + " + loc.getY() + " - " + ip.getHeight() + "/2)*" + getUmPerPixel() + ")*" + loc.getZ() + ";");
 
-				intsum += intbgr;
-				c = c.add(intbgr, beadPos);
+				intsum += loc.getZ();
+				c = c.add(loc.getZ(), beadPos);
 
 				java.awt.Color overlayColor = java.awt.Color.RED;
 
-				if(intbgr > maxInt) {
-					maxInt = intbgr;
+				if(loc.getZ() > maxInt) {
+					maxInt = loc.getZ();
 					maxZ = z;
 					if(ZMODE_MAX_INTENSITY.equals(zmethod.getSelectedItem()))
 						overlayColor = java.awt.Color.GREEN;
 				}
-
+/*
 				if(sigma < minSigma) {
 					minSigma = sigma;
 					bestZ = z;
 					if(ZMODE_MIN_SIGMA.equals(zmethod.getSelectedItem()))
 							overlayColor = java.awt.Color.GREEN;
 				}
-
+*/
 				if(visualFit.isSelected())
 					MMStudioMainFrame.getSimpleDisplay().getImagePlus().setOverlay(
-							new OvalRoi((int)(roi.x + x - sx),
-							(int)(roi.y + y - sy), (int)(2*sx), 2*(int)(2*sy)),
-							overlayColor, 0, overlayColor);
+							new OvalRoi((int)(roi.x + loc.getX() - 2), (int)(roi.y + loc.getY() - 2), 4, 4),
+							overlayColor, 1, null);
 
 			} else {
 				if(visualFit.isSelected())
 					MMStudioMainFrame.getSimpleDisplay().getImagePlus().setOverlay(null);
 				
-				ReportingUtils.logMessage("!!!--- Throwing out " + beadPos.getX() + ", " + beadPos.getY() + ", " + z + "; intbgr = " + intbgr);
+				ReportingUtils.logMessage("Throwing out " + beadPos.getX() + ", " + beadPos.getY() + ", " + z + "; intbgr = " + loc.getZ());
 			}
 		}
 
@@ -499,10 +535,10 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		if(zmethod.getSelectedItem().equals(ZMODE_MAX_INTENSITY)) {
 			c = new Vector3D(c.getX(), c.getY(), maxZ);
 		} else if(zmethod.getSelectedItem().equals(ZMODE_MIN_SIGMA)) {
-			c = new Vector3D(c.getX(), c.getY(), bestZ);
+			//c = new Vector3D(c.getX(), c.getY(), bestZ);
 		}
 
-		ReportingUtils.logMessage("!!!--- RETURNING " + vToS(c));
+		ReportingUtils.logMessage("RETURNING " + vToS(c));
 
 		return c;
 	};
