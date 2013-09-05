@@ -251,10 +251,6 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see spim.SPIMCalibrator#getUmPerPixel()
-	 */
-	@Override
 	public double getUmPerPixel() {
 		if(pixelSizeRoi == null)
 			return 0;
