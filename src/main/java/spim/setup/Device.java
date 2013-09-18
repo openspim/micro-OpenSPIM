@@ -138,6 +138,20 @@ public abstract class Device {
 	}
 
 	/**
+	 * Returns true if the device is busy, as per the MM API.
+	 *
+	 * @return True if the device is occupied with something, false otherwise.
+	 */
+	public boolean isBusy() {
+		try {
+			return core.deviceBusy(label);
+		} catch (Exception e) {
+			ReportingUtils.logException("Couldn't get busy status for " + label, e);
+			return false;
+		}
+	}
+
+	/**
 	 * Instruct MM to wait for this device to finish doing something.
 	 */
 	public void waitFor() {
