@@ -20,10 +20,8 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -91,7 +89,7 @@ import spim.progacq.ProjDiffAntiDrift;
 import spim.progacq.RangeSlider;
 import spim.progacq.StepTableModel;
 
-public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListener, ItemListener, ActionListener {
+public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	private static final String SPIM_RANGES = "SPIM Ranges";
 	private static final String POSITION_LIST = "Position List";
 	private static final String VIDEO_RECORDER = "Video";
@@ -154,6 +152,7 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 	private final String UNCALIBRATED = "Uncalibrated";
 	private final long MOTORS_UPDATE_PERIOD = 500;
 
+	private JCheckBox autoReplaceMMControls;
 	private boolean liveControlsHooked;
 	private JTable acqPositionsTable;
 	private JCheckBox antiDriftCheckbox;
@@ -225,8 +224,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 
 		frame.setVisible(true);
 
-		hookLiveControls(true);
+		if(autoReplaceMMControls.isSelected())
+			hookLiveControls(true);
 	}
+
+	private static LiveWindowMouseControls listener = new LiveWindowMouseControls();
 
 	/**
 	 * Embed our listeners in the live window's canvas space.
@@ -238,13 +240,11 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		ImageWindow win = gui.getImageWin();
 		if(win != null && win.isVisible()) {
 			if(!hook) {
-				win.getCanvas().removeMouseMotionListener(this);
-				win.getCanvas().removeKeyListener(this);
+				listener.detach();
+				liveControlsHooked = false;
 			} else {
-				win.getCanvas().addMouseMotionListener(this);
-				win.getCanvas().addKeyListener(this);
+				liveControlsHooked = listener.attach(win.getCanvas(), setup, calibration, -1);
 			}
-			liveControlsHooked = hook;
 		} else {
 			ReportingUtils.logException("Couldn't set hooked=" + hook, new NullPointerException("win=" + win + ", val?" + win.isValid() + ", vis?" + win.isVisible()));
 		}
@@ -410,12 +410,21 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 		left.add(Box.createVerticalStrut(8));
 		addLine(left, Justification.STRETCH, rotationSlider);
 
+		autoReplaceMMControls = new JCheckBox("SPIM Mouse Controls");
+		autoReplaceMMControls.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent ae) {
+				hookLiveControls(autoReplaceMMControls.isSelected());
+				autoReplaceMMControls.setSelected(listener.isAttached());
+			}
+		});
+
 		JPanel stageControls = new JPanel();
 		stageControls.setName("Stage Controls");
 		stageControls.setLayout(new BoxLayout(stageControls, BoxLayout.PAGE_AXIS));
 		stageControls.add(left);
 		stageControls.add(Box.createVerticalStrut(200));
-		addLine(stageControls, Justification.RIGHT, devMgrBtn, pixCalibBtn, calibrateButton);
+		addLine(stageControls, Justification.RIGHT, autoReplaceMMControls, devMgrBtn, pixCalibBtn, calibrateButton);
 
 		acqPosTabs = new JTabbedPane();
 		
@@ -1239,77 +1248,6 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 			exposureSlider.trySetValue(mmc.getExposure(), false);
 	}
 
-	private int mouseStartX = -1;
-	private double[] stageStart = new double[4];
-
-	private Vector3D applyCalibratedRotation(Vector3D pos, double dtheta) {
-		if(calibration == null || !calibration.getIsCalibrated())
-			return pos;
-
-		Vector3D rotOrigin = calibration.getRotationOrigin();
-		Vector3D rotAxis = calibration.getRotationAxis();
-
-		// Reverse dtheta; for our twister motor, negative dtheta is CCW, the
-		// direction of rotation for commons math (about +j).
-		Rotation rot = new Rotation(rotAxis, -dtheta * Math.PI / 180D);
-
-		return rotOrigin.add(rot.applyTo(pos.subtract(rotOrigin)));
-	}
-
-	public void mouseDragged(MouseEvent me) {}
-
-	public void mouseMoved(MouseEvent me) {
-		// Don't rotate unless they're actively looking at the window.
-		if(!gui.getImageWin().isFocused())
-			return;
-
-		if(me.isAltDown()) {
-			if(mouseStartX < 0) {
-				try {
-					Vector3D xyz = setup.getPosition();
-					stageStart[0] = xyz.getX();
-					stageStart[1] = xyz.getY();
-					stageStart[2] = xyz.getZ();
-					stageStart[3] = setup.getAngle();
-				} catch(Exception e) {
-					ReportingUtils.logError(e);
-				}
-				mouseStartX = me.getX();
-				return;
-			}
-
-			int delta = me.getX() - mouseStartX;
-
-			// For now, at least, one pixel is going to be about
-			// .1 steps.
-
-			try {
-				// Note: If the system isn't calibrated, the method below
-				// returns what we pass it -- for XYZ, the current position
-				// of the motors. That is, for an uncalibrated system, the
-				// setXYPosition and first setPosition lines below are noops.
-				Vector3D xyz = applyCalibratedRotation(new Vector3D(
-						stageStart[0], stageStart[1], stageStart[2]),
-						delta * 0.2);
-
-				setup.setPosition(xyz, stageStart[3] + delta * 0.2);
-			} catch (Exception e) {
-				ReportingUtils.logException("Couldn't move stage: ", e);
-			}
-		} else if(mouseStartX >= 0) {
-			mouseStartX = -1;
-		};
-	}
-
-	public void keyPressed(KeyEvent ke) {
-		// TODO: Using calibrated(?) axis of rotation, set up our
-		// translated axis information.
-	}
-
-	public void keyReleased(KeyEvent ke) {}
-
-	public void keyTyped(KeyEvent ke) {}
-
 	// UI helpers
 
 	protected enum Justification {
@@ -1482,6 +1420,20 @@ public class SPIMAcquisition implements MMPlugin, MouseMotionListener, KeyListen
 				 ((ranges[1][2] - ranges[1][0])/ranges[1][1] + 1) *
 				 ((ranges[2][2] - ranges[2][0])/ranges[2][1] + 1) *
 				 ((ranges[3][2] - ranges[3][0])/ranges[3][1] + 1));
+	}
+
+	private Vector3D applyCalibratedRotation(Vector3D pos, double dtheta) {
+		if(calibration == null || !calibration.getIsCalibrated())
+			return pos;
+
+		Vector3D rotOrigin = calibration.getRotationOrigin();
+		Vector3D rotAxis = calibration.getRotationAxis();
+
+		// Reverse dtheta; for our twister motor, negative dtheta is CCW, the
+		// direction of rotation for commons math (about +j).
+		Rotation rot = new Rotation(rotAxis, -dtheta * Math.PI / 180D);
+
+		return rotOrigin.add(rot.applyTo(pos.subtract(rotOrigin)));
 	}
 
 	private AcqRow[] getBuiltRows() throws Exception {
