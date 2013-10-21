@@ -7,9 +7,9 @@
 		<pathelement location="${mm.java.lib.scifio}"/>
 		<pathelement location="${mm.java.plugin.outdir}/Gaussian.jar"/>
 		<!-- These should be included in classext or something! -->
-		<pathelement location="../../bin_Win32/jars/imglib.jar"/>
-		<pathelement location="../../bin_Win32/jars/imglib-algorithms-2.0.0-SNAPSHOT.jar"/>
-		<pathelement location="../../bin_Win32/jars/imglib-ij.jar"/>
+		<fileset dir="../../bin_Win32/jars">
+			<include name="imglib2-*.jar"/>
+		</fileset>
 		<pathelement location="../../bin_Win32/plugins/3D_Viewer.jar"/>
 	</path>
 </project>

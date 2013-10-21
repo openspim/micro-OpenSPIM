@@ -19,10 +19,11 @@ import ij.process.FloatBlitter;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
 
-import mpicbg.imglib.algorithm.fft.PhaseCorrelation;
-import mpicbg.imglib.algorithm.fft.PhaseCorrelationPeak;
-import mpicbg.imglib.image.ImagePlusAdapter;
-import mpicbg.imglib.type.numeric.real.FloatType;
+import net.imglib2.algorithm.legacy.fft.PhaseCorrelation;
+import net.imglib2.algorithm.legacy.fft.PhaseCorrelationPeak;
+import net.imglib2.img.ImagePlusAdapter;
+import net.imglib2.img.Img;
+import net.imglib2.type.numeric.real.FloatType;
 
 import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
 
@@ -187,11 +188,11 @@ public class ProjDiffAntiDrift extends AntiDrift {
 			return result;
 		}
 
-		private static mpicbg.imglib.image.Image<FloatType> wrap(FloatProcessor fp) {
+		private static Img<FloatType> wrap(FloatProcessor fp) {
 			return ImagePlusAdapter.wrapFloat(new ImagePlus("", fp));
 		}
 
-		private static int[] correlate(final FloatProcessor first, final FloatProcessor second) {
+		private static long[] correlate(final FloatProcessor first, final FloatProcessor second) {
 			PhaseCorrelation<FloatType, FloatType> pc = new PhaseCorrelation<FloatType, FloatType>(wrap(first), wrap(second));
 
 			if(!pc.checkInput()) {
@@ -209,9 +210,9 @@ public class ProjDiffAntiDrift extends AntiDrift {
 		}
 
 		public Vector3D correlateAndAverage(final Projections other) {
-			int[] xyc = correlate(xy, other.xy);
-			int[] xzc = correlate(xz, other.xz);
-			int[] zyc = correlate(zy, other.zy);
+			long[] xyc = correlate(xy, other.xy);
+			long[] xzc = correlate(xz, other.xz);
+			long[] zyc = correlate(zy, other.zy);
 
 			if(xyc == null || xzc == null || zyc == null)
 				return Vector3D.ZERO;
