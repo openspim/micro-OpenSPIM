@@ -56,6 +56,11 @@
 			<artifactId>3D_Viewer</artifactId>
 			<version>2.0.0-SNAPSHOT</version>
 		</dependency>
+		<dependency>
+			<groupId>net.imglib2</groupId>
+			<artifactId>imglib2-algorithms-legacy</artifactId>
+			<version>2.0.0-SNAPSHOT</version>
+		</dependency>
 	</dependencies>
 
 	<!-- NB: for project parent -->
