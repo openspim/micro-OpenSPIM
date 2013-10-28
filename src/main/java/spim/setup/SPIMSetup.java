@@ -146,12 +146,12 @@ public class SPIMSetup {
 	}
 
 	public TaggedImage snapImage() {
-		if(!core.getAutoShutter())
+		if(!core.getAutoShutter() && getLaser() != null)
 			getLaser().setPoweredOn(true);
 
 		TaggedImage ret = getCamera().snapImage();
 
-		if(!core.getAutoShutter())
+		if(!core.getAutoShutter() && getLaser() != null)
 			getLaser().setPoweredOn(false);
 
 		return ret;
