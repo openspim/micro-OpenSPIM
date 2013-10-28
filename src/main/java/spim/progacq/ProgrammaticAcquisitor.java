@@ -20,7 +20,6 @@ import org.micromanager.utils.ImageUtils;
 import org.micromanager.utils.MDUtils;
 import org.micromanager.utils.ReportingUtils;
 
-import spim.setup.Device;
 import spim.setup.SPIMSetup;
 import spim.setup.SPIMSetup.SPIMDevice;
 import spim.setup.Stage;
@@ -239,12 +238,12 @@ public class ProgrammaticAcquisitor {
 	}
 
 	private static TaggedImage snapImage(SPIMSetup setup, boolean manualLaser) throws Exception {
-		if(manualLaser)
+		if(manualLaser && setup.getLaser() != null)
 			setup.getLaser().setPoweredOn(true);
 
 		TaggedImage ti = setup.getCamera().snapImage();
 
-		if(manualLaser)
+		if(manualLaser && setup.getLaser() != null)
 			setup.getLaser().setPoweredOn(false);
 
 		return ti;
@@ -317,7 +316,8 @@ public class ProgrammaticAcquisitor {
 					@Override
 					public void run() {
 						try {
-							setup.getLaser().setPoweredOn(true);
+							if(setup.getLaser() != null)
+								setup.getLaser().setPoweredOn(true);
 
 							core.clearCircularBuffer();
 							core.startContinuousSequenceAcquisition(0);
@@ -337,7 +337,8 @@ public class ProgrammaticAcquisitor {
 
 							core.stopSequenceAcquisition();
 
-							setup.getLaser().setPoweredOn(false);
+							if(setup.getLaser() != null)
+								setup.getLaser().setPoweredOn(false);
 						} catch (Throwable e) {
 							lastExc = e;
 						}
@@ -385,7 +386,7 @@ public class ProgrammaticAcquisitor {
 				if(profile)
 					prof.get("Movement").stop();
 
-				if(params.isIllumFullStack())
+				if(params.isIllumFullStack() && setup.getLaser() != null)
 					setup.getLaser().setPoweredOn(true);
 
 				if(profile)
@@ -483,7 +484,7 @@ public class ProgrammaticAcquisitor {
 				if(profile)
 					prof.get("Output").stop();
 
-				if(params.isIllumFullStack())
+				if(params.isIllumFullStack() && setup.getLaser() != null)
 					setup.getLaser().setPoweredOn(false);
 
 				if(ad != null) {

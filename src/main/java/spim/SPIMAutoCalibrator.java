@@ -570,15 +570,19 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 					boolean live = gui.getLiveMode(); 
 					gui.enableLiveMode(false);
 					core.setAutoShutter(false);
-					setup.getLaser().setPoweredOn(true);
+
+					if(setup.getLaser() != null)
+						setup.getLaser().setPoweredOn(true);
 
 					do {
 						getNextBeadRunnable.run();
 					} while(!Thread.interrupted() &&
 						(getNextBeadRunnable.getValue() == null ||
 						getNextBeadRunnable.getValue() != false));
-					
-					setup.getLaser().setPoweredOn(false);
+
+					if(setup.getLaser() != null)
+						setup.getLaser().setPoweredOn(false);
+
 					core.setAutoShutter(true);
 					gui.enableLiveMode(live);
 					SPIMAutoCalibrator.this.scanStopped();
