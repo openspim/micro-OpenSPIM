@@ -212,8 +212,8 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 
 		setup = SPIMSetup.createDefaultSetup(mmc);
 
-		if(!setup.isMinimalSPIM())
-			JOptionPane.showMessageDialog(frame, "Your setup appears to be invalid. Please make sure you have a camera, laser, and 4D stage set up.\nYou may need to restart Micro-Manager for the OpenSPIM plugin to detect a correct setup.");
+		if(!(setup.is3DMicroscope() && setup.hasAngle()))
+			JOptionPane.showMessageDialog(frame, "Your setup appears to be invalid. Please make sure you have a camera and 4D stage set up.\nYou may need to restart Micro-Manager for the OpenSPIM plugin to detect a correct setup.");
 
 		ensurePixelResolution();
 		initUI();
@@ -377,7 +377,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 						calibration = new SPIMAutoCalibrator(mmc, gui, setup);
 					}
 				}
-				
+
 				((JFrame)calibration).setVisible(true);
 			};
 		});
@@ -672,6 +672,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 				}
 			}
 		});
+
 		acqPositionsTable.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent me) {
@@ -1022,7 +1023,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 
 	@SuppressWarnings("serial")
 	private static SteppedSlider makeStageSlider(final SPIMSetup setup, final SPIMDevice dev, double min, double max, double step, int options) {
-		if(setup.getDevice(dev) != null && !(setup.getDevice(dev) instanceof Stage))
+		if(setup.getDevice(dev) == null || !(setup.getDevice(dev) instanceof Stage))
 			throw new IllegalArgumentException("makeStageSliderSafe given a non-Stage device");
 
 		Stage stage = (Stage) setup.getDevice(dev);
@@ -1035,6 +1036,9 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		return new SteppedSlider(dev.getText(), min, max, step, def, options) {
 			@Override
 			public void valueChanged() {
+				if(setup.getDevice(dev) == null)
+					return;
+
 				((Stage)setup.getDevice(dev)).setPosition(getValue());
 			}
 		};
