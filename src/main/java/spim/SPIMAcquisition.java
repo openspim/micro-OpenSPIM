@@ -619,15 +619,34 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		acqMakeSlices.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
-				StepTableModel model = (StepTableModel)acqPositionsTable.getModel();
+				try {
+					StepTableModel model = (StepTableModel)acqPositionsTable.getModel();
 
-				Vector3D xyz = setup.getPosition();
-				double theta = setup.getAngle();
+					int idx = model.getRowCount();
 
-				double range = (Double)acqSliceRange.getValue();
-				double step = (Double)acqSliceStep.getValue();
+					int[] selectedRows = acqPositionsTable.getSelectedRows();
+					if(selectedRows.length > 0)
+						idx = selectedRows[selectedRows.length - 1];
 
-				model.insertRow(xyz.getX(), xyz.getY(), theta, String.format("%.3f:%.3f:%.3f", xyz.getZ(), step, (xyz.getZ() + range)));
+					Vector3D xyz = setup.getPosition();
+					double theta = setup.getAngle();
+
+					double range = (Double)acqSliceRange.getValue();
+					double step = (Double)acqSliceStep.getValue();
+
+					model.insertRow(idx,
+						new Object[] {
+							xyz.getX(),
+							xyz.getY(),
+							theta,
+							String.format("%.3f:%.3f:%.3f", xyz.getZ(), step, (xyz.getZ() + range))
+						}
+					);
+				} catch(Throwable t) {
+					JOptionPane.showMessageDialog(acqPositionsTable, "Couldn't create stack: " + t.getMessage());
+
+					ReportingUtils.logError(t);
+				}
 			}
 		});
 
