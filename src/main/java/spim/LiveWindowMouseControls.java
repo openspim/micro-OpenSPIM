@@ -1,5 +1,7 @@
 package spim;
 
+import ij.gui.Toolbar;
+
 import java.awt.Component;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
@@ -159,12 +161,24 @@ public class LiveWindowMouseControls extends MouseAdapter {
 		mmMouseWheelListener = null;
 	}
 
+	private Vector3D applyRotation(Vector3D pos, double dtheta) {
+		if(calibrator == null || !calibrator.getIsCalibrated())
+			return pos;
+
+		Vector3D rotOrigin = calibrator.getRotationOrigin();
+		Vector3D rotAxis = calibrator.getRotationAxis();
+
+		Rotation rot = new Rotation(rotAxis, -dtheta * Math.PI / 180D);
+
+		return rotOrigin.add(rot.applyTo(pos.subtract(rotOrigin)));
+	}
+
 	@Override
 	public void mouseClicked(MouseEvent me) {
 		if(setup == null)
 			throw new Error("LWMC mouseClicked with no setup.");
 
-		if(me.getButton() != MouseEvent.BUTTON1 || me.getClickCount() != 2)
+		if(me.getButton() != MouseEvent.BUTTON1 || me.getClickCount() != 2 || Toolbar.getToolId() != Toolbar.HAND)
 			return;
 
 		double dx = (me.getX() - hookedOn.getWidth() / 2) * setup.getCore().getPixelSizeUm();
@@ -183,6 +197,9 @@ public class LiveWindowMouseControls extends MouseAdapter {
 		if(setup == null)
 			throw new Error("LWMC mouseWheelMoved with no setup.");
 
+		if(Toolbar.getToolId() != Toolbar.HAND)
+			return;
+
 		Stage z = setup.getZStage();
 
 		if(z.isBusy())
@@ -196,6 +213,9 @@ public class LiveWindowMouseControls extends MouseAdapter {
 		if(setup == null)
 			throw new Error("LWMC mousePressed with no setup.");
 
+		if(Toolbar.getToolId() != Toolbar.HAND)
+			return;
+
 		dragStart = me.getPoint();
 		stageStart = setup.getPosition();
 		thetaStart = setup.getAngle();
@@ -206,27 +226,21 @@ public class LiveWindowMouseControls extends MouseAdapter {
 		if(setup == null)
 			throw new Error("LWMC mouseReleased with no setup.");
 
+		if(Toolbar.getToolId() != Toolbar.HAND)
+			return;
+
 		dragStart = null;
 		stageStart = null;
 		thetaStart = null;
-	}
-	
-	private Vector3D applyRotation(Vector3D pos, double dtheta) {
-		if(calibrator == null || !calibrator.getIsCalibrated())
-			return pos;
-
-		Vector3D rotOrigin = calibrator.getRotationOrigin();
-		Vector3D rotAxis = calibrator.getRotationAxis();
-
-		Rotation rot = new Rotation(rotAxis, -dtheta * Math.PI / 180D);
-
-		return rotOrigin.add(rot.applyTo(pos.subtract(rotOrigin)));
 	}
 
 	@Override
 	public void mouseDragged(MouseEvent me) {
 		if(setup == null)
 			throw new Error("LWMC mouseDragged with no setup.");
+
+		if(Toolbar.getToolId() != Toolbar.HAND)
+			return;
 
 		Point drag = new Point(me.getX() - dragStart.x, me.getY() - dragStart.y);
 
