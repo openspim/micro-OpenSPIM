@@ -8,6 +8,8 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
@@ -299,8 +301,8 @@ public abstract class SteppedSlider extends JPanel implements ActionListener, Ch
 
 		public double getValue() {
 			try {
-				return Double.parseDouble(getText());
-			} catch (NumberFormatException nfe) {
+				return NumberFormat.getInstance().parse(getText()).doubleValue();
+			} catch (ParseException nfe) {
 				return Double.NaN; // this is bad. :( I should probably just let the exception propagate.
 			}
 		}

@@ -26,6 +26,8 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.FilenameFilter;
+import java.text.NumberFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -590,12 +592,13 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					Vector3D pos = setup.getPosition();
 
 					model.insertRow(idx,
-						new Object[] {
-							"" + pos.getX(),
-							"" + pos.getY(),
-							"" + setup.getAngle(),
-							"" + pos.getZ()
-						}
+						new AcqRow(
+							model.getColumns(),
+							(Double) pos.getX(),
+							(Double) pos.getY(),
+							(Double) setup.getAngle(),
+							(Double) pos.getZ()
+						)
 					);
 				} catch(Throwable t) {
 					JOptionPane.showMessageDialog(acqPositionsTable,
@@ -635,12 +638,13 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					double step = (Double)acqSliceStep.getValue();
 
 					model.insertRow(idx,
-						new Object[] {
-							xyz.getX(),
-							xyz.getY(),
-							theta,
+						new AcqRow(
+							model.getColumns(),
+							(Double) xyz.getX(),
+							(Double) xyz.getY(),
+							(Double) theta,
 							String.format("%.3f:%.3f:%.3f", xyz.getZ(), step, (xyz.getZ() + range))
-						}
+						)
 					);
 				} catch(Throwable t) {
 					JOptionPane.showMessageDialog(acqPositionsTable, "Couldn't create stack: " + t.getMessage());
@@ -697,27 +701,11 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			public void mouseClicked(MouseEvent me) {
 				if(acqPositionsTable.getSelectedRowCount() == 1 &&
 						me.getClickCount() == 2) {
-					TableModel mdl = ((JTable)me.getComponent()).getModel();
-					int row = ((JTable)me.getComponent()).getSelectedRow();
+					StepTableModel mdl = (StepTableModel)((JTable)me.getComponent()).getModel();
+					int rowidx = ((JTable)me.getComponent()).getSelectedRow();
+					AcqRow row = mdl.getRows().get(rowidx);
 
-					String x = (String) mdl.getValueAt(row, 0);
-					String y = (String) mdl.getValueAt(row, 1);
-					String t = (String) mdl.getValueAt(row, 2);
-					String zr = (String) mdl.getValueAt(row, 3);
-
-					double xd = Double.parseDouble(x);
-					double yd = Double.parseDouble(y);
-					double td = Double.parseDouble(t);
-
-					double z = 0;
-					if(zr.contains(":"))
-						z = Double.parseDouble(zr.substring(0,zr.indexOf(':')));
-					else if(zr.contains("@"))
-						z = Double.parseDouble(zr.substring(0,zr.indexOf('-')));
-					else
-						z = Double.parseDouble(zr);
-
-					setup.setPosition(xd, yd, z, td);
+					setup.setPosition(row.getX(), row.getY(), row.getZStartPosition(), row.getTheta());
 				}
 			}
 		});
