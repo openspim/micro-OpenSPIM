@@ -219,13 +219,13 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		initUI();
 		configurationChanged();
 
-		if(!gui.isLiveModeOn() && setup.isConnected(SPIMDevice.CAMERA1));
-			gui.enableLiveMode(true);
+/*		if(!gui.isLiveModeOn() && setup.isConnected(SPIMDevice.CAMERA1));
+			gui.enableLiveMode(true);*/
 
 		frame.setVisible(true);
 
-		if(autoReplaceMMControls.isSelected())
-			hookLiveControls(true);
+/*		if(autoReplaceMMControls.isSelected())
+			hookLiveControls(true);*/
 	}
 
 	private static LiveWindowMouseControls listener = new LiveWindowMouseControls();
