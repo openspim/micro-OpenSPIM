@@ -1,5 +1,7 @@
 package spim.progacq;
 
+import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.EnumMap;
 
 import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
@@ -18,24 +20,18 @@ public class AcqRow {
 		}
 
 		public DeviceValueSet(String range) {
-			if(range.indexOf('@') != -1) {
-				start = Double.parseDouble(range.substring(0,range.indexOf('-')));
-				end = Double.parseDouble(range.substring(range.indexOf('-')+1, range.indexOf('@')));
-				stepOrSpeed = Double.parseDouble(range.substring(range.indexOf('@')+1));
-				continuous = true;
-			} else if(range.indexOf(':') != -1) {
-				start = Double.parseDouble(range.substring(0,range.indexOf(':')));
-				stepOrSpeed = Double.parseDouble(range.substring(range.indexOf(':')+1,range.lastIndexOf(':')));
-				end = Double.parseDouble(range.substring(range.lastIndexOf(':')+1));
+			parse(range);
+		}
+
+		public DeviceValueSet(Object obj) {
+			if(obj instanceof Double) {
+				start = end = (Double)obj;
+				stepOrSpeed = 0;
 				continuous = false;
+			} else if(obj instanceof String) {
+				parse((String)obj);
 			} else {
-				try {
-					start = end = Double.parseDouble(range);
-					stepOrSpeed = 0;
-					continuous = false;
-				} catch(NumberFormatException nfe) {
-					throw new Error("Unknown device value description \"" + range + "\"");
-				}
+				throw new IllegalArgumentException("unknown device value set specifier type: " + obj.toString());
 			}
 		}
 
@@ -44,6 +40,30 @@ public class AcqRow {
 			this.stepOrSpeed = stepspeed;
 			this.end = end;
 			this.continuous = continuous;
+		}
+
+		private void parse(String range) {
+			NumberFormat parser = NumberFormat.getInstance();
+
+			try {
+				if(range.indexOf('@') != -1) {
+					start = parser.parse(range.substring(0,range.indexOf('-'))).doubleValue();
+					end = parser.parse(range.substring(range.indexOf('-')+1, range.indexOf('@'))).doubleValue();
+					stepOrSpeed = parser.parse(range.substring(range.indexOf('@')+1)).doubleValue();
+					continuous = true;
+				} else if(range.indexOf(':') != -1) {
+					start = parser.parse(range.substring(0,range.indexOf(':'))).doubleValue();
+					stepOrSpeed = parser.parse(range.substring(range.indexOf(':')+1,range.lastIndexOf(':'))).doubleValue();
+					end = parser.parse(range.substring(range.lastIndexOf(':')+1)).doubleValue();
+					continuous = false;
+				} else {
+					start = end = parser.parse(range).doubleValue();
+					stepOrSpeed = 0;
+					continuous = false;
+				}
+			} catch(ParseException nfe) {
+				throw new NumberFormatException("Unknown device value description \"" + range + "\"");
+			}
 		}
 
 		public double getStartPosition() {
@@ -75,7 +95,7 @@ public class AcqRow {
 		@Override
 		public String toString() {
 			if(stepOrSpeed == 0)
-				return Double.toString(start);
+				return String.format("%.3f", start);
 
 			if(continuous)
 				return String.format("%.3f-%.3f@%d", start, end, (int) stepOrSpeed);
@@ -98,13 +118,24 @@ public class AcqRow {
 			setValueSet(devs[i], infos[i]);
 	}
 
+	public AcqRow(SPIMDevice[] devs, Object... infos) {
+		posMap = new EnumMap<SPIMDevice, DeviceValueSet>(SPIMDevice.class);
+
+		for(int i = 0; i < devs.length; ++i)
+			setValueSet(devs[i], infos[i]);
+	}
+
 	public void setValueSet(SPIMDevice dev, String totalInfo) {
+		setValueSet(dev, (Object) totalInfo.trim());
+	}
+
+	public void setValueSet(SPIMDevice dev, Object totalInfo) {
 		if(totalInfo == null) {
 			posMap.remove(dev);
 			return;
 		}
 
-		posMap.put(dev, new DeviceValueSet(totalInfo.trim()));
+		posMap.put(dev, new DeviceValueSet(totalInfo));
 	}
 	
 	public DeviceValueSet getValueSet(SPIMDevice dev) {
@@ -153,7 +184,7 @@ public class AcqRow {
 	}
 
 	public double getY() {
-		return posMap.get(SPIMDevice.STAGE_X).getStartPosition();
+		return posMap.get(SPIMDevice.STAGE_Y).getStartPosition();
 	}
 	
 	public double getTheta() {

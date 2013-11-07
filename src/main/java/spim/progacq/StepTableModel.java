@@ -76,6 +76,15 @@ public class StepTableModel extends AbstractTableModel implements
 		return data.iterator();
 	}
 
+	public void insertRow(AcqRow row) {
+		insertRow(data.size(), row);
+	}
+
+	public void insertRow(int idx, AcqRow row) {
+		data.add(idx, row);
+		this.fireTableDataChanged();
+	}
+
 	public void insertRow(Object... values) {
 		insertRow(data.size(), values);
 	}
