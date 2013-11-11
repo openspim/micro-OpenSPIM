@@ -89,8 +89,6 @@ public class ProgrammaticAcquisitor {
 		}
 	}
 
-	static public boolean profile = true;
-
 	/**
 	 * Takes a list of steps and concatenates them together recursively. This is
 	 * what builds out rows from a list of lists of positions.
@@ -265,9 +263,9 @@ public class ProgrammaticAcquisitor {
 		if(params.isContinuous() && params.isAntiDriftOn())
 			throw new IllegalArgumentException("No continuous acquisition w/ anti-drift!");
 
-		final Profiler prof = (profile ? new Profiler("performAcquisition") : null);
+		final Profiler prof = (params.doProfiling() ? new Profiler("performAcquisition") : null);
 
-		if(profile)
+		if(params.doProfiling())
 		{
 			prof.create("Setup");
 			prof.create("Output");
@@ -277,7 +275,7 @@ public class ProgrammaticAcquisitor {
 			prof.start();
 		}
 
-		if(profile)
+		if(params.doProfiling())
 			prof.get("Setup").start();
 
 		final CMMCore core = params.getCore();
@@ -304,7 +302,7 @@ public class ProgrammaticAcquisitor {
 		else
 			driftCompMap = null;
 
-		if(profile)
+		if(params.doProfiling())
 			prof.get("Setup").stop();
 
 		for(int timeSeq = 0; timeSeq < params.getTimeSeqCount(); ++timeSeq) {
@@ -378,23 +376,23 @@ public class ProgrammaticAcquisitor {
 					ad.startNewStack();
 				};
 
-				if(profile)
+				if(params.doProfiling())
 					prof.get("Movement").start();
 
 				runDevicesAtRow(core, setup, row, step);
 
-				if(profile)
+				if(params.doProfiling())
 					prof.get("Movement").stop();
 
 				if(params.isIllumFullStack() && setup.getLaser() != null)
 					setup.getLaser().setPoweredOn(true);
 
-				if(profile)
+				if(params.doProfiling())
 					prof.get("Output").start();
 
 				handler.beginStack(0);
 
-				if(profile)
+				if(params.doProfiling())
 					prof.get("Output").stop();
 
 				if(row.getZStartPosition() == row.getZEndPosition()) {
@@ -415,7 +413,7 @@ public class ProgrammaticAcquisitor {
 					double start = setup.getZStage().getPosition();
 					double end = start + row.getZEndPosition() - row.getZStartPosition();
 					for(double zStart = start; zStart <= end; zStart += row.getZStepSize()) {
-						if(profile)
+						if(params.doProfiling())
 							prof.get("Movement").start();
 
 						setup.getZStage().setPosition(zStart);
@@ -427,25 +425,25 @@ public class ProgrammaticAcquisitor {
 							return cleanAbort(params, liveOn, autoShutter, continuousThread);
 						}
 
-						if(profile)
+						if(params.doProfiling())
 							prof.get("Movement").stop();
 
 						if(!params.isContinuous()) {
-							if(profile)
+							if(params.doProfiling())
 								prof.get("Acquisition").start();
 
 							TaggedImage ti = snapImage(setup, !params.isIllumFullStack());
 
-							if(profile)
+							if(params.doProfiling())
 								prof.get("Acquisition").stop();
 
-							if(profile)
+							if(params.doProfiling())
 								prof.get("Output").start();
 
 							ImageProcessor ip = ImageUtils.makeProcessor(ti);
 							handleSlice(core, setup, metaDevs, acqBegan, ip, handler);
 
-							if(profile)
+							if(params.doProfiling())
 								prof.get("Output").stop();
 
 							if(ad != null)
@@ -476,12 +474,12 @@ public class ProgrammaticAcquisitor {
 					setup.getZStage().setVelocity(oldVel);
 				};
 
-				if(profile)
+				if(params.doProfiling())
 					prof.get("Output").start();
 
 				handler.finalizeStack(0);
 
-				if(profile)
+				if(params.doProfiling())
 					prof.get("Output").stop();
 
 				if(params.isIllumFullStack() && setup.getLaser() != null)
@@ -535,12 +533,12 @@ public class ProgrammaticAcquisitor {
 			}
 		}
 
-		if(profile)
+		if(params.doProfiling())
 			prof.get("Output").start();
 
 		handler.finalizeAcquisition();
 
-		if(profile)
+		if(params.doProfiling())
 			prof.get("Output").stop();
 
 		if(autoShutter)
@@ -550,7 +548,7 @@ public class ProgrammaticAcquisitor {
 //		if(liveOn)
 //			frame.enableLiveMode(true);
 
-		if(profile)
+		if(params.doProfiling())
 		{
 			prof.stop();
 			ij.IJ.log(prof.getLogText());
