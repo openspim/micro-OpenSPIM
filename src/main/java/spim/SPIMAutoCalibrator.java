@@ -339,7 +339,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 				realVecs[i] = (Vector3D)vectors[i];
 			}
 
-			FitSphere circle = new FitSphere(realVecs);
+			FitDisk circle = new FitDisk(realVecs);
 
 			ReportingUtils.logMessage("Circle fit: " + circle.getCenter() + ", radius " + circle.getRadius() + ", error " + circle.getError());
 
