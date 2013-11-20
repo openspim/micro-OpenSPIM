@@ -344,7 +344,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			ReportingUtils.logMessage("Circle fit: " + circle.getCenter() + ", radius " + circle.getRadius() + ", error " + circle.getError());
 
 			radius = circle.getRadius();
-			return new Line(circle.getCenter(), circle.getCenter().add(Vector3D.PLUS_J));
+			return new Line(circle.getCenter(), circle.getCenter().add(circle.getNormal()));
 		} else {
 			Collection<double[]> doublePoints = new LinkedList<double[]>();
 
@@ -355,7 +355,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 			FitHypersphere circle = new FitHypersphere(doublePoints);
 
-			ReportingUtils.logMessage("Circle fit: " + Arrays.toString(circle.getCenter()) + ", radius " + circle.getRadius());
+			ReportingUtils.logMessage("Hypersphere fit: " + Arrays.toString(circle.getCenter()) + ", radius " + circle.getRadius());
 
 			double[] center = circle.getCenter();
 			Vector3D axisPoint = new Vector3D(center[0], center[1], center[2]);
@@ -524,7 +524,12 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			exitStatus = null;
 
 			try {
-				setup.getThetaStage().setPosition(setup.getAngle() + setup.getThetaStage().getStepSize());
+				double newT = setup.getAngle() + setup.getThetaStage().getStepSize();
+
+				if(newT > 180)
+					newT -= 360;
+
+				setup.getThetaStage().setPosition(newT);
 				setup.getThetaStage().waitFor();
 				Thread.sleep(50);
 				if(!getNextBead()) {
@@ -647,7 +652,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 				avgY += p.getY() / pointsTable.getModel().getSize();
 			}
 
-			univ.addIcospheres(points, new Color3f(1,0,0), 2, 4, "Beads");
+			univ.addIcospheres(points, new Color3f(1,0,0), 2, 8, "Beads");
 
 			if(rotAxis != null)
 				univ.addLineMesh(customnode.MeshMaker.createDisc(rotAxis.getOrigin().getX(), avgY, rotAxis.getOrigin().getZ(),
