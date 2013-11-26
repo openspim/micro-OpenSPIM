@@ -182,9 +182,11 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 		JButton importList;
 
+		double ss = isetup.getZStage().getStepSize();
+
 		tweaksFrame.add(LayoutUtils.form(
-			"First delta:",			firstDelta = new JSpinner(new SpinnerNumberModel(10.0, 1.0, 30.0, 1.0)),
-			"Second delta:",		secondDelta = new JSpinner(new SpinnerNumberModel(20.0, 5.0, 50.0, 1.0)),
+			"First delta:",			firstDelta = new JSpinner(new SpinnerNumberModel(3*ss, ss, 30*ss, ss)),
+			"Second delta:",		secondDelta = new JSpinner(new SpinnerNumberModel(12*ss, 2*ss, 60*ss, ss)),
 			"X/Y determination:",	xymethod = new JComboBox(new String[] {XYMODE_GAUSSIAN_FIT, XYMODE_WEIGHTED_AVG, XYMODE_MAX_INTENSITY}),
 			"Z determination:",		zmethod = new JComboBox(new String[] {ZMODE_MAX_INTENSITY, ZMODE_WEIGHTED_AVG}),
 			"Complex Z guessing:",	complexGuessZ = new JCheckBox(/*"Complex Z Guessing"*/),
