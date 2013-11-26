@@ -44,17 +44,22 @@ import javax.vecmath.Point3f;
 
 import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
+
+import net.imglib2.algorithm.localextrema.LocalExtrema;
 import net.imglib2.algorithm.localization.Gaussian;
 import net.imglib2.algorithm.localization.LevenbergMarquardtSolver;
 import net.imglib2.algorithm.localization.LocalizationUtils;
 import net.imglib2.algorithm.localization.MLGaussianEstimator;
 import net.imglib2.algorithm.localization.Observation;
 import net.imglib2.img.ImagePlusAdapter;
+import net.imglib2.type.numeric.integer.UnsignedShortType;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.threed.Line;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+
+
 import org.json.JSONException;
 import org.micromanager.MMStudioMainFrame;
 import org.micromanager.utils.MDUtils;
@@ -80,6 +85,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	private static final String BTN_REVERSE = "Reverse Axis";
 	private static final String BTN_TWEAKS_FRAME = "Tweak Scan";
 	private static final String BTN_IMPORT = "Import...";
+	private static final String BTN_AUTOLOC = "Auto-Locate";
 
 	private static final long serialVersionUID = -2162347623413462344L;
 
@@ -140,6 +146,9 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		JButton tweakScan = new JButton(BTN_TWEAKS_FRAME);
 		tweakScan.addActionListener(this);
 
+		JButton autoLocate = new JButton(BTN_AUTOLOC);
+		autoLocate.addActionListener(this);
+
 		LayoutUtils.addAll(btnsPanel,
 				go,
 				revise,
@@ -179,10 +188,11 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			"X/Y determination:",	xymethod = new JComboBox(new String[] {XYMODE_GAUSSIAN_FIT, XYMODE_WEIGHTED_AVG, XYMODE_MAX_INTENSITY}),
 			"Z determination:",		zmethod = new JComboBox(new String[] {ZMODE_MAX_INTENSITY, ZMODE_WEIGHTED_AVG}),
 			"Complex Z guessing:",	complexGuessZ = new JCheckBox(/*"Complex Z Guessing"*/),
-			"Min Intensity/BG:",	intbgrThresh = new JSpinner(new SpinnerNumberModel(1.3, 1.0, 5.0, 0.1)),
+			"Min Intensity/BG:",	intbgrThresh = new JSpinner(new SpinnerNumberModel(1.3, 1.0, 10.0, 0.1)),
 			"Import list:",			importList = new JButton(BTN_IMPORT),
 			"Fitting overlays:",	visualFit = new JCheckBox(/*"Fitting Overlays"*/),
-			"Hypersphere fitter:",	hypersphere = new JCheckBox(/*"Fit Hypersphere"*/)
+			"Hypersphere fitter:",	hypersphere = new JCheckBox(/*"Fit Hypersphere"*/),
+			"Auto-Locate:",			autoLocate = new JButton(BTN_AUTOLOC)
 		));
 
 		importList.addActionListener(this);
@@ -192,6 +202,8 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		if(gui.getImageWin() != null) {
 			gui.getImageWin().getCanvas().addMouseListener(this);
 			gui.getImageWin().getCanvas().addMouseMotionListener(this);
+
+			highlightBrightest(gui.getImageWin().getImagePlus());
 		}
 	}
 
@@ -208,6 +220,36 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	@Override
 	public boolean getIsCalibrated() {
 		return rotAxis != null;
+	}
+
+	private void highlightBrightest(ImagePlus imp) {
+		List<net.imglib2.Point> peaks = LocalExtrema.findLocalExtrema(
+			ImagePlusAdapter.wrapShort(imp),
+			new LocalExtrema.MaximumCheck<UnsignedShortType>(new UnsignedShortType((int)(imp.getProcessor().getMin() + imp.getProcessor().getMax())/2)),
+			Runtime.getRuntime().availableProcessors()
+		);
+
+		if(peaks.size() > 0) {
+			net.imglib2.Point bestPeak = null;
+			int bestPeakVal = 0;
+
+			for(net.imglib2.Point peak : peaks) {
+				int val = imp.getProcessor().getPixel(peak.getIntPosition(0), peak.getIntPosition(1));
+				if(val > bestPeakVal) {
+					bestPeak = peak;
+					bestPeakVal = val;
+				}
+			}
+
+			if(bestPeak != null) {
+				imp.setRoi(
+					bestPeak.getIntPosition(0) - imp.getWidth() / 20,
+					bestPeak.getIntPosition(1) - imp.getHeight() / 40,
+					imp.getWidth() / 10,
+					imp.getHeight() / 20
+				);
+			}
+		}
 	}
 
 	private Vector3D findLocalBestXY(ImageProcessor ip) {
@@ -695,6 +737,9 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 				((DefaultListModel)pointsTable.getModel()).addElement(new Vector3D(x,y,z));
 			};
-		};
+		} else if(BTN_AUTOLOC.equals(ae.getActionCommand())) {
+			if(gui.getImageWin() != null)
+				highlightBrightest(gui.getImageWin().getImagePlus());
+		}
 	}
 };
