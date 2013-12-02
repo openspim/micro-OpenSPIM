@@ -20,20 +20,26 @@ import javax.swing.JOptionPane;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.Roi;
 import ij.process.ImageProcessor;
 
 import mmcorej.CMMCore;
+import net.imglib2.algorithm.localization.Gaussian;
+import net.imglib2.algorithm.localization.LevenbergMarquardtSolver;
+import net.imglib2.algorithm.localization.LocalizationUtils;
+import net.imglib2.algorithm.localization.MLGaussianEstimator;
+import net.imglib2.algorithm.localization.Observation;
+import net.imglib2.img.ImagePlusAdapter;
+
 import org.micromanager.MMStudioMainFrame;
 import org.micromanager.utils.ReportingUtils;
 
-import org.apache.commons.math.geometry.euclidean.threed.Rotation;
-import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
-import org.apache.commons.math.geometry.euclidean.threed.Plane;
-import org.apache.commons.math.geometry.euclidean.threed.Line;
-
-import edu.valelab.GaussianFit.GaussianFit;
+import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
+import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
+import org.apache.commons.math3.geometry.euclidean.threed.Plane;
+import org.apache.commons.math3.geometry.euclidean.threed.Line;
 
 public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIMCalibrator {
 	private static final long serialVersionUID = -4228128887292057193L;
@@ -338,14 +344,38 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 		};
 	};
 
+	/**
+	 * Uses Imglib2 2D Gaussian fitting on the given image processor, guessing the center point
+	 * as the starting peak.
+	 *
+	 * Returned parameters:
+	 * 0 - X coordinate of center rel. IP's region.
+	 * 1 - Y coordinate of center rel. IP's region.
+	 * 2 - Peak height
+	 *
+	 * @param ip ImageProcessor to fit to
+	 * @return Array of parameters as listed above
+	 * @throws Exception
+	 */
+	private static double[] fit2DGaussian(ImageProcessor ip) throws Exception {
+		long[] center = new long[] { (long)ip.getWidth() / 2, (long)ip.getHeight() / 2 };
+		net.imglib2.Point cpoint = new net.imglib2.Point(center);
+
+		Observation data = LocalizationUtils.gatherObservationData(ImagePlusAdapter.wrapShort(new ImagePlus("", ip)), cpoint, center);
+
+		double[] params = new MLGaussianEstimator(2.0, 2).initializeFit(cpoint, data);
+
+		LevenbergMarquardtSolver.solve(data.X, params, data.I, new Gaussian(), 1e-3, 1e-1, 300);
+
+		return params;
+	}
+
 	private static int detect_delta = 10;
 	private Vector3D detect() throws Exception {
 		// Peek the current ROI. Pan up and down through several frames, apply
 		// the gaussian fitter to each. We'll need to throw out some points.
 
 		double basez = setup.getZStage().getPosition();
-
-		GaussianFit fitter = new GaussianFit(3, 1);
 
 		if(gui.getImageWin() == null || gui.getImageWin().getImagePlus().getRoi() == null)
 			return null;
@@ -359,17 +389,15 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 
 			ImageProcessor ip = gui.getImageWin().getImagePlus().getProcessor();
 
-			double[] params = fitter.doGaussianFit(ip.crop(), (int)1e12);
+			double[] params = fit2DGaussian(ip.crop());
 
-//			System.out.println("bgr=" + params[GaussianFit.BGR] + ", int=" + params[GaussianFit.INT] + ", xc=" + params[GaussianFit.XC]+ ", yc=" + params[GaussianFit.YC] + ", sigma_x=" + params[GaussianFit.S1] + ", sigma_y=" + params[GaussianFit.S2] + ", theta=" + params[GaussianFit.S3]);
-
-			double INT = params[GaussianFit.INT];
+			double INT = params[2];
 
 			if(INT > 10) {
 				intsum += INT;
 
-				double x = (ip.getRoi().getMinX() + params[GaussianFit.XC] - ip.getWidth()/2)*getUmPerPixel();
-				double y = (ip.getRoi().getMinY() + params[GaussianFit.YC] - ip.getHeight()/2)*getUmPerPixel();
+				double x = (ip.getRoi().getMinX() + params[0] - ip.getWidth()/2)*getUmPerPixel();
+				double y = (ip.getRoi().getMinY() + params[1] - ip.getHeight()/2)*getUmPerPixel();
 
 				c = c.add(INT, setup.getPosition().add(new Vector3D(x, y, 0)));
 			}
@@ -452,16 +480,15 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 			if(detect)
 				return detect();
 
-			GaussianFit xyFitter = new GaussianFit(3, 1);
 			ImageProcessor ip = img.getProcessor();
 
-			double[] params = xyFitter.doGaussianFit(ip.crop(), (int)1e12);
+			double[] params = fit2DGaussian(ip.crop());
 
-			img.setOverlay(new ij.gui.OvalRoi(ip.getRoi().getMinX() + params[GaussianFit.XC],
-					ip.getRoi().getMinY() + params[GaussianFit.YC], 2, 2), Color.RED, 0, Color.RED);
+			img.setOverlay(new ij.gui.OvalRoi(ip.getRoi().getMinX() + params[0],
+					ip.getRoi().getMinY() + params[1], 2, 2), Color.RED, 0, Color.RED);
 
-			double x = (ip.getRoi().getMinX() + params[GaussianFit.XC] - ip.getWidth()/2)*getUmPerPixel();
-			double y = (ip.getRoi().getMinY() + params[GaussianFit.YC] - ip.getHeight()/2)*getUmPerPixel();
+			double x = (ip.getRoi().getMinX() + params[0] - ip.getWidth()/2)*getUmPerPixel();
+			double y = (ip.getRoi().getMinY() + params[1] - ip.getHeight()/2)*getUmPerPixel();
 
 			return setup.getPosition().add(new Vector3D(x, y, 0));
 		} catch(Throwable e) {

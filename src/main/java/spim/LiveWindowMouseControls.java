@@ -16,8 +16,8 @@ import java.util.List;
 
 import javax.swing.JOptionPane;
 
-import org.apache.commons.math.geometry.euclidean.threed.Rotation;
-import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
+import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
+import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
 import spim.setup.SPIMSetup;
 import spim.setup.Stage;

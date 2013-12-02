@@ -8,11 +8,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.commons.math.linear.DecompositionSolver;
-import org.apache.commons.math.linear.LUDecompositionImpl;
-import org.apache.commons.math.linear.MatrixUtils;
-import org.apache.commons.math.linear.RealMatrix;
-import org.apache.commons.math.linear.RealVector;
+import org.apache.commons.math3.linear.DecompositionSolver;
+import org.apache.commons.math3.linear.LUDecomposition;
+import org.apache.commons.math3.linear.MatrixUtils;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
 
 /**
  * Fits a hypersphere to a number of n-dimensional points.
@@ -59,7 +59,7 @@ public class FitHypersphere {
 		}
 
 		RealMatrix left = MatrixUtils.createRealMatrix(lhs);
-		DecompositionSolver solver = new LUDecompositionImpl(left).getSolver();
+		DecompositionSolver solver = new LUDecomposition(left).getSolver();
 		RealVector right = MatrixUtils.createRealVector(rhs);
 		RealVector solution = solver.solve(right);
 		center = solution.toArray();

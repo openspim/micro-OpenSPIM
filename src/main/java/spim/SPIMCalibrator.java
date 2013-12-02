@@ -1,6 +1,6 @@
 package spim;
 
-import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
+import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
 public interface SPIMCalibrator {
 
