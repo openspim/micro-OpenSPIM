@@ -25,7 +25,7 @@ import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.img.Img;
 import net.imglib2.type.numeric.real.FloatType;
 
-import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
+import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
 public class ProjDiffAntiDrift extends AntiDrift {
 	private static class Projections {

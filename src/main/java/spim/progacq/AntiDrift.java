@@ -2,7 +2,7 @@ package spim.progacq;
 
 import ij.process.ImageProcessor;
 
-import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
+import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
 public abstract class AntiDrift {
 	public abstract void startNewStack();

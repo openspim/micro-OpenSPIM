@@ -30,10 +30,12 @@ import javax.swing.JOptionPane;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 
-import org.apache.commons.math.analysis.MultivariateRealFunction;
-import org.apache.commons.math.optimization.GoalType;
-import org.apache.commons.math.optimization.direct.NelderMeadSimplex;
-import org.apache.commons.math.optimization.direct.SimplexOptimizer;
+import org.apache.commons.math3.analysis.MultivariateFunction;
+import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
+import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction;
+import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.AbstractSimplex;
+import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.NelderMeadSimplex;
+import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.SimplexOptimizer;
 import org.micromanager.MMStudioMainFrame;
 import org.micromanager.utils.ImageUtils;
 
@@ -342,7 +344,7 @@ public class PixelSizeCalibrator extends JFrame implements MouseListener,
 			final double cx = region.getWidth() / 2D;
 			final double cy = region.getHeight() / 2D;
 
-			MultivariateRealFunction mrf = new MultivariateRealFunction() {
+			MultivariateFunction mrf = new MultivariateFunction() {
 				@Override
 				public double value(double[] model) {
 					double totalError = 0;
@@ -355,11 +357,12 @@ public class PixelSizeCalibrator extends JFrame implements MouseListener,
 				}
 			};
 
-			SimplexOptimizer opt = new SimplexOptimizer();
-			opt.setSimplex(new NelderMeadSimplex(new double[] {r / 64, r / 64, r / 32, region.getMax() / 16, (region.getMax() - region.getMin()) / 64}));
+			SimplexOptimizer opt = new SimplexOptimizer(1e-4, 1e-4);
+			AbstractSimplex simp = new NelderMeadSimplex(new double[] {r / 64, r / 64, r / 32, region.getMax() / 16, (region.getMax() - region.getMin()) / 64});
+			simp.build(new double[] {rectX(cx, cy, theta), rectY(cx, cy, theta), r / 3, region.getMax(), (region.getMax() - region.getMin()) * 0.2});
 
 			try {
-				bestFit = opt.optimize(5000000, mrf, GoalType.MINIMIZE, new double[] {rectX(cx, cy, theta), rectY(cx, cy, theta), r / 3, region.getMax(), (region.getMax() - region.getMin()) * 0.2}).getPoint();
+				bestFit = opt.optimize(new ObjectiveFunction(mrf), GoalType.MINIMIZE, simp).getPoint();
 			} catch(Throwable t) {
 				IJ.handleException(t);
 				return;
