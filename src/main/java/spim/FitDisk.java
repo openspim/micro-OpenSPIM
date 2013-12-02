@@ -1,11 +1,10 @@
 package spim;
 
-import org.apache.commons.math.geometry.euclidean.threed.Plane;
-import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
-import org.apache.commons.math.geometry.euclidean.twod.Vector2D;
-import org.apache.commons.math.linear.BlockRealMatrix;
-import org.apache.commons.math.linear.EigenDecomposition;
-import org.apache.commons.math.linear.EigenDecompositionImpl;
+import org.apache.commons.math3.geometry.euclidean.threed.Plane;
+import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
+import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
+import org.apache.commons.math3.linear.BlockRealMatrix;
+import org.apache.commons.math3.linear.EigenDecomposition;
 
 public class FitDisk {
 	Vector3D center;
@@ -53,7 +52,7 @@ public class FitDisk {
 			new double[] { uw, vw, ww }
 		};
 
-		EigenDecomposition decomp = new EigenDecompositionImpl(new BlockRealMatrix(uvws), 0);
+		EigenDecomposition decomp = new EigenDecomposition(new BlockRealMatrix(uvws));
 
 		double[] leastEigenVector = null;
 		double leastEigenValue = Double.MAX_VALUE;

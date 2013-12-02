@@ -5,7 +5,7 @@ import ij.IJ;
 import java.util.Map;
 import java.util.EnumMap;
 
-import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
+import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.micromanager.utils.ReportingUtils;
 
 import mmcorej.CMMCore;

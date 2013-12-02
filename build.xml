@@ -5,7 +5,6 @@
 
 	<path id="plugin.classpath">
 		<pathelement location="${mm.java.lib.scifio}"/>
-		<pathelement location="${mm.java.plugin.outdir}/Gaussian.jar"/>
 		<!-- These should be included in classext or something! -->
 		<fileset dir="../../bin_Win32/jars">
 			<include name="imglib2-*.jar"/>

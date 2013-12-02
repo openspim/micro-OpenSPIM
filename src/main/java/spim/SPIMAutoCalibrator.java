@@ -44,11 +44,17 @@ import javax.vecmath.Point3f;
 
 import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
+import net.imglib2.algorithm.localization.Gaussian;
+import net.imglib2.algorithm.localization.LevenbergMarquardtSolver;
+import net.imglib2.algorithm.localization.LocalizationUtils;
+import net.imglib2.algorithm.localization.MLGaussianEstimator;
+import net.imglib2.algorithm.localization.Observation;
+import net.imglib2.img.ImagePlusAdapter;
 
-import org.apache.commons.math.geometry.euclidean.threed.Rotation;
-import org.apache.commons.math.geometry.euclidean.threed.Vector3D;
-import org.apache.commons.math.geometry.euclidean.threed.Line;
-import org.apache.commons.math.geometry.euclidean.twod.Vector2D;
+import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
+import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
+import org.apache.commons.math3.geometry.euclidean.threed.Line;
+import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.json.JSONException;
 import org.micromanager.MMStudioMainFrame;
 import org.micromanager.utils.MDUtils;
@@ -56,8 +62,6 @@ import org.micromanager.utils.MMScriptException;
 import org.micromanager.utils.ReportingUtils;
 
 import spim.setup.SPIMSetup;
-
-import edu.valelab.GaussianFit.GaussianFit;
 
 public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, ActionListener, MouseListener, MouseMotionListener {
 	private static final String XYMODE_GAUSSIAN_FIT = "Gaussian (Beads)";
@@ -208,9 +212,20 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 	private Vector3D findLocalBestXY(ImageProcessor ip) {
 		if(XYMODE_GAUSSIAN_FIT.equals(xymethod.getSelectedItem())) {
-			double[] params = new GaussianFit(2, 1, true, true).doGaussianFit(ip, (int) 1e4);
+			long[] center = new long[] { (long)ip.getWidth() / 2, (long)ip.getHeight() / 2 };
+			net.imglib2.Point cpoint = new net.imglib2.Point(center);
 
-			return new Vector3D(params[GaussianFit.XC], params[GaussianFit.YC], params[GaussianFit.INT] / params[GaussianFit.BGR]);
+			Observation data = LocalizationUtils.gatherObservationData(ImagePlusAdapter.wrapShort(new ImagePlus("", ip)), cpoint, center);
+
+			double[] params = new MLGaussianEstimator(2.0, 2).initializeFit(cpoint, data);
+
+			try {
+				LevenbergMarquardtSolver.solve(data.X, params, data.I, new Gaussian(), 1e-3, 1e-1, 300);
+			} catch(Throwable t) {
+				t.printStackTrace(); // It's okay to fall through here; it'll return the estimate.
+			}
+
+			return new Vector3D(params[0], params[1], params[2] / ip.getMin());
 		} else {
 			double edgeAvg = 0;
 			double x = 0, y = 0;
