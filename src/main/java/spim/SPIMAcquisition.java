@@ -273,7 +273,6 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	 * This call signals to the module that it needs to update whatever
 	 * information it needs from the MMCore.
 	 */
-	@Override
 	public void configurationChanged() {
 /*		zStageLabel = null;
 		xyStageLabel = null;

@@ -469,7 +469,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			addTags(ti, 0);
 			gui.addImage(MMStudioMainFrame.SIMPLE_ACQ, ti, true, true);
 
-			MMStudioMainFrame.getSimpleDisplay().updateAndDraw();
+			MMStudioMainFrame.getSimpleDisplay().updateAndDraw(true);
 
 			ImageProcessor ip = MMStudioMainFrame.getSimpleDisplay().getImagePlus().getProcessor();
 
