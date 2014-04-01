@@ -139,6 +139,14 @@ public class Stage extends Device {
 			return 10000.0; // *** this is why you should implement your own stages.
 	}
 
+	/**
+	 * Run the motor to its home location.
+	 */
+	public void home()
+	{
+		throw new UnsupportedOperationException("Stage does not appear to support homing.");
+	}
+
 	public DeviceType getMMType() {
 		return DeviceType.StageDevice;
 	}

@@ -1,7 +1,11 @@
 package spim.setup;
 
+import ij.IJ;
+
 import java.util.HashMap;
 import java.util.Map;
+
+import org.micromanager.utils.ReportingUtils;
 
 import mmcorej.CMMCore;
 import spim.setup.Device.Factory;
@@ -52,6 +56,15 @@ public class PicardXYStage extends GenericXYStage {
 		@Override
 		public double getMaxPosition() {
 			return 9000;
+		}
+		
+		@Override
+		public void home() {
+			try {
+				core.home(label);
+			} catch (Exception e) {
+				ReportingUtils.logException("Could not home X/Y stage.", e);
+			}
 		}
 
 	}
