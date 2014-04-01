@@ -420,12 +420,26 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			}
 		});
 
+		final JButton homeBtn = new JButton("Home 4-D Stage");
+		homeBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent ae) {
+				if(JOptionPane.showConfirmDialog(homeBtn, "Are you sure you want to home the motors?\n\nPlease remove any sample before doing so\nto prevent damage to the sample and/or lenses.") == JOptionPane.YES_OPTION)
+				{
+					SPIMSetup setup = SPIMAcquisition.this.setup;
+					setup.getXStage().home();
+					setup.getYStage().home();
+					setup.getZStage().home();
+				}
+			}
+		});
+
 		JPanel stageControls = new JPanel();
 		stageControls.setName("Stage Controls");
 		stageControls.setLayout(new BoxLayout(stageControls, BoxLayout.PAGE_AXIS));
 		stageControls.add(left);
 		stageControls.add(Box.createVerticalStrut(200));
-		addLine(stageControls, Justification.RIGHT, autoReplaceMMControls, devMgrBtn, pixCalibBtn, calibrateButton);
+		addLine(stageControls, Justification.RIGHT, autoReplaceMMControls, homeBtn, devMgrBtn, pixCalibBtn, calibrateButton);
 
 		acqPosTabs = new JTabbedPane();
 		
