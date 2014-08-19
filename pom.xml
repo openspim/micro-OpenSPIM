@@ -56,6 +56,21 @@
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-algorithms-legacy</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>java3d</groupId>
+			<artifactId>vecmath</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>java3d</groupId>
+			<artifactId>j3d-core</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>java3d</groupId>
+			<artifactId>j3d-core-utils</artifactId>
+			<scope>provided</scope>
+		</dependency>
 	</dependencies>
 
 	<!-- NB: for project parent -->
