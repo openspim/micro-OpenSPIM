@@ -57,7 +57,7 @@ public class Laser extends Device {
 			core.setShutterOpen(open);
 			popShutter();
 		} catch (Exception e) {
-			ReportingUtils.logException("Couldn't open/close shutter " + label, e);
+			ReportingUtils.logError(e, "Couldn't open/close shutter " + label);
 		}
 	}
 
@@ -73,7 +73,7 @@ public class Laser extends Device {
 			popShutter();
 			return open;
 		} catch (Exception e) {
-			ReportingUtils.logException("Couldn't get shutter status for " + label, e);
+			ReportingUtils.logError(e, "Couldn't get shutter status for " + label);
 			return false;
 		}
 	}

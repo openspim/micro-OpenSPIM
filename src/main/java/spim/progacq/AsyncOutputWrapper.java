@@ -197,7 +197,7 @@ public class AsyncOutputWrapper implements AcqOutputHandler, UncaughtExceptionHa
 			// interrupts can mess up the output.
 			writerThread.join(60 * 60 * 1000);
 		} catch(InterruptedException ie) {
-			ReportingUtils.logException("Couldn't keep waiting...", ie);
+			ReportingUtils.logError(ie, "Couldn't keep waiting...");
 		} finally {
 			if(writerThread.isAlive()) {
 				writerThread.interrupt();
@@ -260,7 +260,7 @@ public class AsyncOutputWrapper implements AcqOutputHandler, UncaughtExceptionHa
 
 		if(!(exc instanceof Exception))
 		{
-			ReportingUtils.logException("Non-exception throwable " + exc.toString() + " caught from writer thread. Wrapping.", exc);
+			ReportingUtils.logError(exc, "Non-exception throwable " + exc.toString() + " caught from writer thread. Wrapping.");
 			exc = new Exception("Wrapped throwable; see core log for details: " + exc.getMessage(), exc);
 		};
 

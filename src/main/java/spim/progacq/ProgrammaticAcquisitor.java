@@ -15,7 +15,8 @@ import mmcorej.DeviceType;
 import mmcorej.TaggedImage;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
-import org.micromanager.MMStudioMainFrame;
+import org.micromanager.MMStudio;
+import org.micromanager.SnapLiveManager;
 import org.micromanager.utils.ImageUtils;
 import org.micromanager.utils.MDUtils;
 import org.micromanager.utils.ReportingUtils;
@@ -200,18 +201,17 @@ public class ProgrammaticAcquisitor {
 		core.waitForSystem();
 	}
 	
-	private static void updateLiveImage(MMStudioMainFrame f, TaggedImage ti)
+	private static void updateLiveImage(MMStudio f, TaggedImage ti)
 	{
 		try {
 			MDUtils.setChannelIndex(ti.tags, 0);
 			MDUtils.setFrameIndex(ti.tags, 0);
 			MDUtils.setPositionIndex(ti.tags, 0);
 			MDUtils.setSliceIndex(ti.tags, 0);
-			ti.tags.put("Summary", f.getAcquisition(MMStudioMainFrame.SIMPLE_ACQ).getSummaryMetadata());
-			f.addStagePositionToTags(ti);
-			f.addImage(MMStudioMainFrame.SIMPLE_ACQ, ti, true, false);
+			ti.tags.put("Summary", f.getAcquisition(SnapLiveManager.SIMPLE_ACQ).getSummaryMetadata());
+			f.displayImage(ti);
 		} catch (Throwable t) {
-			ReportingUtils.logException("Attemped to update live window.", t);
+			ReportingUtils.logError(t, "Attemped to update live window.");
 		}
 	}
 
@@ -226,7 +226,7 @@ public class ProgrammaticAcquisitor {
 			}
 
 			// TEMPORARY: Don't re-enable live mode. This keeps our laser off.
-//			MMStudioMainFrame.getInstance().enableLiveMode(live);
+//			MMStudio.getInstance().enableLiveMode(live);
 
 			p.getOutputHandler().finalizeAcquisition();
 			return p.getOutputHandler().getImagePlus();
@@ -280,7 +280,7 @@ public class ProgrammaticAcquisitor {
 
 		final CMMCore core = params.getCore();
 
-		final MMStudioMainFrame frame = MMStudioMainFrame.getInstance();
+		final MMStudio frame = MMStudio.getInstance();
 		boolean liveOn = frame.isLiveModeOn();
 		if(liveOn)
 			frame.enableLiveMode(false);

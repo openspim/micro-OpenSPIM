@@ -58,7 +58,7 @@ public class SPIMSetup {
 			try {
 				return strVecContains(core.getLoadedDevicesOfType(deviceMap.get(type).getMMType()), deviceMap.get(type).getLabel());
 			} catch (Throwable t) {
-				ReportingUtils.logException("SPIMAcquisition checking connection", t);
+				ReportingUtils.logError(t, "SPIMAcquisition checking connection");
 				return false;
 			}
 		} else {
@@ -113,7 +113,7 @@ public class SPIMSetup {
 			else
 				deviceMap.put(type, Device.createDevice(core, type, label));
 		} catch (Exception e) {
-			ReportingUtils.logException("Trying to exchange " + (getDevice(type) != null ? getDevice(type).getLabel() : "(null)") + " with " + label, e);
+			ReportingUtils.logError(e, "Trying to exchange " + (getDevice(type) != null ? getDevice(type).getLabel() : "(null)") + " with " + label);
 		}
 	}
 
@@ -233,7 +233,7 @@ public class SPIMSetup {
 			for (SPIMDevice dev : SPIMDevice.values())
 				setup.deviceMap.put(dev, setup.constructIfValid(dev, setup.getDefaultDeviceLabel(dev)));
 		} catch (Exception e) {
-			ReportingUtils.logException("Couldn't build default setup.", e);
+			ReportingUtils.logError(e, "Couldn't build default setup.");
 			return null;
 		}
 

@@ -33,7 +33,7 @@ public class Stage extends Device {
 		try {
 			return core.getPosition(label);
 		} catch (Exception e) {
-			ReportingUtils.logException("Couldn't get stage position for " + label, e);
+			ReportingUtils.logError(e, "Couldn't get stage position for " + label);
 			return 0;
 		}
 	}
@@ -47,7 +47,7 @@ public class Stage extends Device {
 		try {
 			core.setPosition(label, position);
 		} catch (Exception e) {
-			ReportingUtils.logException("Couldn't set stage position for " + label + " to " + position, e);
+			ReportingUtils.logError(e, "Couldn't set stage position for " + label + " to " + position);
 		}
 	}
 

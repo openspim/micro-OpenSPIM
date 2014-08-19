@@ -42,7 +42,7 @@ public abstract class Device {
 		try {
 			return core.getDeviceName(label);
 		} catch (Exception e) {
-			ReportingUtils.logException("Couldn't get device name for " + label, e);
+			ReportingUtils.logError(e, "Couldn't get device name for " + label);
 			return null;
 		}
 	};
@@ -55,7 +55,7 @@ public abstract class Device {
 		try {
 			return core.hasProperty(label, property);
 		} catch (Exception e) {
-			ReportingUtils.logException("Couldn't check for \"" + property + "\" on " + label, e);
+			ReportingUtils.logError(e, "Couldn't check for \"" + property + "\" on " + label);
 			return false;
 		}
 	}
@@ -71,7 +71,7 @@ public abstract class Device {
 		try {
 			core.setProperty(label, property, value);
 		} catch (Exception e) {
-			ReportingUtils.logException("Couldn't set \"" + property + "\" to \"" + value + "\" on " + label, e);
+			ReportingUtils.logError(e, "Couldn't set \"" + property + "\" to \"" + value + "\" on " + label);
 		}
 	}
 
@@ -85,7 +85,7 @@ public abstract class Device {
 		try {
 			core.setProperty(label, property, value);
 		} catch (Exception e) {
-			ReportingUtils.logException("Couldn't set \"" + property + "\" to " + value + " on " + label, e);
+			ReportingUtils.logError(e, "Couldn't set \"" + property + "\" to " + value + " on " + label);
 		}
 	}
 
@@ -100,7 +100,7 @@ public abstract class Device {
 		try {
 			return core.getProperty(label, property);
 		} catch (Exception e) {
-			ReportingUtils.logException("Couldn't get \"" + property + "\" from " + label, e);
+			ReportingUtils.logError(e, "Couldn't get \"" + property + "\" from " + label);
 			return null;
 		}
 	}
@@ -115,7 +115,7 @@ public abstract class Device {
 		try {
 			return Double.parseDouble(getProperty(property));
 		} catch (NumberFormatException e) {
-			ReportingUtils.logException("\"" + property + "\" on " + label + " is non-numeric.", e);
+			ReportingUtils.logError(e, "\"" + property + "\" on " + label + " is non-numeric.");
 			return Double.NaN; // This is going to mess some stuff up...
 		}
 	}
@@ -132,7 +132,7 @@ public abstract class Device {
 			StrVector vec = core.getAllowedPropertyValues(label, property);
 			return Arrays.asList(vec.toArray());
 		} catch (Exception e) {
-			ReportingUtils.logException("\"" + property + "\" on " + label + " does not exist.", e);
+			ReportingUtils.logError(e, "\"" + property + "\" on " + label + " does not exist.");
 			return null;
 		}
 	}
@@ -146,7 +146,7 @@ public abstract class Device {
 		try {
 			return core.deviceBusy(label);
 		} catch (Exception e) {
-			ReportingUtils.logException("Couldn't get busy status for " + label, e);
+			ReportingUtils.logError(e, "Couldn't get busy status for " + label);
 			return false;
 		}
 	}
@@ -158,7 +158,7 @@ public abstract class Device {
 		try {
 			core.waitForDevice(label);
 		} catch (Exception e) {
-			ReportingUtils.logException("Couldn't wait for " + label, e);
+			ReportingUtils.logError(e, "Couldn't wait for " + label);
 		}
 	}
 

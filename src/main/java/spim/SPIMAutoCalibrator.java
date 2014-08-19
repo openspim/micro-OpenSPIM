@@ -20,6 +20,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -36,15 +40,11 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
-
-import java.util.regex.*;
-
 import javax.vecmath.Color3f;
 import javax.vecmath.Point3f;
 
 import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
-
 import net.imglib2.algorithm.localextrema.LocalExtrema;
 import net.imglib2.algorithm.localization.Gaussian;
 import net.imglib2.algorithm.localization.LevenbergMarquardtSolver;
@@ -54,14 +54,14 @@ import net.imglib2.algorithm.localization.Observation;
 import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
 
+import org.apache.commons.math3.geometry.euclidean.threed.Line;
 import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
-import org.apache.commons.math3.geometry.euclidean.threed.Line;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
-
-
 import org.json.JSONException;
-import org.micromanager.MMStudioMainFrame;
+import org.micromanager.MMStudio;
+import org.micromanager.SnapLiveManager;
+import org.micromanager.imagedisplay.VirtualAcquisitionDisplay;
 import org.micromanager.utils.MDUtils;
 import org.micromanager.utils.MMScriptException;
 import org.micromanager.utils.ReportingUtils;
@@ -93,7 +93,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	private double radius;
 
 	private CMMCore core;
-	private MMStudioMainFrame gui;
+	private MMStudio gui;
 
 	private JList pointsTable;
 
@@ -111,7 +111,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 	private SPIMSetup setup;
 
-	public SPIMAutoCalibrator(CMMCore core, MMStudioMainFrame gui, SPIMSetup isetup) {
+	public SPIMAutoCalibrator(CMMCore core, MMStudio gui, SPIMSetup isetup) {
 		super("SPIM Automatic Calibration");
 
 		this.core = core;
@@ -201,11 +201,11 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 		tweaksFrame.pack();
 
-		if(gui.getImageWin() != null) {
-			gui.getImageWin().getCanvas().addMouseListener(this);
-			gui.getImageWin().getCanvas().addMouseMotionListener(this);
+		if(gui.getSnapLiveWin() != null) {
+			gui.getSnapLiveWin().getCanvas().addMouseListener(this);
+			gui.getSnapLiveWin().getCanvas().addMouseMotionListener(this);
 
-			highlightBrightest(gui.getImageWin().getImagePlus());
+			highlightBrightest(gui.getSnapLiveWin().getImagePlus());
 		}
 	}
 
@@ -225,10 +225,11 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	}
 
 	private void highlightBrightest(ImagePlus imp) {
+		final ExecutorService executors = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 		List<net.imglib2.Point> peaks = LocalExtrema.findLocalExtrema(
 			ImagePlusAdapter.wrapShort(imp),
 			new LocalExtrema.MaximumCheck<UnsignedShortType>(new UnsignedShortType((int)(imp.getProcessor().getMin() + imp.getProcessor().getMax())/2)),
-			Runtime.getRuntime().availableProcessors()
+			executors
 		);
 
 		if(peaks.size() > 0) {
@@ -310,7 +311,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 	}
 
 	private Vector2D quickFit() throws Exception {
-		ImagePlus img = MMStudioMainFrame.getSimpleDisplay().getImagePlus();
+		ImagePlus img = MMStudio.getInstance().getSnapLiveManager().getSnapLiveDisplay().getImagePlus();
 		Point mouse = img.getCanvas().getCursorLoc();
 
 		ImageProcessor ip = img.getProcessor();
@@ -359,7 +360,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 	@Override
 	public void mouseMoved(MouseEvent me) {
-		if(!gui.getImageWin().isFocused())
+		if(!gui.getSnapLiveWin().isFocused())
 			return;
 
 		if(me.isControlDown())
@@ -457,7 +458,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 		ReportingUtils.logMessage(String.format("!!!--- SCANNING %.2f to %.2f", basez - scanDelta, basez + scanDelta));
 
-		Rectangle roi = MMStudioMainFrame.getSimpleDisplay().getImagePlus().getProcessor().getRoi();
+		Rectangle roi = MMStudio.getInstance().getSnapLiveManager().getSnapLiveDisplay().getImagePlus().getProcessor().getRoi();
 		ImageStack stack = new ImageStack(roi.width, roi.height);
 
 		for(double z = basez - scanDelta; z <= basez + scanDelta; z += setup.getZStage().getStepSize()) {
@@ -467,11 +468,12 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 			TaggedImage ti = setup.getCamera().snapImage();
 			addTags(ti, 0);
-			gui.addImage(MMStudioMainFrame.SIMPLE_ACQ, ti, true, true);
+			gui.addImage(SnapLiveManager.SIMPLE_ACQ, ti, true, true);
 
-			MMStudioMainFrame.getSimpleDisplay().updateAndDraw(true);
+			VirtualAcquisitionDisplay display = MMStudio.getInstance().getSnapLiveManager().getSnapLiveDisplay();
+			display.updateAndDraw(true);
 
-			ImageProcessor ip = MMStudioMainFrame.getSimpleDisplay().getImagePlus().getProcessor();
+			ImageProcessor ip = display.getImagePlus().getProcessor();
 
 			ImageProcessor cropped = ip.crop();
 
@@ -506,13 +508,13 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 				}
 
 				if(visualFit.isSelected())
-					MMStudioMainFrame.getSimpleDisplay().getImagePlus().setOverlay(
+					MMStudio.getInstance().getSnapLiveManager().getSnapLiveDisplay().getImagePlus().setOverlay(
 							new OvalRoi((int)(roi.x + loc.getX() - 2), (int)(roi.y + loc.getY() - 2), 4, 4),
 							overlayColor, 1, null);
 
 			} else {
 				if(visualFit.isSelected())
-					MMStudioMainFrame.getSimpleDisplay().getImagePlus().setOverlay(null);
+					MMStudio.getInstance().getSnapLiveManager().getSnapLiveDisplay().getImagePlus().setOverlay(null);
 			}
 		}
 
@@ -535,11 +537,11 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 		MDUtils.setPositionIndex(ti.tags, 0);
 		MDUtils.setSliceIndex(ti.tags, 0);
 		try {
-			ti.tags.put("Summary", MMStudioMainFrame.getInstance().getAcquisition(MMStudioMainFrame.SIMPLE_ACQ).getSummaryMetadata());
+			ti.tags.put("Summary", MMStudio.getInstance().getAcquisition(SnapLiveManager.SIMPLE_ACQ).getSummaryMetadata());
 		} catch (MMScriptException ex) {
 			ReportingUtils.logError("Error adding summary metadata to tags");
 		}
-		gui.addStagePositionToTags(ti);
+		gui.displayImage(ti);
 	}
 
 	private boolean getNextBead() throws Exception {
@@ -555,14 +557,14 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 
 		((DefaultListModel)pointsTable.getModel()).addElement(next);
 
-		ImageProcessor ip = gui.getImageWin().getImagePlus().getProcessor();
+		ImageProcessor ip = gui.getSnapLiveWin().getImagePlus().getProcessor();
 
 		Rectangle roi = ip.getRoi();
 
 		roi.setLocation((ip.getWidth() - roi.width) / 2,
 				(ip.getHeight() - roi.height) / 2);
 
-		gui.getImageWin().getImagePlus().setRoi(roi);
+		gui.getSnapLiveWin().getImagePlus().setRoi(roi);
 
 		return true;
 	};
@@ -631,7 +633,7 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 			scanningThread = new Thread() {
 				@Override
 				public void run() {
-					boolean live = gui.getLiveMode(); 
+					boolean live = gui.getSnapLiveManager().getIsLiveModeOn();
 					gui.enableLiveMode(false);
 					core.setAutoShutter(false);
 
@@ -740,8 +742,8 @@ public class SPIMAutoCalibrator extends JFrame implements SPIMCalibrator, Action
 				((DefaultListModel)pointsTable.getModel()).addElement(new Vector3D(x,y,z));
 			};
 		} else if(BTN_AUTOLOC.equals(ae.getActionCommand())) {
-			if(gui.getImageWin() != null)
-				highlightBrightest(gui.getImageWin().getImagePlus());
+			if(gui.getSnapLiveWin() != null)
+				highlightBrightest(gui.getSnapLiveWin().getImagePlus());
 		}
 	}
 };

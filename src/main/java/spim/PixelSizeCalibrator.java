@@ -36,12 +36,11 @@ import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction;
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.AbstractSimplex;
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.NelderMeadSimplex;
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.SimplexOptimizer;
-import org.micromanager.MMStudioMainFrame;
 import org.micromanager.utils.ImageUtils;
 
 import mmcorej.CMMCore;
 
-import spim.LayoutUtils;
+import org.micromanager.MMStudio;
 
 public class PixelSizeCalibrator extends JFrame implements MouseListener,
 		ActionListener {
@@ -59,13 +58,13 @@ public class PixelSizeCalibrator extends JFrame implements MouseListener,
 	private JComboBox gridRotCmbo;
 
 	private CMMCore core;
-	private MMStudioMainFrame gui;
+	private MMStudio gui;
 	private ImagePlus workingImage;
 
 	private JLabel umPerPixLbl;
 	private double umPerPix;
 
-	public PixelSizeCalibrator(CMMCore icore, MMStudioMainFrame igui) {
+	public PixelSizeCalibrator(CMMCore icore, MMStudio igui) {
 		super("Pixel Size Calibration");
 
 		this.getRootPane().setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));

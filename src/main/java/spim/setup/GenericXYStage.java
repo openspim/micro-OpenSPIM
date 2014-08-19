@@ -65,7 +65,7 @@ public class GenericXYStage {
 					GenericXYStage.this.destY = pos;
 				}
 			} catch (Exception e) {
-				ReportingUtils.logException("Couldn't set " + (iAmX ? "X" : "Y") + " position on " + label, e);
+				ReportingUtils.logError(e, "Couldn't set " + (iAmX ? "X" : "Y") + " position on " + label);
 			}
 		}
 
@@ -77,7 +77,7 @@ public class GenericXYStage {
 				else
 					return core.getYPosition(label);
 			} catch (Exception e) {
-				ReportingUtils.logException("Couldn't get " + (iAmX ? "X" : "Y") + " position on " + label, e);
+				ReportingUtils.logError(e, "Couldn't get " + (iAmX ? "X" : "Y") + " position on " + label);
 				return 0;
 			}
 		}

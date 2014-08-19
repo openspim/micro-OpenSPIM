@@ -26,8 +26,6 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.FilenameFilter;
-import java.text.NumberFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,14 +60,13 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
-import javax.swing.table.TableModel;
 
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
-import org.micromanager.MMStudioMainFrame;
+import org.micromanager.MMStudio;
 import org.micromanager.api.MMPlugin;
 import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.ImageUtils;
@@ -131,7 +128,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 
 	protected ScriptInterface app;
 	protected CMMCore mmc;
-	protected MMStudioMainFrame gui;
+	protected MMStudio gui;
 
 	protected SPIMSetup setup;
 	protected DeviceManager devMgr;
@@ -185,7 +182,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		if (prefs != null) try {
 			prefs.sync();
 		} catch (BackingStoreException e) {
-			ReportingUtils.logException("Could not write preferences: ", e);
+			ReportingUtils.logError(e, "Could not write preferences: ");
 		}
 		frame.dispose();
 		frame = null;
@@ -202,7 +199,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	public void setApp(ScriptInterface app) {
 		this.app = app;
 		mmc = app.getMMCore();
-		gui = MMStudioMainFrame.getInstance();
+		gui = MMStudio.getInstance();
 	}
 
 	/**
@@ -239,7 +236,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		if(!gui.isLiveModeOn() || hook == liveControlsHooked)
 			return;
 
-		ImageWindow win = gui.getImageWin();
+		ImageWindow win = gui.getSnapLiveWin();
 		if(win != null && win.isVisible()) {
 			if(!hook) {
 				listener.detach();
@@ -248,7 +245,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 				liveControlsHooked = listener.attach(win.getCanvas(), setup, calibration, -1);
 			}
 		} else {
-			ReportingUtils.logException("Couldn't set hooked=" + hook, new NullPointerException("win=" + win + ", val?" + win.isValid() + ", vis?" + win.isVisible()));
+			ReportingUtils.logError(new NullPointerException("win=" + win + ", val?" + win.isValid() + ", vis?" + win.isVisible()), "Couldn't set hooked=" + hook);
 		}
 	}
 
@@ -264,7 +261,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 				ReportingUtils.logMessage("Defined uncalibrated pixel size (1:1).");
 			}
 		} catch (Exception e) {
-			ReportingUtils.logException("Couldn't define uncalibrated pixel size: ", e);
+			ReportingUtils.logError(e, "Couldn't define uncalibrated pixel size: ");
 		}
 	}
 
@@ -1372,24 +1369,14 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			prefs.putDouble(key, value);
 	}
 
-	// Accessing the devices
-
-	protected void maybeUpdateImage() {
-		if (setup.isConnected(SPIMDevice.CAMERA1) && updateLiveImage && !gui.isLiveModeOn()) {
-			synchronized(frame) {
-				gui.updateImage();
-			}
-		}
-	}
-
 	/**
 	 * This main() method is for use with Fiji's Script Editor
 	 */
 	public static void main(String[] args) {
-		MMStudioMainFrame app = MMStudioMainFrame.getInstance();
+		MMStudio app = MMStudio.getInstance();
 		if (app == null) {
-			app = new MMStudioMainFrame(true);
-			app.setVisible(true);
+			app = new MMStudio(true);
+			MMStudio.getFrame().setVisible(true);
 		}
 		SPIMAcquisition plugin = new SPIMAcquisition();
 		plugin.setApp(app);

@@ -1,6 +1,5 @@
 package spim;
 
-import spim.LayoutUtils;
 import spim.setup.SPIMSetup;
 
 import java.awt.Color;
@@ -20,7 +19,6 @@ import javax.swing.JOptionPane;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.Roi;
 import ij.process.ImageProcessor;
@@ -33,19 +31,19 @@ import net.imglib2.algorithm.localization.MLGaussianEstimator;
 import net.imglib2.algorithm.localization.Observation;
 import net.imglib2.img.ImagePlusAdapter;
 
-import org.micromanager.MMStudioMainFrame;
 import org.micromanager.utils.ReportingUtils;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.threed.Plane;
 import org.apache.commons.math3.geometry.euclidean.threed.Line;
+import org.micromanager.MMStudio;
 
 public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIMCalibrator {
 	private static final long serialVersionUID = -4228128887292057193L;
 
 	private CMMCore core;
-	private MMStudioMainFrame gui;
+	private MMStudio gui;
 	private SPIMSetup setup;
 
 	private Roi pixelSizeRoi;
@@ -61,7 +59,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 	private final String PICK_ROI = "Pick ROI from Live Window";
 	private final String PICK_BEAD = "Pick Bead";
 
-	public SPIMManualCalibrator(CMMCore icore, MMStudioMainFrame igui, SPIMSetup isetup) {
+	public SPIMManualCalibrator(CMMCore icore, MMStudio igui, SPIMSetup isetup) {
 		super("SPIM Calibration");
 
 		core = icore;
@@ -321,7 +319,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 
 			// Move our ROI to around the center of the image (where the point
 			// should be) and run detect().
-			ImagePlus img = gui.getImageWin().getImagePlus();
+			ImagePlus img = gui.getSnapLiveWin().getImagePlus();
 			Roi imgRoi = img.getRoi();
 
 			Rectangle bounds = imgRoi.getBounds();
@@ -377,7 +375,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 
 		double basez = setup.getZStage().getPosition();
 
-		if(gui.getImageWin() == null || gui.getImageWin().getImagePlus().getRoi() == null)
+		if(gui.getSnapLiveWin() == null || gui.getSnapLiveWin().getImagePlus().getRoi() == null)
 			return null;
 
 		Vector3D c = Vector3D.ZERO;
@@ -387,7 +385,7 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 			setup.getZStage().setPosition(z);
 			setup.getZStage().waitFor();
 
-			ImageProcessor ip = gui.getImageWin().getImagePlus().getProcessor();
+			ImageProcessor ip = gui.getSnapLiveWin().getImagePlus().getProcessor();
 
 			double[] params = fit2DGaussian(ip.crop());
 
@@ -500,10 +498,10 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 	@Override
 	public void actionPerformed(ActionEvent ae) {
 		if(PICK_ROI.equals(ae.getActionCommand())) {
-			if(gui.getImageWin() == null || gui.getImageWin().getImagePlus().getRoi() == null)
+			if(gui.getSnapLiveWin() == null || gui.getSnapLiveWin().getImagePlus().getRoi() == null)
 				pixelSizeRoi = null;
 			else
-				pixelSizeRoi = (Roi) gui.getImageWin().getImagePlus().getRoi().clone();
+				pixelSizeRoi = (Roi) gui.getSnapLiveWin().getImagePlus().getRoi().clone();
 
 			redisplayUmPerPix();
 			psrRoiPickerBtn.setText(pixelSizeRoi.getBounds().getWidth() +
@@ -524,10 +522,10 @@ public class SPIMManualCalibrator extends JFrame implements ActionListener, SPIM
 
 				newText = PICK_BEAD;
 			} else {
-				if(gui.getImageWin() == null || gui.getImageWin().getImagePlus().getRoi() == null)
+				if(gui.getSnapLiveWin() == null || gui.getSnapLiveWin().getImagePlus().getRoi() == null)
 					return;
 
-				Vector3D vec = pickBead(gui.getImageWin().getImagePlus(), (ae.getModifiers() & ActionEvent.ALT_MASK) != 0);
+				Vector3D vec = pickBead(gui.getSnapLiveWin().getImagePlus(), (ae.getModifiers() & ActionEvent.ALT_MASK) != 0);
 				if(rotPickInit.equals(ae.getSource())) {
 					rotVecInit = vec;
 				} else if(rotPickMid.equals(ae.getSource())) {
