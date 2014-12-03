@@ -77,7 +77,7 @@
 	<repositories>
 		<repository>
 			<id>imagej.releases</id>
-			<url>http://maven.imagej.net/content/repositories/releases</url>
+			<url>http://maven.imagej.net/content/groups/public</url>
 		</repository>
 	</repositories>
 </project>
