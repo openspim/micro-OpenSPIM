@@ -20,12 +20,12 @@ Micro-Manager:
 
 ```bash
 cd plugins/Micro-Manager
-mvn install:install-file -DgroupId=org.micromanager -Dversion=1.4.19-SNAPSHOT \
+mvn install:install-file -DgroupId=org.micromanager -Dversion=1.4.20-SNAPSHOT \
 	-Dpackaging=jar -DartifactId=MMJ_ -Dfile=MMJ_.jar
-mvn install:install-file -DgroupId=org.micromanager -Dversion=1.4.19-SNAPSHOT \
+mvn install:install-file -DgroupId=org.micromanager -Dversion=1.4.20-SNAPSHOT \
 	-Dpackaging=jar -DartifactId=MMCoreJ -Dfile=MMCoreJ.jar
 ```
 
-After that, a simple `mvn` will build the `SPIMAcquisition` plugin which can
-then be installed by copying `target/SPIMAcquisition-<version>.jar` into
-`ImageJ.app/mmplugins/`.
+After that, a simple `mvn -Dscijava.enforce.skip` will build the
+`SPIMAcquisition` plugin which can then be installed by copying
+`target/SPIMAcquisition-<version>.jar` into `ImageJ.app/mmplugins/`.

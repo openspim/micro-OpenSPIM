@@ -19,8 +19,6 @@ import ij.process.FloatBlitter;
 import ij.process.FloatProcessor;
 import ij.process.ImageProcessor;
 
-import net.imglib2.algorithm.legacy.fft.PhaseCorrelation;
-import net.imglib2.algorithm.legacy.fft.PhaseCorrelationPeak;
 import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.img.Img;
 import net.imglib2.type.numeric.real.FloatType;
