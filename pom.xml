@@ -24,12 +24,12 @@
 		<dependency>
 			<groupId>org.micromanager</groupId>
 			<artifactId>MMCoreJ</artifactId>
-			<version>1.4.19-SNAPSHOT</version>
+			<version>1.4.20-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.micromanager</groupId>
 			<artifactId>MMJ_</artifactId>
-			<version>1.4.19-SNAPSHOT</version>
+			<version>1.4.20-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
