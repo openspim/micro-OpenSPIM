@@ -26,6 +26,6 @@ mvn install:install-file -DgroupId=org.micromanager -Dversion=1.4.19-SNAPSHOT \
 	-Dpackaging=jar -DartifactId=MMCoreJ -Dfile=MMCoreJ.jar
 ```
 
-After that, a simple `mvn` will build the `SPIMAcquisition` plugin which can
-then be installed by copying `target/SPIMAcquisition-<version>.jar` into
-`ImageJ.app/mmplugins/`.
+After that, a simple `mvn -Dscijava.enforce.skip` will build the
+`SPIMAcquisition` plugin which can then be installed by copying
+`target/SPIMAcquisition-<version>.jar` into `ImageJ.app/mmplugins/`.
