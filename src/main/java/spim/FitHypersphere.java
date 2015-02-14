@@ -17,7 +17,7 @@ import org.apache.commons.math3.linear.RealVector;
 /**
  * Fits a hypersphere to a number of n-dimensional points.
  *
- * The principle is described in {@link fiji.util.Circle_Fitter}.
+ * The principle is described in Fiji_Plugin's Circle_Fitter class.
  */
 public class FitHypersphere {
 	protected double[] center;
