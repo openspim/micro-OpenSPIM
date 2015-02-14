@@ -28,9 +28,14 @@ mvn install:install-file -DgroupId=org.micromanager -Dversion=1.4.20-SNAPSHOT \
 
 After that, a simple `mvn -Dscijava.enforce.skip` will build the
 `SPIMAcquisition` plugin which can then be installed by copying
-`target/SPIMAcquisition-<version>.jar` into `ImageJ.app/mmplugins/`.
+`target/SPIMAcquisition-<version>.jar` into `Fiji.app/mmplugins/`.
 
 # Installing into a Micro-Manager directory instead of Fiji
+
+The SPIMAcquisition plugin depends on a couple of components that are shipped
+with Fiji but not with Micro-Manager. Therefore, you will have to work a little
+harder if you want to install the plugin into a vanilla Micro-Manager as
+downloaded from [the Micro-Manager website](https://micro-manager.org):
 
 1. Run `mvn dependency:copy-dependencies` in the SPIMAcquisition directory
 2. From `target/dependency/` in that subdirectory, copy the `imglib2-*.jar` files to your Micro-Manager's `mmplugins/` subdirectory.
