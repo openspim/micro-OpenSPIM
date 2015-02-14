@@ -15,7 +15,7 @@ public class IndividualImagesHandler implements AcqOutputHandler {
 	 * saveIndividually.
 	 * 
 	 * @param header Prefixed onto the string.
-	 * @param t	whether or not to include time in filename
+	 * @param xyztt	which axes to include in the filename.
 	 * @param nameMap map of short names for devices to be in the filename.
 	 * @return the generated scheme (is also saved to this object!)
 	 */
