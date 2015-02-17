@@ -20,9 +20,9 @@ Micro-Manager:
 
 ```bash
 cd plugins/Micro-Manager
-mvn install:install-file -DgroupId=org.micromanager -Dversion=1.4.20-SNAPSHOT \
+mvn install:install-file -DgroupId=org.micromanager -Dversion=1.4.21-SNAPSHOT \
 	-Dpackaging=jar -DartifactId=MMJ_ -Dfile=MMJ_.jar
-mvn install:install-file -DgroupId=org.micromanager -Dversion=1.4.20-SNAPSHOT \
+mvn install:install-file -DgroupId=org.micromanager -Dversion=1.4.21-SNAPSHOT \
 	-Dpackaging=jar -DartifactId=MMCoreJ -Dfile=MMCoreJ.jar
 ```
 
