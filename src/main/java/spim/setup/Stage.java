@@ -1,6 +1,7 @@
 package spim.setup;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -90,8 +91,11 @@ public class Stage extends Device {
 	 * @return A collection of the allowed velocities.
 	 */
 	public Collection<Double> getAllowedVelocities() {
-		if(!hasProperty("Velocity"))
-			return null;
+		if(!hasProperty("Velocity")) {
+			// if the stage hasn't got the Velocity property, we are probably on the demo stage,
+			// so let's return a fake value
+			return Arrays.asList(1.0);
+		}
 		
 		Collection<String> vals = getPropertyAllowedValues("Velocity");
 		List<Double> list = new ArrayList<Double>(vals.size());
