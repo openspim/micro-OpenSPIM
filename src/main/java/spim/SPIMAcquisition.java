@@ -792,6 +792,12 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		int deflp = (int) ((setup.getLaser() != null ? setup.getLaser().getPower() : 1) * 1000);
 		int maxlp = (int) ((setup.getLaser() != null ? setup.getLaser().getMaxPower() : 1) * 1000);
 
+		if(deflp == 0) {
+			deflp = 1;
+		}
+
+		ReportingUtils.logDebugMessage("Laser min/max/def:" + minlp + " " + maxlp + " " + deflp);
+
 		laserSlider = new SteppedSlider("Laser Power:", minlp, maxlp, 1, deflp, SteppedSlider.LABEL_LEFT | SteppedSlider.INCREMENT_BUTTONS) {
 			@Override
 			public void valueChanged() {
