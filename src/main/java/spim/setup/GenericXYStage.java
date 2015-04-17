@@ -81,7 +81,35 @@ public class GenericXYStage {
 				return 0;
 			}
 		}
+		public double getStepSize() {
+			if(hasProperty("StepSize")) {
+				return getPropertyDouble("StepSize");
+			}
+			else {
+				return 1.0;
+			}
+		}
 
+		public double getMinPosition() {
+			if(hasProperty("Min"))
+				return getPropertyDouble("Min")*getStepSize();
+			else
+				return 0.0;
+		}
+
+		/**
+		 * Get the maximum possible position in um.
+		 * 
+		 * @return max position in um
+		 */
+		public double getMaxPosition()
+		{
+			if(hasProperty("Max")) {
+				return getPropertyDouble("Max")*getStepSize();
+			}	
+			else
+				return 9000.0; // *** this is why you should implement your own stages.
+		}
 		@Override
 		public boolean hasProperty(String name) {
 			return super.hasProperty((iAmX ? "X-" : "Y-") + name);
