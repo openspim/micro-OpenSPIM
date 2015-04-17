@@ -125,7 +125,7 @@ public class Stage extends Device {
 	 */
 	public double getMinPosition() {
 		if(hasProperty("Min"))
-			return getPropertyDouble("Min");
+			return getPropertyDouble("Min")*getStepSize();
 		else
 			return 0.0;
 	}
@@ -138,9 +138,9 @@ public class Stage extends Device {
 	public double getMaxPosition()
 	{
 		if(hasProperty("Max"))
-			return getPropertyDouble("Max");
+			return getPropertyDouble("Max")*getStepSize();
 		else
-			return 10000.0; // *** this is why you should implement your own stages.
+			return 9000.0; // *** this is why you should implement your own stages.
 	}
 
 	/**
