@@ -48,16 +48,6 @@ public class PicardXYStage extends GenericXYStage {
 			super.setVelocity(velocity);
 		}
 
-		//@Override
-		//public double getMinPosition() {
-		//	return 0;
-		//}
-
-		//@Override
-		//public double getMaxPosition() {
-		//	return 9000;
-		//}
-		
 		@Override
 		public void home() {
 			try {
