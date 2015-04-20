@@ -31,16 +31,6 @@ public class PicardStage extends Stage {
 		super(core, label);
 	}
 
-	//@Override
-	//public double getMinPosition() {
-	//	return 0;
-	//}
-
-	//@Override
-	//public double getMaxPosition() {
-	//	return 9000;
-	//}
-
 	@Override
 	public void home() {
 		// TODO: This is a workaround, since the MM API lacks a home() call for single-axis stages.
