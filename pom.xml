@@ -82,6 +82,36 @@
 			<artifactId>j3d-core-utils</artifactId>
 			<scope>provided</scope>
 		</dependency>
+        <dependency>
+            <groupId>org.beanshell</groupId>
+            <artifactId>bsh</artifactId>
+            <version>2.0b4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>18.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fifesoft</groupId>
+            <artifactId>rsyntaxtextarea</artifactId>
+            <version>2.5.6</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.clojure</groupId>
+            <artifactId>clojure</artifactId>
+            <version>1.6.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.miglayout</groupId>
+            <artifactId>miglayout-swing</artifactId>
+            <version>4.2</version>
+            <scope>test</scope>
+        </dependency>
 	</dependencies>
 
 	<!-- NB: for project parent -->
