@@ -12,7 +12,7 @@ This project is a regular Maven project, drawing on the
 (such as Eclipse, IntelliJ, Netbeans, etc) or build it from the command-line:
 
 ```sh
-mvn -Dscijava.enforce.skip
+mvn
 ```
 
 This builds the `SPIMAcquisition` plugin which can then be installed by copying
