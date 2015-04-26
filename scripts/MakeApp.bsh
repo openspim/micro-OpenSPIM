@@ -1,0 +1,14 @@
+import fiji.packaging.Packager;
+
+import java.util.Calendar;
+
+import javassist.ClassPool;
+import javassist.expr.ExprEditor;
+import javassist.expr.MethodCall;
+
+now = Calendar.getInstance();
+zip = "OpenSPIM-" + String.format("%04d%02d%02d", new Object[] {
+	now.get(Calendar.YEAR), now.get(Calendar.MONTH) + 1, now.get(Calendar.DAY_OF_MONTH)
+}) + ".zip";
+
+Packager.main(new String[] { "--prefix=OpenSPIM.app/", zip });
