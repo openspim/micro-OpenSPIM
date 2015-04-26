@@ -5,7 +5,16 @@ system.
 The *SPIMAcquisition* plugin for [Micro Manager](https://micro-manager.org) is
 the primary means to acquire image stacks with the OpenSPIM setups.
 
-# How to build
+# Where to get the latest development build
+
+This project is built and tested by the ImageJ Jenkins server:
+
+	http://jenkins.imagej.net/view/OpenSPIM/job/SPIMAcquisition/
+
+The latest builds including sources and javadoc attachments are available
+on that web site, too.
+
+# How to build yourself
 
 This project is a regular Maven project, drawing on the
 [SciJava](http://scijava.org/) project. You can import it into your IDE of choice
