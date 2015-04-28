@@ -49,16 +49,6 @@ public class PicardXYStage extends GenericXYStage {
 		}
 
 		@Override
-		public double getMinPosition() {
-			return 0;
-		}
-
-		@Override
-		public double getMaxPosition() {
-			return 9000;
-		}
-		
-		@Override
 		public void home() {
 			try {
 				core.home(label);

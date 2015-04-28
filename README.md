@@ -5,29 +5,26 @@ system.
 The *SPIMAcquisition* plugin for [Micro Manager](https://micro-manager.org) is
 the primary means to acquire image stacks with the OpenSPIM setups.
 
-# How to build
+# Where to get the latest development build
 
-To build this plugin, two extra steps are required before letting Maven (or
-any Integrated Development Environment with a Maven integration) build the
-project: The Micro-Manager artifacts need to be installed locally because they
-are not available via any public Maven repository yet.
+This project is built and tested by the ImageJ Jenkins server:
 
-Assuming that you already have a nightly build (e.g. by following the
-[Micro-Manager-dev update site](http://sites.imagej.net/Micro-Manager-dev/)),
-install the artifacts into your local Maven repository by executing the
-following two commands inside the `ImageJ.app/` directory containing
-Micro-Manager:
+	http://jenkins.imagej.net/view/OpenSPIM/job/SPIMAcquisition/
 
-```bash
-cd plugins/Micro-Manager
-mvn install:install-file -DgroupId=org.micromanager -Dversion=1.4.21-SNAPSHOT \
-	-Dpackaging=jar -DartifactId=MMJ_ -Dfile=MMJ_.jar
-mvn install:install-file -DgroupId=org.micromanager -Dversion=1.4.21-SNAPSHOT \
-	-Dpackaging=jar -DartifactId=MMCoreJ -Dfile=MMCoreJ.jar
+The latest builds including sources and javadoc attachments are available
+on that web site, too.
+
+# How to build yourself
+
+This project is a regular Maven project, drawing on the
+[SciJava](http://scijava.org/) project. You can import it into your IDE of choice
+(such as Eclipse, IntelliJ, Netbeans, etc) or build it from the command-line:
+
+```sh
+mvn
 ```
 
-After that, a simple `mvn -Dscijava.enforce.skip` will build the
-`SPIMAcquisition` plugin which can then be installed by copying
+This builds the `SPIMAcquisition` plugin which can then be installed by copying
 `target/SPIMAcquisition-<version>.jar` into `Fiji.app/mmplugins/`.
 
 # Installing into a Micro-Manager directory instead of Fiji

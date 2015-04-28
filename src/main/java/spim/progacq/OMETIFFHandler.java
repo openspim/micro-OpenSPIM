@@ -1,26 +1,28 @@
 package spim.progacq;
 
-import java.io.File;
-
 import ij.ImagePlus;
 import ij.process.ImageProcessor;
-import org.micromanager.utils.ReportingUtils;
+
+import java.io.File;
 
 import loci.common.DataTools;
 import loci.common.services.ServiceFactory;
-
+import loci.formats.FormatTools;
 import loci.formats.IFormatWriter;
 import loci.formats.ImageWriter;
 import loci.formats.MetadataTools;
 import loci.formats.meta.IMetadata;
 import loci.formats.services.OMEXMLService;
 import mmcorej.CMMCore;
-
+import ome.units.UNITS;
+import ome.units.quantity.Length;
+import ome.units.quantity.Time;
 import ome.xml.model.enums.DimensionOrder;
 import ome.xml.model.enums.PixelType;
 import ome.xml.model.primitives.NonNegativeInteger;
-import ome.xml.model.primitives.PositiveFloat;
 import ome.xml.model.primitives.PositiveInteger;
+
+import org.micromanager.utils.ReportingUtils;
 
 public class OMETIFFHandler implements AcqOutputHandler {
 	private File outputDirectory;
@@ -92,10 +94,10 @@ public class OMETIFFHandler implements AcqOutputHandler {
 				meta.setPixelsSizeC(new PositiveInteger(1), image);
 				meta.setPixelsSizeT(new PositiveInteger(timesteps), image);
 
-				meta.setPixelsPhysicalSizeX(new PositiveFloat(core.getPixelSizeUm()), image);
-				meta.setPixelsPhysicalSizeY(new PositiveFloat(core.getPixelSizeUm()), image);
-				meta.setPixelsPhysicalSizeZ(new PositiveFloat(Math.max(row.getZStepSize(), 1.0D)), image);
-				meta.setPixelsTimeIncrement(new Double(deltat), image);
+				meta.setPixelsPhysicalSizeX(FormatTools.getPhysicalSizeX(core.getPixelSizeUm()), image);
+				meta.setPixelsPhysicalSizeY(FormatTools.getPhysicalSizeX(core.getPixelSizeUm()), image);
+				meta.setPixelsPhysicalSizeZ(FormatTools.getPhysicalSizeX(Math.max(row.getZStepSize(), 1.0D)), image);
+				meta.setPixelsTimeIncrement(new Time(new Double(deltat), UNITS.S), image);
 			}
 
 			writer = new ImageWriter().getWriter(makeFilename(0, 0));
@@ -160,12 +162,12 @@ public class OMETIFFHandler implements AcqOutputHandler {
 		int timePoint = imageCounter / stacks;
 		int plane = timePoint*acqRows[image].getDepth() + sliceCounter;
 
-		meta.setPlanePositionX(X, image, plane);
-		meta.setPlanePositionY(Y, image, plane);
-		meta.setPlanePositionZ(Z, image, plane);
+		meta.setPlanePositionX(new Length(X, UNITS.REFERENCEFRAME), image, plane);
+		meta.setPlanePositionY(new Length(Y, UNITS.REFERENCEFRAME), image, plane);
+		meta.setPlanePositionZ(new Length(Z, UNITS.REFERENCEFRAME), image, plane);
 		meta.setPlaneTheZ(new NonNegativeInteger(sliceCounter), image, plane);
 		meta.setPlaneTheT(new NonNegativeInteger(timePoint), image, plane);
-		meta.setPlaneDeltaT(deltaT, image, plane);
+		meta.setPlaneDeltaT(new Time(deltaT, UNITS.S), image, plane);
 
 		storeDouble(image, plane, 0, "Theta", theta);
 
