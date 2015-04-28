@@ -435,7 +435,6 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		stageControls.setName("Stage Controls");
 		stageControls.setLayout(new BoxLayout(stageControls, BoxLayout.PAGE_AXIS));
 		stageControls.add(left);
-		stageControls.add(Box.createVerticalStrut(200));
 		addLine(stageControls, Justification.RIGHT, autoReplaceMMControls, homeBtn, devMgrBtn, pixCalibBtn, calibrateButton);
 
 		acqPosTabs = new JTabbedPane();
