@@ -1,3 +1,5 @@
+[![](http://jenkins.imagej.net/job/SPIMAcquisition/lastBuild/badge/icon)](http://jenkins.imagej.net/job/SPIMAcquisition/)
+
 The [OpenSPIM](http://openspim.org/) project is a collaboration between multiple
 labs to establish an accessible, easily adjustable light sheet microscope
 system.
