@@ -1712,8 +1712,20 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					output = new File(acqSaveDir.getText());
 
 					if(!output.isDirectory()) {
-						JOptionPane.showMessageDialog(null, "You must specify a directory.");
-						return;
+						int result = JOptionPane.showConfirmDialog(null, 
+			                    "The specified root directory does not exist. Create it?", "Directory not found.", 
+			                    JOptionPane.YES_NO_OPTION);
+			            if (result == JOptionPane.YES_OPTION) {
+			               output.mkdirs();
+			               if (!output.canWrite()) {
+			                  ReportingUtils.showError(
+			                          "Unable to save data to selected location: check that location exists.\nAcquisition canceled.");
+			                  return;
+			               }
+			            } else {
+			               ReportingUtils.showMessage("Acquisition canceled.");
+			               return;
+			            }
 					}
 
 					if(output.list().length != 0) {
