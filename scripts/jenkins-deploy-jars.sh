@@ -14,7 +14,7 @@ do
 	if test $(stat -c %Y "$file") -ge $now
 	then
 		# unfortunately, this version is not recorded on the update site
-		version=1.4.21-SNAPSHOT
+		version=1.4.22-SNAPSHOT
 		mvn -f "$(dirname "$0")/../pom.xml" -Pdeploy-to-imagej deploy:deploy-file \
 			-Durl=dav:http://maven.imagej.net/content/repositories/snapshots \
 			-DrepositoryId=imagej.snapshots \
