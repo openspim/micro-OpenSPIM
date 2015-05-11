@@ -405,7 +405,7 @@ public class ProgrammaticAcquisitor {
 
 						handleSlice(core, setup, metaDevs, acqBegan, ip, handler);
 						if(ad != null)
-							tallyAntiDriftSlice(core, setup, row, ad, ip);
+							tallyAntiDriftSlice( ad, ip);
 						if(params.isUpdateLive())
 							updateLiveImage(frame, ti);
 					};
@@ -447,7 +447,7 @@ public class ProgrammaticAcquisitor {
 								prof.get("Output").stop();
 
 							if(ad != null)
-								tallyAntiDriftSlice(core, setup, row, ad, ip);
+								tallyAntiDriftSlice(ad, ip);
 							if(params.isUpdateLive())
 								updateLiveImage(frame, ti);
 						}
@@ -557,8 +557,8 @@ public class ProgrammaticAcquisitor {
 		return handler.getImagePlus();
 	}
 
-	private static void tallyAntiDriftSlice(CMMCore core, SPIMSetup setup, AcqRow row, AntiDrift ad, ImageProcessor ip) throws Exception {
-		ad.tallySlice(new Vector3D(0,0,setup.getZStage().getPosition()-row.getZStartPosition()), ip);
+	private static void tallyAntiDriftSlice(AntiDrift ad, ImageProcessor ip) throws Exception {
+		ad.tallySlice(ip);
 	}
 
 	private static void handleSlice(CMMCore core, SPIMSetup setup,
