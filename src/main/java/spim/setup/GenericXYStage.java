@@ -37,7 +37,7 @@ public class GenericXYStage {
 
 	public GenericXYStage() {
 		stageX = stageY = null;
-		destX = destY = 0;
+		destX = destY = -1;
 	}
 
 	public class SubStage extends Stage {
@@ -47,20 +47,17 @@ public class GenericXYStage {
 			super(core, label);
 
 			iAmX = isX;
-
-			if (isX)
-				GenericXYStage.this.destX = getPosition();
-			else
-				GenericXYStage.this.destY = getPosition();
 		}
 
 		@Override
 		public void setPosition(double pos) {
 			try {
 				if (iAmX) {
+					if (destY < 0) destY = core.getYPosition(label);
 					core.setXYPosition(label, pos, GenericXYStage.this.destY);
 					GenericXYStage.this.destX = pos;
 				} else {
+					if (destX < 0) destX = core.getXPosition(label);
 					core.setXYPosition(label, GenericXYStage.this.destX, pos);
 					GenericXYStage.this.destY = pos;
 				}

@@ -52,6 +52,10 @@ public class PicardXYStage extends GenericXYStage {
 		public void home() {
 			try {
 				core.home(label);
+				if (iAmX)
+					destX = -1;
+				else
+					destY = -1;
 			} catch (Exception e) {
 				ReportingUtils.logError(e, "Could not home X/Y stage.");
 			}
