@@ -4,14 +4,17 @@ import ij.process.*;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
 /**
- * Created by moon on 5/11/15.
+ * AntiDrift handler for checking the difference among projections
  */
 public class ProjectDiffAntiDrift extends AntiDrift
 {
-	Projections latest;
-	Projections first;
+	private Projections latest;
+	private Projections first;
 	private Vector3D lastCorrection;
 
+	/**
+	 * Instantiates a new Project diff anti drift.
+	 */
 	public ProjectDiffAntiDrift()
 	{
 		setLastCorrection( Vector3D.ZERO );
@@ -37,18 +40,32 @@ public class ProjectDiffAntiDrift extends AntiDrift
 		if(initial)
 			first = latest;
 
-		final Vector3D center = getLastCorrection().add( latest.getCenter() );
-
 		Vector3D init = latest.correlateAndAverage(first);
+
+		System.out.println( init );
+		setLastCorrection( init );
+
+		final Vector3D correctedCenter = lastCorrection.add(latest.getCenter());
+		System.out.println( correctedCenter );
 
 		first = latest;
 	}
 
+	/**
+	 * Gets last correction.
+	 *
+	 * @return the last correction
+	 */
 	public Vector3D getLastCorrection()
 	{
 		return lastCorrection;
 	}
 
+	/**
+	 * Sets last correction.
+	 *
+	 * @param lastCorrection the last correction
+	 */
 	public void setLastCorrection( Vector3D lastCorrection )
 	{
 		this.lastCorrection = lastCorrection;

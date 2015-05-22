@@ -1,7 +1,3 @@
-/**
- * Created by moon on 5/11/15.
- */
-
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.FloatProcessor;
@@ -11,6 +7,9 @@ import org.junit.Test;
 import org.junit.Assert;
 import spim.progacq.ProjectDiffAntiDrift;
 
+/**
+ * The type Anti drift handler test.
+ */
 public class AntiDriftTest
 {
 	private ImagePlus impFirst;
@@ -67,30 +66,40 @@ public class AntiDriftTest
 		return new ImagePlus("Blob", stack);
 	}
 
+	/**
+	 * setup the images
+	 */
 	@Before
 	public void setup()
 	{
-		impFirst = generateBlob(128, 128, 128, 64, 32, 48, 50, 30, 40);
-		impSecond = generateBlob(128, 128, 128, 64 + 16, 32 + 24, 48 + 32, 50 - 10, 30 - 10, 40 - 10);
+		// impFirst = generateBlob(128, 128, 128, 64, 32, 48, 50 / 8.0f , 30 / 4.0f, 40 / 4.0f);
+		// impSecond = generateBlob(128, 128, 128, 64 + 16, 32 + 24, 48 + 32, 40 /8.0f, 20 / 4.0f, 30 / 4.0f);
+		// The below parameters are simplified version with above ratio
+		impFirst = generateBlob(128, 128, 128, 64, 32, 48, 12.5f , 7.5f, 10.0f);
+		impSecond = generateBlob(128, 128, 128, 64 + 16, 32 + 24, 48 + 32, 5.0f, 5.0f, 7.5f);
 	}
 
+	/**
+	 * Test anti drift handler.
+	 */
 	@Test
 	public void testAntiDrift()
 	{
 		final ProjectDiffAntiDrift proj = new ProjectDiffAntiDrift();
 		proj.startNewStack();
 
-		for(int k = 1; k <= impFirst.getSlice(); k++)
+		final ImageStack stackFirst = impFirst.getImageStack();
+		for(int k = 1; k <= stackFirst.getSize(); k++)
 		{
-			impFirst.setSlice( k );
-			proj.tallySlice( impFirst.getProcessor() );
+			proj.tallySlice( stackFirst.getProcessor( k ) );
 		}
 		proj.finishStack( true );
 
-		for(int k = 1; k <= impSecond.getSlice(); k++)
+		proj.startNewStack();
+		final ImageStack stackSecond = impSecond.getImageStack();
+		for(int k = 1; k <= stackSecond.getSize(); k++)
 		{
-			impFirst.setSlice( k );
-			proj.tallySlice( impSecond.getProcessor() );
+			proj.tallySlice( stackSecond.getProcessor( k ) );
 		}
 		proj.finishStack( false );
 
