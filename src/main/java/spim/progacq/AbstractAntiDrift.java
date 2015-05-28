@@ -59,11 +59,9 @@ public abstract class AbstractAntiDrift implements AntiDrift
 
 	public abstract void startNewStack();
 
-	public abstract void tallySlice(ImageProcessor ip);
+	public abstract void addXYSlice(ImageProcessor ip);
 
 	public abstract void finishStack();
-
-	public abstract void finishStack(boolean initial);
 
 	public abstract void updateOffset(Vector3D offset);
 

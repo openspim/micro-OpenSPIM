@@ -5,8 +5,10 @@ import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.Assert;
+import spim.progacq.AntiDriftController;
 import spim.progacq.DefaultAntiDrift;
-import spim.progacq.ProjectDiffAntiDrift;
+
+import java.io.File;
 
 /**
  * The type Anti drift handler test.
@@ -92,22 +94,53 @@ public class AntiDriftTest
 		final ImageStack stackFirst = impFirst.getImageStack();
 		for(int k = 1; k <= stackFirst.getSize(); k++)
 		{
-			proj.tallySlice( stackFirst.getProcessor( k ) );
+			proj.addXYSlice( stackFirst.getProcessor( k ) );
 		}
-		proj.finishStack( true );
+		proj.finishStack( );
 
 		proj.startNewStack();
 		final ImageStack stackSecond = impSecond.getImageStack();
 		for(int k = 1; k <= stackSecond.getSize(); k++)
 		{
-			proj.tallySlice( stackSecond.getProcessor( k ) );
+			proj.addXYSlice( stackSecond.getProcessor( k ) );
 		}
-		proj.finishStack( false );
+		proj.finishStack( );
 
 		final double DELTA = 1e-5;
 		final Vector3D correction = proj.getLastCorrection();
 		Assert.assertEquals(16, correction.getX(), DELTA);
 		Assert.assertEquals(24, correction.getY(), DELTA);
 		Assert.assertEquals(32, correction.getZ(), DELTA);
+	}
+
+	/**
+	 * GUI involved test which is run in main function
+	 */
+	public void testAntiDriftController()
+	{
+		final AntiDriftController ct = new AntiDriftController( new File("/Users/moon/temp/"), 2, 3, 4, 0, 1, 0);
+		ct.startNewStack();
+
+		final ImageStack stackFirst = impFirst.getImageStack();
+		for(int k = 1; k <= stackFirst.getSize(); k++)
+		{
+			ct.addXYSlice( stackFirst.getProcessor( k ) );
+		}
+		ct.finishStack();
+
+		ct.startNewStack();
+		final ImageStack stackSecond = impSecond.getImageStack();
+		for(int k = 1; k <= stackSecond.getSize(); k++)
+		{
+			ct.addXYSlice( stackSecond.getProcessor( k ) );
+		}
+		ct.finishStack();
+	}
+
+	public static void main(String[] argv)
+	{
+		AntiDriftTest test = new AntiDriftTest();
+		test.setup();
+		test.testAntiDriftController();
 	}
 }

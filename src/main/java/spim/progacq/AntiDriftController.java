@@ -14,26 +14,30 @@ public class AntiDriftController implements AntiDrift.Callback
 	final private AdjustGUI gui;
 	private Vector3D center;
 	private double zratio;
+	private double zstep;
 	private long tp;
 	private File outputDir;
 
 	/**
-	 * Instantiates a new Anti drift controller.
+	 * Instantiates a new AntiDriftController using primitive parameters
 	 *
 	 * @param outputDir the output dir
-	 * @param acqParams the acq params
-	 * @param acqRow the acq row
+	 * @param x the x
+	 * @param y the y
+	 * @param z the z
+	 * @param theta the theta
+	 * @param zstep the zstep
+	 * @param zratio the zratio
 	 */
-	public AntiDriftController(final File outputDir, final AcqParams acqParams, final AcqRow acqRow)
+	public AntiDriftController(final File outputDir, double x, double y, double z, double theta, double zstep, double zratio)
 	{
-		final Vector3D loc = new Vector3D(acqRow.getX(), acqRow.getY(), acqRow.getZStartPosition());
-		final double theta = acqRow.getTheta();
-
-		zratio = acqRow.getZStepSize() / acqParams.getCore().getPixelSizeUm();
+		final Vector3D loc = new Vector3D(x, y, z);
+		this.zratio = zratio;
+		this.zstep = zstep;
 		tp = 1;
 
 		antiDrift = new DefaultAntiDrift();
-		gui = new AdjustGUI(acqParams, acqRow);
+		gui = new AdjustGUI(x, y, z, theta, zratio);
 
 		if(outputDir != null) {
 			String xyz = String.format("XYZ%.2fx%.2fx%.2f_Theta%.2f", loc.getX(), loc.getY(), loc.getZ(), theta);
@@ -48,12 +52,25 @@ public class AntiDriftController implements AntiDrift.Callback
 	}
 
 	/**
-	 * New instance.
+	 * Instantiates a new AntiDriftController using MicroManager Parameters
 	 *
 	 * @param outputDir the output dir
 	 * @param acqParams the acq params
 	 * @param acqRow the acq row
-	 * @return the anti drift controller
+	 */
+	public AntiDriftController(final File outputDir, final AcqParams acqParams, final AcqRow acqRow)
+	{
+		this( outputDir, acqRow.getX(), acqRow.getY(), acqRow.getZStartPosition(), acqRow.getTheta(),
+				acqRow.getZStepSize(), acqRow.getZStepSize() / acqParams.getCore().getPixelSizeUm() );
+	}
+
+	/**
+	 * Give new instance of AntiDriftController.
+	 *
+	 * @param outputDir the output dir
+	 * @param acqParams the acq params
+	 * @param acqRow the acq row
+	 * @return the AntiDriftController
 	 */
 	public static AntiDriftController newInstance(final File outputDir, final AcqParams acqParams, final AcqRow acqRow)
 	{
@@ -61,7 +78,7 @@ public class AntiDriftController implements AntiDrift.Callback
 	}
 
 	/**
-	 * The interface Factory.
+	 * The interface Factory to instanciate AntiDriftController in lazy binding.
 	 */
 	public interface Factory
 	{
@@ -101,13 +118,13 @@ public class AntiDriftController implements AntiDrift.Callback
 	}
 
 	/**
-	 * Tally slice.
+	 * Add a XY slice.
 	 *
 	 * @param ip the ip
 	 */
-	public void tallySlice(ImageProcessor ip)
+	public void addXYSlice(ImageProcessor ip)
 	{
-		antiDrift.tallySlice( ip );
+		antiDrift.addXYSlice( ip );
 	}
 
 	/**
@@ -115,7 +132,7 @@ public class AntiDriftController implements AntiDrift.Callback
 	 */
 	public void finishStack()
 	{
-		antiDrift.finishStack();
+		finishStack( antiDrift.getFirst() == null );
 	}
 
 	/**
@@ -125,18 +142,25 @@ public class AntiDriftController implements AntiDrift.Callback
 	 */
 	public void finishStack(boolean initial)
 	{
+		if(initial)
+			antiDrift.setFirst( antiDrift.getLatest() );
+
 		center = antiDrift.getLastCorrection().add( antiDrift.getLatest().getCenter() );
 
 		// Before processing anti-drift
-		antiDrift.writeDiff( getOutFile("initial"), antiDrift.getLastCorrection(), zratio, center );
+		if(null != outputDir)
+			antiDrift.writeDiff( getOutFile("initial"), antiDrift.getLastCorrection(), zratio, center );
 
 		// Process anti-drift
-		antiDrift.finishStack( initial );
+		antiDrift.finishStack();
 
 		// After the anti-drift processing
-		antiDrift.writeDiff( getOutFile("suggested"), antiDrift.getLastCorrection(), zratio, center );
+		if(null != outputDir)
+			antiDrift.writeDiff( getOutFile("suggested"), antiDrift.getLastCorrection(), zratio, center );
 
 		// Invoke GUI for fine-tuning
+		gui.setVisible( true );
+
 		gui.setCallback( this );
 		gui.setZratio( zratio );
 		gui.updateScale( antiDrift.getLatest().largestDimension() * 2 );
@@ -147,8 +171,6 @@ public class AntiDriftController implements AntiDrift.Callback
 
 		gui.updateDiff();
 
-		gui.setVisible( true );
-
 		// first = latest
 		antiDrift.setFirst( antiDrift.getLatest() );
 
@@ -157,20 +179,18 @@ public class AntiDriftController implements AntiDrift.Callback
 	}
 
 	private File getOutFile(String tag) {
-		if(outputDir != null)
-			return new File(outputDir, String.format("diff_TL%02d_%s.tiff", tp, tag));
-		else
-			return null;
+		return new File(outputDir, String.format("diff_TL%02d_%s.tiff", tp, tag));
 	}
 
 	public void applyOffset( Vector3D offset )
 	{
-		offset = offset.add(antiDrift.getLastCorrection());
-		antiDrift.setLastCorrection( offset );
+		antiDrift.updateOffset( offset );
 
-		// TODO: Check how this code is working
-//		invokeCallback(new Vector3D(-offs.getX(), -offs.getY(), -offs.getZ()*zstep));
+		// Callback function for ProgrammaticAcquisitor class
+		// refer spim/progacq/ProgrammaticAcquisitor.java:366
+		antiDrift.invokeCallback(new Vector3D(-offset.getX(), -offset.getY(), -offset.getZ() * zstep));
 
-		antiDrift.writeDiff( getOutFile("final"), antiDrift.getLastCorrection(), zratio, center );
+		if(null != outputDir)
+			antiDrift.writeDiff( getOutFile("final"), antiDrift.getLastCorrection(), zratio, center );
 	}
 }

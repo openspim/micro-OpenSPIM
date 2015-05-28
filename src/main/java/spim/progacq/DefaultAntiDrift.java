@@ -3,13 +3,16 @@ package spim.progacq;
 import ij.process.ImageProcessor;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
+import java.util.logging.Logger;
+
 /**
- * Created by moon on 5/28/15.
+ * The DefaultAntiDrift class provides PhaseCorrelation method for AntiDrift.
  */
 public class DefaultAntiDrift extends AbstractAntiDrift
 {
+	Logger log = Logger.getLogger(DefaultAntiDrift.class.getName());
 	/**
-	 * Instantiates a new Project diff anti drift.
+	 * Instantiates a new DefaultAntiDrift class using PhaseCorrelation.
 	 */
 	public DefaultAntiDrift()
 	{
@@ -21,24 +24,20 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 		latest = new Projections();
 	}
 
-	@Override public void tallySlice( ImageProcessor ip )
+	@Override public void addXYSlice( ImageProcessor ip )
 	{
 		latest.addXYSlice( ip );
 	}
 
 	@Override public void finishStack()
 	{
-		finishStack( first == null );
-	}
-
-	@Override public void finishStack( boolean initial )
-	{
-		if(initial)
+		if(first == null)
 			first = latest;
 
 		Vector3D suggested = latest.correlateAndAverage(first);
 
-		System.out.println( suggested );
+		log.info( suggested.toString() );
+
 		setLastCorrection( suggested );
 	}
 

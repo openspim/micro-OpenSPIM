@@ -23,8 +23,6 @@ public class AdjustGUI extends JFrame implements KeyListener
 
 	private long tp;
 	private Vector3D loc;
-	private double theta;
-	private double zstep;
 
 	private Projections before, after;
 
@@ -97,16 +95,6 @@ public class AdjustGUI extends JFrame implements KeyListener
 	private double zratio;
 
 	/**
-	 * Gets zratio.
-	 *
-	 * @return the zratio
-	 */
-	public double getZratio()
-	{
-		return zratio;
-	}
-
-	/**
 	 * Sets zratio.
 	 *
 	 * @param zratio the zratio
@@ -129,30 +117,21 @@ public class AdjustGUI extends JFrame implements KeyListener
 	}
 
 	/**
-	 * Instantiates a new AdjustGUI
+	 * Instantiates a new AdjustGUI using primitive parameters
 	 *
-	 * @param acqParams the acq params
-	 * @param acqRow the acq row
+	 * @param x the x
+	 * @param y the y
+	 * @param z the z
+	 * @param theta the theta
+	 * @param zratio the zratio
 	 */
-	public AdjustGUI(final AcqParams acqParams, final AcqRow acqRow)
+	public AdjustGUI(final double x, final double y, final double z, final double theta, final double zratio)
 	{
-		this.loc = new Vector3D(acqRow.getX(), acqRow.getY(), acqRow.getZStartPosition());
-		this.theta = acqRow.getTheta();
+		this.loc = new Vector3D(x, y, z);
 		this.tp = 1;
-		this.zstep = acqRow.getZStepSize();
-		this.zratio = zstep / acqParams.getCore().getPixelSizeUm();
+		this.zratio = zratio;
 
-		panel = new JPanel() {
-			@Override
-			public void paintComponent(final Graphics g) {
-				super.paintComponent(g);
-				if(diff != null)
-					g.drawImage(diff, 0, 0, null);
-			}
-		};
-		getContentPane().add(panel);
 		addKeyListener(this);
-		pack();
 		setTitle(String.format("xyz: %.2f x %.2f x %.2f, theta: %.2f, timepoint %02d", loc.getX(), loc.getY(), loc.getZ(), theta, tp));
 	}
 
@@ -222,11 +201,21 @@ public class AdjustGUI extends JFrame implements KeyListener
 			diff = null;
 		}
 		diff = cp.createImage();
-		if (panel != null) {
-			panel.setPreferredSize(preferredImageSize);
-			pack();
-			panel.repaint();
+
+		if (panel == null) {
+			panel = new JPanel() {
+				@Override
+				public void paintComponent(final Graphics g) {
+					super.paintComponent(g);
+					g.drawImage(diff, 0, 0, null);
+				}
+			};
 		}
+
+		getContentPane().add(panel);
+		panel.setPreferredSize(preferredImageSize);
+		pack();
+		panel.repaint();
 	}
 
 	@Override
@@ -234,5 +223,6 @@ public class AdjustGUI extends JFrame implements KeyListener
 		diff.flush();
 		diff = null;
 		before = after = null;
+		setVisible( false );
 	}
 }

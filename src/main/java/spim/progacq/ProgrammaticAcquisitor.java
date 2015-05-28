@@ -84,7 +84,7 @@ public class ProgrammaticAcquisitor {
 				tabs(sb, indent);
 				sb.append(String.format("%.4f%%:", child.getTimer() / getTimer() * 100));
 				sb.append(child.getLogText(indent + 1));
-			};
+			}
 
 			return sb.toString();
 		}
@@ -99,7 +99,7 @@ public class ProgrammaticAcquisitor {
 	 * @return A list of every possible combination of the input.
 	 */
 	private static Vector<Vector<Double>> getRows(List<double[]> steps) {
-		double[] first = (double[]) steps.get(0);
+		double[] first = steps.get(0);
 		Vector<Vector<Double>> rows = new Vector<Vector<Double>>();
 
 		if (steps.size() == 1) {
@@ -324,7 +324,7 @@ public class ProgrammaticAcquisitor {
 								if (core.getRemainingImageCount() == 0) {
 									Thread.yield();
 									continue;
-								};
+								}
 
 								TaggedImage ti = core.popNextTaggedImage();
 								handleSlice(core, setup, metaDevs, acqBegan, ImageUtils.makeProcessor(ti), handler);
@@ -364,7 +364,6 @@ public class ProgrammaticAcquisitor {
 					if((ad = driftCompMap.get(row)) == null) {
 						ad = params.getAntiDrift(row);
 						ad.setCallback(new AbstractAntiDrift.Callback() {
-							@Override
 							public void applyOffset(Vector3D offs) {
 								offs = new Vector3D(offs.getX()*-core.getPixelSizeUm(), offs.getY()*-core.getPixelSizeUm(), -offs.getZ());
 								ij.IJ.log(String.format("TP %d view %d: Offset: %s", tp, rown, offs.toString()));
@@ -374,7 +373,7 @@ public class ProgrammaticAcquisitor {
 					}
 
 					ad.startNewStack();
-				};
+				}
 
 				if(params.doProfiling())
 					prof.get("Movement").start();
@@ -405,10 +404,10 @@ public class ProgrammaticAcquisitor {
 
 						handleSlice(core, setup, metaDevs, acqBegan, ip, handler);
 						if(ad != null)
-							tallyAntiDriftSlice( ad, ip);
+							addAntiDriftSlice( ad, ip);
 						if(params.isUpdateLive())
 							updateLiveImage(frame, ti);
-					};
+					}
 				} else if (!row.getZContinuous()) {
 					double start = setup.getZStage().getPosition();
 					double end = start + row.getZEndPosition() - row.getZStartPosition();
@@ -447,17 +446,16 @@ public class ProgrammaticAcquisitor {
 								prof.get("Output").stop();
 
 							if(ad != null)
-								tallyAntiDriftSlice(ad, ip);
+								addAntiDriftSlice(ad, ip);
 							if(params.isUpdateLive())
 								updateLiveImage(frame, ti);
 						}
 
 						double stackProg = Math.max(Math.min((zStart - start)/(end - start),1),0);
 
-						final Double progress = (double) (params.getRows().length * timeSeq + step + stackProg) / (params.getRows().length * params.getTimeSeqCount());
+						final Double progress = (params.getRows().length * timeSeq + step + stackProg) / (params.getRows().length * params.getTimeSeqCount());
 
 						SwingUtilities.invokeLater(new Runnable() {
-							@Override
 							public void run() {
 								params.getProgressListener().reportProgress(tp, rown, progress);
 							}
@@ -472,7 +470,7 @@ public class ProgrammaticAcquisitor {
 
 					setup.getZStage().waitFor();
 					setup.getZStage().setVelocity(oldVel);
-				};
+				}
 
 				if(params.doProfiling())
 					prof.get("Output").start();
@@ -503,7 +501,6 @@ public class ProgrammaticAcquisitor {
 						/ (params.getRows().length * params.getTimeSeqCount());
 
 				SwingUtilities.invokeLater(new Runnable() {
-					@Override
 					public void run() {
 						params.getProgressListener().reportProgress(tp, rown, progress);
 					}
@@ -557,8 +554,8 @@ public class ProgrammaticAcquisitor {
 		return handler.getImagePlus();
 	}
 
-	private static void tallyAntiDriftSlice(AntiDriftController ad, ImageProcessor ip) throws Exception {
-		ad.tallySlice(ip);
+	private static void addAntiDriftSlice(AntiDriftController ad, ImageProcessor ip) throws Exception {
+		ad.addXYSlice(ip);
 	}
 
 	private static void handleSlice(CMMCore core, SPIMSetup setup,
@@ -586,4 +583,4 @@ public class ProgrammaticAcquisitor {
 				setup.getAngle(),
 				System.nanoTime() / 1e9 - start);
 	}
-};
+}

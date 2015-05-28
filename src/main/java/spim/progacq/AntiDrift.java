@@ -14,23 +14,16 @@ public interface AntiDrift
 	void startNewStack();
 
 	/**
-	 * Tally slice.
+	 * add a XY slice.
 	 *
 	 * @param ip the ip
 	 */
-	void tallySlice(ImageProcessor ip);
+	void addXYSlice(ImageProcessor ip);
 
 	/**
 	 * Finish stack.
 	 */
 	void finishStack();
-
-	/**
-	 * Finish stack.
-	 *
-	 * @param initial the initial
-	 */
-	void finishStack(boolean initial);
 
 	/**
 	 * Update offset.
