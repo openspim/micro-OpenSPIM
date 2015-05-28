@@ -5,6 +5,7 @@ import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.Assert;
+import spim.progacq.DefaultAntiDrift;
 import spim.progacq.ProjectDiffAntiDrift;
 
 /**
@@ -85,7 +86,7 @@ public class AntiDriftTest
 	@Test
 	public void testAntiDrift()
 	{
-		final ProjectDiffAntiDrift proj = new ProjectDiffAntiDrift();
+		final DefaultAntiDrift proj = new DefaultAntiDrift();
 		proj.startNewStack();
 
 		final ImageStack stackFirst = impFirst.getImageStack();

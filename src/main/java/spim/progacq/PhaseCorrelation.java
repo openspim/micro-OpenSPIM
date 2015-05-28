@@ -121,6 +121,10 @@ public class PhaseCorrelation<T extends RealType<T>, S extends RealType<S>> impl
 	 */
 	public ArrayList<PhaseCorrelationPeak> getAllShifts() { return phaseCorrelationPeaks; }
 
+	/**
+	 * http://en.wikipedia.org/wiki/Phase_correlation
+	 * @return true: success, false: failure
+	 */
 	@Override
 	public boolean process()
 	{

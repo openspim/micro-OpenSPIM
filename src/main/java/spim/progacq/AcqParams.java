@@ -23,7 +23,7 @@ public class AcqParams {
 
 	private SPIMDevice[]		metaDevices;
 
-	private AntiDrift.Factory	adFactory;
+	private AntiDriftController.Factory	adControllerFactory;
 	private boolean				updateLive;
 	private boolean				illumFullStack;
 	private int					zWaitMillis;
@@ -176,15 +176,15 @@ public class AcqParams {
 	}
 
 	public boolean isAntiDriftOn() {
-		return adFactory != null;
+		return adControllerFactory != null;
 	};
 
-	public void setAntiDrift(AntiDrift.Factory in) {
-		adFactory = in;
+	public void setAntiDrift(AntiDriftController.Factory in) {
+		adControllerFactory = in;
 	};
 
-	public AntiDrift getAntiDrift(AcqRow r) {
-		return (adFactory != null ? adFactory.manufacture(this, r) : null);
+	public AntiDriftController getAntiDrift(AcqRow r) {
+		return (adControllerFactory != null ? adControllerFactory.newInstance(this, r) : null);
 	};
 
 	public AcqRow[] getRows() {

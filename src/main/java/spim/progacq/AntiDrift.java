@@ -1,36 +1,60 @@
 package spim.progacq;
 
 import ij.process.ImageProcessor;
-
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
-public abstract class AntiDrift {
-	public abstract void startNewStack();
+/**
+ * The interface Anti-drift.
+ */
+public interface AntiDrift
+{
+	/**
+	 * Start new stack.
+	 */
+	void startNewStack();
 
-	public abstract void tallySlice(ImageProcessor ip);
+	/**
+	 * Tally slice.
+	 *
+	 * @param ip the ip
+	 */
+	void tallySlice(ImageProcessor ip);
 
-	public abstract void finishStack();
+	/**
+	 * Finish stack.
+	 */
+	void finishStack();
 
-	public abstract void finishStack(boolean initial);
+	/**
+	 * Finish stack.
+	 *
+	 * @param initial the initial
+	 */
+	void finishStack(boolean initial);
 
-	public interface Factory {
-		public abstract AntiDrift manufacture(AcqParams p, AcqRow r);
-	}
+	/**
+	 * Update offset.
+	 *
+	 * @param offset the offset
+	 */
+	void updateOffset(Vector3D offset);
 
+	/**
+	 * The interface Callback.
+	 */
 	public interface Callback {
-		public abstract void applyOffset(Vector3D offset);
+		/**
+		 * Apply offset.
+		 *
+		 * @param offset the offset
+		 */
+		void applyOffset(Vector3D offset);
 	}
 
-	private Callback callback;
-
-	public void setCallback(Callback cb) {
-		callback = cb;
-	}
-
-	protected void invokeCallback(Vector3D offset) {
-		if(callback != null)
-			callback.applyOffset(offset);
-		else
-			ij.IJ.log("Anti-drift with no callback tried to invoke!");
-	}
+	/**
+	 * Sets callback.
+	 *
+	 * @param cb the cb
+	 */
+	void setCallback(Callback cb);
 }

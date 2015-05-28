@@ -72,6 +72,7 @@ import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.ImageUtils;
 import org.micromanager.utils.ReportingUtils;
 
+import spim.progacq.AntiDriftController;
 import spim.setup.DeviceManager;
 import spim.setup.SPIMSetup;
 import spim.setup.SPIMSetup.SPIMDevice;
@@ -80,11 +81,9 @@ import spim.setup.Stage;
 import spim.progacq.AcqOutputHandler;
 import spim.progacq.AcqParams;
 import spim.progacq.AcqRow;
-import spim.progacq.AntiDrift;
 import spim.progacq.AsyncOutputWrapper;
 import spim.progacq.OMETIFFHandler;
 import spim.progacq.ProgrammaticAcquisitor;
-import spim.progacq.ProjDiffAntiDrift;
 import spim.progacq.RangeSlider;
 import spim.progacq.StepTableModel;
 
@@ -1748,10 +1747,10 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 				}
 
 				if(antiDriftCheckbox.isSelected())
-					params.setAntiDrift(new AntiDrift.Factory() {
+					params.setAntiDrift(new AntiDriftController.Factory() {
 						@Override
-						public AntiDrift manufacture(AcqParams p, AcqRow r) {
-							return new ProjDiffAntiDrift(output, p, r);
+						public AntiDriftController newInstance(AcqParams p, AcqRow r) {
+							return AntiDriftController.newInstance(output, p, r);
 						}
 					});
 

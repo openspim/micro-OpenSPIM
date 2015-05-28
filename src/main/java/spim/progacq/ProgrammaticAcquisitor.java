@@ -296,9 +296,9 @@ public class ProgrammaticAcquisitor {
 
 		final double acqBegan = System.nanoTime() / 1e9;
 
-		final Map<AcqRow, AntiDrift> driftCompMap;
+		final Map<AcqRow, AntiDriftController> driftCompMap;
 		if(params.isAntiDriftOn())
-			driftCompMap = new HashMap<AcqRow, AntiDrift>(params.getRows().length);
+			driftCompMap = new HashMap<AcqRow, AntiDriftController>(params.getRows().length);
 		else
 			driftCompMap = null;
 
@@ -359,11 +359,11 @@ public class ProgrammaticAcquisitor {
 				final int tp = timeSeq;
 				final int rown = step;
 
-				AntiDrift ad = null;
+				AntiDriftController ad = null;
 				if(row.getZContinuous() != true && params.isAntiDriftOn()) {
 					if((ad = driftCompMap.get(row)) == null) {
 						ad = params.getAntiDrift(row);
-						ad.setCallback(new AntiDrift.Callback() {
+						ad.setCallback(new AbstractAntiDrift.Callback() {
 							@Override
 							public void applyOffset(Vector3D offs) {
 								offs = new Vector3D(offs.getX()*-core.getPixelSizeUm(), offs.getY()*-core.getPixelSizeUm(), -offs.getZ());
@@ -557,7 +557,7 @@ public class ProgrammaticAcquisitor {
 		return handler.getImagePlus();
 	}
 
-	private static void tallyAntiDriftSlice(AntiDrift ad, ImageProcessor ip) throws Exception {
+	private static void tallyAntiDriftSlice(AntiDriftController ad, ImageProcessor ip) throws Exception {
 		ad.tallySlice(ip);
 	}
 
