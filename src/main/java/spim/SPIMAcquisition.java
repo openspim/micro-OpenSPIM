@@ -72,20 +72,28 @@ import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.ImageUtils;
 import org.micromanager.utils.ReportingUtils;
 
-import spim.progacq.AntiDriftController;
-import spim.setup.DeviceManager;
-import spim.setup.SPIMSetup;
-import spim.setup.SPIMSetup.SPIMDevice;
-import spim.setup.Stage;
+import spim.acquisition.Params;
+import spim.acquisition.Program;
+import spim.acquisition.Row;
+import spim.gui.calibration.AutoWindow;
+import spim.gui.calibration.CalibrationWindow;
+import spim.gui.calibration.ManualWindow;
+import spim.gui.calibration.PixelSizeWindow;
+import spim.gui.input.LiveWindowMouseAdapter;
+import spim.gui.model.StepTable;
+import spim.gui.util.Layout;
+import spim.gui.component.SteppedSlider;
+import spim.controller.AntiDriftController;
+import spim.hardware.DeviceManager;
+import spim.hardware.SPIMSetup;
+import spim.hardware.SPIMSetup.SPIMDevice;
+import spim.hardware.Stage;
 
-import spim.progacq.AcqOutputHandler;
-import spim.progacq.AcqParams;
-import spim.progacq.AcqRow;
-import spim.progacq.AsyncOutputWrapper;
-import spim.progacq.OMETIFFHandler;
-import spim.progacq.ProgrammaticAcquisitor;
-import spim.progacq.RangeSlider;
-import spim.progacq.StepTableModel;
+import spim.io.AsyncOutputHandler;
+import spim.io.OutputHandler;
+import spim.io.LabelledVirtualStack;
+import spim.io.OMETIFFHandler;
+import spim.gui.component.RangeSlider;
 
 public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	private static final String SPIM_RANGES = "SPIM Ranges";
@@ -118,7 +126,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	private JButton acqGoBtn;
 	private Thread acqThread;
 	
-	private SPIMCalibrator calibration;
+	private CalibrationWindow calibration;
 
 	// TODO: read these from the properties
 	protected double motorMin = 0, motorMax = 9000, motorStep = 1.5,
@@ -226,7 +234,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			hookLiveControls(true);*/
 	}
 
-	private static LiveWindowMouseControls listener = new LiveWindowMouseControls();
+	private static LiveWindowMouseAdapter listener = new LiveWindowMouseAdapter();
 
 	/**
 	 * Embed our listeners in the live window's canvas space.
@@ -369,9 +377,9 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			public void actionPerformed(ActionEvent ae) {
 				if(calibration == null) {
 					if((ae.getModifiers() & ActionEvent.ALT_MASK) != 0) {
-						calibration = new SPIMManualCalibrator(mmc, gui, setup);
+						calibration = new ManualWindow(mmc, gui, setup);
 					} else {
-						calibration = new SPIMAutoCalibrator(mmc, gui, setup);
+						calibration = new AutoWindow(mmc, gui, setup);
 					}
 				}
 
@@ -383,7 +391,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		pixCalibBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
-				(new PixelSizeCalibrator(mmc, gui)).setVisible(true);
+				(new PixelSizeWindow(mmc, gui)).setVisible(true);
 			}
 		});
 
@@ -568,19 +576,19 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		acquisition.setName("Acquisition");
 		acquisition.setLayout(new BoxLayout(acquisition, BoxLayout.PAGE_AXIS));
 
-		JPanel acqSPIMTab = (JPanel)LayoutUtils.vertPanel(
-			Box.createVerticalGlue(),
-			LayoutUtils.horizPanel(
-				LayoutUtils.vertPanel(
-					Box.createVerticalGlue(),
-					xy
-				),
-				LayoutUtils.vertPanel(
-					importer,
-					t,
-					z
+		JPanel acqSPIMTab = (JPanel) Layout.vertPanel(
+				Box.createVerticalGlue(),
+				Layout.horizPanel(
+						Layout.vertPanel(
+								Box.createVerticalGlue(),
+								xy
+						),
+						Layout.vertPanel(
+								importer,
+								t,
+								z
+						)
 				)
-			)
 		);
 		acqSPIMTab.setName(SPIM_RANGES);
 
@@ -590,7 +598,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		acqMarkPos.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
-				StepTableModel model = (StepTableModel)acqPositionsTable.getModel();
+				StepTable model = (StepTable )acqPositionsTable.getModel();
 				try {
 					int idx = model.getRowCount();
 
@@ -601,7 +609,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					Vector3D pos = setup.getPosition();
 
 					model.insertRow(idx,
-						new AcqRow(
+						new Row(
 							model.getColumns(),
 							(Double) pos.getX(),
 							(Double) pos.getY(),
@@ -632,7 +640,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
 				try {
-					StepTableModel model = (StepTableModel)acqPositionsTable.getModel();
+					StepTable model = (StepTable )acqPositionsTable.getModel();
 
 					int idx = model.getRowCount();
 
@@ -647,7 +655,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					double step = (Double)acqSliceStep.getValue();
 
 					model.insertRow(idx,
-						new AcqRow(
+						new Row(
 							model.getColumns(),
 							(Double) xyz.getX(),
 							(Double) xyz.getY(),
@@ -663,11 +671,11 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			}
 		});
 
-		JPanel sliceOpts = (JPanel)LayoutUtils.horizPanel(
-			acqSliceRange,
-			new JLabel(" @ "),
-			acqSliceStep,
-			new JLabel(" \u03BCm")
+		JPanel sliceOpts = (JPanel) Layout.horizPanel(
+				acqSliceRange,
+				new JLabel( " @ " ),
+				acqSliceStep,
+				new JLabel( " \u03BCm" )
 		);
 		sliceOpts.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -675,7 +683,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		acqRemovePos.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
-				StepTableModel model = (StepTableModel)acqPositionsTable.getModel();
+				StepTable model = (StepTable )acqPositionsTable.getModel();
 
 				model.removeRows(acqPositionsTable.getSelectedRows());
 			}
@@ -684,7 +692,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		JScrollPane tblScroller = new JScrollPane(acqPositionsTable = new JTable());
 		tblScroller.setPreferredSize(new Dimension(tblScroller.getSize().width, 256));
 
-		StepTableModel model = new StepTableModel(SPIMDevice.STAGE_X, SPIMDevice.STAGE_Y, SPIMDevice.STAGE_THETA, SPIMDevice.STAGE_Z);
+		StepTable model = new StepTable(SPIMDevice.STAGE_X, SPIMDevice.STAGE_Y, SPIMDevice.STAGE_THETA, SPIMDevice.STAGE_Z);
 
 		acqPositionsTable.setFillsViewportHeight(true);
 		acqPositionsTable.setModel(model);
@@ -697,7 +705,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 
 						String[] lines = data.split("\n");
 						for(String line : lines)
-							((StepTableModel)acqPositionsTable.getModel()).insertRow((Object[]) line.split("\t"));
+							((StepTable )acqPositionsTable.getModel()).insertRow((Object[]) line.split("\t"));
 					} catch(Exception e) {
 						IJ.handleException(e);
 					}
@@ -710,9 +718,9 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			public void mouseClicked(MouseEvent me) {
 				if(acqPositionsTable.getSelectedRowCount() == 1 &&
 						me.getClickCount() == 2) {
-					StepTableModel mdl = (StepTableModel)((JTable)me.getComponent()).getModel();
+					StepTable mdl = (StepTable )((JTable)me.getComponent()).getModel();
 					int rowidx = ((JTable)me.getComponent()).getSelectedRow();
-					AcqRow row = mdl.getRows().get(rowidx);
+					Row row = mdl.getRows().get(rowidx);
 
 					setup.setPosition(row.getX(), row.getY(), row.getZStartPosition(), row.getTheta());
 				}
@@ -745,42 +753,42 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 
 		acqPosTabs.add(POSITION_LIST, acqTableTab);
 
-		JPanel acqVideoTab = (JPanel) LayoutUtils.vertPanel(
-			Box.createVerticalGlue(),
-			LayoutUtils.horizPanel(
-					Box.createHorizontalGlue(),
-					new JLabel("The current position will be used for video capture."),
-					Box.createHorizontalGlue()
-			),
-			LayoutUtils.horizPanel(
-					Box.createHorizontalGlue(),
-					new JLabel(" "),
-					Box.createHorizontalGlue()
-			),
-			LayoutUtils.horizPanel(
-					Box.createHorizontalGlue(),
-					new JLabel("You may specify a time limit in the 'Interval' box."),
-					Box.createHorizontalGlue()
-			),
-			LayoutUtils.horizPanel(
-					Box.createHorizontalGlue(),
-					new JLabel("If you do not, press 'Abort!' to stop recording."),
-					Box.createHorizontalGlue()
-			),
-			LayoutUtils.horizPanel(
-					Box.createHorizontalGlue(),
-					new JLabel("(The 'Count' box has no effect in video mode.)"),
-					Box.createHorizontalGlue()
-			),
-			Box.createVerticalGlue()
+		JPanel acqVideoTab = (JPanel) Layout.vertPanel(
+				Box.createVerticalGlue(),
+				Layout.horizPanel(
+						Box.createHorizontalGlue(),
+						new JLabel( "The current position will be used for video capture." ),
+						Box.createHorizontalGlue()
+				),
+				Layout.horizPanel(
+						Box.createHorizontalGlue(),
+						new JLabel( " " ),
+						Box.createHorizontalGlue()
+				),
+				Layout.horizPanel(
+						Box.createHorizontalGlue(),
+						new JLabel( "You may specify a time limit in the 'Interval' box." ),
+						Box.createHorizontalGlue()
+				),
+				Layout.horizPanel(
+						Box.createHorizontalGlue(),
+						new JLabel( "If you do not, press 'Abort!' to stop recording." ),
+						Box.createHorizontalGlue()
+				),
+				Layout.horizPanel(
+						Box.createHorizontalGlue(),
+						new JLabel( "(The 'Count' box has no effect in video mode.)" ),
+						Box.createHorizontalGlue()
+				),
+				Box.createVerticalGlue()
 		);
 		acqVideoTab.setName(VIDEO_RECORDER);
 
 		acqPosTabs.add(VIDEO_RECORDER, acqVideoTab);
 
-		JPanel estimates = (JPanel)LayoutUtils.horizPanel(
-			estimatesText = new JLabel(" Estimates:"),
-			Box.createHorizontalGlue()
+		JPanel estimates = (JPanel) Layout.horizPanel(
+				estimatesText = new JLabel( " Estimates:" ),
+				Box.createHorizontalGlue()
 		);
 
 		JPanel right = new JPanel();
@@ -960,7 +968,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		acqProfileCheckbox = new JCheckBox(/*"Profile Acquisition"*/);
 
 		acqOptionsFrame = new JFrame("Acquisition Options");
-		JPanel optsPanel = LayoutUtils.form(
+		JPanel optsPanel = Layout.form(
 				"Z settle time (ms):", settleTime,
 				"Continuous Mode:", continuousCheckbox,
 				"SPIM Registration:", registrationCheckbox,
@@ -983,7 +991,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			}
 		});
 
-		bottom.add(LayoutUtils.horizPanel("More Options", showMoreOptions));
+		bottom.add( Layout.horizPanel( "More Options", showMoreOptions ));
 
 		JPanel goBtnPnl = new JPanel();
 		goBtnPnl.setLayout(new GridLayout(2,1));
@@ -1092,7 +1100,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 				return;
 			};
 		} else if(POSITION_LIST.equals(acqPosTabs.getSelectedComponent().getName())) {
-			for(AcqRow row : ((StepTableModel)acqPositionsTable.getModel()))
+			for(Row row : ((StepTable )acqPositionsTable.getModel()))
 				count += row.getDepth();
 		} else if(VIDEO_RECORDER.equals(acqPosTabs.getSelectedComponent().getName())) {
 			estimatesText.setText(" Dataset size depends on how long you record for.");
@@ -1452,8 +1460,8 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		return rotOrigin.add(rot.applyTo(pos.subtract(rotOrigin)));
 	}
 
-	private AcqRow[] getBuiltRows() throws Exception {
-		List<AcqRow> rows = new ArrayList<AcqRow>();
+	private Row[] getBuiltRows() throws Exception {
+		List<Row > rows = new ArrayList<Row >();
 
 		SPIMDevice[] canonicalDevices = new SPIMDevice[] {SPIMDevice.STAGE_X, SPIMDevice.STAGE_Y, SPIMDevice.STAGE_THETA, SPIMDevice.STAGE_Z};
 
@@ -1479,15 +1487,15 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 //						else
 							z = ranges[3][0] + ":" + ranges[3][1] + ":" + ranges[3][2];
 
-						rows.add(new AcqRow(canonicalDevices, new String[] {"" + basev.getX(), "" + basev.getY(), "" + t, z}));
+						rows.add(new Row(canonicalDevices, new String[] {"" + basev.getX(), "" + basev.getY(), "" + t, z}));
 					}
 				}
 			}
 		} else if(POSITION_LIST.equals(acqPosTabs.getSelectedComponent().getName())) {
-			rows = ((StepTableModel)acqPositionsTable.getModel()).getRows();
+			rows = ((StepTable )acqPositionsTable.getModel()).getRows();
 		}
 
-		return rows.toArray(new AcqRow[rows.size()]);
+		return rows.toArray(new Row[rows.size()]);
 	}
 
 	public List<String[]> buildRowsProper(List<String[]> model) {
@@ -1667,7 +1675,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					}
 				};
 			} else {
-				final AcqRow[] acqRows;
+				final Row[] acqRows;
 
 				try {
 					 acqRows = getBuiltRows();
@@ -1702,7 +1710,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					timeStep = 0;
 				}
 
-				final AcqParams params = new AcqParams(mmc, setup, acqRows);
+				final Params params = new Params(mmc, setup, acqRows);
 				params.setTimeSeqCount(timeSeqs);
 				params.setTimeStepSeconds(timeStep);
 				params.setContinuous(continuousCheckbox.isSelected());
@@ -1734,12 +1742,12 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 									return;
 					}
 
-					AcqOutputHandler handler = new OMETIFFHandler(
+					OutputHandler handler = new OMETIFFHandler(
 						mmc, output, null, null, null, "t",
 						acqRows, timeSeqs, timeStep
 					);
 					if(asyncCheckbox.isSelected())
-						handler = new AsyncOutputWrapper(handler, (ij.IJ.maxMemory() - ij.IJ.currentMemory())/(mmc.getImageWidth()*mmc.getImageHeight()*mmc.getBytesPerPixel()*2), asyncMonitorCheckbox.isSelected());
+						handler = new AsyncOutputHandler(handler, (ij.IJ.maxMemory() - ij.IJ.currentMemory())/(mmc.getImageWidth()*mmc.getImageHeight()*mmc.getBytesPerPixel()*2), asyncMonitorCheckbox.isSelected());
 
 					params.setOutputHandler(handler);
 				} else {
@@ -1749,7 +1757,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 				if(antiDriftCheckbox.isSelected())
 					params.setAntiDrift(new AntiDriftController.Factory() {
 						@Override
-						public AntiDriftController newInstance(AcqParams p, AcqRow r) {
+						public AntiDriftController newInstance(Params p, Row r) {
 							return AntiDriftController.newInstance(output, p, r);
 						}
 					});
@@ -1761,7 +1769,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 
 				acqProgress.setEnabled(true);
 
-				params.setProgressListener(new ProgrammaticAcquisitor.AcqProgressCallback() {
+				params.setProgressListener(new Program.AcqProgressCallback() {
 					@Override
 					public void reportProgress(int tp, int row, double overall) {
 						acqProgress.setString(String.format("%.02f%%: T %d \u03B8 %d", overall*100, tp+1, row+1));
@@ -1779,7 +1787,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					@Override
 					public void run() {
 						try {
-							ImagePlus img = ProgrammaticAcquisitor.performAcquisition(params);
+							ImagePlus img = Program.performAcquisition( params );
 
 							if(img != null)
 								img.show();

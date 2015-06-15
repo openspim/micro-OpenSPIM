@@ -5,8 +5,8 @@ import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.Assert;
-import spim.progacq.AntiDriftController;
-import spim.progacq.DefaultAntiDrift;
+import spim.controller.AntiDriftController;
+import spim.algorithm.DefaultAntiDrift;
 
 import java.io.File;
 
