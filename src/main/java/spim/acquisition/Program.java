@@ -29,6 +29,7 @@ import spim.io.OutputHandler;
 import spim.acquisition.Row.DeviceValueSet;
 import spim.algorithm.AntiDrift;
 import spim.controller.AntiDriftController;
+import spim.util.DelayChecker;
 
 public class Program
 {
@@ -400,8 +401,17 @@ public class Program
 					prof.get("Output").stop();
 
 				if(row.getZStartPosition() == row.getZEndPosition()) {
+					DelayChecker checker = new DelayChecker( 5000 );
+
+					//TODO: added logging info before image synchronization
+					ReportingUtils.logMessage( "Before 1: core.waitForImageSynchro();" );
+
 					core.waitForImageSynchro();
+
+					ReportingUtils.logMessage( "Before 1: Delay " + params.getSettleDelay() );
 					Thread.sleep(params.getSettleDelay());
+
+					ReportingUtils.logMessage( "After 1: done." );
 
 					if(!params.isContinuous()) {
 						TaggedImage ti = snapImage(setup, !params.isIllumFullStack());
@@ -413,21 +423,48 @@ public class Program
 						if(params.isUpdateLive())
 							updateLiveImage(frame, ti);
 					}
-				} else if (!row.getZContinuous()) {
-					double start = setup.getZStage().getPosition();
-					double end = start + row.getZEndPosition() - row.getZStartPosition();
-					for(double zStart = start; zStart <= end; zStart += row.getZStepSize()) {
-						if(params.doProfiling())
-							prof.get("Movement").start();
 
+					checker.stop();
+
+				} else if (!row.getZContinuous()) {
+
+					ReportingUtils.logMessage( "Before 2 loop: setup.getZStage().getPosition();" );
+
+					double start = setup.getZStage().getPosition();
+
+					ReportingUtils.logMessage( "Before 2 loop: start + row.getZEndPosition() - row.getZStartPosition();" );
+
+					double end = start + row.getZEndPosition() - row.getZStartPosition();
+
+					ReportingUtils.logMessage( "Before 2 loop: started." );
+
+					DelayChecker checker = new DelayChecker( 5000 );
+
+					for(double zStart = start; zStart <= end; zStart += row.getZStepSize()) {
+						// Reset delay checker
+						checker.reset();
+
+
+						if(params.doProfiling())
+						{
+							ReportingUtils.logMessage( "Before 2 in-loop: doProfiling" );
+							prof.get( "Movement" ).start();
+						}
+
+						ReportingUtils.logMessage( "Before 2 in-loop: setup.getZStage().setPosition(zStart);" );
 						setup.getZStage().setPosition(zStart);
+
+						ReportingUtils.logMessage( "Before 2 in-loop: core.waitForImageSynchro();" );
 						core.waitForImageSynchro();
 
 						try {
+							ReportingUtils.logMessage( "Before 2 in-loop: Delay " + params.getSettleDelay() );
 							Thread.sleep(params.getSettleDelay());
+							ReportingUtils.logMessage( "After 2 in-loop: Thread.sleep(params.getSettleDelay());" );
 						} catch(InterruptedException ie) {
 							return cleanAbort(params, liveOn, autoShutter, continuousThread);
 						}
+						ReportingUtils.logMessage( "After 2 in-loop: done." );
 
 						if(params.doProfiling())
 							prof.get("Movement").stop();
@@ -466,6 +503,9 @@ public class Program
 							}
 						});
 					}
+
+					checker.stop();
+
 				} else {
 					setup.getZStage().setPosition(row.getZStartPosition());
 					Double oldVel = setup.getZStage().getVelocity();
