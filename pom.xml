@@ -18,9 +18,26 @@
 
 	<properties>
 		<enforcer.skip>true</enforcer.skip>
+        <bio-formats.version>5.1.2</bio-formats.version>
 	</properties>
 
 	<dependencies>
+        <dependency>
+            <groupId>ome</groupId>
+            <artifactId>formats-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ome</groupId>
+            <artifactId>formats-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ome</groupId>
+            <artifactId>formats-gpl</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ome</groupId>
+            <artifactId>ome-xml</artifactId>
+        </dependency>
 		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
