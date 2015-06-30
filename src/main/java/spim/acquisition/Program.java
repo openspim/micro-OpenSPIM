@@ -462,6 +462,7 @@ public class Program
 							Thread.sleep(params.getSettleDelay());
 							ReportingUtils.logMessage( "After 2 in-loop: Thread.sleep(params.getSettleDelay());" );
 						} catch(InterruptedException ie) {
+							checker.stop();
 							return cleanAbort(params, liveOn, autoShutter, continuousThread);
 						}
 						ReportingUtils.logMessage( "After 2 in-loop: done." );
