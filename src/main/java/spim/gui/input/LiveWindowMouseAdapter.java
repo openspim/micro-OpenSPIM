@@ -1,5 +1,6 @@
 package spim.gui.input;
 
+import ij.IJ;
 import ij.gui.Toolbar;
 
 import java.awt.Component;
@@ -229,7 +230,7 @@ public class LiveWindowMouseAdapter extends MouseAdapter {
 
 		if(!me.isAltDown()) {
 			Vector3D d = new Vector3D(drag.x * setup.getCore().getPixelSizeUm() * (me.isShiftDown() ? 2 : 1),
-									  drag.y * setup.getCore().getPixelSizeUm() * (me.isShiftDown() ? 2 : 1),
+									  drag.y * setup.getCore().getPixelSizeUm() * -(me.isShiftDown() ? 2 : 1),
 									  0);
 
 			setup.setPosition(stageStart.add(d), thetaStart);

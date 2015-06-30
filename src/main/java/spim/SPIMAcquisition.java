@@ -415,7 +415,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		left.add(Box.createVerticalStrut(8));
 		addLine(left, Justification.STRETCH, rotationSlider);
 
-		autoReplaceMMControls = new JCheckBox("SPIM Mouse Controls");
+		autoReplaceMMControls = new JCheckBox("Invert Y Mouse Control");
 		autoReplaceMMControls.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
