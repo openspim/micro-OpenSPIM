@@ -156,11 +156,11 @@ public class AntiDriftAdjustWindow extends JFrame implements KeyListener
 				updateDiff();
 				break;
 			case KeyEvent.VK_LEFT:
-				offset = offset.add(new Vector3D((e.isShiftDown() ? 10 : 1), 0, 0));
+				offset = offset.add( new Vector3D( ( e.isShiftDown() ? 10 : 1 ), 0, 0 ) );
 				updateDiff();
 				break;
 			case KeyEvent.VK_RIGHT:
-				offset = offset.subtract(new Vector3D((e.isShiftDown() ? 10 : 1), 0, 0));
+				offset = offset.subtract( new Vector3D( ( e.isShiftDown() ? 10 : 1 ), 0, 0 ) );
 				updateDiff();
 				break;
 			case KeyEvent.VK_PAGE_UP:

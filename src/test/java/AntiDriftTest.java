@@ -5,6 +5,7 @@ import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.Assert;
+import spim.algorithm.AntiDrift;
 import spim.controller.AntiDriftController;
 import spim.algorithm.DefaultAntiDrift;
 
@@ -119,6 +120,14 @@ public class AntiDriftTest
 	public void testAntiDriftController()
 	{
 		final AntiDriftController ct = new AntiDriftController( new File("/Users/moon/temp/"), 2, 3, 4, 0, 1, 0);
+
+		ct.setCallback(new AntiDrift.Callback() {
+			public void applyOffset(Vector3D offs) {
+				offs = new Vector3D(offs.getX()*-1, offs.getY()*-1, -offs.getZ());
+				System.out.println(String.format("Offset: %s", offs.toString()));
+			}
+		});
+
 		ct.startNewStack();
 
 		final ImageStack stackFirst = impFirst.getImageStack();

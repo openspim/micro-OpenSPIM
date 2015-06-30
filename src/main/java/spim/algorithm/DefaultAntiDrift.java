@@ -36,7 +36,7 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 
 		Vector3D suggested = latest.correlateAndAverage(first);
 
-		log.info( suggested.toString() );
+		log.info( "Suggested: " + suggested.toString() );
 
 		setLastCorrection( suggested );
 	}
@@ -44,6 +44,11 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 	@Override public void updateOffset( Vector3D offset )
 	{
 		offset = offset.add(lastCorrection);
+
+		log.info( "Last correction: " + offset );
+
 		setLastCorrection( offset );
+
+		log.info( "Last correction: " + offset );
 	}
 }
