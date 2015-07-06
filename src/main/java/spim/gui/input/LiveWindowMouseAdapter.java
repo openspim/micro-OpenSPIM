@@ -19,6 +19,8 @@ import javax.swing.JOptionPane;
 import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
+import org.micromanager.navigation.CenterAndDragListener;
+import org.micromanager.navigation.ZWheelListener;
 import spim.gui.calibration.CalibrationWindow;
 import spim.hardware.SPIMSetup;
 import spim.hardware.Stage;
@@ -66,47 +68,27 @@ public class LiveWindowMouseAdapter extends MouseAdapter {
 		if(hookedOn != null)
 			detach();
 
-		// First, check if MM has its claws in the target component (i.e. the live window).
-		// If so, ask the user if we want to a) remove MM's hooks, b) leave both hooks in, or c) don't hook.
-		// TODO: Should this check be external?
-		List<MouseListener> mouseListeners = Arrays.asList(to.getMouseListeners());
-		List<MouseMotionListener> mouseMotionListeners = Arrays.asList(to.getMouseMotionListeners());
-		List<MouseWheelListener> mouseWheelListeners = Arrays.asList(to.getMouseWheelListeners());
+		mmMouseListener = null;
+		for (final MouseListener listener : to.getMouseListeners()) {
+			if (listener instanceof CenterAndDragListener) {
+				mmMouseListener = ( CenterAndDragListener ) listener;
+				to.removeMouseListener( listener );
+			}
+		}
+		if (mmMouseListener == null) {
+			for (final MouseMotionListener listener : to.getMouseMotionListeners()) {
+				if (listener instanceof CenterAndDragListener) {
+					mmMouseListener = ( CenterAndDragListener ) listener;
+					to.removeMouseMotionListener( listener );
+				}
+			}
+		}
 
-		MouseListener mouseListener = null;
-		MouseMotionListener mouseMotionListener = null;
-		MouseWheelListener mouseWheelListener = null;
-
-		Iterator<MouseListener> mli = mouseListeners.iterator();
-		while(mli.hasNext())
-			if((mouseListener = mli.next()) instanceof org.micromanager.navigation.CenterAndDragListener)
-				break;
-
-		Iterator<MouseMotionListener> mmli = mouseMotionListeners.iterator();
-		while(mmli.hasNext())
-			if((mouseMotionListener = mmli.next()) instanceof org.micromanager.navigation.CenterAndDragListener)
-				break;
-
-		Iterator<MouseWheelListener> mwli = mouseWheelListeners.iterator();
-		while(mwli.hasNext())
-			if((mouseWheelListener = mwli.next()) instanceof org.micromanager.navigation.ZWheelListener)
-				break;
-
-		if(mouseListener != null || mouseMotionListener != null || mouseWheelListener != null) {
-			if(unhookMM < 0)
-				unhookMM = JOptionPane.showConfirmDialog(to, mmHooksWarnMsg, mmHooksWarnTitle, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-
-			if(unhookMM == JOptionPane.NO_OPTION) {
-				return false;
-			} else if(unhookMM == JOptionPane.YES_OPTION) {
-				mmMouseListener = (org.micromanager.navigation.CenterAndDragListener)(mouseListener != null ? mouseListener : mouseMotionListener);
-				mmMouseWheelListener = (org.micromanager.navigation.ZWheelListener)mouseWheelListener;
-
-				if(mmMouseListener != null)
-					mmMouseListener.stop();
-
-				if(mmMouseWheelListener != null)
-					mmMouseWheelListener.stop();
+		mmMouseWheelListener = null;
+		for (final MouseWheelListener listener : to.getMouseWheelListeners()) {
+			if (listener instanceof ZWheelListener) {
+				mmMouseWheelListener = ( ZWheelListener ) listener;
+				to.removeMouseWheelListener( listener );
 			}
 		}
 
