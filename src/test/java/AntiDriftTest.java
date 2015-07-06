@@ -9,7 +9,10 @@ import spim.algorithm.AntiDrift;
 import spim.controller.AntiDriftController;
 import spim.algorithm.DefaultAntiDrift;
 
+import java.awt.*;
 import java.io.File;
+
+import static org.junit.Assume.assumeTrue;
 
 /**
  * The type Anti drift handler test.
@@ -119,6 +122,8 @@ public class AntiDriftTest
 	 */
 	public void testAntiDriftController()
 	{
+		assumeTrue(!GraphicsEnvironment.isHeadless());
+
 		final AntiDriftController ct = new AntiDriftController( new File("/Users/moon/temp/"), 2, 3, 4, 0, 1, 0);
 
 		ct.setCallback(new AntiDrift.Callback() {
