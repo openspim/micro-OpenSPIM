@@ -114,7 +114,7 @@ public class AntiDriftController implements AntiDrift.Callback
 	{
 		if(gui.isVisible())
 		{
-			antiDrift.updateOffset( gui.getOffset() );
+			applyOffset( gui.getOffset() );
 			gui.setVisible( false );
 			gui.dispose();
 		}
@@ -157,11 +157,11 @@ public class AntiDriftController implements AntiDrift.Callback
 			antiDrift.writeDiff( getOutFile("initial"), antiDrift.getLastCorrection(), zratio, center );
 
 		// Process anti-drift
-		antiDrift.finishStack();
+		Vector3D init = antiDrift.finishStack();
 
 		// After the anti-drift processing
 		if(null != outputDir)
-			antiDrift.writeDiff( getOutFile("suggested"), antiDrift.getLastCorrection(), zratio, center );
+			antiDrift.writeDiff( getOutFile("suggested"), init, zratio, center );
 
 		// Invoke GUI for fine-tuning
 		gui.setVisible( true );
@@ -169,7 +169,7 @@ public class AntiDriftController implements AntiDrift.Callback
 		gui.setCallback( this );
 		gui.setZratio( zratio );
 		gui.updateScale( antiDrift.getLatest().largestDimension() * 2 );
-		gui.setOffset( antiDrift.getLastCorrection() );
+		gui.setOffset( init );
 		gui.setCenter( center );
 		gui.setBefore( antiDrift.getFirst() );
 		gui.setAfter( antiDrift.getLatest() );
@@ -189,7 +189,9 @@ public class AntiDriftController implements AntiDrift.Callback
 
 	public void applyOffset( Vector3D offset )
 	{
-		antiDrift.updateOffset( offset );
+		offset = antiDrift.updateOffset( offset );
+
+		antiDrift.setLastCorrection( offset );
 
 		// Callback function for ProgrammaticAcquisitor class
 		// refer spim/progacq/ProgrammaticAcquisitor.java:366

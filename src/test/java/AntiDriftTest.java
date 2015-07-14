@@ -21,6 +21,7 @@ public class AntiDriftTest
 {
 	private ImagePlus impFirst;
 	private ImagePlus impSecond;
+	private ImagePlus impThird;
 
 
 	/**
@@ -84,6 +85,7 @@ public class AntiDriftTest
 		// The below parameters are simplified version with above ratio
 		impFirst = generateBlob(128, 128, 128, 64, 32, 48, 12.5f , 7.5f, 10.0f);
 		impSecond = generateBlob(128, 128, 128, 64 + 16, 32 + 24, 48 + 32, 5.0f, 5.0f, 7.5f);
+		impThird = generateBlob(128, 128, 128, 64 + 8, 32 + 32, 48 + 24, 4.0f, 4.0f, 6.5f);
 	}
 
 	/**
@@ -147,6 +149,22 @@ public class AntiDriftTest
 		for(int k = 1; k <= stackSecond.getSize(); k++)
 		{
 			ct.addXYSlice( stackSecond.getProcessor( k ) );
+		}
+		ct.finishStack();
+
+		try
+		{
+			Thread.sleep( 10000 );
+		} catch (InterruptedException e)
+		{
+			e.printStackTrace();
+		}
+
+		ct.startNewStack();
+		final ImageStack stackThird = impThird.getImageStack();
+		for(int k = 1; k <= stackThird.getSize(); k++)
+		{
+			ct.addXYSlice( stackThird.getProcessor( k ) );
 		}
 		ct.finishStack();
 	}

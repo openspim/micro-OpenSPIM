@@ -29,7 +29,7 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 		latest.addXYSlice( ip );
 	}
 
-	@Override public void finishStack()
+	@Override public Vector3D finishStack()
 	{
 		if(first == null)
 			first = latest;
@@ -38,17 +38,15 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 
 		log.info( "Suggested: " + suggested.toString() );
 
-		setLastCorrection( suggested );
+		return suggested;
 	}
 
-	@Override public void updateOffset( Vector3D offset )
+	@Override public Vector3D updateOffset( Vector3D offset )
 	{
 		offset = offset.add(lastCorrection);
 
 		log.info( "Last correction: " + offset );
 
-		setLastCorrection( offset );
-
-		log.info( "Last correction: " + offset );
+		return offset;
 	}
 }
