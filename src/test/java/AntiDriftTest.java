@@ -110,10 +110,10 @@ public class AntiDriftTest
 		{
 			proj.addXYSlice( stackSecond.getProcessor( k ) );
 		}
-		proj.finishStack( );
 
+		final Vector3D correction = proj.finishStack( );
 		final double DELTA = 1e-5;
-		final Vector3D correction = proj.getLastCorrection();
+
 		Assert.assertEquals(16, correction.getX(), DELTA);
 		Assert.assertEquals(24, correction.getY(), DELTA);
 		Assert.assertEquals(32, correction.getZ(), DELTA);
