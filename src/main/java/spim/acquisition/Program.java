@@ -371,9 +371,9 @@ public class Program
 						ad = params.getAntiDrift(row);
 						ad.setCallback(new AntiDrift.Callback() {
 							public void applyOffset(Vector3D offs) {
-								offs = new Vector3D(offs.getX()*-core.getPixelSizeUm(), offs.getY()*-core.getPixelSizeUm(), -offs.getZ());
-								ij.IJ.log(String.format("TP %d view %d: Offset: %s", tp, rown, offs.toString()));
-								row.translate(offs);
+								Vector3D appliedOffsset = new Vector3D(offs.getX()*-core.getPixelSizeUm(), offs.getY()*-core.getPixelSizeUm(), -offs.getZ());
+								ij.IJ.log(String.format("TP %d view %d: Offset: %s", tp, rown, appliedOffsset.toString()));
+								row.translate(appliedOffsset);
 							}
 						});
 					}

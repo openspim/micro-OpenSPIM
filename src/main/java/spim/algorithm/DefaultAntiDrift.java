@@ -10,7 +10,7 @@ import java.util.logging.Logger;
  */
 public class DefaultAntiDrift extends AbstractAntiDrift
 {
-	Logger log = Logger.getLogger(DefaultAntiDrift.class.getName());
+//	Logger log = Logger.getLogger(DefaultAntiDrift.class.getName());
 	/**
 	 * Instantiates a new DefaultAntiDrift class using PhaseCorrelation.
 	 */
@@ -36,17 +36,17 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 
 		Vector3D suggested = latest.correlateAndAverage(first);
 
-		log.info( "Suggested: " + suggested.toString() );
+		ij.IJ.log( "Suggested offset: " + suggested.toString() );
 
 		return suggested;
 	}
 
 	@Override public Vector3D updateOffset( Vector3D offset )
 	{
-		offset = offset.add(lastCorrection);
+		Vector3D lastOffset = offset.add(lastCorrection);
 
-		log.info( "Last correction: " + offset );
+		ij.IJ.log( "Last offset: " + lastOffset );
 
-		return offset;
+		return lastOffset;
 	}
 }

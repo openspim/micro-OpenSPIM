@@ -60,6 +60,8 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
@@ -162,6 +164,10 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	private boolean liveControlsHooked;
 	private JTable acqPositionsTable;
 	private JCheckBox antiDriftCheckbox;
+	private JCheckBox antiDriftXInversed;
+	private JCheckBox antiDriftYInversed;
+	private JCheckBox antiDriftZInversed;
+
 	private JCheckBox laseStackCheckbox;
 
 	private JProgressBar acqProgress;
@@ -882,6 +888,40 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		antiDriftCheckbox.setSelected(false);
 		antiDriftCheckbox.setEnabled(true);
 
+		JPanel antiDriftPanel = new JPanel();
+		antiDriftPanel.setLayout( new BoxLayout( antiDriftPanel, BoxLayout.PAGE_AXIS ) );
+		antiDriftPanel.setBorder( BorderFactory.createTitledBorder("Anti-Drift") );
+		antiDriftPanel.add( antiDriftCheckbox );
+
+		antiDriftXInversed = new JCheckBox( "Inverse X offset value" );
+		antiDriftXInversed.setEnabled( false );
+		antiDriftYInversed = new JCheckBox( "Inverse Y offset value" );
+		antiDriftYInversed.setEnabled( false );
+		antiDriftZInversed = new JCheckBox( "Inverse Z offset value" );
+		antiDriftZInversed.setEnabled( false );
+		antiDriftPanel.add( antiDriftXInversed );
+		antiDriftPanel.add( antiDriftYInversed );
+		antiDriftPanel.add( antiDriftZInversed );
+
+		antiDriftCheckbox.addItemListener( new ItemListener()
+		{
+			@Override public void itemStateChanged( ItemEvent itemEvent )
+			{
+				if(itemEvent.getStateChange() == ItemEvent.SELECTED)
+				{
+					antiDriftXInversed.setEnabled( true );
+					antiDriftYInversed.setEnabled( true );
+					antiDriftZInversed.setEnabled( true );
+				}
+				else
+				{
+					antiDriftXInversed.setEnabled( false );
+					antiDriftYInversed.setEnabled( false );
+					antiDriftZInversed.setEnabled( false );
+				}
+			}
+		} );
+
 		settleTime = new JSpinner(new SpinnerNumberModel(10, 0, 1000, 1));
 
 		laseStackCheckbox = new JCheckBox("Lase Full Stack");
@@ -909,11 +949,19 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			};
 		});
 
+		JPanel optionPanel = new JPanel();
+		optionPanel.setLayout( new BoxLayout( optionPanel, BoxLayout.PAGE_AXIS ) );
+		optionPanel.setBorder( BorderFactory.createTitledBorder("Options") );
+		optionPanel.add( speedControl );
+		optionPanel.add( liveCheckbox );
+		optionPanel.add( laseStackCheckbox );
+		optionPanel.add( asyncCheckbox );
+
 		addLine(right, Justification.RIGHT, "Laser power (mW):", laserPower, "Exposure (ms):", exposure);
 		addLine(right, Justification.STRETCH, laserSlider);
 		addLine(right, Justification.STRETCH, exposureSlider);
-		addLine(right, Justification.RIGHT, speedControl, antiDriftCheckbox, liveCheckbox, laseStackCheckbox);
-		addLine(right, Justification.RIGHT, "Output directory:", acqSaveDir, pickDirBtn, asyncCheckbox);
+		addLine(right, Justification.RIGHT, antiDriftPanel, optionPanel);
+		addLine(right, Justification.RIGHT, "Output directory:", acqSaveDir, pickDirBtn);
 
 		JPanel bottom = new JPanel();
 		bottom.setLayout(new BoxLayout(bottom, BoxLayout.LINE_AXIS));
@@ -1769,7 +1817,8 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					params.setAntiDrift(new AntiDriftController.Factory() {
 						@Override
 						public AntiDriftController newInstance(Params p, Row r) {
-							return AntiDriftController.newInstance(output, p, r);
+							return AntiDriftController.newInstance(output, p, r,
+									antiDriftXInversed.isSelected(), antiDriftYInversed.isSelected(), antiDriftZInversed.isSelected());
 						}
 					});
 
