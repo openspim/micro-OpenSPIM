@@ -22,6 +22,9 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 	@Override public void startNewStack()
 	{
 		latest = new Projections();
+
+		if(first == null)
+			first = latest;
 	}
 
 	@Override public void addXYSlice( ImageProcessor ip )
@@ -31,9 +34,6 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 
 	@Override public Vector3D finishStack()
 	{
-		if(first == null)
-			first = latest;
-
 		Vector3D suggested = latest.correlateAndAverage(first);
 
 		ij.IJ.log( "Suggested offset: " + suggested.toString() );
