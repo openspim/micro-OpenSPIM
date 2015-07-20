@@ -124,7 +124,6 @@ public class AntiDriftController implements AntiDrift.Callback
 	{
 		if(gui.isVisible())
 		{
-			applyOffset( gui.getOffset() );
 			gui.setVisible( false );
 			gui.dispose();
 		}
