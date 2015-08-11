@@ -55,8 +55,7 @@ public class OMETIFFHandler implements OutputHandler
 		outputDirectory = outDir;
 		this.acqRows = acqRows;
 		tiles = tileCount;
-		int angles = Math.floorDiv(stacks, tiles);
-		ReportingUtils.showMessage("angles="+angles);
+		int angles = (int) (stacks / tiles);
 		
 		try {
 			meta = new ServiceFactory().getInstance(OMEXMLService.class).createOMEXMLMetadata();
@@ -78,8 +77,10 @@ public class OMETIFFHandler implements OutputHandler
 				meta.setChannelID(MetadataTools.createLSID("Channel", 0), image, 0);
 				meta.setChannelSamplesPerPixel(new PositiveInteger(1), image, 0);
 
+				int positionIndex = (int) (image/angles);
+				
 				for (int t = 0; t < timesteps; ++t) {
-					String fileName = makeFilename(filenamePrefix, image % angles, t, Math.floorDiv(image, angles), (tiles>=1));
+					String fileName = makeFilename(filenamePrefix, image % angles, t, positionIndex, (tiles>1));
 					for(int z = 0; z < depth; ++z) {
 						int td = depth*t + z;
 
