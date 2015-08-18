@@ -34,13 +34,13 @@ public class OMETIFFHandler implements OutputHandler
 	private IFormatWriter writer;
 
 	private CMMCore core;
-	private int stacks, timesteps;
+	private int stacks, timesteps, tiles;
 	private Row[] acqRows;
 	private double deltat;
 	
-	public OMETIFFHandler(CMMCore iCore, File outDir, String xyDev,
+	public OMETIFFHandler(CMMCore iCore, File outDir, String filenamePrefix, String xyDev,
 			String cDev, String zDev, String tDev, Row[] acqRows,
-			int iTimeSteps, double iDeltaT) {
+			int iTimeSteps, double iDeltaT, int tileCount) {
 
 		if(outDir == null || !outDir.exists() || !outDir.isDirectory())
 			throw new IllegalArgumentException("Null path specified: " + outDir.toString());
@@ -54,7 +54,9 @@ public class OMETIFFHandler implements OutputHandler
 		deltat = iDeltaT;
 		outputDirectory = outDir;
 		this.acqRows = acqRows;
-
+		tiles = tileCount;
+		int angles = (int) (stacks / tiles);
+		
 		try {
 			meta = new ServiceFactory().getInstance(OMEXMLService.class).createOMEXMLMetadata();
 
@@ -75,8 +77,10 @@ public class OMETIFFHandler implements OutputHandler
 				meta.setChannelID(MetadataTools.createLSID("Channel", 0), image, 0);
 				meta.setChannelSamplesPerPixel(new PositiveInteger(1), image, 0);
 
+				int positionIndex = (int) (image/angles);
+				
 				for (int t = 0; t < timesteps; ++t) {
-					String fileName = makeFilename(image, t);
+					String fileName = makeFilename(filenamePrefix, image % angles, t, positionIndex, (tiles>1));
 					for(int z = 0; z < depth; ++z) {
 						int td = depth*t + z;
 
@@ -102,7 +106,7 @@ public class OMETIFFHandler implements OutputHandler
 				meta.setPixelsTimeIncrement(new Time(new Double(deltat), UNITS.S), image);
 			}
 
-			writer = new ImageWriter().getWriter(makeFilename(0, 0));
+			writer = new ImageWriter().getWriter(makeFilename(filenamePrefix, 0, 0, 0, false));
 
 			writer.setWriteSequentially(true);
 			writer.setMetadataRetrieve(meta);
@@ -115,8 +119,13 @@ public class OMETIFFHandler implements OutputHandler
 		}
 	}
 
-	private static String makeFilename(int angleIndex, int timepoint) {
-		return String.format("spim_TL%02d_Angle%01d.ome.tiff", (timepoint + 1), angleIndex);
+	private static String makeFilename(String filenamePrefix, int angleIndex, int timepoint, int posIndex, boolean multiplePos) {
+		String posString = new String();
+		if (multiplePos)
+			posString=String.format("Pos%02d_", posIndex);
+		else
+			posString="";
+		return String.format(filenamePrefix+"TL%02d_"+posString+"Angle%01d.ome.tiff", (timepoint + 1), angleIndex);
 	}
 
 	private void openWriter(int angleIndex, int timepoint) throws Exception {
