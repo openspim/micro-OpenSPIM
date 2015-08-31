@@ -8,6 +8,7 @@ import spim.algorithm.AntiDrift;
 import spim.gui.calibration.AntiDriftAdjustWindow;
 import spim.algorithm.DefaultAntiDrift;
 
+import java.awt.GraphicsEnvironment;
 import java.io.File;
 import java.util.logging.Logger;
 
@@ -44,7 +45,7 @@ public class AntiDriftController implements AntiDrift.Callback
 		final Vector3D loc = new Vector3D(x, y, z);
 		this.zratio = zratio;
 		this.zstep = zstep;
-		tp = 1;
+		this.tp = 1;
 
 		antiDrift = new DefaultAntiDrift();
 		gui = new AntiDriftAdjustWindow(x, y, z, theta, zratio);
@@ -153,7 +154,10 @@ public class AntiDriftController implements AntiDrift.Callback
 		if(null != outputDir)
 			antiDrift.writeDiff( getOutFile("initial"), antiDrift.getLastCorrection(), zratio, center );
 
-		ij.IJ.log( String.format( "X: %.2f, Y: %.2f, Z: %.2f", row.getX(), row.getY(), row.getZStartPosition() ) );
+		// Only in the production environment
+		if(null != row)
+			ij.IJ.log( String.format( "X: %.2f, Y: %.2f, Z: %.2f", row.getX(), row.getY(), row.getZStartPosition() ) );
+
 		// Process anti-drift
 		Vector3D init = antiDrift.finishStack();
 

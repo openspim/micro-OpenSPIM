@@ -1,3 +1,4 @@
+import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.FloatProcessor;
@@ -126,7 +127,7 @@ public class AntiDriftTest
 	{
 		assumeTrue(!GraphicsEnvironment.isHeadless());
 
-		final AntiDriftController ct = new AntiDriftController( new File("/Users/moon/temp/"), 2, 3, 4, 0, 1, 0);
+		final AntiDriftController ct = new AntiDriftController( new File("/Users/moon/temp/"), 2, 3, 4, 0, 1, 0.5);
 
 		ct.setCallback(new AntiDrift.Callback() {
 			public void applyOffset(Vector3D offs) {
@@ -152,27 +153,70 @@ public class AntiDriftTest
 		}
 		ct.finishStack();
 
-		try
-		{
-			Thread.sleep( 10000 );
-		} catch (InterruptedException e)
-		{
-			e.printStackTrace();
-		}
+//		try
+//		{
+//			Thread.sleep( 10000 );
+//		} catch (InterruptedException e)
+//		{
+//			e.printStackTrace();
+//		}
+//
+//		ct.startNewStack();
+//		final ImageStack stackThird = impThird.getImageStack();
+//		for(int k = 1; k <= stackThird.getSize(); k++)
+//		{
+//			ct.addXYSlice( stackThird.getProcessor( k ) );
+//		}
+//		ct.finishStack();
+	}
 
-		ct.startNewStack();
-		final ImageStack stackThird = impThird.getImageStack();
-		for(int k = 1; k <= stackThird.getSize(); k++)
+	Vector3D updatedOffset = new Vector3D( 0, 0, 0 );
+
+	public void testAntiDriftWithData()
+	{
+		final AntiDriftController ct = new AntiDriftController( new File("/Users/moon/temp/"), 2, 3, 4, 0, 1, 3);
+
+		ct.setCallback(new AntiDrift.Callback() {
+			public void applyOffset(Vector3D offs) {
+				offs = updatedOffset = new Vector3D(offs.getX()*1, offs.getY()*1, offs.getZ());
+				System.out.println(String.format("Offset: %s", offs.toString()));
+			}
+		});
+
+		for(int i = 0; i < 5; i++)
 		{
-			ct.addXYSlice( stackThird.getProcessor( k ) );
+			String filename = "spim_TL0" + (i + 1) + "_Angle0.ome.tiff";
+			ImagePlus ip = IJ.openImage("/Users/moon/temp/normal/" + filename);
+			ct.startNewStack();
+
+			final ImageStack stack = ip.getImageStack();
+			for(int k = 1; k <= stack.getSize(); k++)
+			{
+				FloatProcessor fp = (FloatProcessor) stack.getProcessor( k ).convertToFloat();
+
+				fp.translate( updatedOffset.getX(), updatedOffset.getY() );
+
+				ct.addXYSlice( fp );
+			}
+			ct.finishStack();
+
+			ip.close();
+
+			try
+			{
+				Thread.sleep( 10000 );
+			} catch (InterruptedException e)
+			{
+				e.printStackTrace();
+			}
 		}
-		ct.finishStack();
 	}
 
 	public static void main(String[] argv)
 	{
 		AntiDriftTest test = new AntiDriftTest();
-		test.setup();
-		test.testAntiDriftController();
+		test.testAntiDriftWithData();
+//		test.setup();
+//		test.testAntiDriftController();
 	}
 }
