@@ -28,6 +28,7 @@ public class AntiDriftController implements AntiDrift.Callback
 	private File outputDir;
 	private Row row;
 	private boolean xInversed, yInversed, zInversed;
+	private boolean autoApplied = false;
 
 	/**
 	 * Instantiates a new AntiDriftController using primitive parameters
@@ -69,11 +70,13 @@ public class AntiDriftController implements AntiDrift.Callback
 	 * @param acqParams the acq params
 	 * @param acqRow the acq row
 	 */
-	public AntiDriftController(final File outputDir, final Params acqParams, final Row acqRow, final boolean xInversed, final boolean yInversed, final boolean zInversed)
+	public AntiDriftController(final File outputDir, final Params acqParams, final Row acqRow,
+			final boolean autoApplied, final boolean xInversed, final boolean yInversed, final boolean zInversed)
 	{
 		this( outputDir, acqRow.getX(), acqRow.getY(), acqRow.getZStartPosition(), acqRow.getTheta(),
 				acqRow.getZStepSize(), acqRow.getZStepSize() / acqParams.getCore().getPixelSizeUm() );
 
+		this.autoApplied = autoApplied;
 		this.row = acqRow;
 		this.xInversed = xInversed;
 		this.yInversed = yInversed;
@@ -88,9 +91,11 @@ public class AntiDriftController implements AntiDrift.Callback
 	 * @param acqRow the acq row
 	 * @return the AntiDriftController
 	 */
-	public static AntiDriftController newInstance(final File outputDir, final Params acqParams, final Row acqRow, final boolean xInversed, final boolean yInversed, final boolean zInversed)
+	public static AntiDriftController newInstance(final File outputDir, final Params acqParams, final Row acqRow,
+			final boolean autoApplied, final boolean xInversed, final boolean yInversed, final boolean zInversed)
 	{
-		return new AntiDriftController( outputDir, acqParams, acqRow, xInversed, yInversed, zInversed );
+		return new AntiDriftController( outputDir, acqParams, acqRow,
+				autoApplied, xInversed, yInversed, zInversed );
 	}
 
 	/**
@@ -178,6 +183,9 @@ public class AntiDriftController implements AntiDrift.Callback
 
 		gui.updateDiff();
 
+		if(autoApplied)
+			gui.autoApplyOffset();
+
 		// first = latest
 		antiDrift.setFirst( antiDrift.getLatest() );
 
@@ -210,7 +218,11 @@ public class AntiDriftController implements AntiDrift.Callback
 		}
 		else
 		{
-			ij.IJ.log(String.format("Use suggested w/ manual: using the adjusted correction: %s", updateOffset));
+			if(autoApplied)
+				ij.IJ.log(String.format("Use suggested value automatically: %s", updateOffset));
+			else
+				ij.IJ.log(String.format("Use suggested value with manual correction: %s", updateOffset));
+
 			ij.IJ.log(String.format("Returned Offset: %s", returnOffset ));
 		}
 

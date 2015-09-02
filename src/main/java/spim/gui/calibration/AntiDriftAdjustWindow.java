@@ -137,6 +137,12 @@ public class AntiDriftAdjustWindow extends JFrame implements KeyListener
 		setTitle(String.format("xyz: %.2f x %.2f x %.2f, theta: %.2f, timepoint %02d", loc.getX(), loc.getY(), loc.getZ(), theta, tp));
 	}
 
+	public void autoApplyOffset()
+	{
+		dispose();
+		callback.applyOffset(offset);
+	}
+
 	public void keyPressed(final KeyEvent e) {
 		switch (e.getKeyCode()) {
 			case KeyEvent.VK_ENTER:

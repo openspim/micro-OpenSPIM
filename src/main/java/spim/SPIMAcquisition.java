@@ -167,6 +167,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	private JCheckBox antiDriftXInversed;
 	private JCheckBox antiDriftYInversed;
 	private JCheckBox antiDriftZInversed;
+	private JCheckBox antiDriftAutoApplied;
 
 	private JCheckBox laseStackCheckbox;
 
@@ -893,12 +894,15 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		antiDriftPanel.setBorder( BorderFactory.createTitledBorder("Anti-Drift") );
 		antiDriftPanel.add( antiDriftCheckbox );
 
+		antiDriftAutoApplied = new JCheckBox( "Automatic apply the suggested value" );
+		antiDriftAutoApplied.setEnabled( false );
 		antiDriftXInversed = new JCheckBox( "Inverse X offset value" );
 		antiDriftXInversed.setEnabled( false );
 		antiDriftYInversed = new JCheckBox( "Inverse Y offset value" );
 		antiDriftYInversed.setEnabled( false );
 		antiDriftZInversed = new JCheckBox( "Inverse Z offset value" );
 		antiDriftZInversed.setEnabled( false );
+		antiDriftPanel.add( antiDriftAutoApplied );
 		antiDriftPanel.add( antiDriftXInversed );
 		antiDriftPanel.add( antiDriftYInversed );
 		antiDriftPanel.add( antiDriftZInversed );
@@ -909,12 +913,14 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			{
 				if(itemEvent.getStateChange() == ItemEvent.SELECTED)
 				{
+					antiDriftAutoApplied.setEnabled( true );
 					antiDriftXInversed.setEnabled( true );
 					antiDriftYInversed.setEnabled( true );
 					antiDriftZInversed.setEnabled( true );
 				}
 				else
 				{
+					antiDriftAutoApplied.setEnabled( false );
 					antiDriftXInversed.setEnabled( false );
 					antiDriftYInversed.setEnabled( false );
 					antiDriftZInversed.setEnabled( false );
@@ -1817,8 +1823,12 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					params.setAntiDrift(new AntiDriftController.Factory() {
 						@Override
 						public AntiDriftController newInstance(Params p, Row r) {
-							return AntiDriftController.newInstance(output, p, r,
-									antiDriftXInversed.isSelected(), antiDriftYInversed.isSelected(), antiDriftZInversed.isSelected());
+							return AntiDriftController.newInstance(
+									output, p, r,
+									antiDriftAutoApplied.isSelected(),
+									antiDriftXInversed.isSelected(),
+									antiDriftYInversed.isSelected(),
+									antiDriftZInversed.isSelected());
 						}
 					});
 
