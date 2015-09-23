@@ -124,10 +124,10 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	private JTextField acqCountBox;
 	private JCheckBox acqTimeoutCB;
 	private JTextField acqTimeoutValBox;
-	private JTextField acqSaveDir;
+	private JTextField acqSaveDir, acqFilenamePrefix;
 	private JButton acqGoBtn;
 	private Thread acqThread;
-	
+
 	private CalibrationWindow calibration;
 
 	// TODO: read these from the properties
@@ -185,7 +185,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	 */
 	public static String menuName = "Acquire SPIM image";
 	public static String tooltipDescription = "The OpenSPIM GUI";
-	
+
 	/**
 	 * The main app calls this method to remove the module window
 	 */
@@ -355,7 +355,6 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	}
 
 	// UI stuff
-
 	@SuppressWarnings("serial")
 	protected void initUI() {
 		if (frame != null)
@@ -452,7 +451,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		addLine(stageControls, Justification.RIGHT, autoReplaceMMControls, homeBtn, devMgrBtn, pixCalibBtn, calibrateButton);
 
 		acqPosTabs = new JTabbedPane();
-		
+
 		JPanel importer = new JPanel();
 		importer.setLayout(new BoxLayout(importer, BoxLayout.LINE_AXIS));
 
@@ -469,6 +468,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 
 		addLine(importer, Justification.RIGHT, "Use current value of ", acqFetchX, acqFetchY, acqFetchZ, acqFetchT, " \u00B1 ", acqFetchDelta);
 
+		//GUI for XY scan ranges in Acquisition/SPIM Ranges
 		JPanel xy = new JPanel();
 		xy.setLayout(new BoxLayout(xy, BoxLayout.PAGE_AXIS));
 		xy.setBorder(BorderFactory.createTitledBorder("X/Y Stage"));
@@ -518,6 +518,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		xy.add(xyXY);
 		xy.setMaximumSize(xy.getPreferredSize());
 
+		//GUI for Z scan ranges in Acquisition/SPIM Ranges
 		JPanel z = new JPanel();
 		z.setBorder(BorderFactory.createTitledBorder("Stage Z"));
 		z.setLayout(new BoxLayout(z, BoxLayout.PAGE_AXIS));
@@ -547,6 +548,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		z.add(acqRangeZ);
 		z.setMaximumSize(z.getPreferredSize());
 
+		//GUI for theta scan ranges in Acquisition/SPIM Ranges
 		JPanel t = new JPanel();
 		t.setBorder(BorderFactory.createTitledBorder("Theta"));
 		t.setLayout(new BoxLayout(t, BoxLayout.PAGE_AXIS));
@@ -934,9 +936,11 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		laseStackCheckbox.setSelected(false);
 		laseStackCheckbox.setEnabled(true);
 
-		acqSaveDir = new JTextField(48);
+		acqSaveDir = new JTextField(42);
 		acqSaveDir.setEnabled(true);
 
+		acqFilenamePrefix = new JTextField("spim_", 13);
+		acqFilenamePrefix.setEnabled(true);
 		asyncCheckbox = new JCheckBox("Asynchronous Output");
 		asyncCheckbox.setSelected(true);
 		asyncCheckbox.setEnabled(true);
@@ -962,6 +966,13 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		optionPanel.add( liveCheckbox );
 		optionPanel.add( laseStackCheckbox );
 		optionPanel.add( asyncCheckbox );
+
+		JPanel flowPanel = new JPanel();
+		flowPanel.setLayout( new FlowLayout( FlowLayout.LEADING ) );
+		flowPanel.add( new JLabel("Filename prefix:") );
+		flowPanel.add( acqFilenamePrefix );
+		flowPanel.setAlignmentX( Component.LEFT_ALIGNMENT );
+		optionPanel.add( flowPanel );
 
 		addLine(right, Justification.RIGHT, "Laser power (mW):", laserPower, "Exposure (ms):", exposure);
 		addLine(right, Justification.STRETCH, laserSlider);
@@ -1499,6 +1510,12 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 				 ((ranges[3][2] - ranges[3][0])/ranges[3][1] + 1));
 	}
 
+	private int estimatePosCount(double[][] ranges) {
+		double count = ((ranges[0][2] - ranges[0][0])/ranges[0][1] + 1) *((ranges[1][2] - ranges[1][0])/ranges[1][1] + 1);
+		ij.IJ.log("Estimated tiles count: "+ count);
+		return (int)count;
+	}
+
 	private Vector3D applyCalibratedRotation(Vector3D pos, double dtheta) {
 		if(calibration == null || !calibration.getIsCalibrated())
 			return pos;
@@ -1581,7 +1598,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		mmcorej.TaggedImage TI = mmc.popNextTaggedImage();
 
 		ImageProcessor IP = ImageUtils.makeProcessor(TI);
-		
+
 		double t = System.nanoTime() / 1e9 - bt;
 
 		ImagePlus img = null;
@@ -1611,7 +1628,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 				if(tmpSaveFile.exists() && tmpSaveFile.isDirectory())  {
 					Date now = Calendar.getInstance().getTime();
 					SimpleDateFormat format = new SimpleDateFormat("d MMM yyyy HH.mm");
-					
+
 					tmpSaveFile = new File(tmpSaveFile, format.format(now) + ".tiff");
 				}
 
@@ -1688,7 +1705,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 								public int compare(File f1, File f2) {
 									String n1 = f1.getName();
 									String n2 = f2.getName();
-									
+
 									double d1 = Double.parseDouble(n1.substring(0, n1.length() - 5));
 									double d2 = Double.parseDouble(n2.substring(0, n2.length() - 5));
 
@@ -1773,8 +1790,8 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					output = new File(acqSaveDir.getText());
 
 					if(!output.isDirectory()) {
-						int result = JOptionPane.showConfirmDialog(null, 
-			                    "The specified root directory does not exist. Create it?", "Directory not found.", 
+						int result = JOptionPane.showConfirmDialog(null,
+			                    "The specified root directory does not exist. Create it?", "Directory not found.",
 			                    JOptionPane.YES_NO_OPTION);
 			            if (result == JOptionPane.YES_OPTION) {
 			               output.mkdirs();
@@ -1807,9 +1824,26 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 									return;
 					}
 
+					int tileCount;
+					if (SPIM_RANGES.equals(acqPosTabs.getSelectedComponent().getName())) { //SPIM_RANGES is selected
+						if (!acqXYDevCB.isSelected()) { //if XY scanning is not selected, then there are no tiles
+						tileCount = 1;
+						} else {
+							try {
+								tileCount = estimatePosCount(getRanges());
+							} catch (Exception e) {
+								//TODO Auto-generated catch block
+								e.printStackTrace();
+								tileCount=-1; //for negative values old naming scheme will be used
+							}
+						}
+					} else {
+						tileCount = -2; //in this case counting is harder, because one would have to compare all the rows
+					};
+
 					OutputHandler handler = new OMETIFFHandler(
-						mmc, output, null, null, null, "t",
-						acqRows, timeSeqs, timeStep
+						mmc, output, acqFilenamePrefix.getText(), null, null, null, "t", //what is the purpose of defining parameters and then passing null anyway?
+						acqRows, timeSeqs, timeStep, tileCount
 					);
 					if(asyncCheckbox.isSelected())
 						handler = new AsyncOutputHandler(handler, (ij.IJ.maxMemory() - ij.IJ.currentMemory())/(mmc.getImageWidth()*mmc.getImageHeight()*mmc.getBytesPerPixel()*2), asyncMonitorCheckbox.isSelected());
