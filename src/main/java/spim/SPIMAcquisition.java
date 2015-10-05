@@ -1864,6 +1864,10 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 						tileCount = -2; //in this case counting is harder, because one would have to compare all the rows
 					};
 
+					// titleCount should not be -2, which makes only two angles for all the acquisition
+					tileCount = (tileCount < 0) ? 1 : tileCount;
+					ij.IJ.log("Tiles count: "+ tileCount);
+
 					OutputHandler handler = new OMETIFFHandler(
 						mmc, output, acqFilenamePrefix.getText(), null, null, null, "t", //what is the purpose of defining parameters and then passing null anyway?
 						acqRows, timeSeqs, timeStep, tileCount
