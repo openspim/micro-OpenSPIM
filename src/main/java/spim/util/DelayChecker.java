@@ -14,9 +14,19 @@ public class DelayChecker extends TimerTask
 	final long delay;
 	long previousTime;
 	final Timer timer;
+	private Thread thread;
 
 	public DelayChecker( long millis )
 	{
+		previousTime = System.currentTimeMillis();
+		delay = millis;
+		timer = new Timer( true );
+		timer.scheduleAtFixedRate(this, 0, delay);
+	}
+
+	public DelayChecker( Thread thread, long millis )
+	{
+		this.thread = thread;
 		previousTime = System.currentTimeMillis();
 		delay = millis;
 		timer = new Timer( true );
@@ -45,6 +55,12 @@ public class DelayChecker extends TimerTask
 		if ( isDelayed() )
 		{
 			IJ.log( "[WARNING] The current process takes longer than " + delay / 1000 + " secs delay." );
+			if(thread != null)
+			{
+				thread.interrupt();
+				IJ.log( "[WARNING] The acquisition is interrupted due to taking longer than " + delay / 1000 + " secs delay." );
+				thread = null;
+			}
 		}
 	}
 }

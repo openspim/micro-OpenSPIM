@@ -26,6 +26,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.FilenameFilter;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,7 +63,10 @@ import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
+import io.scif.util.FormatTools;
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 
@@ -72,6 +76,7 @@ import org.micromanager.MMStudio;
 import org.micromanager.api.MMPlugin;
 import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.ImageUtils;
+import org.micromanager.utils.NumberUtils;
 import org.micromanager.utils.ReportingUtils;
 
 import spim.acquisition.Params;
@@ -125,6 +130,8 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	private JCheckBox acqTimeoutCB;
 	private JTextField acqTimeoutValBox;
 	private JTextField acqSaveDir, acqFilenamePrefix;
+	private JLabel currentPixelSize;
+	private JCheckBox delayAbortionCheckBox;
 	private JButton acqGoBtn;
 	private Thread acqThread;
 
@@ -397,7 +404,14 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		pixCalibBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
-				(new PixelSizeWindow(mmc, gui)).setVisible(true);
+				PixelSizeWindow psw = new PixelSizeWindow(mmc, gui, new ActionListener()
+				{
+					@Override public void actionPerformed( ActionEvent actionEvent )
+					{
+						currentPixelSize.setText( NumberUtils.doubleToDisplayString( mmc.getPixelSizeUm() ) );
+					}
+				});
+				psw.setVisible( true );
 			}
 		});
 
@@ -887,6 +901,9 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			}
 		});
 
+
+		//////////////////////////////////////////////////////////////////////////////////
+		// Anti-Drift panel
 		antiDriftCheckbox = new JCheckBox("Use Anti-Drift");
 		antiDriftCheckbox.setSelected(false);
 		antiDriftCheckbox.setEnabled(true);
@@ -930,6 +947,8 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			}
 		} );
 
+		//////////////////////////////////////////////////////////////////////////////////
+		// General option
 		settleTime = new JSpinner(new SpinnerNumberModel(10, 0, 1000, 1));
 
 		laseStackCheckbox = new JCheckBox("Lase Full Stack");
@@ -959,6 +978,9 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			};
 		});
 
+		delayAbortionCheckBox = new JCheckBox("Abort Acquisition when 5 sec. delayed");
+		delayAbortionCheckBox.setSelected( false );
+
 		JPanel optionPanel = new JPanel();
 		optionPanel.setLayout( new BoxLayout( optionPanel, BoxLayout.PAGE_AXIS ) );
 		optionPanel.setBorder( BorderFactory.createTitledBorder("Options") );
@@ -966,6 +988,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		optionPanel.add( liveCheckbox );
 		optionPanel.add( laseStackCheckbox );
 		optionPanel.add( asyncCheckbox );
+		optionPanel.add( delayAbortionCheckBox );
 
 		JPanel flowPanel = new JPanel();
 		flowPanel.setLayout( new FlowLayout( FlowLayout.LEADING ) );
@@ -1886,6 +1909,8 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					System.setProperty("ij.log.file", log);
 					ij.IJ.log("Opened log file " + log);
 				}
+
+				params.setAbortWhenDelayed( delayAbortionCheckBox.isSelected() );
 
 				acqThread = new Thread() {
 					@Override
