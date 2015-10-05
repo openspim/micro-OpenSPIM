@@ -903,6 +903,39 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 
 
 		//////////////////////////////////////////////////////////////////////////////////
+		// Information box
+		JPanel pixelCalibrationPanel = new JPanel();
+		pixelCalibrationPanel.setLayout( new BoxLayout( pixelCalibrationPanel, BoxLayout.PAGE_AXIS ) );
+		pixelCalibrationPanel.setBorder( BorderFactory.createTitledBorder( "Info" ) );
+
+		JPanel labelTextBox = new JPanel();
+		labelTextBox.setLayout( new FlowLayout( FlowLayout.LEADING ) );
+		labelTextBox.add( new JLabel( "Current Pixel size:" ) );
+		currentPixelSize = new JLabel( NumberUtils.doubleToDisplayString( mmc.getPixelSizeUm() ) );
+		labelTextBox.add( currentPixelSize );
+		labelTextBox.add( new JLabel( "um/pixel" ) );
+		labelTextBox.setAlignmentX( Component.LEFT_ALIGNMENT );
+		pixelCalibrationPanel.add( labelTextBox );
+
+		JButton updatePixelSizeBtn = new JButton( "Cal. Pix. Size" );
+		updatePixelSizeBtn.addActionListener( new ActionListener()
+		{
+			@Override public void actionPerformed( ActionEvent actionEvent )
+			{
+				PixelSizeWindow psw = new PixelSizeWindow(mmc, gui, new ActionListener()
+				{
+					@Override public void actionPerformed( ActionEvent actionEvent )
+					{
+						currentPixelSize.setText( NumberUtils.doubleToDisplayString( mmc.getPixelSizeUm() ) );
+					}
+				});
+				psw.setVisible( true );
+			}
+		} );
+		pixelCalibrationPanel.add( updatePixelSizeBtn );
+
+
+		//////////////////////////////////////////////////////////////////////////////////
 		// Anti-Drift panel
 		antiDriftCheckbox = new JCheckBox("Use Anti-Drift");
 		antiDriftCheckbox.setSelected(false);
@@ -1000,7 +1033,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		addLine(right, Justification.RIGHT, "Laser power (mW):", laserPower, "Exposure (ms):", exposure);
 		addLine(right, Justification.STRETCH, laserSlider);
 		addLine(right, Justification.STRETCH, exposureSlider);
-		addLine(right, Justification.RIGHT, antiDriftPanel, optionPanel);
+		addLine(right, Justification.RIGHT, pixelCalibrationPanel, antiDriftPanel, optionPanel);
 		addLine(right, Justification.RIGHT, "Output directory:", acqSaveDir, pickDirBtn);
 
 		JPanel bottom = new JPanel();
