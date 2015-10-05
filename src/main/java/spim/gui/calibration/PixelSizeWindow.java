@@ -29,6 +29,8 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 import org.apache.commons.math3.analysis.MultivariateFunction;
 import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
@@ -41,6 +43,7 @@ import org.micromanager.utils.ImageUtils;
 import mmcorej.CMMCore;
 
 import org.micromanager.MMStudio;
+import org.micromanager.utils.NumberUtils;
 import spim.gui.util.Layout;
 
 public class PixelSizeWindow extends JFrame implements MouseListener,
@@ -53,19 +56,20 @@ public class PixelSizeWindow extends JFrame implements MouseListener,
 	private static final String APPLY_BTN = "Apply";
 	private static final String UPDATE_IMAGE_BTN = "Update Image";
 
-	private JRadioButton rulerModeRadBtn, gridModeRadBtn;
+	private JRadioButton rulerModeRadBtn, gridModeRadBtn, inputModeRadBtn;
 	private ButtonGroup radioGroup;
-	private JTextField actualLengthBox;
+	private JTextField actualLengthBox, detectorSize, totalMagSize;
 	private JComboBox gridRotCmbo;
+	private final ActionListener applyListener;
 
 	private CMMCore core;
 	private MMStudio gui;
 	private ImagePlus workingImage;
 
-	private JLabel umPerPixLbl;
+	private JLabel umPerPixLbl, newPixelSize;
 	private double umPerPix;
 
-	public PixelSizeWindow( CMMCore icore, MMStudio igui ) {
+	public PixelSizeWindow( CMMCore icore, MMStudio igui, ActionListener applyListener ) {
 		super("Pixel Size Calibration");
 
 		this.getRootPane().setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
@@ -110,8 +114,72 @@ public class PixelSizeWindow extends JFrame implements MouseListener,
 				) )
 		));
 
+		detectorSize = new JTextField( 3 );
+		detectorSize.setText( "6.5" );
+		detectorSize.getDocument().addDocumentListener( new DocumentListener()
+		{
+			@Override public void insertUpdate( DocumentEvent documentEvent )
+			{
+				updateNewPixelSize();
+			}
+
+			@Override public void removeUpdate( DocumentEvent documentEvent )
+			{
+				updateNewPixelSize();
+			}
+
+			@Override public void changedUpdate( DocumentEvent documentEvent )
+			{
+				updateNewPixelSize();
+			}
+		} );
+
+		totalMagSize = new JTextField( 2 );
+		totalMagSize.setText( "1" );
+		totalMagSize.getDocument().addDocumentListener( new DocumentListener()
+		{
+			@Override public void insertUpdate( DocumentEvent documentEvent )
+			{
+				updateNewPixelSize();
+			}
+
+			@Override public void removeUpdate( DocumentEvent documentEvent )
+			{
+				updateNewPixelSize();
+			}
+
+			@Override public void changedUpdate( DocumentEvent documentEvent )
+			{
+				updateNewPixelSize();
+			}
+		} );
+
+		newPixelSize = new JLabel( detectorSize.getText() );
+		add( Layout.horizPanel(
+				inputModeRadBtn = new JRadioButton(),
+				Layout.titled( "Input Mode", ( JComponent ) Layout.vertPanel(
+						Layout.horizPanel(
+								new JLabel( "Detector element size(um):" ),
+								detectorSize,
+								new JLabel( "um" )
+						),
+						Layout.horizPanel(
+								new JLabel( "Total magnification:" ),
+								totalMagSize,
+								new JLabel( "x" )
+						),
+						Layout.horizPanel(
+								new JLabel( "New Pixel size:" ),
+								newPixelSize,
+								new JLabel( "um/pixel" ),
+								Box.createHorizontalGlue()
+						)
+				) )
+		));
+
 		JButton applyBtn = new JButton(APPLY_BTN);
 		applyBtn.addActionListener(this);
+		this.applyListener = applyListener;
 
 		add( Layout.horizPanel(
 				umPerPixLbl = new JLabel( "um/pix: --" ),
@@ -147,9 +215,11 @@ public class PixelSizeWindow extends JFrame implements MouseListener,
 		radioGroup = new ButtonGroup();
 		radioGroup.add(rulerModeRadBtn);
 		radioGroup.add(gridModeRadBtn);
+		radioGroup.add( inputModeRadBtn );
 
-		rulerModeRadBtn.setSelected(true);
+		rulerModeRadBtn.setSelected(false);
 		gridModeRadBtn.setSelected(false);
+		inputModeRadBtn.setSelected( true );
 
 		core = icore;
 		gui = igui;
@@ -165,11 +235,33 @@ public class PixelSizeWindow extends JFrame implements MouseListener,
 		actualLengthBox.requestFocusInWindow();
 	}
 
+	private void updateNewPixelSize()
+	{
+		if(detectorSize.getText().length() == 0 || totalMagSize.getText().length() == 0)
+			return;
+
+		double value = Double.parseDouble(detectorSize.getText()) / Double.parseDouble(totalMagSize.getText());
+		try
+		{
+			newPixelSize.setText( NumberUtils.doubleToDisplayString( value ) );
+		}
+		catch ( Exception e )
+		{
+			e.printStackTrace();
+		}
+	}
+
 	@Override
 	public void actionPerformed(ActionEvent ae) {
 		if(UPDATE_IMAGE_BTN.equals(ae.getActionCommand())) {
 			fetchFreshImage();
 		} else if(APPLY_BTN.equals(ae.getActionCommand())) {
+			if(inputModeRadBtn.isSelected())
+			{
+				umPerPix = Double.parseDouble( newPixelSize.getText() );
+				umPerPixLbl.setText("um/pix: " + umPerPix);
+			}
+
 			if(umPerPix > 0) try {
 				core.definePixelSizeConfig("SPIM", "Core", "Initialize", "1");
 				core.setPixelSizeUm("SPIM", umPerPix);
@@ -183,6 +275,11 @@ public class PixelSizeWindow extends JFrame implements MouseListener,
 				setVisible(false);
 			} catch(Exception e) {
 				IJ.handleException(e);
+			}
+
+			if(null != applyListener)
+			{
+				applyListener.actionPerformed( ae );
 			}
 		}
 	}
