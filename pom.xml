@@ -38,6 +38,10 @@
             <groupId>ome</groupId>
             <artifactId>ome-xml</artifactId>
         </dependency>
+        <dependency>
+            <groupId>ome</groupId>
+            <artifactId>formats-bsd</artifactId>
+        </dependency>
 		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
@@ -142,7 +146,7 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
-	</dependencies>
+    </dependencies>
 
 	<!-- NB: for project parent -->
 	<repositories>
