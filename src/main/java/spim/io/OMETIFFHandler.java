@@ -130,7 +130,7 @@ public class OMETIFFHandler implements OutputHandler
 			posString=String.format("Pos%02d_", posIndex);
 		else
 			posString="";
-		return String.format(filenamePrefix+"TL%02d_"+posString+"Angle%01d.ome.tiff", (timepoint + 1), angleIndex);
+		return String.format(filenamePrefix+"TL%02d_"+posString+"Angle%01d.ome.tiff", timepoint, angleIndex);
 	}
 
 	private void openWriter(int angleIndex, int timepoint) throws Exception {
