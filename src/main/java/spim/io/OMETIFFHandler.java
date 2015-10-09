@@ -38,14 +38,17 @@ public class OMETIFFHandler implements OutputHandler
 	private int stacks, timesteps, tiles;
 	private Row[] acqRows;
 	private double deltat;
+	private boolean exportToHDF5;
+	private double zStepSize;
 	
 	public OMETIFFHandler(CMMCore iCore, File outDir, String filenamePrefix, String xyDev,
 			String cDev, String zDev, String tDev, Row[] acqRows,
-			int iTimeSteps, double iDeltaT, int tileCount) {
+			int iTimeSteps, double iDeltaT, int tileCount, boolean exportToHDF5) {
 
 		if(outDir == null || !outDir.exists() || !outDir.isDirectory())
 			throw new IllegalArgumentException("Null path specified: " + outDir.toString());
 
+		this.exportToHDF5 = exportToHDF5;
 		imageCounter = -1;
 		sliceCounter = 0;
 
@@ -104,6 +107,8 @@ public class OMETIFFHandler implements OutputHandler
 				meta.setPixelsPhysicalSizeX(FormatTools.getPhysicalSizeX(core.getPixelSizeUm()), image);
 				meta.setPixelsPhysicalSizeY(FormatTools.getPhysicalSizeX(core.getPixelSizeUm()), image);
 				meta.setPixelsPhysicalSizeZ(FormatTools.getPhysicalSizeX(Math.max(row.getZStepSize(), 1.0D)), image);
+				zStepSize = Math.max(row.getZStepSize(), 1.0D);
+
 				meta.setPixelsTimeIncrement(new Time(new Double(deltat), UNITS.S), image);
 			}
 
@@ -206,11 +211,19 @@ public class OMETIFFHandler implements OutputHandler
 
 	@Override
 	public void finalizeAcquisition() throws Exception {
+
+		File firstFile = new File(outputDirectory, meta.getUUIDFileName(0, 0));
+
 		if(writer != null)
 			writer.close();
 
 		imageCounter = 0;
 
 		writer = null;
+
+		if (exportToHDF5)
+		{
+			new HDF5Generator( outputDirectory, firstFile, stacks, timesteps, core.getPixelSizeUm(), zStepSize );
+		}
 	}
 }

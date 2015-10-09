@@ -131,7 +131,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	private JTextField acqTimeoutValBox;
 	private JTextField acqSaveDir, acqFilenamePrefix;
 	private JLabel currentPixelSize;
-	private JCheckBox delayAbortionCheckBox;
+	private JCheckBox delayAbortionCheckBox, exportToHdf5;
 	private JButton acqGoBtn;
 	private Thread acqThread;
 
@@ -904,9 +904,9 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 
 		//////////////////////////////////////////////////////////////////////////////////
 		// Information box
-		JPanel pixelCalibrationPanel = new JPanel();
-		pixelCalibrationPanel.setLayout( new BoxLayout( pixelCalibrationPanel, BoxLayout.PAGE_AXIS ) );
-		pixelCalibrationPanel.setBorder( BorderFactory.createTitledBorder( "Info" ) );
+		JPanel exportPanel = new JPanel();
+		exportPanel.setLayout( new BoxLayout( exportPanel, BoxLayout.PAGE_AXIS ) );
+		exportPanel.setBorder( BorderFactory.createTitledBorder( "Export" ) );
 
 		JPanel labelTextBox = new JPanel();
 		labelTextBox.setLayout( new FlowLayout( FlowLayout.LEADING ) );
@@ -915,7 +915,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		labelTextBox.add( currentPixelSize );
 		labelTextBox.add( new JLabel( "um/pixel" ) );
 		labelTextBox.setAlignmentX( Component.LEFT_ALIGNMENT );
-		pixelCalibrationPanel.add( labelTextBox );
+		exportPanel.add( labelTextBox );
 
 		JButton updatePixelSizeBtn = new JButton( "Cal. Pix. Size" );
 		updatePixelSizeBtn.addActionListener( new ActionListener()
@@ -932,8 +932,28 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 				psw.setVisible( true );
 			}
 		} );
-		pixelCalibrationPanel.add( updatePixelSizeBtn );
 
+		asyncCheckbox = new JCheckBox("Asynchronous Output");
+		asyncCheckbox.setSelected(true);
+		asyncCheckbox.setEnabled(true);
+		asyncCheckbox.setToolTipText("If checked, captured images will be buffered and written as time permits. This speeds up acquisition. Currently only applies if an output directory is specified.");
+
+		exportToHdf5 = new JCheckBox( "(Additionally) Export to HDF5" );
+		exportToHdf5.setSelected(false);
+		exportToHdf5.setEnabled(true);
+
+		JPanel flowPanel = new JPanel();
+		flowPanel.setLayout( new FlowLayout( FlowLayout.LEADING ) );
+		flowPanel.add( new JLabel("Filename prefix:") );
+		acqFilenamePrefix = new JTextField("spim_", 13);
+		acqFilenamePrefix.setEnabled(true);
+		flowPanel.add( acqFilenamePrefix );
+		flowPanel.setAlignmentX( Component.LEFT_ALIGNMENT );
+
+		exportPanel.add( updatePixelSizeBtn );
+		exportPanel.add( asyncCheckbox );
+		exportPanel.add( exportToHdf5 );
+		exportPanel.add( flowPanel );
 
 		//////////////////////////////////////////////////////////////////////////////////
 		// Anti-Drift panel
@@ -991,13 +1011,6 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		acqSaveDir = new JTextField(42);
 		acqSaveDir.setEnabled(true);
 
-		acqFilenamePrefix = new JTextField("spim_", 13);
-		acqFilenamePrefix.setEnabled(true);
-		asyncCheckbox = new JCheckBox("Asynchronous Output");
-		asyncCheckbox.setSelected(true);
-		asyncCheckbox.setEnabled(true);
-		asyncCheckbox.setToolTipText("If checked, captured images will be buffered and written as time permits. This speeds up acquisition. Currently only applies if an output directory is specified.");
-
 		pickDirBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
@@ -1020,20 +1033,12 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		optionPanel.add( speedControl );
 		optionPanel.add( liveCheckbox );
 		optionPanel.add( laseStackCheckbox );
-		optionPanel.add( asyncCheckbox );
 		optionPanel.add( delayAbortionCheckBox );
-
-		JPanel flowPanel = new JPanel();
-		flowPanel.setLayout( new FlowLayout( FlowLayout.LEADING ) );
-		flowPanel.add( new JLabel("Filename prefix:") );
-		flowPanel.add( acqFilenamePrefix );
-		flowPanel.setAlignmentX( Component.LEFT_ALIGNMENT );
-		optionPanel.add( flowPanel );
 
 		addLine(right, Justification.RIGHT, "Laser power (mW):", laserPower, "Exposure (ms):", exposure);
 		addLine(right, Justification.STRETCH, laserSlider);
 		addLine(right, Justification.STRETCH, exposureSlider);
-		addLine(right, Justification.RIGHT, pixelCalibrationPanel, antiDriftPanel, optionPanel);
+		addLine(right, Justification.RIGHT, exportPanel, antiDriftPanel, optionPanel);
 		addLine(right, Justification.RIGHT, "Output directory:", acqSaveDir, pickDirBtn);
 
 		JPanel bottom = new JPanel();
@@ -1903,7 +1908,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 
 					OutputHandler handler = new OMETIFFHandler(
 						mmc, output, acqFilenamePrefix.getText(), null, null, null, "t", //what is the purpose of defining parameters and then passing null anyway?
-						acqRows, timeSeqs, timeStep, tileCount
+						acqRows, timeSeqs, timeStep, tileCount, exportToHdf5.isSelected()
 					);
 					if(asyncCheckbox.isSelected())
 						handler = new AsyncOutputHandler(handler, (ij.IJ.maxMemory() - ij.IJ.currentMemory())/(mmc.getImageWidth()*mmc.getImageHeight()*mmc.getBytesPerPixel()*2), asyncMonitorCheckbox.isSelected());
