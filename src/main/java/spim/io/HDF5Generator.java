@@ -43,7 +43,7 @@ public class HDF5Generator
 {
 	private File outputDirectory;
 
-	public HDF5Generator(File outDir, File path, int angles, int numTimepoints, double pixelSizeUm, double zStepSize) throws IOException, FormatException
+	public HDF5Generator(File outDir, File path, int angles, int numTimepoints, double pixelSizeUm, double[] zStepSize) throws IOException, FormatException
 	{
 		if(outDir == null || !outDir.exists() || !outDir.isDirectory())
 			throw new IllegalArgumentException("Null path specified: " + outDir.toString());
@@ -83,7 +83,7 @@ public class HDF5Generator
 			planeSize = width * height * r.getBitsPerPixel();
 
 			String punit = "um";
-			final FinalVoxelDimensions voxelSize = new FinalVoxelDimensions( punit, pixelSizeUm, pixelSizeUm, zStepSize);
+			final FinalVoxelDimensions voxelSize = new FinalVoxelDimensions( punit, pixelSizeUm, pixelSizeUm, zStepSize[i] );
 			final FinalDimensions size = new FinalDimensions( new int[] { width, height, depth } );
 
 			final BasicViewSetup setup = new BasicViewSetup( i, "" + i, size, voxelSize );
@@ -95,7 +95,7 @@ public class HDF5Generator
 
 			// create SourceTransform from the images calibration
 			final AffineTransform3D sourceTransform = new AffineTransform3D();
-			sourceTransform.set( pixelSizeUm, 0, 0, 0, 0, pixelSizeUm, 0, 0, 0, 0, zStepSize, 0 );
+			sourceTransform.set( pixelSizeUm, 0, 0, 0, 0, pixelSizeUm, 0, 0, 0, 0, zStepSize[i], 0 );
 
 			for ( int t = 0; t < numTimepoints; ++t )
 				registrations.add( new ViewRegistration( t, i, sourceTransform ) );

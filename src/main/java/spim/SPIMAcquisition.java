@@ -26,7 +26,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.FilenameFilter;
-import java.text.ParseException;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -61,12 +61,8 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 
-import io.scif.util.FormatTools;
+import loci.formats.FormatException;
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 
@@ -97,6 +93,7 @@ import spim.hardware.SPIMSetup.SPIMDevice;
 import spim.hardware.Stage;
 
 import spim.io.AsyncOutputHandler;
+import spim.io.HDF5Generator;
 import spim.io.OutputHandler;
 import spim.io.LabelledVirtualStack;
 import spim.io.OMETIFFHandler;
@@ -913,7 +910,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		labelTextBox.add( new JLabel( "Current Pixel size:" ) );
 		currentPixelSize = new JLabel( NumberUtils.doubleToDisplayString( mmc.getPixelSizeUm() ) );
 		labelTextBox.add( currentPixelSize );
-		labelTextBox.add( new JLabel( "um/pixel" ) );
+		labelTextBox.add( new JLabel( "μm/pixel" ) );
 		labelTextBox.setAlignmentX( Component.LEFT_ALIGNMENT );
 		exportPanel.add( labelTextBox );
 
@@ -932,28 +929,79 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 				psw.setVisible( true );
 			}
 		} );
+		exportPanel.add( updatePixelSizeBtn );
 
 		asyncCheckbox = new JCheckBox("Asynchronous Output");
 		asyncCheckbox.setSelected(true);
 		asyncCheckbox.setEnabled(true);
 		asyncCheckbox.setToolTipText("If checked, captured images will be buffered and written as time permits. This speeds up acquisition. Currently only applies if an output directory is specified.");
+		exportPanel.add( asyncCheckbox );
 
-		exportToHdf5 = new JCheckBox( "(Additionally) Export to HDF5" );
+		exportToHdf5 = new JCheckBox( "Export to HDF5 after acquisition" );
 		exportToHdf5.setSelected(false);
 		exportToHdf5.setEnabled(true);
-
-		JPanel flowPanel = new JPanel();
-		flowPanel.setLayout( new FlowLayout( FlowLayout.LEADING ) );
-		flowPanel.add( new JLabel("Filename prefix:") );
-		acqFilenamePrefix = new JTextField("spim_", 13);
-		acqFilenamePrefix.setEnabled(true);
-		flowPanel.add( acqFilenamePrefix );
-		flowPanel.setAlignmentX( Component.LEFT_ALIGNMENT );
-
-		exportPanel.add( updatePixelSizeBtn );
-		exportPanel.add( asyncCheckbox );
+		exportToHdf5.setAlignmentX( Component.LEFT_ALIGNMENT );
 		exportPanel.add( exportToHdf5 );
-		exportPanel.add( flowPanel );
+
+		JButton hdf5Btn = new JButton( "HDF5 Resave" );
+		hdf5Btn.setAlignmentX( Component.LEFT_ALIGNMENT );
+		hdf5Btn.addActionListener( new ActionListener()
+		{
+			@Override public void actionPerformed( ActionEvent actionEvent )
+			{
+				JFileChooser fc = new JFileChooser(acqSaveDir.getText());
+
+				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+
+				if(fc.showDialog(frame, "Select") == JFileChooser.APPROVE_OPTION)
+				{
+					final File file = fc.getSelectedFile();
+					Row[] acqRows = null;
+					try
+					{
+						acqRows = getBuiltRows();
+					}
+					catch ( Exception e )
+					{
+						e.printStackTrace();
+					}
+
+					final int stacks = acqRows.length;
+					final double[] zSteps = new double[stacks];
+					for(int i = 0; i < stacks; i++)
+						zSteps[ i ] = Math.max( acqRows[ i ].getZStepSize(), 1.0D );
+
+					final int timeSeqs = acqCountBox.getText().equals( "" )? 1: Integer.parseInt(acqCountBox.getText());
+					Thread hdf5ResaveThread = new Thread( new Runnable() {
+						@Override
+						public void run() {
+							try
+							{
+								new HDF5Generator(new File(file.getParent()),
+										file,
+										stacks,
+										timeSeqs,
+										mmc.getPixelSizeUm(),
+										zSteps
+								);
+							}
+							catch ( IOException e )
+							{
+								e.printStackTrace();
+							}
+							catch ( FormatException e )
+							{
+								e.printStackTrace();
+							}
+						}
+					}, "HDF5 Resave Thread");
+					hdf5ResaveThread.setPriority( Thread.MAX_PRIORITY );
+					hdf5ResaveThread.start();
+				}
+			}
+		} );
+		exportPanel.add( hdf5Btn );
+
 
 		//////////////////////////////////////////////////////////////////////////////////
 		// Anti-Drift panel
@@ -1027,6 +1075,14 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		delayAbortionCheckBox = new JCheckBox("Abort Acquisition when 5 sec. delayed");
 		delayAbortionCheckBox.setSelected( false );
 
+		JPanel flowPanel = new JPanel();
+		flowPanel.setLayout( new FlowLayout( FlowLayout.LEADING ) );
+		flowPanel.add( new JLabel("Filename prefix:") );
+		acqFilenamePrefix = new JTextField("spim_", 13);
+		acqFilenamePrefix.setEnabled(true);
+		flowPanel.add( acqFilenamePrefix );
+		flowPanel.setAlignmentX( Component.LEFT_ALIGNMENT );
+
 		JPanel optionPanel = new JPanel();
 		optionPanel.setLayout( new BoxLayout( optionPanel, BoxLayout.PAGE_AXIS ) );
 		optionPanel.setBorder( BorderFactory.createTitledBorder("Options") );
@@ -1034,6 +1090,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		optionPanel.add( liveCheckbox );
 		optionPanel.add( laseStackCheckbox );
 		optionPanel.add( delayAbortionCheckBox );
+		optionPanel.add( flowPanel );
 
 		addLine(right, Justification.RIGHT, "Laser power (mW):", laserPower, "Exposure (ms):", exposure);
 		addLine(right, Justification.STRETCH, laserSlider);
