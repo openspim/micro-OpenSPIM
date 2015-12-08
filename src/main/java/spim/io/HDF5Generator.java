@@ -108,7 +108,6 @@ public class HDF5Generator
 		final OMETiffImageLoader imgLoader = new OMETiffImageLoader( path );
 		final SequenceDescriptionMinimal seq = new SequenceDescriptionMinimal( new TimePoints( timepoints ), setups, imgLoader, null );
 
-		imgLoader.setSetups( setups );
 		imgLoader.setSequenceDescription( seq );
 
 		final boolean isVirtual = false;
