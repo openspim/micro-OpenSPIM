@@ -22,6 +22,7 @@ import mpicbg.spim.data.registration.ViewRegistrations;
 import mpicbg.spim.data.sequence.Angle;
 import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.FinalVoxelDimensions;
+import mpicbg.spim.data.sequence.Illumination;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.TimePoints;
 import net.imglib2.FinalDimensions;
@@ -88,7 +89,14 @@ public class HDF5Generator
 
 			final BasicViewSetup setup = new BasicViewSetup( i, "" + i, size, voxelSize );
 			setup.setAttribute( new Angle( i ) );
+
+			// Illumination and Channel sizes are assumed to be 1
+			setup.setAttribute( new Illumination( 0 ) );
+			setup.setAttribute( new Channel( 0 ) );
+
 			setups.put( i, setup );
+
+
 
 			final ExportMipmapInfo autoMipmapSettings = ProposeMipmaps.proposeMipmaps( new BasicViewSetup( 0, "", size, voxelSize ) );
 			perSetupExportMipmapInfo.put( i, autoMipmapSettings );
