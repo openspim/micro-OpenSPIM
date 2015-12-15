@@ -74,7 +74,7 @@ public class IndividualImagesHandler implements OutputHandler
 	}
 
 	@Override
-	public void finalizeAcquisition() throws Exception {
+	public void finalizeAcquisition(boolean bSuccess) throws Exception {
 		// Nothing to do.
 	}
 

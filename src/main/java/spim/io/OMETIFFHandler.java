@@ -216,7 +216,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	}
 
 	@Override
-	public void finalizeAcquisition() throws Exception {
+	public void finalizeAcquisition(boolean bSuccess) throws Exception {
 
 		final File firstFile = new File(outputDirectory, meta.getUUIDFileName(0, 0));
 
@@ -227,7 +227,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 
 		writer = null;
 
-		if (exportToHDF5)
+		if (bSuccess && exportToHDF5)
 		{
 			hdf5ResaveThread = new Thread( new Runnable() {
 				@Override

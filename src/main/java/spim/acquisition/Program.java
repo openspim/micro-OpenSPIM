@@ -234,7 +234,9 @@ public class Program
 			// TEMPORARY: Don't re-enable live mode. This keeps our laser off.
 //			MMStudio.getInstance().enableLiveMode(live);
 
-			p.getOutputHandler().finalizeAcquisition();
+			// Abortion with false flag
+			p.getOutputHandler().finalizeAcquisition(false);
+
 			return p.getOutputHandler().getImagePlus();
 		} catch(Exception e) {
 			return null;
@@ -562,7 +564,8 @@ public class Program
 		if(params.doProfiling())
 			prof.get("Output").start();
 
-		handler.finalizeAcquisition();
+		// Finalized acquisition with true flag
+		handler.finalizeAcquisition(true);
 
 		if(params.doProfiling())
 			prof.get("Output").stop();
