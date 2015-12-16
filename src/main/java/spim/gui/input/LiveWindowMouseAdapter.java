@@ -1,5 +1,6 @@
 package spim.gui.input;
 
+import ij.IJ;
 import ij.gui.Toolbar;
 
 import java.awt.Component;
@@ -19,6 +20,8 @@ import javax.swing.JOptionPane;
 import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
+import org.micromanager.navigation.CenterAndDragListener;
+import org.micromanager.navigation.ZWheelListener;
 import spim.gui.calibration.CalibrationWindow;
 import spim.hardware.SPIMSetup;
 import spim.hardware.Stage;
@@ -66,47 +69,27 @@ public class LiveWindowMouseAdapter extends MouseAdapter {
 		if(hookedOn != null)
 			detach();
 
-		// First, check if MM has its claws in the target component (i.e. the live window).
-		// If so, ask the user if we want to a) remove MM's hooks, b) leave both hooks in, or c) don't hook.
-		// TODO: Should this check be external?
-		List<MouseListener> mls = Arrays.asList(to.getMouseListeners());
-		List<MouseMotionListener> mmls = Arrays.asList(to.getMouseMotionListeners());
-		List<MouseWheelListener> mwls = Arrays.asList(to.getMouseWheelListeners());
+		mmMouseListener = null;
+		for (final MouseListener listener : to.getMouseListeners()) {
+			if (listener instanceof CenterAndDragListener) {
+				mmMouseListener = ( CenterAndDragListener ) listener;
+				to.removeMouseListener( listener );
+			}
+		}
+		if (mmMouseListener == null) {
+			for (final MouseMotionListener listener : to.getMouseMotionListeners()) {
+				if (listener instanceof CenterAndDragListener) {
+					mmMouseListener = ( CenterAndDragListener ) listener;
+					to.removeMouseMotionListener( listener );
+				}
+			}
+		}
 
-		MouseListener ml = null;
-		MouseMotionListener mml = null;
-		MouseWheelListener mwl = null;
-
-		Iterator<MouseListener> mli = mls.iterator();
-		while(mli.hasNext())
-			if((ml = mli.next()) instanceof org.micromanager.navigation.CenterAndDragListener)
-				break;
-
-		Iterator<MouseMotionListener> mmli = mmls.iterator();
-		while(mmli.hasNext())
-			if((mml = mmli.next()) instanceof org.micromanager.navigation.CenterAndDragListener)
-				break;
-
-		Iterator<MouseWheelListener> mwli = mwls.iterator();
-		while(mwli.hasNext())
-			if((mwl = mwli.next()) instanceof org.micromanager.navigation.ZWheelListener)
-				break;
-
-		if(ml != null || mml != null || mwl != null) {
-			if(unhookMM < 0)
-				unhookMM = JOptionPane.showConfirmDialog(to, mmHooksWarnMsg, mmHooksWarnTitle, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-
-			if(unhookMM == JOptionPane.NO_OPTION) {
-				return false;
-			} else if(unhookMM == JOptionPane.YES_OPTION) {
-				mmMouseListener = (org.micromanager.navigation.CenterAndDragListener)(ml != null ? ml : mml);
-				mmMouseWheelListener = (org.micromanager.navigation.ZWheelListener)mwl;
-
-				if(mmMouseListener != null)
-					mmMouseListener.stop();
-
-				if(mmMouseWheelListener != null)
-					mmMouseWheelListener.stop();
+		mmMouseWheelListener = null;
+		for (final MouseWheelListener listener : to.getMouseWheelListeners()) {
+			if (listener instanceof ZWheelListener) {
+				mmMouseWheelListener = ( ZWheelListener ) listener;
+				to.removeMouseWheelListener( listener );
 			}
 		}
 
@@ -247,7 +230,7 @@ public class LiveWindowMouseAdapter extends MouseAdapter {
 
 		if(!me.isAltDown()) {
 			Vector3D d = new Vector3D(drag.x * setup.getCore().getPixelSizeUm() * (me.isShiftDown() ? 2 : 1),
-									  drag.y * setup.getCore().getPixelSizeUm() * (me.isShiftDown() ? 2 : 1),
+									  drag.y * setup.getCore().getPixelSizeUm() * -(me.isShiftDown() ? 2 : 1),
 									  0);
 
 			setup.setPosition(stageStart.add(d), thetaStart);

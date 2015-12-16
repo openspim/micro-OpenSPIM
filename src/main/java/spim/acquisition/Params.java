@@ -34,6 +34,7 @@ public class Params
 	private int					zWaitMillis;
 
 	private boolean				profile;
+	private boolean				abortWhenDelayed = false;
 
 	public Params() {
 		this(null, null, null, 0D, 0, false, null, null, false, null);
@@ -240,4 +241,13 @@ public class Params
 		this.profile = profile;
 	}
 
+	public boolean isAbortWhenDelayed()
+	{
+		return abortWhenDelayed;
+	}
+
+	public void setAbortWhenDelayed( boolean abortWhenDelayed )
+	{
+		this.abortWhenDelayed = abortWhenDelayed;
+	}
 }

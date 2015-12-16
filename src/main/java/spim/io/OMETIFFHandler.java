@@ -4,14 +4,18 @@ import ij.ImagePlus;
 import ij.process.ImageProcessor;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.channels.ClosedByInterruptException;
 
 import loci.common.DataTools;
 import loci.common.services.ServiceFactory;
+import loci.formats.FormatException;
 import loci.formats.FormatTools;
 import loci.formats.IFormatWriter;
 import loci.formats.ImageWriter;
 import loci.formats.MetadataTools;
 import loci.formats.meta.IMetadata;
+import loci.formats.out.OMETiffWriter;
 import loci.formats.services.OMEXMLService;
 import mmcorej.CMMCore;
 import ome.units.UNITS;
@@ -25,7 +29,7 @@ import spim.acquisition.Row;
 
 import org.micromanager.utils.ReportingUtils;
 
-public class OMETIFFHandler implements OutputHandler
+public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHandler
 {
 	private File outputDirectory;
 
@@ -37,18 +41,24 @@ public class OMETIFFHandler implements OutputHandler
 	private int stacks, timesteps, tiles;
 	private Row[] acqRows;
 	private double deltat;
+	private boolean exportToHDF5;
+	private double[] zStepSize;
+	private Thread hdf5ResaveThread;
+	private Exception rethrow;
 	
 	public OMETIFFHandler(CMMCore iCore, File outDir, String filenamePrefix, String xyDev,
 			String cDev, String zDev, String tDev, Row[] acqRows,
-			int iTimeSteps, double iDeltaT, int tileCount) {
+			int iTimeSteps, double iDeltaT, int tileCount, boolean exportToHDF5) {
 
 		if(outDir == null || !outDir.exists() || !outDir.isDirectory())
 			throw new IllegalArgumentException("Null path specified: " + outDir.toString());
 
+		this.exportToHDF5 = exportToHDF5;
 		imageCounter = -1;
 		sliceCounter = 0;
 
 		stacks = acqRows.length;
+		zStepSize = new double[stacks];
 		core = iCore;
 		timesteps = iTimeSteps;
 		deltat = iDeltaT;
@@ -103,10 +113,16 @@ public class OMETIFFHandler implements OutputHandler
 				meta.setPixelsPhysicalSizeX(FormatTools.getPhysicalSizeX(core.getPixelSizeUm()), image);
 				meta.setPixelsPhysicalSizeY(FormatTools.getPhysicalSizeX(core.getPixelSizeUm()), image);
 				meta.setPixelsPhysicalSizeZ(FormatTools.getPhysicalSizeX(Math.max(row.getZStepSize(), 1.0D)), image);
+				zStepSize[image] = Math.max(row.getZStepSize(), 1.0D);
+
 				meta.setPixelsTimeIncrement(new Time(new Double(deltat), UNITS.S), image);
 			}
 
 			writer = new ImageWriter().getWriter(makeFilename(filenamePrefix, 0, 0, 0, false));
+			if (writer instanceof OMETiffWriter ) {
+				ij.IJ.log("calling setBigTiff(true)");
+				((OMETiffWriter) writer).setBigTiff(true);
+			}
 
 			writer.setWriteSequentially(true);
 			writer.setMetadataRetrieve(meta);
@@ -125,7 +141,7 @@ public class OMETIFFHandler implements OutputHandler
 			posString=String.format("Pos%02d_", posIndex);
 		else
 			posString="";
-		return String.format(filenamePrefix+"TL%02d_"+posString+"Angle%01d.ome.tiff", (timepoint + 1), angleIndex);
+		return String.format(filenamePrefix+"TL%02d_"+posString+"Angle%01d.ome.tiff", timepoint, angleIndex);
 	}
 
 	private void openWriter(int angleIndex, int timepoint) throws Exception {
@@ -200,12 +216,54 @@ public class OMETIFFHandler implements OutputHandler
 	}
 
 	@Override
-	public void finalizeAcquisition() throws Exception {
+	public void finalizeAcquisition(boolean bSuccess) throws Exception {
+
+		final File firstFile = new File(outputDirectory, meta.getUUIDFileName(0, 0));
+
 		if(writer != null)
 			writer.close();
 
 		imageCounter = 0;
 
 		writer = null;
+
+		if (bSuccess && exportToHDF5)
+		{
+			hdf5ResaveThread = new Thread( new Runnable() {
+				@Override
+				public void run() {
+					try
+					{
+						new HDF5Generator( outputDirectory, firstFile, stacks, timesteps,
+								core.getPixelSizeUm(), zStepSize );
+					}
+					catch ( IOException e )
+					{
+						e.printStackTrace();
+					}
+					catch ( FormatException e )
+					{
+						e.printStackTrace();
+					}
+				}
+			}, "HDF5 Resave Thread");
+			hdf5ResaveThread.setPriority( Thread.MAX_PRIORITY );
+			hdf5ResaveThread.setUncaughtExceptionHandler(this);
+			hdf5ResaveThread.start();
+		}
+	}
+
+	@Override public void uncaughtException( Thread thread, Throwable throwable )
+	{
+		if(thread != hdf5ResaveThread)
+			throw new Error("Unexpected exception mis-caught.", throwable);
+
+		if(!(throwable instanceof Exception))
+		{
+			ReportingUtils.logError(throwable, "Non-exception throwable " + throwable.toString() + " caught from hdf5 resave thread. Wrapping.");
+			throwable = new Exception("Wrapped throwable; see core log for details: " + throwable.getMessage(), throwable);
+		}
+
+		rethrow = (Exception)throwable;
 	}
 }

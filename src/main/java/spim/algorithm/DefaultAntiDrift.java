@@ -10,7 +10,7 @@ import java.util.logging.Logger;
  */
 public class DefaultAntiDrift extends AbstractAntiDrift
 {
-	Logger log = Logger.getLogger(DefaultAntiDrift.class.getName());
+//	Logger log = Logger.getLogger(DefaultAntiDrift.class.getName());
 	/**
 	 * Instantiates a new DefaultAntiDrift class using PhaseCorrelation.
 	 */
@@ -22,6 +22,9 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 	@Override public void startNewStack()
 	{
 		latest = new Projections();
+
+		if(first == null)
+			first = latest;
 	}
 
 	@Override public void addXYSlice( ImageProcessor ip )
@@ -29,21 +32,21 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 		latest.addXYSlice( ip );
 	}
 
-	@Override public void finishStack()
+	@Override public Vector3D finishStack()
 	{
-		if(first == null)
-			first = latest;
-
 		Vector3D suggested = latest.correlateAndAverage(first);
 
-		log.info( suggested.toString() );
+		ij.IJ.log( "Suggested offset: " + suggested.toString() );
 
-		setLastCorrection( suggested );
+		return suggested;
 	}
 
-	@Override public void updateOffset( Vector3D offset )
+	@Override public Vector3D updateOffset( Vector3D offset )
 	{
-		offset = offset.add(lastCorrection);
-		setLastCorrection( offset );
+		Vector3D lastOffset = offset.add(lastCorrection);
+
+		ij.IJ.log( "Last offset: " + lastOffset );
+
+		return lastOffset;
 	}
 }

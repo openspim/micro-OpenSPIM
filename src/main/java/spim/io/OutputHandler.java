@@ -51,8 +51,9 @@ public interface OutputHandler
 	 * the handler should be in a state where it can accept new slices as an
 	 * entirely different acquisition.
 	 *
+	 * @param b true if the process is finalized successfully. Otherwise, false for abortion.
 	 * @throws Exception
 	 */
-	public abstract void finalizeAcquisition() throws Exception;
+	public abstract void finalizeAcquisition(boolean b) throws Exception;
 
 }

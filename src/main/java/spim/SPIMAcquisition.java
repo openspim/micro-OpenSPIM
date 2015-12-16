@@ -26,6 +26,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -61,6 +62,7 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 
+import loci.formats.FormatException;
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 
@@ -70,6 +72,7 @@ import org.micromanager.MMStudio;
 import org.micromanager.api.MMPlugin;
 import org.micromanager.api.ScriptInterface;
 import org.micromanager.utils.ImageUtils;
+import org.micromanager.utils.NumberUtils;
 import org.micromanager.utils.ReportingUtils;
 
 import spim.acquisition.Params;
@@ -88,7 +91,9 @@ import spim.hardware.DeviceManager;
 import spim.hardware.SPIMSetup;
 import spim.hardware.SPIMSetup.SPIMDevice;
 import spim.hardware.Stage;
+
 import spim.io.AsyncOutputHandler;
+import spim.io.HDF5Generator;
 import spim.io.OutputHandler;
 import spim.io.LabelledVirtualStack;
 import spim.io.OMETIFFHandler;
@@ -122,9 +127,11 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	private JCheckBox acqTimeoutCB;
 	private JTextField acqTimeoutValBox;
 	private JTextField acqSaveDir, acqFilenamePrefix;
+	private JLabel currentPixelSize;
+	private JCheckBox delayAbortionCheckBox, exportToHdf5;
 	private JButton acqGoBtn;
 	private Thread acqThread;
-	
+
 	private CalibrationWindow calibration;
 
 	// TODO: read these from the properties
@@ -161,6 +168,11 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	private boolean liveControlsHooked;
 	private JTable acqPositionsTable;
 	private JCheckBox antiDriftCheckbox;
+	private JCheckBox antiDriftXInversed;
+	private JCheckBox antiDriftYInversed;
+	private JCheckBox antiDriftZInversed;
+	private JCheckBox antiDriftAutoApplied;
+
 	private JCheckBox laseStackCheckbox;
 
 	private JProgressBar acqProgress;
@@ -177,7 +189,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	 */
 	public static String menuName = "Acquire SPIM image";
 	public static String tooltipDescription = "The OpenSPIM GUI";
-	
+
 	/**
 	 * The main app calls this method to remove the module window
 	 */
@@ -389,7 +401,14 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		pixCalibBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
-				(new PixelSizeWindow(mmc, gui)).setVisible(true);
+				PixelSizeWindow psw = new PixelSizeWindow(mmc, gui, new ActionListener()
+				{
+					@Override public void actionPerformed( ActionEvent actionEvent )
+					{
+						currentPixelSize.setText( NumberUtils.doubleToDisplayString( mmc.getPixelSizeUm() ) );
+					}
+				});
+				psw.setVisible( true );
 			}
 		});
 
@@ -413,7 +432,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		left.add(Box.createVerticalStrut(8));
 		addLine(left, Justification.STRETCH, rotationSlider);
 
-		autoReplaceMMControls = new JCheckBox("SPIM Mouse Controls");
+		autoReplaceMMControls = new JCheckBox("Invert Y Mouse Control");
 		autoReplaceMMControls.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent ae) {
@@ -443,7 +462,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		addLine(stageControls, Justification.RIGHT, autoReplaceMMControls, homeBtn, devMgrBtn, pixCalibBtn, calibrateButton);
 
 		acqPosTabs = new JTabbedPane();
-		
+
 		JPanel importer = new JPanel();
 		importer.setLayout(new BoxLayout(importer, BoxLayout.LINE_AXIS));
 
@@ -879,10 +898,158 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			}
 		});
 
+
+		//////////////////////////////////////////////////////////////////////////////////
+		// Information box
+		JPanel exportPanel = new JPanel();
+		exportPanel.setLayout( new BoxLayout( exportPanel, BoxLayout.PAGE_AXIS ) );
+		exportPanel.setBorder( BorderFactory.createTitledBorder( "Export" ) );
+
+		JPanel labelTextBox = new JPanel();
+		labelTextBox.setLayout( new FlowLayout( FlowLayout.LEADING ) );
+		labelTextBox.add( new JLabel( "Current Pixel size:" ) );
+		currentPixelSize = new JLabel( NumberUtils.doubleToDisplayString( mmc.getPixelSizeUm() ) );
+		labelTextBox.add( currentPixelSize );
+		labelTextBox.add( new JLabel( "μm/pixel" ) );
+		labelTextBox.setAlignmentX( Component.LEFT_ALIGNMENT );
+		exportPanel.add( labelTextBox );
+
+		JButton updatePixelSizeBtn = new JButton( "Cal. Pix. Size" );
+		updatePixelSizeBtn.addActionListener( new ActionListener()
+		{
+			@Override public void actionPerformed( ActionEvent actionEvent )
+			{
+				PixelSizeWindow psw = new PixelSizeWindow(mmc, gui, new ActionListener()
+				{
+					@Override public void actionPerformed( ActionEvent actionEvent )
+					{
+						currentPixelSize.setText( NumberUtils.doubleToDisplayString( mmc.getPixelSizeUm() ) );
+					}
+				});
+				psw.setVisible( true );
+			}
+		} );
+		exportPanel.add( updatePixelSizeBtn );
+
+		asyncCheckbox = new JCheckBox("Asynchronous Output");
+		asyncCheckbox.setSelected(true);
+		asyncCheckbox.setEnabled(true);
+		asyncCheckbox.setToolTipText("If checked, captured images will be buffered and written as time permits. This speeds up acquisition. Currently only applies if an output directory is specified.");
+		exportPanel.add( asyncCheckbox );
+
+		exportToHdf5 = new JCheckBox( "Export to HDF5 after acquisition" );
+		exportToHdf5.setSelected(false);
+		exportToHdf5.setEnabled(true);
+		exportToHdf5.setAlignmentX( Component.LEFT_ALIGNMENT );
+		exportPanel.add( exportToHdf5 );
+
+		JButton hdf5Btn = new JButton( "HDF5 Resave" );
+		hdf5Btn.setAlignmentX( Component.LEFT_ALIGNMENT );
+		hdf5Btn.addActionListener( new ActionListener()
+		{
+			@Override public void actionPerformed( ActionEvent actionEvent )
+			{
+				JFileChooser fc = new JFileChooser(acqSaveDir.getText());
+
+				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+
+				if(fc.showDialog(frame, "Select") == JFileChooser.APPROVE_OPTION)
+				{
+					final File file = fc.getSelectedFile();
+					Row[] acqRows = null;
+					try
+					{
+						acqRows = getBuiltRows();
+					}
+					catch ( Exception e )
+					{
+						e.printStackTrace();
+					}
+
+					final int stacks = acqRows.length;
+					final double[] zSteps = new double[stacks];
+					for(int i = 0; i < stacks; i++)
+						zSteps[ i ] = Math.max( acqRows[ i ].getZStepSize(), 1.0D );
+
+					final int timeSeqs = acqCountBox.getText().equals( "" )? 1: Integer.parseInt(acqCountBox.getText());
+					Thread hdf5ResaveThread = new Thread( new Runnable() {
+						@Override
+						public void run() {
+							try
+							{
+								new HDF5Generator(new File(file.getParent()),
+										file,
+										stacks,
+										timeSeqs,
+										mmc.getPixelSizeUm(),
+										zSteps
+								);
+							}
+							catch ( IOException e )
+							{
+								e.printStackTrace();
+							}
+							catch ( FormatException e )
+							{
+								e.printStackTrace();
+							}
+						}
+					}, "HDF5 Resave Thread");
+					hdf5ResaveThread.setPriority( Thread.MAX_PRIORITY );
+					hdf5ResaveThread.start();
+				}
+			}
+		} );
+		exportPanel.add( hdf5Btn );
+
+
+		//////////////////////////////////////////////////////////////////////////////////
+		// Anti-Drift panel
 		antiDriftCheckbox = new JCheckBox("Use Anti-Drift");
 		antiDriftCheckbox.setSelected(false);
 		antiDriftCheckbox.setEnabled(true);
 
+		JPanel antiDriftPanel = new JPanel();
+		antiDriftPanel.setLayout( new BoxLayout( antiDriftPanel, BoxLayout.PAGE_AXIS ) );
+		antiDriftPanel.setBorder( BorderFactory.createTitledBorder("Anti-Drift") );
+		antiDriftPanel.add( antiDriftCheckbox );
+
+		antiDriftAutoApplied = new JCheckBox( "Automatic apply the suggested value" );
+		antiDriftAutoApplied.setEnabled( false );
+		antiDriftXInversed = new JCheckBox( "Inverse X offset value" );
+		antiDriftXInversed.setEnabled( false );
+		antiDriftYInversed = new JCheckBox( "Inverse Y offset value" );
+		antiDriftYInversed.setEnabled( false );
+		antiDriftZInversed = new JCheckBox( "Inverse Z offset value" );
+		antiDriftZInversed.setEnabled( false );
+		antiDriftPanel.add( antiDriftAutoApplied );
+		antiDriftPanel.add( antiDriftXInversed );
+		antiDriftPanel.add( antiDriftYInversed );
+		antiDriftPanel.add( antiDriftZInversed );
+
+		antiDriftCheckbox.addItemListener( new ItemListener()
+		{
+			@Override public void itemStateChanged( ItemEvent itemEvent )
+			{
+				if(itemEvent.getStateChange() == ItemEvent.SELECTED)
+				{
+					antiDriftAutoApplied.setEnabled( true );
+					antiDriftXInversed.setEnabled( true );
+					antiDriftYInversed.setEnabled( true );
+					antiDriftZInversed.setEnabled( true );
+				}
+				else
+				{
+					antiDriftAutoApplied.setEnabled( false );
+					antiDriftXInversed.setEnabled( false );
+					antiDriftYInversed.setEnabled( false );
+					antiDriftZInversed.setEnabled( false );
+				}
+			}
+		} );
+
+		//////////////////////////////////////////////////////////////////////////////////
+		// General option
 		settleTime = new JSpinner(new SpinnerNumberModel(10, 0, 1000, 1));
 
 		laseStackCheckbox = new JCheckBox("Lase Full Stack");
@@ -891,13 +1058,6 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 
 		acqSaveDir = new JTextField(42);
 		acqSaveDir.setEnabled(true);
-
-		acqFilenamePrefix = new JTextField("spim_", 8);
-		acqFilenamePrefix.setEnabled(true);
-		asyncCheckbox = new JCheckBox("Asynchronous Output");
-		asyncCheckbox.setSelected(true);
-		asyncCheckbox.setEnabled(true);
-		asyncCheckbox.setToolTipText("If checked, captured images will be buffered and written as time permits. This speeds up acquisition. Currently only applies if an output directory is specified.");
 
 		pickDirBtn.addActionListener(new ActionListener() {
 			@Override
@@ -912,11 +1072,31 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			};
 		});
 
+		delayAbortionCheckBox = new JCheckBox("Abort Acquisition when 5 sec. delayed");
+		delayAbortionCheckBox.setSelected( false );
+
+		JPanel flowPanel = new JPanel();
+		flowPanel.setLayout( new FlowLayout( FlowLayout.LEADING ) );
+		flowPanel.add( new JLabel("Filename prefix:") );
+		acqFilenamePrefix = new JTextField("spim_", 13);
+		acqFilenamePrefix.setEnabled(true);
+		flowPanel.add( acqFilenamePrefix );
+		flowPanel.setAlignmentX( Component.LEFT_ALIGNMENT );
+
+		JPanel optionPanel = new JPanel();
+		optionPanel.setLayout( new BoxLayout( optionPanel, BoxLayout.PAGE_AXIS ) );
+		optionPanel.setBorder( BorderFactory.createTitledBorder("Options") );
+		optionPanel.add( speedControl );
+		optionPanel.add( liveCheckbox );
+		optionPanel.add( laseStackCheckbox );
+		optionPanel.add( delayAbortionCheckBox );
+		optionPanel.add( flowPanel );
+
 		addLine(right, Justification.RIGHT, "Laser power (mW):", laserPower, "Exposure (ms):", exposure);
 		addLine(right, Justification.STRETCH, laserSlider);
 		addLine(right, Justification.STRETCH, exposureSlider);
-		addLine(right, Justification.RIGHT, speedControl, antiDriftCheckbox, liveCheckbox, laseStackCheckbox);
-		addLine(right, Justification.LEFT, "Filename prefix:", acqFilenamePrefix, "Output directory:", acqSaveDir, pickDirBtn, asyncCheckbox);
+		addLine(right, Justification.RIGHT, exportPanel, antiDriftPanel, optionPanel);
+		addLine(right, Justification.RIGHT, "Output directory:", acqSaveDir, pickDirBtn);
 
 		JPanel bottom = new JPanel();
 		bottom.setLayout(new BoxLayout(bottom, BoxLayout.LINE_AXIS));
@@ -1064,6 +1244,9 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		max = stage != null ? stage.getMaxPosition() : max;
 		step = stage != null ? stage.getStepSize() : step;
 		double def = stage != null ? stage.getPosition() : 0;
+
+		// Sometimes, stage.getPosition returns minus values
+		def = Math.max( min, def );
 
 		return new SteppedSlider(dev.getText(), min, max, step, def, options) {
 			@Override
@@ -1452,8 +1635,8 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		double count = ((ranges[0][2] - ranges[0][0])/ranges[0][1] + 1) *((ranges[1][2] - ranges[1][0])/ranges[1][1] + 1);
 		ij.IJ.log("Estimated tiles count: "+ count);
 		return (int)count;
-	}	
-	
+	}
+
 	private Vector3D applyCalibratedRotation(Vector3D pos, double dtheta) {
 		if(calibration == null || !calibration.getIsCalibrated())
 			return pos;
@@ -1536,7 +1719,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		mmcorej.TaggedImage TI = mmc.popNextTaggedImage();
 
 		ImageProcessor IP = ImageUtils.makeProcessor(TI);
-		
+
 		double t = System.nanoTime() / 1e9 - bt;
 
 		ImagePlus img = null;
@@ -1566,7 +1749,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 				if(tmpSaveFile.exists() && tmpSaveFile.isDirectory())  {
 					Date now = Calendar.getInstance().getTime();
 					SimpleDateFormat format = new SimpleDateFormat("d MMM yyyy HH.mm");
-					
+
 					tmpSaveFile = new File(tmpSaveFile, format.format(now) + ".tiff");
 				}
 
@@ -1643,7 +1826,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 								public int compare(File f1, File f2) {
 									String n1 = f1.getName();
 									String n2 = f2.getName();
-									
+
 									double d1 = Double.parseDouble(n1.substring(0, n1.length() - 5));
 									double d2 = Double.parseDouble(n2.substring(0, n2.length() - 5));
 
@@ -1728,8 +1911,8 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					output = new File(acqSaveDir.getText());
 
 					if(!output.isDirectory()) {
-						int result = JOptionPane.showConfirmDialog(null, 
-			                    "The specified root directory does not exist. Create it?", "Directory not found.", 
+						int result = JOptionPane.showConfirmDialog(null,
+			                    "The specified root directory does not exist. Create it?", "Directory not found.",
 			                    JOptionPane.YES_NO_OPTION);
 			            if (result == JOptionPane.YES_OPTION) {
 			               output.mkdirs();
@@ -1761,7 +1944,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 								if(JOptionPane.showConfirmDialog(null, "Couldn't clean destination directory (" + f.getName() + "). Continue anyway?", "Confirm Append", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION)
 									return;
 					}
-					
+
 					int tileCount;
 					if (SPIM_RANGES.equals(acqPosTabs.getSelectedComponent().getName())) { //SPIM_RANGES is selected
 						if (!acqXYDevCB.isSelected()) { //if XY scanning is not selected, then there are no tiles
@@ -1775,13 +1958,17 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 								tileCount=-1; //for negative values old naming scheme will be used
 							}
 						}
-					} else { 
+					} else {
 						tileCount = -2; //in this case counting is harder, because one would have to compare all the rows
 					};
-					
+
+					// titleCount should not be -2, which makes only two angles for all the acquisition
+					tileCount = (tileCount < 0) ? 1 : tileCount;
+					ij.IJ.log("Tiles count: "+ tileCount);
+
 					OutputHandler handler = new OMETIFFHandler(
 						mmc, output, acqFilenamePrefix.getText(), null, null, null, "t", //what is the purpose of defining parameters and then passing null anyway?
-						acqRows, timeSeqs, timeStep, tileCount
+						acqRows, timeSeqs, timeStep, tileCount, exportToHdf5.isSelected()
 					);
 					if(asyncCheckbox.isSelected())
 						handler = new AsyncOutputHandler(handler, (ij.IJ.maxMemory() - ij.IJ.currentMemory())/(mmc.getImageWidth()*mmc.getImageHeight()*mmc.getBytesPerPixel()*2), asyncMonitorCheckbox.isSelected());
@@ -1795,7 +1982,12 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					params.setAntiDrift(new AntiDriftController.Factory() {
 						@Override
 						public AntiDriftController newInstance(Params p, Row r) {
-							return AntiDriftController.newInstance(output, p, r);
+							return AntiDriftController.newInstance(
+									output, p, r,
+									antiDriftAutoApplied.isSelected(),
+									antiDriftXInversed.isSelected(),
+									antiDriftYInversed.isSelected(),
+									antiDriftZInversed.isSelected());
 						}
 					});
 
@@ -1819,6 +2011,8 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					System.setProperty("ij.log.file", log);
 					ij.IJ.log("Opened log file " + log);
 				}
+
+				params.setAbortWhenDelayed( delayAbortionCheckBox.isSelected() );
 
 				acqThread = new Thread() {
 					@Override

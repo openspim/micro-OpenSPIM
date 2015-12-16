@@ -183,7 +183,8 @@ public class AsyncOutputHandler implements OutputHandler, UncaughtExceptionHandl
 	}
 
 	@Override
-	public void finalizeAcquisition() throws Exception {
+	public void finalizeAcquisition(boolean bSuccess) throws Exception {
+
 		if(rethrow != null)
 			throw rethrow;
 
@@ -210,7 +211,7 @@ public class AsyncOutputHandler implements OutputHandler, UncaughtExceptionHandl
 		}
 
 		synchronized(handler) {
-			handler.finalizeAcquisition();
+			handler.finalizeAcquisition(bSuccess);
 		}
 	}
 

@@ -63,9 +63,9 @@ public abstract class AbstractAntiDrift implements AntiDrift
 
 	public abstract void addXYSlice(ImageProcessor ip);
 
-	public abstract void finishStack();
+	public abstract Vector3D finishStack();
 
-	public abstract void updateOffset(Vector3D offset);
+	public abstract Vector3D updateOffset(Vector3D offset);
 
 	public void setCallback(Callback cb) {
 		callback = cb;

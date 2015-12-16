@@ -8,13 +8,17 @@ import spim.algorithm.AntiDrift;
 import spim.gui.calibration.AntiDriftAdjustWindow;
 import spim.algorithm.DefaultAntiDrift;
 
+import java.awt.GraphicsEnvironment;
 import java.io.File;
+import java.util.logging.Logger;
 
 /**
  * The Anti-drift controller consists of AntiDrift logic and GUI.
  */
 public class AntiDriftController implements AntiDrift.Callback
 {
+//	Logger log = Logger.getLogger(AntiDriftController.class.getName());
+
 	final private DefaultAntiDrift antiDrift;
 	final private AntiDriftAdjustWindow gui;
 	private Vector3D center;
@@ -22,6 +26,9 @@ public class AntiDriftController implements AntiDrift.Callback
 	private double zstep;
 	private long tp;
 	private File outputDir;
+	private Row row;
+	private boolean xInversed, yInversed, zInversed;
+	private boolean autoApplied = false;
 
 	/**
 	 * Instantiates a new AntiDriftController using primitive parameters
@@ -39,7 +46,7 @@ public class AntiDriftController implements AntiDrift.Callback
 		final Vector3D loc = new Vector3D(x, y, z);
 		this.zratio = zratio;
 		this.zstep = zstep;
-		tp = 1;
+		this.tp = 1;
 
 		antiDrift = new DefaultAntiDrift();
 		gui = new AntiDriftAdjustWindow(x, y, z, theta, zratio);
@@ -63,10 +70,17 @@ public class AntiDriftController implements AntiDrift.Callback
 	 * @param acqParams the acq params
 	 * @param acqRow the acq row
 	 */
-	public AntiDriftController(final File outputDir, final Params acqParams, final Row acqRow)
+	public AntiDriftController(final File outputDir, final Params acqParams, final Row acqRow,
+			final boolean autoApplied, final boolean xInversed, final boolean yInversed, final boolean zInversed)
 	{
 		this( outputDir, acqRow.getX(), acqRow.getY(), acqRow.getZStartPosition(), acqRow.getTheta(),
 				acqRow.getZStepSize(), acqRow.getZStepSize() / acqParams.getCore().getPixelSizeUm() );
+
+		this.autoApplied = autoApplied;
+		this.row = acqRow;
+		this.xInversed = xInversed;
+		this.yInversed = yInversed;
+		this.zInversed = zInversed;
 	}
 
 	/**
@@ -77,9 +91,11 @@ public class AntiDriftController implements AntiDrift.Callback
 	 * @param acqRow the acq row
 	 * @return the AntiDriftController
 	 */
-	public static AntiDriftController newInstance(final File outputDir, final Params acqParams, final Row acqRow)
+	public static AntiDriftController newInstance(final File outputDir, final Params acqParams, final Row acqRow,
+			final boolean autoApplied, final boolean xInversed, final boolean yInversed, final boolean zInversed)
 	{
-		return new AntiDriftController( outputDir, acqParams, acqRow );
+		return new AntiDriftController( outputDir, acqParams, acqRow,
+				autoApplied, xInversed, yInversed, zInversed );
 	}
 
 	/**
@@ -114,7 +130,6 @@ public class AntiDriftController implements AntiDrift.Callback
 	{
 		if(gui.isVisible())
 		{
-			antiDrift.updateOffset( gui.getOffset() );
 			gui.setVisible( false );
 			gui.dispose();
 		}
@@ -134,34 +149,26 @@ public class AntiDriftController implements AntiDrift.Callback
 
 	/**
 	 * Finish stack.
+	 *
 	 */
 	public void finishStack()
 	{
-		finishStack( antiDrift.getFirst() == null );
-	}
-
-	/**
-	 * Finish stack.
-	 *
-	 * @param initial the initial
-	 */
-	public void finishStack(boolean initial)
-	{
-		if(initial)
-			antiDrift.setFirst( antiDrift.getLatest() );
-
 		center = antiDrift.getLastCorrection().add( antiDrift.getLatest().getCenter() );
 
 		// Before processing anti-drift
 		if(null != outputDir)
 			antiDrift.writeDiff( getOutFile("initial"), antiDrift.getLastCorrection(), zratio, center );
 
+		// Only in the production environment
+		if(null != row)
+			ij.IJ.log( String.format( "X: %.2f, Y: %.2f, Z: %.2f", row.getX(), row.getY(), row.getZStartPosition() ) );
+
 		// Process anti-drift
-		antiDrift.finishStack();
+		Vector3D init = antiDrift.finishStack();
 
 		// After the anti-drift processing
 		if(null != outputDir)
-			antiDrift.writeDiff( getOutFile("suggested"), antiDrift.getLastCorrection(), zratio, center );
+			antiDrift.writeDiff( getOutFile("suggested"), init, zratio, center );
 
 		// Invoke GUI for fine-tuning
 		gui.setVisible( true );
@@ -169,12 +176,15 @@ public class AntiDriftController implements AntiDrift.Callback
 		gui.setCallback( this );
 		gui.setZratio( zratio );
 		gui.updateScale( antiDrift.getLatest().largestDimension() * 2 );
-		gui.setOffset( antiDrift.getLastCorrection() );
+		gui.setOffset( init );
 		gui.setCenter( center );
 		gui.setBefore( antiDrift.getFirst() );
 		gui.setAfter( antiDrift.getLatest() );
 
 		gui.updateDiff();
+
+		if(autoApplied)
+			gui.autoApplyOffset();
 
 		// first = latest
 		antiDrift.setFirst( antiDrift.getLatest() );
@@ -189,11 +199,34 @@ public class AntiDriftController implements AntiDrift.Callback
 
 	public void applyOffset( Vector3D offset )
 	{
-		antiDrift.updateOffset( offset );
+		Vector3D updateOffset = antiDrift.updateOffset( offset );
+
+		antiDrift.setLastCorrection( updateOffset );
 
 		// Callback function for ProgrammaticAcquisitor class
 		// refer spim/progacq/ProgrammaticAcquisitor.java:366
-		antiDrift.invokeCallback(new Vector3D(-offset.getX(), -offset.getY(), -offset.getZ() * zstep));
+		// Tweak it based on user input
+		Vector3D returnOffset = new Vector3D(
+				(xInversed)? updateOffset.getX(): -updateOffset.getX(),
+				(yInversed)? updateOffset.getY(): -updateOffset.getY(),
+				(zInversed)? updateOffset.getZ() * zstep: -updateOffset.getZ() * zstep
+		);
+
+		if(offset.equals( Vector3D.ZERO ))
+		{
+			ij.IJ.log(String.format("No correction: using the last correction: %s", updateOffset));
+		}
+		else
+		{
+			if(autoApplied)
+				ij.IJ.log(String.format("Use suggested value automatically: %s", updateOffset));
+			else
+				ij.IJ.log(String.format("Use suggested value with manual correction: %s", updateOffset));
+
+			ij.IJ.log(String.format("Returned Offset: %s", returnOffset ));
+		}
+
+		antiDrift.invokeCallback(returnOffset);
 
 		if(null != outputDir)
 			antiDrift.writeDiff( getOutFile("final"), antiDrift.getLastCorrection(), zratio, center );

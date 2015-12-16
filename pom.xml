@@ -8,7 +8,7 @@
 	<parent>
 		<groupId>sc.fiji</groupId>
 		<artifactId>pom-fiji</artifactId>
-		<version>10.0.1</version>
+		<version>16.2.0</version>
 		<relativePath />
 	</parent>
 
@@ -18,9 +18,30 @@
 
 	<properties>
 		<enforcer.skip>true</enforcer.skip>
+        <bio-formats.version>5.1.2</bio-formats.version>
 	</properties>
 
 	<dependencies>
+        <dependency>
+            <groupId>ome</groupId>
+            <artifactId>formats-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ome</groupId>
+            <artifactId>formats-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ome</groupId>
+            <artifactId>formats-gpl</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ome</groupId>
+            <artifactId>ome-xml</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ome</groupId>
+            <artifactId>formats-bsd</artifactId>
+        </dependency>
 		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
@@ -125,7 +146,17 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
-	</dependencies>
+        <dependency>
+            <groupId>sc.fiji</groupId>
+            <artifactId>spim_data</artifactId>
+            <version>2.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>sc.fiji</groupId>
+            <artifactId>bigdataviewer-core</artifactId>
+            <version>2.1.0</version>
+        </dependency>
+    </dependencies>
 
 	<!-- NB: for project parent -->
 	<repositories>
@@ -133,5 +164,9 @@
 			<id>imagej.releases</id>
 			<url>http://maven.imagej.net/content/groups/public</url>
 		</repository>
+        <repository>
+            <id>fiji.releases</id>
+            <url>http://dev.loci.wisc.edu/maven2/releases</url>
+        </repository>
 	</repositories>
 </project>

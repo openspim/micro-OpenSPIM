@@ -137,6 +137,12 @@ public class AntiDriftAdjustWindow extends JFrame implements KeyListener
 		setTitle(String.format("xyz: %.2f x %.2f x %.2f, theta: %.2f, timepoint %02d", loc.getX(), loc.getY(), loc.getZ(), theta, tp));
 	}
 
+	public void autoApplyOffset()
+	{
+		dispose();
+		callback.applyOffset(offset);
+	}
+
 	public void keyPressed(final KeyEvent e) {
 		switch (e.getKeyCode()) {
 			case KeyEvent.VK_ENTER:
@@ -156,11 +162,11 @@ public class AntiDriftAdjustWindow extends JFrame implements KeyListener
 				updateDiff();
 				break;
 			case KeyEvent.VK_LEFT:
-				offset = offset.add(new Vector3D((e.isShiftDown() ? 10 : 1), 0, 0));
+				offset = offset.add( new Vector3D( ( e.isShiftDown() ? 10 : 1 ), 0, 0 ) );
 				updateDiff();
 				break;
 			case KeyEvent.VK_RIGHT:
-				offset = offset.subtract(new Vector3D((e.isShiftDown() ? 10 : 1), 0, 0));
+				offset = offset.subtract( new Vector3D( ( e.isShiftDown() ? 10 : 1 ), 0, 0 ) );
 				updateDiff();
 				break;
 			case KeyEvent.VK_PAGE_UP:

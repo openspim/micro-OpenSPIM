@@ -29,6 +29,7 @@ import spim.io.OutputHandler;
 import spim.acquisition.Row.DeviceValueSet;
 import spim.algorithm.AntiDrift;
 import spim.controller.AntiDriftController;
+import spim.util.DelayChecker;
 
 public class Program
 {
@@ -233,7 +234,9 @@ public class Program
 			// TEMPORARY: Don't re-enable live mode. This keeps our laser off.
 //			MMStudio.getInstance().enableLiveMode(live);
 
-			p.getOutputHandler().finalizeAcquisition();
+			// Abortion with false flag
+			p.getOutputHandler().finalizeAcquisition(false);
+
 			return p.getOutputHandler().getImagePlus();
 		} catch(Exception e) {
 			return null;
@@ -370,9 +373,13 @@ public class Program
 						ad = params.getAntiDrift(row);
 						ad.setCallback(new AntiDrift.Callback() {
 							public void applyOffset(Vector3D offs) {
-								offs = new Vector3D(offs.getX()*-core.getPixelSizeUm(), offs.getY()*-core.getPixelSizeUm(), -offs.getZ());
-								ij.IJ.log(String.format("TP %d view %d: Offset: %s", tp, rown, offs.toString()));
-								row.translate(offs);
+								Vector3D appliedOffsset = new Vector3D(
+										offs.getX()*-core.getPixelSizeUm(),
+										offs.getY()*-core.getPixelSizeUm(),
+										-offs.getZ());
+
+								ij.IJ.log(String.format("TP %d view %d: Offset: %s", tp, rown, appliedOffsset.toString()));
+								row.translate(appliedOffsset);
 							}
 						});
 					}
@@ -400,6 +407,8 @@ public class Program
 					prof.get("Output").stop();
 
 				if(row.getZStartPosition() == row.getZEndPosition()) {
+					DelayChecker checker = new DelayChecker( params.isAbortWhenDelayed()? Thread.currentThread(): null, 5000 );
+
 					core.waitForImageSynchro();
 					Thread.sleep(params.getSettleDelay());
 
@@ -413,19 +422,33 @@ public class Program
 						if(params.isUpdateLive())
 							updateLiveImage(frame, ti);
 					}
-				} else if (!row.getZContinuous()) {
-					double start = setup.getZStage().getPosition();
-					double end = start + row.getZEndPosition() - row.getZStartPosition();
-					for(double zStart = start; zStart <= end; zStart += row.getZStepSize()) {
-						if(params.doProfiling())
-							prof.get("Movement").start();
 
+					checker.stop();
+
+				} else if (!row.getZContinuous()) {
+
+					double start = setup.getZStage().getPosition();
+
+					double end = start + row.getZEndPosition() - row.getZStartPosition();
+
+					DelayChecker checker = new DelayChecker( params.isAbortWhenDelayed()? Thread.currentThread(): null, 5000 );
+
+					for(double zStart = start; zStart <= end; zStart += row.getZStepSize()) {
+						// Reset delay checker
+						checker.reset();
+
+
+						if(params.doProfiling())
+						{
+							prof.get( "Movement" ).start();
+						}
 						setup.getZStage().setPosition(zStart);
 						core.waitForImageSynchro();
 
 						try {
 							Thread.sleep(params.getSettleDelay());
 						} catch(InterruptedException ie) {
+							checker.stop();
 							return cleanAbort(params, liveOn, autoShutter, continuousThread);
 						}
 
@@ -466,6 +489,9 @@ public class Program
 							}
 						});
 					}
+
+					checker.stop();
+
 				} else {
 					setup.getZStage().setPosition(row.getZStartPosition());
 					Double oldVel = setup.getZStage().getVelocity();
@@ -538,7 +564,8 @@ public class Program
 		if(params.doProfiling())
 			prof.get("Output").start();
 
-		handler.finalizeAcquisition();
+		// Finalized acquisition with true flag
+		handler.finalizeAcquisition(true);
 
 		if(params.doProfiling())
 			prof.get("Output").stop();

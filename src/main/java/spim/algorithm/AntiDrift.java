@@ -23,14 +23,14 @@ public interface AntiDrift
 	/**
 	 * Finish stack.
 	 */
-	void finishStack();
+	Vector3D finishStack();
 
 	/**
 	 * Update offset.
 	 *
 	 * @param offset the offset
 	 */
-	void updateOffset(Vector3D offset);
+	Vector3D updateOffset(Vector3D offset);
 
 	/**
 	 * The interface Callback.

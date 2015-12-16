@@ -24,7 +24,7 @@ public class OutputAsStackHandler implements OutputHandler
 	}
 
 	@Override
-	public void finalizeAcquisition() throws Exception {
+	public void finalizeAcquisition(boolean bSuccess) throws Exception {
 		img = new ImagePlus("SimpleOutput", stack);
 	}
 
