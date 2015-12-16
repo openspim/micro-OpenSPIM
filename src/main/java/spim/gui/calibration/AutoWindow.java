@@ -40,8 +40,6 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
-import javax.vecmath.Color3f;
-import javax.vecmath.Point3f;
 
 import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
@@ -65,6 +63,8 @@ import org.micromanager.imagedisplay.VirtualAcquisitionDisplay;
 import org.micromanager.utils.MDUtils;
 import org.micromanager.utils.MMScriptException;
 import org.micromanager.utils.ReportingUtils;
+import org.scijava.vecmath.Color3f;
+import org.scijava.vecmath.Point3f;
 
 import spim.algorithm.FitDisk;
 import spim.algorithm.FitHypersphere;
