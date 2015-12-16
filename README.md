@@ -38,5 +38,5 @@ downloaded from [the Micro-Manager website](https://micro-manager.org):
 
 1. Run `mvn dependency:copy-dependencies` in the SPIMAcquisition directory
 2. From `target/dependency/` in that subdirectory, copy the `imglib2-*.jar` files to your Micro-Manager's `mmplugins/` subdirectory.
-3. Copy `target/SPIMAcquisition-1.0.0-SNAPSHOT.jar` to the `mmplugins/` subdirectory, too.
+3. Copy `target/SPIMAcquisition-1.0.1-SNAPSHOT.jar` to the `mmplugins/` subdirectory, too.
 4. Restart Micro-Manager.
