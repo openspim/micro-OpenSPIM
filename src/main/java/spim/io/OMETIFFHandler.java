@@ -25,6 +25,8 @@ import ome.xml.model.enums.DimensionOrder;
 import ome.xml.model.enums.PixelType;
 import ome.xml.model.primitives.NonNegativeInteger;
 import ome.xml.model.primitives.PositiveInteger;
+import spim.acquisition.AcquisitionStatus;
+import spim.acquisition.Program;
 import spim.acquisition.Row;
 
 import org.micromanager.utils.ReportingUtils;
@@ -227,7 +229,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 
 		writer = null;
 
-		if (bSuccess && exportToHDF5)
+		if (bSuccess && exportToHDF5 && Program.getStatus().equals( AcquisitionStatus.DONE ))
 		{
 			hdf5ResaveThread = new Thread( new Runnable() {
 				@Override

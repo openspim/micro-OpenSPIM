@@ -33,6 +33,19 @@ import spim.util.DelayChecker;
 
 public class Program
 {
+	static AcquisitionStatus status = AcquisitionStatus.INIT;
+
+	public static void setStatus(AcquisitionStatus newStatus)
+	{
+		status = newStatus;
+		ij.IJ.log( "The acquisition is " + status + ".");
+	}
+
+	public static AcquisitionStatus getStatus()
+	{
+		return status;
+	}
+
 	public static class Profiler {
 		private Map<String, Profiler> children;
 		private String name;
@@ -235,7 +248,9 @@ public class Program
 //			MMStudio.getInstance().enableLiveMode(live);
 
 			// Abortion with false flag
-			p.getOutputHandler().finalizeAcquisition(false);
+			setStatus( AcquisitionStatus.ABORTED );
+
+			p.getOutputHandler().finalizeAcquisition( false );
 
 			return p.getOutputHandler().getImagePlus();
 		} catch(Exception e) {
@@ -312,6 +327,11 @@ public class Program
 
 		if(params.doProfiling())
 			prof.get("Setup").stop();
+
+		if(getStatus().equals( AcquisitionStatus.RUNNING ))
+			throw new RuntimeException("Cannot start acquisition while acquisition is running!");
+
+		setStatus( AcquisitionStatus.RUNNING );
 
 		for(int timeSeq = 0; timeSeq < params.getTimeSeqCount(); ++timeSeq) {
 			Thread continuousThread = null;
@@ -565,6 +585,8 @@ public class Program
 			prof.get("Output").start();
 
 		// Finalized acquisition with true flag
+		setStatus( AcquisitionStatus.DONE );
+
 		handler.finalizeAcquisition(true);
 
 		if(params.doProfiling())

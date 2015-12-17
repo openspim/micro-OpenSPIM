@@ -75,6 +75,7 @@ import org.micromanager.utils.ImageUtils;
 import org.micromanager.utils.NumberUtils;
 import org.micromanager.utils.ReportingUtils;
 
+import spim.acquisition.AcquisitionStatus;
 import spim.acquisition.Params;
 import spim.acquisition.Program;
 import spim.acquisition.Row;
@@ -949,6 +950,13 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		{
 			@Override public void actionPerformed( ActionEvent actionEvent )
 			{
+
+				if( !Program.getStatus().equals( AcquisitionStatus.DONE ) )
+				{
+					ij.IJ.log( "The acquisition is not finished yet. Please, finish the acquisition properly." );
+					return;
+				}
+
 				JFileChooser fc = new JFileChooser(acqSaveDir.getText());
 
 				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -1068,7 +1076,12 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 						JFileChooser.FILES_AND_DIRECTORIES : JFileChooser.DIRECTORIES_ONLY);
 
 				if(fc.showDialog(frame, "Select") == JFileChooser.APPROVE_OPTION)
-					acqSaveDir.setText(fc.getSelectedFile().getAbsolutePath());
+				{
+					acqSaveDir.setText( fc.getSelectedFile().getAbsolutePath() );
+
+					// We set the acquisition status to INIT as users change the output folder
+					Program.setStatus( AcquisitionStatus.INIT );
+				}
 			};
 		});
 
