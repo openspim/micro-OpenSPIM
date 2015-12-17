@@ -158,15 +158,10 @@
 		</dependency>
 	</dependencies>
 
-	<!-- NB: for project parent -->
 	<repositories>
 		<repository>
-			<id>imagej.releases</id>
+			<id>imagej.public</id>
 			<url>http://maven.imagej.net/content/groups/public</url>
-		</repository>
-		<repository>
-			<id>fiji.releases</id>
-			<url>http://dev.loci.wisc.edu/maven2/releases</url>
 		</repository>
 	</repositories>
 </project>
