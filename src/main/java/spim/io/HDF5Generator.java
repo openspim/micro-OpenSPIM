@@ -161,6 +161,8 @@ public class HDF5Generator
 		};
 
 		ProgressWriterIJ progressWriter = new ProgressWriterIJ();
+
+		ij.IJ.log( "HDF5 export is started." );
 		final ArrayList< Partition > partitions = null;
 		WriteSequenceToHdf5.writeHdf5File( seq, perSetupExportMipmapInfo, false, new File(outDir + "/dataset.h5"), loopbackHeuristic, afterEachPlane, numCellCreatorThreads, new SubTaskProgressWriter( progressWriter, 0, 0.95 ) );
 
@@ -180,6 +182,7 @@ public class HDF5Generator
 			throw new RuntimeException( e );
 		}
 
+		ij.IJ.log( "HDF5 export is done." );
 		progressWriter.out().println( "done" );
 	}
 
