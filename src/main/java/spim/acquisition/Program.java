@@ -336,6 +336,7 @@ public class Program
 		for(int timeSeq = 0; timeSeq < params.getTimeSeqCount(); ++timeSeq) {
 			Thread continuousThread = null;
 			if (params.isContinuous()) {
+				final int finalTimeSeq = timeSeq;
 				continuousThread = new Thread() {
 					private Throwable lastExc;
 
@@ -355,7 +356,7 @@ public class Program
 								}
 
 								TaggedImage ti = core.popNextTaggedImage();
-								handleSlice(core, setup, metaDevs, acqBegan, ImageUtils.makeProcessor(ti), handler);
+								handleSlice(core, setup, metaDevs, acqBegan, finalTimeSeq, 0, ImageUtils.makeProcessor(ti), handler);
 
 								if(params.isUpdateLive())
 									updateLiveImage(frame, ti);
@@ -421,7 +422,7 @@ public class Program
 				if(params.doProfiling())
 					prof.get("Output").start();
 
-				handler.beginStack(0);
+				handler.beginStack(timeSeq, step);
 
 				if(params.doProfiling())
 					prof.get("Output").stop();
@@ -436,7 +437,7 @@ public class Program
 						TaggedImage ti = snapImage(setup, !params.isIllumFullStack());
 						ImageProcessor ip = ImageUtils.makeProcessor(ti);
 
-						handleSlice(core, setup, metaDevs, acqBegan, ip, handler);
+						handleSlice(core, setup, metaDevs, acqBegan, timeSeq, step, ip, handler);
 						if(ad != null)
 							addAntiDriftSlice( ad, ip);
 						if(params.isUpdateLive())
@@ -488,7 +489,7 @@ public class Program
 								prof.get("Output").start();
 
 							ImageProcessor ip = ImageUtils.makeProcessor(ti);
-							handleSlice(core, setup, metaDevs, acqBegan, ip, handler);
+							handleSlice(core, setup, metaDevs, acqBegan, 0, 0, ip, handler);
 
 							if(params.doProfiling())
 								prof.get("Output").stop();
@@ -526,7 +527,7 @@ public class Program
 				if(params.doProfiling())
 					prof.get("Output").start();
 
-				handler.finalizeStack(0);
+				handler.finalizeStack(timeSeq, step);
 
 				if(params.doProfiling())
 					prof.get("Output").stop();
@@ -613,7 +614,7 @@ public class Program
 	}
 
 	private static void handleSlice(CMMCore core, SPIMSetup setup,
-			SPIMDevice[] metaDevs, double start, ImageProcessor ip,
+			SPIMDevice[] metaDevs, double start, int time, int angle, ImageProcessor ip,
 			OutputHandler handler) throws Exception {
 /*
 		slice.tags.put("t", System.nanoTime() / 1e9 - start);
@@ -631,7 +632,7 @@ public class Program
 			}
 		}
 */
-		handler.processSlice(ip, setup.getXStage().getPosition(),
+		handler.processSlice(time, angle, ip, setup.getXStage().getPosition(),
 				setup.getYStage().getPosition(),
 				setup.getZStage().getPosition(),
 				setup.getAngle(),

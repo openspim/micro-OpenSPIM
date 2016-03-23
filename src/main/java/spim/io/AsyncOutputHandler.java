@@ -21,7 +21,7 @@ public class AsyncOutputHandler implements OutputHandler, UncaughtExceptionHandl
 			EndStack,
 		}
 
-		public IPC(Type type, ImageProcessor ip, double x, double y, double z, double t, double dt) {
+		public IPC(Type type, ImageProcessor ip, double x, double y, double z, double t, double dt, double time, double angle) {
 			this.type = type;
 			this.ip = ip;
 			this.x = x;
@@ -29,10 +29,12 @@ public class AsyncOutputHandler implements OutputHandler, UncaughtExceptionHandl
 			this.z = z;
 			this.t = t;
 			this.dt = dt;
+			this.time = time;
+			this.angle = angle;
 		}
 
 		public ImageProcessor ip;
-		public double x, y, z, t, dt;
+		public double x, y, z, t, dt, time, angle;
 		public Type type;
 	}
 
@@ -146,11 +148,11 @@ public class AsyncOutputHandler implements OutputHandler, UncaughtExceptionHandl
 	}
 
 	@Override
-	public void beginStack(int axis) throws Exception {
+	public void beginStack(int time, int angle) throws Exception {
 		if(rethrow != null)
 			throw rethrow;
 
-		IPC store = new IPC(IPC.Type.StartStack, null, 0, 0, 0, 0, (double) axis);
+		IPC store = new IPC( IPC.Type.StartStack, null, 0, 0, 0, 0, 0, (double) time, (double) angle );
 		if(!queue.offer(store)) {
 			handleNext();
 			queue.put(store);
@@ -158,12 +160,12 @@ public class AsyncOutputHandler implements OutputHandler, UncaughtExceptionHandl
 	}
 
 	@Override
-	public void processSlice(ImageProcessor ip, double X, double Y, double Z,
+	public void processSlice(int time, int angle, ImageProcessor ip, double X, double Y, double Z,
 			double theta, double deltaT) throws Exception {
 		if(rethrow != null)
 			throw rethrow;
 
-		IPC store = new IPC(IPC.Type.Slice, ip, X, Y, Z, theta, deltaT);
+		IPC store = new IPC(IPC.Type.Slice, ip, X, Y, Z, theta, deltaT, time, angle);
 		if(!queue.offer(store)) {
 			handleNext();
 			queue.put(store);
@@ -171,11 +173,11 @@ public class AsyncOutputHandler implements OutputHandler, UncaughtExceptionHandl
 	}
 
 	@Override
-	public void finalizeStack(int depth) throws Exception {
+	public void finalizeStack(int time, int angle) throws Exception {
 		if(rethrow != null)
 			throw rethrow;
 
-		IPC store = new IPC(IPC.Type.EndStack, null, 0, 0, 0, 0, (double) depth);
+		IPC store = new IPC(IPC.Type.EndStack, null, 0, 0, 0, 0, 0, (double) time, (double) angle );
 		if(!queue.offer(store)) {
 			handleNext();
 			queue.put(store);
@@ -225,13 +227,13 @@ public class AsyncOutputHandler implements OutputHandler, UncaughtExceptionHandl
 				writing = true;
 				switch(write.type){
 				case StartStack:
-					handler.beginStack((int) write.dt);
+					handler.beginStack((int) write.t, (int) write.dt);
 					break;
 				case Slice:
-					handler.processSlice(write.ip, write.x, write.y, write.z, write.t, write.dt);
+					handler.processSlice((int) write.time, (int) write.angle, write.ip, write.x, write.y, write.z, write.t, write.dt);
 					break;
 				case EndStack:
-					handler.finalizeStack((int) write.dt);
+					handler.finalizeStack((int) write.t, (int) write.dt);
 					break;
 				}
 				writing = false;

@@ -5,7 +5,6 @@ import ij.process.ImageProcessor;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.channels.ClosedByInterruptException;
 
 import loci.common.DataTools;
 import loci.common.services.ServiceFactory;
@@ -161,8 +160,8 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	}
 
 	@Override
-	public void beginStack(int axis) throws Exception {
-		ReportingUtils.logMessage("Beginning stack along dimension " + axis);
+	public void beginStack(int time, int angle) throws Exception {
+		ReportingUtils.logMessage("Beginning stack along time " + time + " / angle " + angle );
 
 		if(++imageCounter < stacks * timesteps)
 			openWriter(imageCounter % stacks, imageCounter / stacks);
@@ -180,7 +179,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	}
 
 	@Override
-	public void processSlice(ImageProcessor ip, double X, double Y, double Z, double theta, double deltaT)
+	public void processSlice(int time, int angle, ImageProcessor ip, double X, double Y, double Z, double theta, double deltaT)
 			throws Exception {
 		long bitDepth = core.getImageBitDepth();
 		byte[] data = bitDepth == 8 ?
@@ -203,7 +202,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		try {
 			writer.saveBytes(plane, data);
 		} catch(java.io.IOException ioe) {
-			finalizeStack(0);
+			finalizeStack(0, 0);
 			if(writer != null)
 				writer.close();
 			throw new Exception("Error writing OME-TIFF.", ioe);
@@ -213,8 +212,8 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	}
 
 	@Override
-	public void finalizeStack(int depth) throws Exception {
-		ReportingUtils.logMessage("Finished stack along dimension " + depth);
+	public void finalizeStack(int time, int angle) throws Exception {
+		ReportingUtils.logMessage("Finished stack along time " + time + " / angle " + angle );
 	}
 
 	@Override

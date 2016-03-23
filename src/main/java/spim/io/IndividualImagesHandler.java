@@ -51,7 +51,7 @@ public class IndividualImagesHandler implements OutputHandler
 	}
 
 	@Override
-	public void processSlice(ImageProcessor ip, double X, double Y, double Z, double theta, double deltaT)
+	public void processSlice(int time, int angle, ImageProcessor ip, double X, double Y, double Z, double theta, double deltaT)
 			throws Exception {
 		String name = nameImage(X, Y, Z, theta, deltaT);
 		ImagePlus imp = new ImagePlus(name, ip);
@@ -87,14 +87,14 @@ public class IndividualImagesHandler implements OutputHandler
 
 
 	@Override
-	public void finalizeStack(int depth) throws Exception {
+	public void finalizeStack(int time, int angle) throws Exception {
 		// TODO Auto-generated method stub
 		
 	}
 
 
 	@Override
-	public void beginStack(int axis) throws Exception {
+	public void beginStack(int time, int angle) throws Exception {
 		// TODO Auto-generated method stub
 		
 	}

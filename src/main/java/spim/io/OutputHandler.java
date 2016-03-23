@@ -18,15 +18,18 @@ public interface OutputHandler
 	/**
 	 * Called by the acquisition code when about to begin snapping a new stack.
 	 * 
-	 * @param axis The dimension along which the stack is beginning.
+	 * @param time The time along which the stack is beginning.
+	 * @param angle The angle along which the stack is beginning.
 	 * @throws Exception
 	 */
-	void beginStack(int axis) throws Exception;
+	void beginStack(int time, int angle) throws Exception;
 
 	/**
 	 * Handle the next slice as output by the acquisition code. What this means
 	 * obviously depends largely on implementation.
 	 *
+	 * @param time the time at which the image was acquired
+	 * @param angle the angle at which the image was acquired
 	 * @param ip an ImageProcessor holding the pixels
 	 * @param X the X coordinate at which the image was acquired
 	 * @param Y the X coordinate at which the image was acquired
@@ -35,15 +38,16 @@ public interface OutputHandler
 	 * @param deltaT the time since beginning, in seconds, at which the image was acquired
 	 * @throws Exception
 	 */
-	public abstract void processSlice(ImageProcessor ip, double X, double Y, double Z, double theta, double deltaT) throws Exception;
+	public abstract void processSlice(int time, int angle, ImageProcessor ip, double X, double Y, double Z, double theta, double deltaT) throws Exception;
 
 	/**
 	 * A stack has finished being acquired; react accordingly.
 	 *
-	 * @param depth The dimension along which the stack has been finished.
+	 * @param time The time along which the stack has been finished.
+	 * @param angle The angle along which the stack has been finished.
 	 * @throws Exception
 	 */
-	public abstract void finalizeStack(int depth) throws Exception;
+	public abstract void finalizeStack(int time, int angle) throws Exception;
 
 	/**
 	 * The acquisition has ended; do any clean-up and finishing steps (such as
