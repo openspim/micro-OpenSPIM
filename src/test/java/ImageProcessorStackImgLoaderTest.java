@@ -32,7 +32,7 @@ import java.util.HashMap;
 import java.util.TreeMap;
 
 /**
- * Initial Test class for creating HDF5OutputHandler
+ * Initial Test class for ImageProcessorStackImgLoader
  */
 public class ImageProcessorStackImgLoaderTest implements Thread.UncaughtExceptionHandler
 {

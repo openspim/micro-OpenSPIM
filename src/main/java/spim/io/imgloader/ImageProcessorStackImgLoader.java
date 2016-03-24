@@ -33,7 +33,9 @@ import spim.io.ObjectIO;
 
 
 /**
- * Created by moon on 3/22/16.
+ * StackImgLoader for slice based ImageProcessor
+ * The purpose of this class is to save the image as HDF5 partition.
+ * This class is used in HDF5OutputHandler
  */
 public class ImageProcessorStackImgLoader
 {
@@ -95,17 +97,25 @@ public class ImageProcessorStackImgLoader
 		return String.format( "%1s/TL%02d", outputFolder.getAbsolutePath(), time );
 	}
 
-
+	/**
+	 * Creates temporary folders
+	 */
 	public void start()
 	{
 		sliceCount = 0;
 		File file = new File( makeTempFolderName() );
 		if( !file.exists() )
 		{
+			// Creates appropriate folder
 			file.mkdirs();
 		}
 	}
 
+	/**
+	 * Process ImageProcessor save it to the temporary folder
+	 *
+	 * @param ip the ImageProcessor instance
+	 */
 	public void process( ImageProcessor ip )
 	{
 		float[][] arrays = ip.getFloatArray();
@@ -113,6 +123,9 @@ public class ImageProcessorStackImgLoader
 		ObjectIO.write( file, arrays );
 	}
 
+	/**
+	 * Convert files to HDF5 partition file and clean up the temporary folder
+	 */
 	public void finalize()
 	{
 		if(sliceCount != dim[2])

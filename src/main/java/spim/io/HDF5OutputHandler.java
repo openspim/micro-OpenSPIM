@@ -23,7 +23,7 @@ import mpicbg.spim.data.sequence.TimePoints;
 import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.FinalDimensions;
 import net.imglib2.realtransform.AffineTransform3D;
-import spim.io.imgloader.ProcessorStackImgLoader;
+import spim.io.imgloader.ImageProcessorStackImgLoader;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -58,13 +58,22 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 
 
 	// Image loader hashmap. Access angle -> timepoint order.
-	final Map< Integer, HashMap< Integer, ProcessorStackImgLoader > > imgLoaders = Collections.synchronizedMap( new HashMap< Integer, HashMap< Integer, ProcessorStackImgLoader > >() );
+	final Map< Integer, HashMap< Integer, ImageProcessorStackImgLoader > > imgLoaders = Collections.synchronizedMap( new HashMap< Integer, HashMap< Integer, ImageProcessorStackImgLoader > >() );
 	final ArrayList<Thread> finalizers = new ArrayList< Thread >();
 
 	ArrayList<Partition> hdf5Partitions;
 	ArrayList<TimePoint> timePoints;
 	String baseFilename;
 
+	/**
+	 * Instantiates a new HDF 5 output handler.
+	 *
+	 * @param outDir the output directory
+	 * @param xSize the x size
+	 * @param ySize the y size
+	 * @param tSize the time size
+	 * @param angleSize the angle size
+	 */
 	public HDF5OutputHandler( File outDir, int xSize, int ySize, int tSize, int angleSize )
 	{
 		if(outDir == null || !outDir.exists() || !outDir.isDirectory())
@@ -83,6 +92,11 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 		this.pixelSizeUm = 0.043;
 	}
 
+	/**
+	 * Initialize function to setup all the setups for HDF5 based dataset.
+	 *
+	 * @param datasetName the user-given dataset name
+	 */
 	public void init(String datasetName)
 	{
 		ArrayList<ViewId> viewIds = new ArrayList< ViewId >();
@@ -102,7 +116,7 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 		// Setup ViewSetup
 		for(int i = 0; i < angleSize; i++)
 		{
-			imgLoaders.put( i, new HashMap< Integer, ProcessorStackImgLoader >() );
+			imgLoaders.put( i, new HashMap< Integer, ImageProcessorStackImgLoader >() );
 
 			String punit = "um";
 			final FinalVoxelDimensions voxelSize = new FinalVoxelDimensions( punit, pixelSizeUm, pixelSizeUm, zStepSize[i] );
@@ -167,7 +181,6 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 
 	public int[] getzSizes()
 	{
-
 		return zSizes;
 	}
 
@@ -206,29 +219,56 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 		this.pixelSizeUm = pixelSizeUm;
 	}
 
-
-
+	/**
+	 * Not supported.
+	 * @return the image plus
+	 * @throws Exception the exception
+	 */
 	@Override public ImagePlus getImagePlus() throws Exception
 	{
 		return null;
 	}
 
+	/**
+	 * Begin stack with time and angle.
+	 * @param time the time
+	 * @param angle the angle
+	 * @throws Exception the exception
+	 */
 	@Override public void beginStack( int time, int angle ) throws Exception
 	{
-//		ij.IJ.log("BeginStack:");
-//		ij.IJ.log("    Time "+ time);
-//		ij.IJ.log("    Angle: "+ angle);
-		imgLoaders.get(angle).put(time, new ProcessorStackImgLoader( outputDirectory, viewIdToPartition, setups.get( angle ),
-				time, xSize, ySize, zSizes[angle] ) );
-		imgLoaders.get(angle).get(time).start();
+		//		ij.IJ.log("BeginStack:");
+		//		ij.IJ.log("    Time "+ time);
+		//		ij.IJ.log("    Angle: "+ angle);
+		imgLoaders.get( angle ).put( time, new ImageProcessorStackImgLoader( outputDirectory, viewIdToPartition, setups.get( angle ),
+				time, xSize, ySize, zSizes[ angle ] ) );
+		imgLoaders.get( angle ).get( time ).start();
 	}
 
+	/**
+	 * Process ImageProcessor slice.
+	 * @param time the time
+	 * @param angle the angle
+	 * @param ip the ip
+	 * @param X the x
+	 * @param Y the y
+	 * @param Z the z
+	 * @param theta the theta
+	 * @param deltaT the delta t
+	 * @throws Exception the exception
+	 */
 	@Override public void processSlice( int time, int angle, ImageProcessor ip, double X, double Y, double Z, double theta, double deltaT ) throws Exception
 	{
 //		ij.IJ.log("Time "+ time + " Angle: "+ angle );
 		imgLoaders.get(angle).get(time).process( ip );
 	}
 
+	/**
+	 * Finalize stack and call the underlying image loader's finalizer.
+	 * @param time the time
+	 * @param angle the angle
+	 * @throws Exception the exception
+	 */
 	@Override public void finalizeStack( final int time, final int angle ) throws Exception
 	{
 		Thread finalizer = new Thread ( new Runnable()
@@ -243,6 +283,11 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 		finalizer.start();
 	}
 
+	/**
+	 * Finalize acquisition for specific time and angle.
+	 * @param b true if successfully done in the acquisition.
+	 * @throws Exception the exception
+	 */
 	@Override public void finalizeAcquisition( boolean b ) throws Exception
 	{
 		for(Thread thread : finalizers)
@@ -301,6 +346,11 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 		imgLoaders.clear();
 	}
 
+	/**
+	 * Not supported
+	 * @param thread the thread
+	 * @param throwable the throwable
+	 */
 	@Override public void uncaughtException( Thread thread, Throwable throwable )
 	{
 
