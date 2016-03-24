@@ -21,7 +21,7 @@ public class AsyncOutputHandler implements OutputHandler, UncaughtExceptionHandl
 			EndStack,
 		}
 
-		public IPC(Type type, ImageProcessor ip, double x, double y, double z, double t, double dt, double time, double angle) {
+		public IPC(Type type, ImageProcessor ip, double x, double y, double z, double t, double dt, int time, int angle) {
 			this.type = type;
 			this.ip = ip;
 			this.x = x;
@@ -34,7 +34,8 @@ public class AsyncOutputHandler implements OutputHandler, UncaughtExceptionHandl
 		}
 
 		public ImageProcessor ip;
-		public double x, y, z, t, dt, time, angle;
+		public double x, y, z, t, dt;
+		public int time, angle;
 		public Type type;
 	}
 
@@ -152,7 +153,7 @@ public class AsyncOutputHandler implements OutputHandler, UncaughtExceptionHandl
 		if(rethrow != null)
 			throw rethrow;
 
-		IPC store = new IPC( IPC.Type.StartStack, null, 0, 0, 0, 0, 0, (double) time, (double) angle );
+		IPC store = new IPC( IPC.Type.StartStack, null, 0, 0, 0, 0, 0, time, angle );
 		if(!queue.offer(store)) {
 			handleNext();
 			queue.put(store);
@@ -177,7 +178,7 @@ public class AsyncOutputHandler implements OutputHandler, UncaughtExceptionHandl
 		if(rethrow != null)
 			throw rethrow;
 
-		IPC store = new IPC(IPC.Type.EndStack, null, 0, 0, 0, 0, 0, (double) time, (double) angle );
+		IPC store = new IPC(IPC.Type.EndStack, null, 0, 0, 0, 0, 0, time, angle );
 		if(!queue.offer(store)) {
 			handleNext();
 			queue.put(store);
@@ -227,13 +228,13 @@ public class AsyncOutputHandler implements OutputHandler, UncaughtExceptionHandl
 				writing = true;
 				switch(write.type){
 				case StartStack:
-					handler.beginStack((int) write.t, (int) write.dt);
+					handler.beginStack(write.time, write.angle);
 					break;
 				case Slice:
-					handler.processSlice((int) write.time, (int) write.angle, write.ip, write.x, write.y, write.z, write.t, write.dt);
+					handler.processSlice(write.time, write.angle, write.ip, write.x, write.y, write.z, write.t, write.dt);
 					break;
 				case EndStack:
-					handler.finalizeStack((int) write.t, (int) write.dt);
+					handler.finalizeStack(write.time, write.angle);
 					break;
 				}
 				writing = false;

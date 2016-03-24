@@ -422,7 +422,7 @@ public class Program
 				if(params.doProfiling())
 					prof.get("Output").start();
 
-				handler.beginStack(timeSeq, step);
+				beginStack( tp, rown, handler);
 
 				if(params.doProfiling())
 					prof.get("Output").stop();
@@ -489,7 +489,7 @@ public class Program
 								prof.get("Output").start();
 
 							ImageProcessor ip = ImageUtils.makeProcessor(ti);
-							handleSlice(core, setup, metaDevs, acqBegan, 0, 0, ip, handler);
+							handleSlice(core, setup, metaDevs, acqBegan, timeSeq, step, ip, handler);
 
 							if(params.doProfiling())
 								prof.get("Output").stop();
@@ -527,7 +527,7 @@ public class Program
 				if(params.doProfiling())
 					prof.get("Output").start();
 
-				handler.finalizeStack(timeSeq, step);
+				finalizeStack( tp, rown, handler );
 
 				if(params.doProfiling())
 					prof.get("Output").stop();
@@ -637,5 +637,15 @@ public class Program
 				setup.getZStage().getPosition(),
 				setup.getAngle(),
 				System.nanoTime() / 1e9 - start);
+	}
+
+	private static void beginStack(int time, int angle, OutputHandler handler) throws Exception {
+		ij.IJ.log("beginStack - Time:" + time + " Row: "+ angle);
+		handler.beginStack( time, angle );
+	}
+
+	private static void finalizeStack(int time, int angle, OutputHandler handler) throws Exception {
+		ij.IJ.log("finalizeStack - Time:" + time + " Row: "+ angle);
+		handler.finalizeStack( time, angle );
 	}
 }

@@ -95,6 +95,7 @@ import spim.hardware.Stage;
 
 import spim.io.AsyncOutputHandler;
 import spim.io.HDF5Generator;
+import spim.io.HDF5OutputHandlerMM;
 import spim.io.OutputHandler;
 import spim.io.LabelledVirtualStack;
 import spim.io.OMETIFFHandler;
@@ -938,78 +939,11 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		asyncCheckbox.setToolTipText("If checked, captured images will be buffered and written as time permits. This speeds up acquisition. Currently only applies if an output directory is specified.");
 		exportPanel.add( asyncCheckbox );
 
-		exportToHdf5 = new JCheckBox( "Export to HDF5 after acquisition" );
-		exportToHdf5.setSelected(false);
+		exportToHdf5 = new JCheckBox( "Export to HDF5" );
+		exportToHdf5.setSelected(true);
 		exportToHdf5.setEnabled(true);
 		exportToHdf5.setAlignmentX( Component.LEFT_ALIGNMENT );
 		exportPanel.add( exportToHdf5 );
-
-		JButton hdf5Btn = new JButton( "HDF5 Resave" );
-		hdf5Btn.setAlignmentX( Component.LEFT_ALIGNMENT );
-		hdf5Btn.addActionListener( new ActionListener()
-		{
-			@Override public void actionPerformed( ActionEvent actionEvent )
-			{
-
-				if( !Program.getStatus().equals( AcquisitionStatus.DONE ) )
-				{
-					ij.IJ.log( "The acquisition is not finished yet. Please, finish the acquisition properly." );
-					return;
-				}
-
-				JFileChooser fc = new JFileChooser(acqSaveDir.getText());
-
-				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
-
-				if(fc.showDialog(frame, "Select") == JFileChooser.APPROVE_OPTION)
-				{
-					final File file = fc.getSelectedFile();
-					Row[] acqRows = null;
-					try
-					{
-						acqRows = getBuiltRows();
-					}
-					catch ( Exception e )
-					{
-						e.printStackTrace();
-					}
-
-					final int stacks = acqRows.length;
-					final double[] zSteps = new double[stacks];
-					for(int i = 0; i < stacks; i++)
-						zSteps[ i ] = Math.max( acqRows[ i ].getZStepSize(), 1.0D );
-
-					final int timeSeqs = acqCountBox.getText().equals( "" )? 1: Integer.parseInt(acqCountBox.getText());
-					Thread hdf5ResaveThread = new Thread( new Runnable() {
-						@Override
-						public void run() {
-							try
-							{
-								new HDF5Generator(new File(file.getParent()),
-										file,
-										stacks,
-										timeSeqs,
-										mmc.getPixelSizeUm(),
-										zSteps
-								);
-							}
-							catch ( IOException e )
-							{
-								e.printStackTrace();
-							}
-							catch ( FormatException e )
-							{
-								e.printStackTrace();
-							}
-						}
-					}, "HDF5 Resave Thread");
-					hdf5ResaveThread.setPriority( Thread.MAX_PRIORITY );
-					hdf5ResaveThread.start();
-				}
-			}
-		} );
-		exportPanel.add( hdf5Btn );
-
 
 		//////////////////////////////////////////////////////////////////////////////////
 		// Anti-Drift panel
@@ -1091,7 +1025,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		JPanel flowPanel = new JPanel();
 		flowPanel.setLayout( new FlowLayout( FlowLayout.LEADING ) );
 		flowPanel.add( new JLabel("Filename prefix:") );
-		acqFilenamePrefix = new JTextField("spim_", 13);
+		acqFilenamePrefix = new JTextField("spim_dataset", 13);
 		acqFilenamePrefix.setEnabled(true);
 		flowPanel.add( acqFilenamePrefix );
 		flowPanel.setAlignmentX( Component.LEFT_ALIGNMENT );
@@ -1979,10 +1913,19 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					tileCount = (tileCount < 0) ? 1 : tileCount;
 					ij.IJ.log("Tiles count: "+ tileCount);
 
-					OutputHandler handler = new OMETIFFHandler(
-						mmc, output, acqFilenamePrefix.getText(), null, null, null, "t", //what is the purpose of defining parameters and then passing null anyway?
-						acqRows, timeSeqs, timeStep, tileCount, exportToHdf5.isSelected()
-					);
+					OutputHandler handler;
+
+					if(exportToHdf5.isSelected())
+					{
+						handler = new HDF5OutputHandlerMM( mmc, output, acqFilenamePrefix.getText(), acqRows, timeSeqs );
+					}
+					else
+					{
+						handler = new OMETIFFHandler(
+								mmc, output, acqFilenamePrefix.getText(), null, null, null, "t", //what is the purpose of defining parameters and then passing null anyway?
+								acqRows, timeSeqs, timeStep, tileCount, exportToHdf5.isSelected());
+					}
+
 					if(asyncCheckbox.isSelected())
 						handler = new AsyncOutputHandler(handler, (ij.IJ.maxMemory() - ij.IJ.currentMemory())/(mmc.getImageWidth()*mmc.getImageHeight()*mmc.getBytesPerPixel()*2), asyncMonitorCheckbox.isSelected());
 
@@ -2004,7 +1947,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 						}
 					});
 
-				params.setUpdateLive(liveCheckbox.isSelected());
+				params.setUpdateLive( liveCheckbox.isSelected() );
 				params.setIllumFullStack(laseStackCheckbox.isSelected());
 				params.setSettleDelay(((Number) settleTime.getValue()).intValue());
 				params.setDoProfiling(acqProfileCheckbox.isSelected());
