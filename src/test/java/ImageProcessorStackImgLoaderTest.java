@@ -8,8 +8,6 @@ import bdv.spimdata.SpimDataMinimal;
 import bdv.spimdata.XmlIoSpimDataMinimal;
 import ij.ImagePlus;
 import ij.process.ImageProcessor;
-import loci.formats.IFormatWriter;
-import loci.formats.meta.IMetadata;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.registration.ViewRegistrations;
@@ -25,7 +23,7 @@ import net.imglib2.FinalDimensions;
 
 import net.imglib2.realtransform.AffineTransform3D;
 import org.micromanager.utils.ReportingUtils;
-import spim.io.imgloader.ProcessorStackImgLoader;
+import spim.io.imgloader.ImageProcessorStackImgLoader;
 import utils.ImageGenerator;
 
 import java.io.File;
@@ -34,9 +32,9 @@ import java.util.HashMap;
 import java.util.TreeMap;
 
 /**
- * Created by moon on 3/21/16.
+ * Initial Test class for creating HDF5OutputHandler
  */
-public class HDF5HandlerTest implements Thread.UncaughtExceptionHandler
+public class ImageProcessorStackImgLoaderTest implements Thread.UncaughtExceptionHandler
 {
 	private File outputDirectory = new File( "/Users/moon/Desktop/ome2" );
 
@@ -44,11 +42,7 @@ public class HDF5HandlerTest implements Thread.UncaughtExceptionHandler
 	private int channelSize;
 	private int tSize, zSize, xSize, ySize;
 
-	private Partition partition;
-	private Thread hdf5ResaveThread;
-	private Exception rethrow;
-
-	ProcessorStackImgLoader stackImgLoader;
+	ImageProcessorStackImgLoader stackImgLoader;
 	final HashMap< Integer, BasicViewSetup > setups = new HashMap< Integer, BasicViewSetup >( angleSize );
 	final HashMap< ViewId, Partition > viewIdToPartition = new HashMap< ViewId, Partition >(  );
 
@@ -56,7 +50,7 @@ public class HDF5HandlerTest implements Thread.UncaughtExceptionHandler
 	ArrayList<TimePoint> timepoints;
 	String baseFilename;
 
-	public HDF5HandlerTest()
+	public ImageProcessorStackImgLoaderTest()
 	{
 		angleSize = 2;
 		channelSize = 1;
@@ -129,11 +123,10 @@ public class HDF5HandlerTest implements Thread.UncaughtExceptionHandler
 	public void beginStack(int time, int angle) throws Exception
 	{
 		File outputDirectory = new File( "/Users/moon/Desktop/ome2" );
-		stackImgLoader = new ProcessorStackImgLoader( outputDirectory, viewIdToPartition, setups.get( angle ), time, xSize, ySize, zSize );
+		stackImgLoader = new ImageProcessorStackImgLoader( outputDirectory, viewIdToPartition, setups.get( angle ), time, xSize, ySize, zSize );
 		stackImgLoader.start();
 	}
 
-	// ImageProcessor should have multiple channels
 	public void processSlice( ImageProcessor ip, int channel, double X, double Y, double Z, double theta, double deltaT )
 			throws Exception
 	{
@@ -143,23 +136,10 @@ public class HDF5HandlerTest implements Thread.UncaughtExceptionHandler
 	public void finalizeStack() throws Exception
 	{
 		stackImgLoader.finalize();
-
-//		hdf5ResaveThread = new Thread( new Runnable() {
-//			@Override
-//			public void run() {
-//
-//			}
-//		}, "HDF5 Resave Thread");
-//		hdf5ResaveThread.setPriority( Thread.MAX_PRIORITY );
-//		hdf5ResaveThread.setUncaughtExceptionHandler(this);
-//		hdf5ResaveThread.start();
 	}
 
 	public void finalizeAcquisition() throws Exception
 	{
-//		if(hdf5ResaveThread != null)
-//			hdf5ResaveThread.join();
-
 		// Make HDF5 master with linking all the fragments
 		final SequenceDescriptionMinimal seq = new SequenceDescriptionMinimal( new TimePoints( timepoints ), setups, null, null );
 
@@ -198,11 +178,10 @@ public class HDF5HandlerTest implements Thread.UncaughtExceptionHandler
 		{
 			throw new RuntimeException( e );
 		}
-
 	}
 
 
-	public void produceOmeTiffWithHdf5() throws Exception
+	public void produceImageStack() throws Exception
 	{
 		int width = xSize, height = ySize, depth = zSize, time = tSize;
 
@@ -230,24 +209,21 @@ public class HDF5HandlerTest implements Thread.UncaughtExceptionHandler
 
 	@Override public void uncaughtException( Thread thread, Throwable throwable )
 	{
-		if(thread != hdf5ResaveThread)
-			throw new Error("Unexpected exception mis-caught.", throwable);
-
 		if(!(throwable instanceof Exception))
 		{
 			ReportingUtils.logError( throwable, "Non-exception throwable " + throwable.toString() + " caught from hdf5 resave thread. Wrapping." );
 			throwable = new Exception("Wrapped throwable; see core log for details: " + throwable.getMessage(), throwable);
 		}
 
-		rethrow = (Exception)throwable;
+		Exception rethrow = (Exception)throwable;
 	}
 
 	public static void main( String[] args )
 	{
-		HDF5HandlerTest test = new HDF5HandlerTest();
+		ImageProcessorStackImgLoaderTest test = new ImageProcessorStackImgLoaderTest();
 		try
 		{
-			test.produceOmeTiffWithHdf5();
+			test.produceImageStack();
 		}
 		catch ( Exception e )
 		{

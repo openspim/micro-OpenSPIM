@@ -35,7 +35,7 @@ import spim.io.ObjectIO;
 /**
  * Created by moon on 3/22/16.
  */
-public class ProcessorStackImgLoader
+public class ImageProcessorStackImgLoader
 {
 	final BasicViewSetup setup;
 	final long[] dim;
@@ -49,7 +49,7 @@ public class ProcessorStackImgLoader
 	int angle;
 	static ArrayImgFactory imgFactory = new ArrayImgFactory< FloatType >();
 
-	public ProcessorStackImgLoader( File output, HashMap< ViewId, Partition > viewIdToPartition, BasicViewSetup setup, int time, int width, int height, int depth )
+	public ImageProcessorStackImgLoader( File output, HashMap< ViewId, Partition > viewIdToPartition, BasicViewSetup setup, int time, int width, int height, int depth )
 	{
 		this.setup = setup;
 		this.dim = new long[]{ width, height, depth };
