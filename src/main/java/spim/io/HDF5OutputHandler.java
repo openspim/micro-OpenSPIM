@@ -321,9 +321,13 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 		final File basePath = outputDirectory;
 		final SpimDataMinimal spimData = new SpimDataMinimal( basePath, seq, new ViewRegistrations( registrations ) );
 
+		String basename = baseFilename;
+		if ( basename.endsWith( ".h5" ) )
+			basename = basename.substring( 0, basename.length() - ".h5".length() );
+
 		try
 		{
-			new XmlIoSpimDataMinimal().save( spimData, basePath + "/dataset.xml" );
+			new XmlIoSpimDataMinimal().save( spimData, basename + ".xml" );
 		}
 		catch ( final Exception e )
 		{
