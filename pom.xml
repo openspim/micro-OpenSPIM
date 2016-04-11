@@ -2,13 +2,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-		http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
 		<groupId>sc.fiji</groupId>
 		<artifactId>pom-fiji</artifactId>
-		<version>16.2.0</version>
+		<version>18.1.0</version>
 		<relativePath />
 	</parent>
 
@@ -18,30 +18,39 @@
 
 	<properties>
 		<enforcer.skip>true</enforcer.skip>
-        <bio-formats.version>5.1.2</bio-formats.version>
+		<scijava.jvm.version>1.7</scijava.jvm.version>
+		<ImageJ_3D_Viewer.version>4.0.1</ImageJ_3D_Viewer.version>
+		<bio-formats.version>5.1.2</bio-formats.version>
 	</properties>
 
+	<repositories>
+		<repository>
+			<id>imagej.public</id>
+			<url>http://maven.imagej.net/content/groups/public</url>
+		</repository>
+	</repositories>
+
 	<dependencies>
-        <dependency>
-            <groupId>ome</groupId>
-            <artifactId>formats-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>ome</groupId>
-            <artifactId>formats-common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>ome</groupId>
-            <artifactId>formats-gpl</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>ome</groupId>
-            <artifactId>ome-xml</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>ome</groupId>
-            <artifactId>formats-bsd</artifactId>
-        </dependency>
+		<dependency>
+			<groupId>ome</groupId>
+			<artifactId>formats-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>ome</groupId>
+			<artifactId>formats-common</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>ome</groupId>
+			<artifactId>formats-gpl</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>ome</groupId>
+			<artifactId>ome-xml</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>ome</groupId>
+			<artifactId>formats-bsd</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
@@ -89,84 +98,61 @@
 			<artifactId>imglib2-ij</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>java3d</groupId>
+			<groupId>org.scijava</groupId>
 			<artifactId>vecmath</artifactId>
-			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>java3d</groupId>
-			<artifactId>j3d-core</artifactId>
-			<scope>provided</scope>
+			<groupId>org.beanshell</groupId>
+			<artifactId>bsh</artifactId>
+			<version>2.0b4</version>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>java3d</groupId>
-			<artifactId>j3d-core-utils</artifactId>
-			<scope>provided</scope>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>18.0</version>
+			<scope>test</scope>
 		</dependency>
-        <dependency>
-            <groupId>org.beanshell</groupId>
-            <artifactId>bsh</artifactId>
-            <version>2.0b4</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>18.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.fifesoft</groupId>
-            <artifactId>rsyntaxtextarea</artifactId>
-            <version>2.5.6</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.clojure</groupId>
-            <artifactId>clojure</artifactId>
-            <version>1.6.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.miglayout</groupId>
-            <artifactId>miglayout-swing</artifactId>
-            <version>4.2</version>
-            <scope>test</scope>
-        </dependency>
+		<dependency>
+			<groupId>com.fifesoft</groupId>
+			<artifactId>rsyntaxtextarea</artifactId>
+			<version>2.5.6</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.clojure</groupId>
+			<artifactId>clojure</artifactId>
+			<version>1.6.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.miglayout</groupId>
+			<artifactId>miglayout-swing</artifactId>
+			<version>4.2</version>
+			<scope>test</scope>
+		</dependency>
 
-        <!-- test-->
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-math</artifactId>
-            <version>2.2</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>sc.fiji</groupId>
-            <artifactId>spim_data</artifactId>
-            <version>2.0.1</version>
-        </dependency>
-        <dependency>
-            <groupId>sc.fiji</groupId>
-            <artifactId>bigdataviewer-core</artifactId>
-            <version>2.1.0</version>
-        </dependency>
-    </dependencies>
-
-	<!-- NB: for project parent -->
-	<repositories>
-		<repository>
-			<id>imagej.releases</id>
-			<url>http://maven.imagej.net/content/groups/public</url>
-		</repository>
-        <repository>
-            <id>fiji.releases</id>
-            <url>http://dev.loci.wisc.edu/maven2/releases</url>
-        </repository>
-	</repositories>
+		<!-- test-->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-math</artifactId>
+			<version>2.2</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>sc.fiji</groupId>
+			<artifactId>spim_data</artifactId>
+			<version>2.0.1</version>
+		</dependency>
+		<dependency>
+			<groupId>sc.fiji</groupId>
+			<artifactId>bigdataviewer-core</artifactId>
+			<version>2.1.0</version>
+		</dependency>
+	</dependencies>
 </project>
