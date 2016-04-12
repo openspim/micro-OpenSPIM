@@ -10,18 +10,18 @@ import java.io.File;
  */
 public class HDF5OutputHandlerMM extends HDF5OutputHandler
 {
-	public HDF5OutputHandlerMM( CMMCore iCore, File outDir, String filename, Row[] acqRows, int iTimeSteps )
+	public HDF5OutputHandlerMM( CMMCore iCore, File outDir, String filename, Row[] acqRows, int iTimeSteps, int tileCount )
 	{
-		super(outDir, (int) iCore.getImageWidth(), (int) iCore.getImageHeight(), iTimeSteps, acqRows.length);
+		super(outDir, (int) iCore.getImageWidth(), (int) iCore.getImageHeight(), iTimeSteps, acqRows.length, tileCount );
 
 		setPixelDepth( iCore.getImageBitDepth() );
 		setPixelSizeUm( iCore.getPixelSizeUm() );
 
-		int[] zSizes = new int[getAngleSize()];
-		double[] zStepSize = new double[getAngleSize()];
+		int[] zSizes = new int[getRowSize()];
+		double[] zStepSize = new double[getRowSize()];
 
 		// Setup ViewSetup
-		for(int i = 0; i < getAngleSize(); i++)
+		for(int i = 0; i < getRowSize(); i++)
 		{
 			Row row = acqRows[i];
 			zSizes[i] = row.getDepth();

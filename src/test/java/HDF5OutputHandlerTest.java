@@ -31,7 +31,7 @@ public class HDF5OutputHandlerTest
 	{
 		// Setup handler
 		final HDF5OutputHandler handler;
-		handler = new HDF5OutputHandler( outputDirectory, xSize, ySize, tSize, angleSize );
+		handler = new HDF5OutputHandler( outputDirectory, xSize, ySize, tSize, angleSize, 1 );
 		handler.setPixelDepth( 8 );
 		handler.setPixelSizeUm( 0.043 );
 

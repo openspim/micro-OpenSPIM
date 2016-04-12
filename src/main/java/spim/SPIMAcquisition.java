@@ -1917,7 +1917,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 
 					if(exportToHdf5.isSelected())
 					{
-						handler = new HDF5OutputHandlerMM( mmc, output, acqFilenamePrefix.getText(), acqRows, timeSeqs );
+						handler = new HDF5OutputHandlerMM( mmc, output, acqFilenamePrefix.getText(), acqRows, timeSeqs, tileCount );
 					}
 					else
 					{

@@ -40,7 +40,9 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 	final private File outputDirectory;
 	final private int tSize, xSize, ySize;
 
-	private int angleSize;
+	private int rowSize;
+	private int tileSize;
+
 	private int channelSize;
 	private int illuminationSize;
 
@@ -72,9 +74,10 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 	 * @param xSize the x size
 	 * @param ySize the y size
 	 * @param tSize the time size
-	 * @param angleSize the angle size
+	 * @param rowSize the size of the processing rows
+	 * @param tileSize the size of the tiles
 	 */
-	public HDF5OutputHandler( File outDir, int xSize, int ySize, int tSize, int angleSize )
+	public HDF5OutputHandler( File outDir, int xSize, int ySize, int tSize, int rowSize, int tileSize )
 	{
 		if(outDir == null || !outDir.exists() || !outDir.isDirectory())
 			throw new IllegalArgumentException("Null path specified: " + outDir.toString());
@@ -83,9 +86,11 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 		this.xSize = xSize;
 		this.ySize = ySize;
 
-		this.angleSize = angleSize;
-		this.zSizes = new int[angleSize];
-		this.zStepSize = new double[angleSize];
+		this.rowSize = rowSize;
+		this.tileSize = tileSize;
+
+		this.zSizes = new int[rowSize];
+		this.zStepSize = new double[rowSize];
 		this.tSize = tSize;
 
 		this.pixelDepth = 8;
@@ -107,23 +112,25 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 		for(int t = 0; t < tSize; t++)
 		{
 			timePoints.add( new TimePoint( t ) );
-			for(int v = 0; v < angleSize; v++)
+			for(int v = 0; v < rowSize; v++)
 			{
 				viewIds.add(new ViewId( t, v ));
 			}
 		}
 
 		// Setup ViewSetup
-		for(int i = 0; i < angleSize; i++)
+
+		// Row iteration
+		for ( int i = 0; i < rowSize; i++ )
 		{
 			imgLoaders.put( i, new HashMap< Integer, ImageProcessorStackImgLoader >() );
 
 			String punit = "um";
-			final FinalVoxelDimensions voxelSize = new FinalVoxelDimensions( punit, pixelSizeUm, pixelSizeUm, zStepSize[i] );
-			final FinalDimensions size = new FinalDimensions( new int[]{ xSize, ySize, zSizes[i] } );
+			final FinalVoxelDimensions voxelSize = new FinalVoxelDimensions( punit, pixelSizeUm, pixelSizeUm, zStepSize[ i ] );
+			final FinalDimensions size = new FinalDimensions( new int[] { xSize, ySize, zSizes[ i ] } );
 
 			final BasicViewSetup setup = new BasicViewSetup( i, "" + i, size, voxelSize );
-			setup.setAttribute( new Angle( i ) );
+			setup.setAttribute( new Angle( i % getAngleSize() ) );
 
 			// Currently, Illumination and Channel sizes are assumed to be 1
 			// TODO: if there are more channels and illuminations, deal with them here.
@@ -151,12 +158,12 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 
 	public int getAngleSize()
 	{
-		return angleSize;
+		return rowSize / tileSize;
 	}
 
-	public void setAngleSize( int angleSize )
+	public int getRowSize()
 	{
-		this.angleSize = angleSize;
+		return rowSize;
 	}
 
 	public int getChannelSize()
@@ -232,17 +239,17 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 	/**
 	 * Begin stack with time and angle.
 	 * @param time the time
-	 * @param angle the angle
+	 * @param row the row
 	 * @throws Exception the exception
 	 */
-	@Override public void beginStack( int time, int angle ) throws Exception
+	@Override public void beginStack( int time, int row ) throws Exception
 	{
 		//		ij.IJ.log("BeginStack:");
 		//		ij.IJ.log("    Time "+ time);
 		//		ij.IJ.log("    Angle: "+ angle);
-		imgLoaders.get( angle ).put( time, new ImageProcessorStackImgLoader( outputDirectory, viewIdToPartition, setups.get( angle ),
-				time, xSize, ySize, zSizes[ angle ] ) );
-		imgLoaders.get( angle ).get( time ).start();
+		imgLoaders.get( row ).put( time, new ImageProcessorStackImgLoader( outputDirectory, viewIdToPartition, setups.get( row ),
+				time, xSize, ySize, zSizes[ row ] ) );
+		imgLoaders.get( row ).get( time ).start();
 	}
 
 	/**
@@ -307,7 +314,7 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 
 
 		final ArrayList< ViewRegistration > registrations = new ArrayList< ViewRegistration >();
-		for(int i = 0; i < angleSize; i++)
+		for(int i = 0; i < rowSize; i++)
 		{
 			// create SourceTransform from the images calibration
 			final AffineTransform3D sourceTransform = new AffineTransform3D();
@@ -336,7 +343,7 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 
 
 		// Clean up the all the temporary files
-		for(int i = 0; i < angleSize; i++)
+		for(int i = 0; i < rowSize; i++)
 		{
 			for ( int t = 0; t < tSize; t++ )
 			{
