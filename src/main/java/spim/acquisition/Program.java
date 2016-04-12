@@ -447,10 +447,16 @@ public class Program
 					checker.stop();
 
 				} else if (!row.getZContinuous()) {
-
+					// Support -stepSize regarding Christopher's requirement
 					double start = setup.getZStage().getPosition();
-
 					double end = start + row.getZEndPosition() - row.getZStartPosition();
+
+					if( end < start )
+					{
+						double s = start;
+						start = end;
+						end = s;
+					}
 
 					DelayChecker checker = new DelayChecker( params.isAbortWhenDelayed()? Thread.currentThread(): null, 5000 );
 

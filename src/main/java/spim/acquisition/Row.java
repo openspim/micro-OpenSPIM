@@ -90,7 +90,7 @@ public class Row
 			if(stepOrSpeed == 0)
 				return 1;
 			else
-				return (int)((end - start) / stepOrSpeed) + 1;
+				return (int)((start < end ? end - start : start - end) / stepOrSpeed) + 1;
 		}
 
 		@Override
