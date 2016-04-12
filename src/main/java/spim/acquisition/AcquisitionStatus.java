@@ -7,8 +7,8 @@ package spim.acquisition;
  * When users set up the output directory, the status is changed to INIT.
  *
  * Status is changed based on the below transitions.
- * 1. INIT -> RUNNING -> DONE
- * 2. INIT -> RUNNING -> ABORTED
+ * 1. INIT -&gt; RUNNING -&gt; DONE
+ * 2. INIT -&gt; RUNNING -&gt; ABORTED
  */
 public enum AcquisitionStatus
 {
