@@ -14,6 +14,8 @@ import ij.process.ImageProcessor;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
 import mpicbg.spim.data.registration.ViewRegistration;
 import mpicbg.spim.data.registration.ViewRegistrations;
+import mpicbg.spim.data.registration.ViewTransform;
+import mpicbg.spim.data.registration.ViewTransformAffine;
 import mpicbg.spim.data.sequence.Angle;
 import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.FinalVoxelDimensions;
@@ -50,6 +52,7 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 	// Each row can have different depth
 	private int[] zSizes;
 	private double[] zStepSize;
+	private double[][] tileTransformMatrix;
 
 	private long pixelDepth;
 	private double pixelSizeUm;
@@ -127,6 +130,7 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 
 			String punit = "um";
 			final FinalVoxelDimensions voxelSize = new FinalVoxelDimensions( punit, pixelSizeUm, pixelSizeUm, zStepSize[ i ] );
+
 			final FinalDimensions size = new FinalDimensions( new int[] { xSize, ySize, zSizes[ i ] } );
 
 			final BasicViewSetup setup = new BasicViewSetup( i, "" + i, size, voxelSize );
@@ -226,6 +230,11 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 		this.pixelSizeUm = pixelSizeUm;
 	}
 
+	public void setTileTransformMatrix( double[][] tileTransformMatrix )
+	{
+		this.tileTransformMatrix = tileTransformMatrix;
+	}
+
 	/**
 	 * Not supported.
 	 * @return the image plus
@@ -316,12 +325,29 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 		final ArrayList< ViewRegistration > registrations = new ArrayList< ViewRegistration >();
 		for(int i = 0; i < rowSize; i++)
 		{
-			// create SourceTransform from the images calibration
-			final AffineTransform3D sourceTransform = new AffineTransform3D();
-			sourceTransform.set( pixelSizeUm, 0, 0, 0, 0, pixelSizeUm, 0, 0, 0, 0, zStepSize[i], 0 );
-
 			for ( int t = 0; t < tSize; ++t )
-				registrations.add( new ViewRegistration( t, i, sourceTransform ) );
+			{
+				final ViewRegistration viewRegistration = new ViewRegistration( t, i );
+				// create SourceTransform from the images calibration
+				final AffineTransform3D sourceTransform = new AffineTransform3D();
+				sourceTransform.set( pixelSizeUm, 0, 0, 0, 0, pixelSizeUm, 0, 0, 0, 0, zStepSize[i], 0 );
+
+				final ViewTransform viewTransform = new ViewTransformAffine( "sourceTransformation", sourceTransform );
+				viewRegistration.preconcatenateTransform( viewTransform );
+
+				// if this is tile, there should be one more transformation
+				if(tileSize > 1)
+				{
+					final AffineTransform3D tileTransform = new AffineTransform3D();
+					tileTransform.set( 	1, 0, 0, tileTransformMatrix[i][0],
+										0, 1, 0, tileTransformMatrix[i][1],
+										0, 0, 1, tileTransformMatrix[i][2] );
+					final ViewTransform tileViewTransform = new ViewTransformAffine( "tileTransformation", tileTransform );
+					viewRegistration.preconcatenateTransform( tileViewTransform );
+				}
+
+				registrations.add( viewRegistration );
+			}
 		}
 
 		seq.setImgLoader( new Hdf5ImageLoader( new File(baseFilename), hdf5Partitions, seq, false ) );
