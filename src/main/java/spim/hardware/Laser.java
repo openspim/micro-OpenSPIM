@@ -1,9 +1,8 @@
 package spim.hardware;
 
-import org.micromanager.utils.ReportingUtils;
-
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
+import org.micromanager.internal.utils.ReportingUtils;
 
 public class Laser extends Device {
 	static {
@@ -122,6 +121,18 @@ public class Laser extends Device {
 			return getPropertyDouble("Maximum Laser Power");
 		else
 			return 0.05;
+	}
+
+	/**
+	 * Return the laser wavelength.
+	 *
+	 * @return Wavelength.
+	 */
+	public String getWavelength() {
+		if(hasProperty("Wavelength"))
+			return getProperty("Wavelength");
+		else
+			return "594";
 	}
 
 	public DeviceType getMMType() {

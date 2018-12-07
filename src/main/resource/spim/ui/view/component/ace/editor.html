@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style type="text/css" media="screen">
+        #editor {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div id="editor"></div>
+
+<script src="ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="ext-language_tools.js" type="text/javascript" charset="utf-8"></script>
+<script>
+
+    var editor;
+
+    function initeditor() {
+        ace.require("ace/ext/language_tools")
+        editor = ace.edit("editor");
+        editor.setOptions({
+            enableBasicAutocompletion: true,
+            enableSnippets: true,
+            enableLiveAutocompletion: false
+        });
+        editor.setTheme("ace/theme/monokai");
+        editor.getSession().setMode("ace/mode/java");
+    }
+
+    function getvalue() {
+        return editor.getValue();
+    }
+
+    function copyselection() {
+        return editor.getCopyText();
+    }
+
+    function pastevalue(aValue) {
+        editor.insert(aValue);
+    }
+</script>
+</body>
+</html>

@@ -33,13 +33,13 @@ import net.imglib2.algorithm.localization.MLGaussianEstimator;
 import net.imglib2.algorithm.localization.Observation;
 import net.imglib2.img.ImagePlusAdapter;
 
-import org.micromanager.utils.ReportingUtils;
+import org.micromanager.internal.utils.ReportingUtils;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.threed.Plane;
 import org.apache.commons.math3.geometry.euclidean.threed.Line;
-import org.micromanager.MMStudio;
+import org.micromanager.internal.MMStudio;
 
 public class ManualWindow extends JFrame implements ActionListener, CalibrationWindow
 {
@@ -322,7 +322,7 @@ public class ManualWindow extends JFrame implements ActionListener, CalibrationW
 
 			// Move our ROI to around the center of the image (where the point
 			// should be) and run detect().
-			ImagePlus img = gui.getSnapLiveWin().getImagePlus();
+			ImagePlus img = gui.getSnapLiveManager().getDisplay().getImagePlus();
 			Roi imgRoi = img.getRoi();
 
 			Rectangle bounds = imgRoi.getBounds();
@@ -378,7 +378,7 @@ public class ManualWindow extends JFrame implements ActionListener, CalibrationW
 
 		double basez = setup.getZStage().getPosition();
 
-		if(gui.getSnapLiveWin() == null || gui.getSnapLiveWin().getImagePlus().getRoi() == null)
+		if(gui.getSnapLiveManager().getDisplay() == null || gui.getSnapLiveManager().getDisplay().getImagePlus().getRoi() == null)
 			return null;
 
 		Vector3D c = Vector3D.ZERO;
@@ -388,7 +388,7 @@ public class ManualWindow extends JFrame implements ActionListener, CalibrationW
 			setup.getZStage().setPosition(z);
 			setup.getZStage().waitFor();
 
-			ImageProcessor ip = gui.getSnapLiveWin().getImagePlus().getProcessor();
+			ImageProcessor ip = gui.getSnapLiveManager().getDisplay().getImagePlus().getProcessor();
 
 			double[] params = fit2DGaussian(ip.crop());
 
@@ -501,10 +501,10 @@ public class ManualWindow extends JFrame implements ActionListener, CalibrationW
 	@Override
 	public void actionPerformed(ActionEvent ae) {
 		if(PICK_ROI.equals(ae.getActionCommand())) {
-			if(gui.getSnapLiveWin() == null || gui.getSnapLiveWin().getImagePlus().getRoi() == null)
+			if(gui.getSnapLiveManager().getDisplay() == null || gui.getSnapLiveManager().getDisplay().getImagePlus().getRoi() == null)
 				pixelSizeRoi = null;
 			else
-				pixelSizeRoi = (Roi) gui.getSnapLiveWin().getImagePlus().getRoi().clone();
+				pixelSizeRoi = (Roi) gui.getSnapLiveManager().getDisplay().getImagePlus().getRoi().clone();
 
 			redisplayUmPerPix();
 			psrRoiPickerBtn.setText(pixelSizeRoi.getBounds().getWidth() +
@@ -525,10 +525,10 @@ public class ManualWindow extends JFrame implements ActionListener, CalibrationW
 
 				newText = PICK_BEAD;
 			} else {
-				if(gui.getSnapLiveWin() == null || gui.getSnapLiveWin().getImagePlus().getRoi() == null)
+				if(gui.getSnapLiveManager().getDisplay() == null || gui.getSnapLiveManager().getDisplay().getImagePlus().getRoi() == null)
 					return;
 
-				Vector3D vec = pickBead(gui.getSnapLiveWin().getImagePlus(), (ae.getModifiers() & ActionEvent.ALT_MASK) != 0);
+				Vector3D vec = pickBead(gui.getSnapLiveManager().getDisplay().getImagePlus(), (ae.getModifiers() & ActionEvent.ALT_MASK) != 0);
 				if(rotPickInit.equals(ae.getSource())) {
 					rotVecInit = vec;
 				} else if(rotPickMid.equals(ae.getSource())) {

@@ -16,20 +16,44 @@ public class CoherentObis extends Laser {
         super(core, label);
     }
 
-    @Override
-    public void setPower(double power) { setProperty("PowerSetpoint", power * 1000); }
+	/**
+	 * Power the laser off or on.
+	 *
+	 * @param open True to turn on, false to turn off.
+	 */
+	@Override
+	public void setPoweredOn(boolean open) {
+		if(open) {
+			setProperty("State", 1);
+		} else {
+			setProperty("State", 0);
+		}
+	}
+
+	/**
+	 * Get the laser's power status.
+	 *
+	 * @return True of the laser is on, false if off.
+	 */
+	@Override
+	public boolean getPoweredOn() {
+		return getProperty( "State" ).equals( "1" );
+	}
 
     @Override
-    public double getPower() { return getPropertyDouble("PowerSetpoint") / 1000.0; }
+    public void setPower(double power) { setProperty("PowerSetpoint", power); }
+
+    @Override
+    public double getPower() { return getPropertyDouble("PowerReadback"); }
 
     @Override
     public double getMinPower() {
-        return getPropertyDouble("Minimum Laser Power");
+        return getPropertyDouble("Minimum Laser Power") * 1000;
     }
 
     @Override
     public double getMaxPower() {
-        return getPropertyDouble("Maximum Laser Power");
+        return getPropertyDouble("Maximum Laser Power") * 1000;
     }
 
 }

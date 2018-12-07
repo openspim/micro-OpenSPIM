@@ -15,11 +15,11 @@ import mmcorej.DeviceType;
 import mmcorej.TaggedImage;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
-import org.micromanager.MMStudio;
 import org.micromanager.SnapLiveManager;
-import org.micromanager.utils.ImageUtils;
-import org.micromanager.utils.MDUtils;
-import org.micromanager.utils.ReportingUtils;
+import org.micromanager.internal.MMStudio;
+import org.micromanager.internal.utils.ImageUtils;
+import org.micromanager.internal.utils.MDUtils;
+import org.micromanager.internal.utils.ReportingUtils;
 
 import spim.hardware.Device;
 import spim.hardware.SPIMSetup;
@@ -220,15 +220,17 @@ public class Program
 		core.waitForSystem();
 	}
 	
-	private static void updateLiveImage(MMStudio f, TaggedImage ti)
+	private static void updateLiveImage( MMStudio f, TaggedImage ti)
 	{
 		try {
 			MDUtils.setChannelIndex(ti.tags, 0);
 			MDUtils.setFrameIndex(ti.tags, 0);
 			MDUtils.setPositionIndex(ti.tags, 0);
 			MDUtils.setSliceIndex(ti.tags, 0);
-			ti.tags.put("Summary", f.getAcquisition(SnapLiveManager.SIMPLE_ACQ).getSummaryMetadata());
-			f.displayImage(ti);
+
+			// TODO: Have to change based on MM2 api
+//			ti.tags.put("Summary", f.getAcquisition(SnapLiveManager.SIMPLE_ACQ).getSummaryMetadata());
+//			f.displayImage(ti);
 		} catch (Throwable t) {
 			ReportingUtils.logError(t, "Attemped to update live window.");
 		}
@@ -304,9 +306,10 @@ public class Program
 		final CMMCore core = params.getCore();
 
 		final MMStudio frame = MMStudio.getInstance();
-		boolean liveOn = frame.isLiveModeOn();
+
+		boolean liveOn = frame.live().getIsLiveModeOn();
 		if(liveOn)
-			frame.enableLiveMode(false);
+			frame.live().setLiveMode(false);
 
 		boolean autoShutter = core.getAutoShutter();
 		core.setAutoShutter(false);

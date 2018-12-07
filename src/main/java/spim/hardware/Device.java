@@ -7,11 +7,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.micromanager.utils.ReportingUtils;
-
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 import mmcorej.StrVector;
+import org.micromanager.internal.utils.ReportingUtils;
 
 public abstract class Device {
 	protected CMMCore core;
@@ -184,6 +183,7 @@ public abstract class Device {
 	}
 
 	protected static void installFactory(Factory fact, String name, SPIMSetup.SPIMDevice... types) {
+		System.out.println( "Install factory: " + name );
 		for (SPIMSetup.SPIMDevice type : types)
 			if (factoryMap.get(type).get(name) == null)
 				factoryMap.get(type).put(name, fact);

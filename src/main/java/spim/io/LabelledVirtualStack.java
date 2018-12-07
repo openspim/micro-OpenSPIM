@@ -3,7 +3,7 @@ package spim.io;
 import java.awt.image.ColorModel;
 import java.util.Arrays;
 
-import org.micromanager.utils.ReportingUtils;
+import org.micromanager.internal.utils.ReportingUtils;
 
 import ij.VirtualStack;
 

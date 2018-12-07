@@ -6,19 +6,19 @@ import java.util.Map;
 import java.util.EnumMap;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
-import org.micromanager.utils.ReportingUtils;
 
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 import mmcorej.StrVector;
 import mmcorej.TaggedImage;
+import org.micromanager.internal.utils.ReportingUtils;
 
 public class SPIMSetup {
 	public static enum SPIMDevice {
 		STAGE_X ("X Stage"),
 		STAGE_Y ("Y Stage"),
 		STAGE_Z ("Z Stage"),
-		STAGE_THETA ("Angle"),
+		STAGE_THETA ("Picard Twister"),
 		LASER1 ("Laser"),
 		LASER2 ("Laser (2)"),
 		CAMERA1 ("Camera"),
@@ -137,6 +137,10 @@ public class SPIMSetup {
 		return (Laser) deviceMap.get(SPIMDevice.LASER1);
 	}
 
+	public Laser getLaser2() {
+		return (Laser) deviceMap.get(SPIMDevice.LASER2);
+	}
+
 	public Camera getCamera() {
 		return (Camera) deviceMap.get(SPIMDevice.CAMERA1);
 	}
@@ -230,8 +234,21 @@ public class SPIMSetup {
 		SPIMSetup setup = new SPIMSetup(core);
 
 		try {
+			Class.forName( "spim.hardware.PicardStage" );
+			Class.forName( "spim.hardware.PicardXYStage" );
+			Class.forName( "spim.hardware.PicardTwister" );
+			Class.forName( "spim.hardware.Camera" );
+			Class.forName( "spim.hardware.Cobolt" );
+			Class.forName( "spim.hardware.CoherentCube" );
+			Class.forName( "spim.hardware.CoherentObis" );
+
 			for (SPIMDevice dev : SPIMDevice.values())
-				setup.deviceMap.put(dev, setup.constructIfValid(dev, setup.getDefaultDeviceLabel(dev)));
+			{
+				System.out.println( String.format( "%s: %s", dev.text, setup.getDefaultDeviceLabel( dev ) ) );
+				Device device = setup.constructIfValid( dev, setup.getDefaultDeviceLabel( dev ) );
+				if(device != null) System.out.println( "Device: " + device.label );
+				setup.deviceMap.put( dev, device );
+			}
 		} catch (Exception e) {
 			ReportingUtils.logError(e, "Couldn't build default setup.");
 			return null;

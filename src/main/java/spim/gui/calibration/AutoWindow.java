@@ -57,12 +57,12 @@ import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
 import org.json.JSONException;
-import org.micromanager.MMStudio;
+import org.micromanager.internal.MMStudio;
 import org.micromanager.SnapLiveManager;
-import org.micromanager.imagedisplay.VirtualAcquisitionDisplay;
-import org.micromanager.utils.MDUtils;
-import org.micromanager.utils.MMScriptException;
-import org.micromanager.utils.ReportingUtils;
+//import org.micromanager.imagedisplay.VirtualAcquisitionDisplay;
+import org.micromanager.internal.utils.MDUtils;
+import org.micromanager.internal.utils.MMScriptException;
+import org.micromanager.internal.utils.ReportingUtils;
 import org.scijava.vecmath.Color3f;
 import org.scijava.vecmath.Point3f;
 
@@ -205,11 +205,12 @@ public class AutoWindow extends JFrame implements CalibrationWindow, ActionListe
 
 		tweaksFrame.pack();
 
-		if(gui.getSnapLiveWin() != null) {
-			gui.getSnapLiveWin().getCanvas().addMouseListener(this);
-			gui.getSnapLiveWin().getCanvas().addMouseMotionListener(this);
 
-			highlightBrightest(gui.getSnapLiveWin().getImagePlus());
+		if(gui.getSnapLiveManager() != null) {
+			gui.getSnapLiveManager().getDisplay().getAsWindow().addMouseListener(this);
+			gui.getSnapLiveManager().getDisplay().getAsWindow().addMouseMotionListener(this);
+
+			highlightBrightest(gui.getSnapLiveManager().getDisplay().getImagePlus());
 		}
 	}
 
@@ -315,7 +316,7 @@ public class AutoWindow extends JFrame implements CalibrationWindow, ActionListe
 	}
 
 	private Vector2D quickFit() throws Exception {
-		ImagePlus img = MMStudio.getInstance().getSnapLiveManager().getSnapLiveDisplay().getImagePlus();
+		ImagePlus img = MMStudio.getInstance().getSnapLiveManager().getDisplay().getImagePlus();
 		Point mouse = img.getCanvas().getCursorLoc();
 
 		ImageProcessor ip = img.getProcessor();
@@ -364,7 +365,7 @@ public class AutoWindow extends JFrame implements CalibrationWindow, ActionListe
 
 	@Override
 	public void mouseMoved(MouseEvent me) {
-		if(!gui.getSnapLiveWin().isFocused())
+		if(!gui.getSnapLiveManager().getDisplay().getAsWindow().isFocused())
 			return;
 
 		if(me.isControlDown())
@@ -462,7 +463,7 @@ public class AutoWindow extends JFrame implements CalibrationWindow, ActionListe
 
 		ReportingUtils.logMessage(String.format("!!!--- SCANNING %.2f to %.2f", basez - scanDelta, basez + scanDelta));
 
-		Rectangle roi = MMStudio.getInstance().getSnapLiveManager().getSnapLiveDisplay().getImagePlus().getProcessor().getRoi();
+		Rectangle roi = MMStudio.getInstance().getSnapLiveManager().getDisplay().getImagePlus().getProcessor().getRoi();
 		ImageStack stack = new ImageStack(roi.width, roi.height);
 
 		for(double z = basez - scanDelta; z <= basez + scanDelta; z += setup.getZStage().getStepSize()) {
@@ -472,12 +473,15 @@ public class AutoWindow extends JFrame implements CalibrationWindow, ActionListe
 
 			TaggedImage ti = setup.getCamera().snapImage();
 			addTags(ti, 0);
-			gui.addImage(SnapLiveManager.SIMPLE_ACQ, ti, true, true);
 
-			VirtualAcquisitionDisplay display = MMStudio.getInstance().getSnapLiveManager().getSnapLiveDisplay();
-			display.updateAndDraw(true);
+			// TODO: correct the below based on MM2 API
+//			gui.addImage(SnapLiveManager.SIMPLE_ACQ, ti, true, true);
+//
+//			VirtualAcquisitionDisplay display = MMStudio.getInstance().getSnapLiveManager().getSnapLiveDisplay();
+//			display.updateAndDraw(true);
+//			ImageProcessor ip = display.getImagePlus().getProcessor();
 
-			ImageProcessor ip = display.getImagePlus().getProcessor();
+			ImageProcessor ip = MMStudio.getInstance().getSnapLiveManager().getDisplay().getImagePlus().getProcessor();
 
 			ImageProcessor cropped = ip.crop();
 
@@ -512,13 +516,13 @@ public class AutoWindow extends JFrame implements CalibrationWindow, ActionListe
 				}
 
 				if(visualFit.isSelected())
-					MMStudio.getInstance().getSnapLiveManager().getSnapLiveDisplay().getImagePlus().setOverlay(
+					MMStudio.getInstance().getSnapLiveManager().getDisplay().getImagePlus().setOverlay(
 							new OvalRoi((int)(roi.x + loc.getX() - 2), (int)(roi.y + loc.getY() - 2), 4, 4),
 							overlayColor, 1, null);
 
 			} else {
 				if(visualFit.isSelected())
-					MMStudio.getInstance().getSnapLiveManager().getSnapLiveDisplay().getImagePlus().setOverlay(null);
+					MMStudio.getInstance().getSnapLiveManager().getDisplay().getImagePlus().setOverlay(null);
 			}
 		}
 
@@ -540,12 +544,13 @@ public class AutoWindow extends JFrame implements CalibrationWindow, ActionListe
 		MDUtils.setFrameIndex(ti.tags, 0);
 		MDUtils.setPositionIndex(ti.tags, 0);
 		MDUtils.setSliceIndex(ti.tags, 0);
-		try {
-			ti.tags.put("Summary", MMStudio.getInstance().getAcquisition(SnapLiveManager.SIMPLE_ACQ).getSummaryMetadata());
-		} catch (MMScriptException ex) {
-			ReportingUtils.logError("Error adding summary metadata to tags");
-		}
-		gui.displayImage(ti);
+		// TODO: Correct the below based on MM2 API
+//		try {
+//			ti.tags.put("Summary", MMStudio.getInstance().getAcquisition(SnapLiveManager.SIMPLE_ACQ).getSummaryMetadata());
+//		} catch (MMScriptException ex) {
+//			ReportingUtils.logError("Error adding summary metadata to tags");
+//		}
+//		gui.displayImage(ti);
 	}
 
 	private boolean getNextBead() throws Exception {
@@ -561,14 +566,14 @@ public class AutoWindow extends JFrame implements CalibrationWindow, ActionListe
 
 		((DefaultListModel)pointsTable.getModel()).addElement(next);
 
-		ImageProcessor ip = gui.getSnapLiveWin().getImagePlus().getProcessor();
+		ImageProcessor ip = gui.getSnapLiveManager().getDisplay().getImagePlus().getProcessor();
 
 		Rectangle roi = ip.getRoi();
 
 		roi.setLocation((ip.getWidth() - roi.width) / 2,
 				(ip.getHeight() - roi.height) / 2);
 
-		gui.getSnapLiveWin().getImagePlus().setRoi(roi);
+		gui.getSnapLiveManager().getDisplay().getImagePlus().setRoi(roi);
 
 		return true;
 	};
@@ -638,7 +643,7 @@ public class AutoWindow extends JFrame implements CalibrationWindow, ActionListe
 				@Override
 				public void run() {
 					boolean live = gui.getSnapLiveManager().getIsLiveModeOn();
-					gui.enableLiveMode(false);
+					gui.live().setLiveMode( false );
 					core.setAutoShutter(false);
 
 					if(setup.getLaser() != null)
@@ -654,7 +659,7 @@ public class AutoWindow extends JFrame implements CalibrationWindow, ActionListe
 						setup.getLaser().setPoweredOn(false);
 
 					core.setAutoShutter(true);
-					gui.enableLiveMode(live);
+					gui.live().setLiveMode(live);
 					AutoWindow.this.scanStopped();
 				}
 			};
@@ -746,8 +751,8 @@ public class AutoWindow extends JFrame implements CalibrationWindow, ActionListe
 				((DefaultListModel)pointsTable.getModel()).addElement(new Vector3D(x,y,z));
 			};
 		} else if(BTN_AUTOLOC.equals(ae.getActionCommand())) {
-			if(gui.getSnapLiveWin() != null)
-				highlightBrightest(gui.getSnapLiveWin().getImagePlus());
+			if(gui.getSnapLiveManager().getDisplay() != null)
+				highlightBrightest(gui.getSnapLiveManager().getDisplay().getImagePlus());
 		}
 	}
 };

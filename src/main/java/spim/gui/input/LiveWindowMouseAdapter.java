@@ -1,6 +1,5 @@
 package spim.gui.input;
 
-import ij.IJ;
 import ij.gui.Toolbar;
 
 import java.awt.Component;
@@ -11,17 +10,12 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-
-import javax.swing.JOptionPane;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
-import org.micromanager.navigation.CenterAndDragListener;
-import org.micromanager.navigation.ZWheelListener;
+import org.micromanager.internal.navigation.CenterAndDragListener;
+import org.micromanager.internal.navigation.ZWheelListener;
 import spim.gui.calibration.CalibrationWindow;
 import spim.hardware.SPIMSetup;
 import spim.hardware.Stage;
@@ -35,8 +29,8 @@ public class LiveWindowMouseAdapter extends MouseAdapter {
 
 	private Component hookedOn;
 
-	private org.micromanager.navigation.CenterAndDragListener mmMouseListener;
-	private org.micromanager.navigation.ZWheelListener mmMouseWheelListener;
+	private org.micromanager.internal.navigation.CenterAndDragListener mmMouseListener;
+	private org.micromanager.internal.navigation.ZWheelListener mmMouseWheelListener;
 
 	private Point dragStart;
 
@@ -127,11 +121,11 @@ public class LiveWindowMouseAdapter extends MouseAdapter {
 		hookedOn.removeMouseMotionListener(this);
 		hookedOn.removeMouseWheelListener(this);
 
-		if(mmMouseListener != null)
-			((org.micromanager.navigation.CenterAndDragListener)mmMouseListener).start();
+//		if(mmMouseListener != null)
+//			((org.micromanager.internal.navigation.CenterAndDragListener)mmMouseListener).start();
 
 		if(mmMouseWheelListener != null)
-			((org.micromanager.navigation.ZWheelListener)mmMouseWheelListener).start();
+			((org.micromanager.internal.navigation.ZWheelListener)mmMouseWheelListener).start();
 
 		hookedOn = null;
 		setup = null;

@@ -1,6 +1,6 @@
 package spim.hardware;
 
-import org.micromanager.utils.ReportingUtils;
+import org.micromanager.internal.utils.ReportingUtils;
 
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;

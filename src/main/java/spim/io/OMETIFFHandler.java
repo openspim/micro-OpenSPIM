@@ -28,7 +28,7 @@ import spim.acquisition.AcquisitionStatus;
 import spim.acquisition.Program;
 import spim.acquisition.Row;
 
-import org.micromanager.utils.ReportingUtils;
+import org.micromanager.internal.utils.ReportingUtils;
 
 public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHandler
 {

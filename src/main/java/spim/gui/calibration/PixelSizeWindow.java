@@ -38,12 +38,12 @@ import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction;
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.AbstractSimplex;
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.NelderMeadSimplex;
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.SimplexOptimizer;
-import org.micromanager.utils.ImageUtils;
+import org.micromanager.internal.utils.ImageUtils;
 
 import mmcorej.CMMCore;
 
-import org.micromanager.MMStudio;
-import org.micromanager.utils.NumberUtils;
+import org.micromanager.internal.MMStudio;
+import org.micromanager.internal.utils.NumberUtils;
 import spim.gui.util.Layout;
 
 public class PixelSizeWindow extends JFrame implements MouseListener,
@@ -400,7 +400,7 @@ public class PixelSizeWindow extends JFrame implements MouseListener,
 		}
 
 		try {
-			if(gui.isLiveModeOn()) {
+			if(gui.live().getIsLiveModeOn()) {
 				workingImage = new ImagePlus("Calibration", ImageUtils.makeProcessor(core.getLastTaggedImage()));
 			} else {
 				core.snapImage();

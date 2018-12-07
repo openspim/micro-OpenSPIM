@@ -2,9 +2,9 @@ import java.io.File;
 
 import ij.IJ;
 import ij.ImageJ;
-import org.micromanager.MMStudio;
-import org.micromanager.utils.JavaUtils;
-import org.micromanager.utils.ReportingUtils;
+import org.micromanager.internal.MMStudio;
+import org.micromanager.internal.utils.JavaUtils;
+import org.micromanager.internal.utils.ReportingUtils;
 import org.scijava.util.ClassUtils;
 import spim.SPIMAcquisition;
 
@@ -23,6 +23,7 @@ public class SPIMTestDrive
 	public static void main(String[] args)
 	{
 		final File classesDirectory = new File(ClassUtils.getLocation( SPIMAcquisition.class.getName() ).getPath());
+		System.out.println(classesDirectory);
 		final File targetDirectory = classesDirectory.getParentFile();
 		System.setProperty("org.micromanager.plugin.path", targetDirectory.getPath());
 

@@ -26,7 +26,6 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.FilenameFilter;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,18 +61,21 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 
-import loci.formats.FormatException;
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
-import org.micromanager.MMStudio;
-import org.micromanager.api.MMPlugin;
-import org.micromanager.api.ScriptInterface;
-import org.micromanager.utils.ImageUtils;
-import org.micromanager.utils.NumberUtils;
-import org.micromanager.utils.ReportingUtils;
+import org.micromanager.MMPlugin;
+import org.micromanager.Studio;
+import org.micromanager.data.Datastore;
+import org.micromanager.internal.MMStudio;
+//import org.micromanager.api.MMPlugin;
+//import org.micromanager.api.ScriptInterface;
+import org.micromanager.internal.utils.ImageUtils;
+//import org.micromanager.utils.NumberUtils;
+import org.micromanager.internal.utils.NumberUtils;
+import org.micromanager.internal.utils.ReportingUtils;
 
 import spim.acquisition.AcquisitionStatus;
 import spim.acquisition.Params;
@@ -86,7 +88,7 @@ import spim.gui.calibration.PixelSizeWindow;
 import spim.gui.input.LiveWindowMouseAdapter;
 import spim.gui.model.StepTable;
 import spim.gui.util.Layout;
-import spim.gui.component.SteppedSlider;
+import spim.ui.view.component.SteppedSlider;
 import spim.controller.AntiDriftController;
 import spim.hardware.DeviceManager;
 import spim.hardware.SPIMSetup;
@@ -94,12 +96,11 @@ import spim.hardware.SPIMSetup.SPIMDevice;
 import spim.hardware.Stage;
 
 import spim.io.AsyncOutputHandler;
-import spim.io.HDF5Generator;
 import spim.io.HDF5OutputHandlerMM;
 import spim.io.OutputHandler;
 import spim.io.LabelledVirtualStack;
 import spim.io.OMETIFFHandler;
-import spim.gui.component.RangeSlider;
+import spim.ui.view.component.RangeSlider;
 
 public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	private static final String SPIM_RANGES = "SPIM Ranges";
@@ -141,7 +142,6 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		twisterMin = -180, twisterMax = 180, twisterStep = 2;
 	protected static int STAGE_OPTIONS = SteppedSlider.INCREMENT_BUTTONS | SteppedSlider.CLAMP_VALUE | SteppedSlider.RANGE_LIMITS;
 
-	protected ScriptInterface app;
 	protected CMMCore mmc;
 	protected MMStudio gui;
 
@@ -195,7 +195,6 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	/**
 	 * The main app calls this method to remove the module window
 	 */
-	@Override
 	public void dispose() {
 		if (frame == null)
 			return;
@@ -211,21 +210,8 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	}
 
 	/**
-	 * The main app passes its ScriptInterface to the module. This
-	 * method is typically called after the module is instantiated.
-	 * @param app - ScriptInterface implementation
-	 */
-	@Override
-	public void setApp(ScriptInterface app) {
-		this.app = app;
-		mmc = app.getMMCore();
-		gui = MMStudio.getInstance();
-	}
-
-	/**
 	 * Open the module window
 	 */
-	@Override
 	public void show() {
 		prefs = Preferences.userNodeForPackage(getClass());
 
@@ -253,10 +239,10 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	 * Embed our listeners in the live window's canvas space.
 	 */
 	public void hookLiveControls(boolean hook) {
-		if(!gui.isLiveModeOn() || hook == liveControlsHooked)
+		if(!gui.live().getIsLiveModeOn() || hook == liveControlsHooked)
 			return;
 
-		ImageWindow win = gui.getSnapLiveWin();
+		ImageWindow win = gui.live().getDisplay().getImageWindow();
 		if(win != null && win.isVisible()) {
 			if(!hook) {
 				listener.detach();
@@ -324,20 +310,19 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		updateUI();
 	}
 
-	/**
-	 * Returns a very short (few words) description of the module.
-	 */
-	@Override
-	public String getDescription() {
+	@Override public void setContext( Studio studio )
+	{
+		mmc = studio.core();
+		gui = MMStudio.getInstance();
+	}
+
+	@Override public String getName()
+	{
 		return "Open Source SPIM acquisition";
 	}
 
-	/**
-	 * Returns verbose information about the module.
-	 * This may even include a short help instructions.
-	 */
-	@Override
-	public String getInfo() {
+	@Override public String getHelpText()
+	{
 		// TODO: be more verbose
 		return "See http://openspim.org/";
 	}
@@ -860,14 +845,14 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		exposure = exposureSlider.getValueBox();
 
 		liveCheckbox = new JCheckBox("Update Live View");
-		updateLiveImage = gui.isLiveModeOn();
+		updateLiveImage = gui.live().getIsLiveModeOn();
 		liveCheckbox.setSelected(updateLiveImage);
 		liveCheckbox.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent e) {
 				updateLiveImage = e.getStateChange() == ItemEvent.SELECTED;
-				if (updateLiveImage && !gui.isLiveModeOn())
-					gui.enableLiveMode(true);
+				if (updateLiveImage && !gui.live().getIsLiveModeOn())
+					gui.live().setLiveMode(true);
 			}
 		});
 
@@ -1524,7 +1509,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			MMStudio.getFrame().setVisible(true);
 		}
 		SPIMAcquisition plugin = new SPIMAcquisition();
-		plugin.setApp(app);
+		plugin.setContext( app );
 		plugin.show();
 	}
 
@@ -1734,8 +1719,8 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					public void run() {
 						try {
 							boolean live;
-							if(live = gui.isLiveModeOn())
-								gui.enableLiveMode(false);
+							if(live = gui.live().getIsLiveModeOn())
+								gui.live().setLiveMode(false);
 
 							double beginTime = System.nanoTime() / 1e9;
 							double endTime = recordFor > 0 ? beginTime + recordFor : -1;
@@ -1755,7 +1740,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 							mmc.stopSequenceAcquisition();
 
 							if(live)
-								gui.enableLiveMode(true);
+								gui.live().setLiveMode(true);
 
 							ReportingUtils.logMessage("Video stopped; finishing individual file saving...");
 

@@ -22,7 +22,7 @@ import mpicbg.spim.data.sequence.ViewId;
 import net.imglib2.FinalDimensions;
 
 import net.imglib2.realtransform.AffineTransform3D;
-import org.micromanager.utils.ReportingUtils;
+import org.micromanager.internal.utils.ReportingUtils;
 import spim.io.imgloader.ImageProcessorStackImgLoader;
 import utils.ImageGenerator;
 

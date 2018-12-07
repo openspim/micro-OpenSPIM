@@ -8,7 +8,7 @@ import java.lang.InterruptedException;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.nio.channels.ClosedByInterruptException;
 
-import org.micromanager.utils.ReportingUtils;
+import org.micromanager.internal.utils.ReportingUtils;
 
 import ij.ImagePlus;
 import ij.process.ImageProcessor;
