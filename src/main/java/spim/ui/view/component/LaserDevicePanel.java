@@ -64,7 +64,7 @@ public class LaserDevicePanel extends HBox
 	{
 		laserName = null == laser ? "" : laser.getDeviceName();
 		waveLength = wl;
-		waveLength = null == laser ? 488 : Integer.parseInt( laser.getWavelength() );
+		waveLength = null == laser ? 488 : (int) Double.parseDouble( laser.getWavelength() );
 
 		powerUnits = "mW";
 		maxPower = null == laser ? 100 : laser.getMaxPower();
@@ -97,9 +97,9 @@ public class LaserDevicePanel extends HBox
 			executor.scheduleAtFixedRate( () -> {
 
 				// In case of live image, it turns the laser on
-				if(laserOnSwitch.isSelected() != laser.getPoweredOn()) {
-					laserOnSwitch.setSelected( laser.getPoweredOn() );
-				}
+//				if(laserOnSwitch.isSelected() != laser.getPoweredOn()) {
+//					laserOnSwitch.setSelected( laser.getPoweredOn() );
+//				}
 
 				currentPowerGauge.valueProperty().setValue( laser.getPower() );
 			}, 500, 100, TimeUnit.MILLISECONDS );

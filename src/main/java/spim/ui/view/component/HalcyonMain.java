@@ -81,9 +81,9 @@ public class HalcyonMain extends HalcyonFrame
 
 			if(setup.getCamera() != null)
 			{
-				final HalcyonNode lCamera = HalcyonNode.wrap("Camera-1",
+				final HalcyonNode lCamera = HalcyonNode.wrap("Camera",
 						SpimHalcyonNodeType.CAMERA,
-						new VBox(  ) );
+						new CameraDevicePanel( gui ) );
 				addNode(lCamera);
 			}
 
@@ -107,7 +107,7 @@ public class HalcyonMain extends HalcyonFrame
 
 			final HalcyonNode lCamera = HalcyonNode.wrap("Camera-1",
 					SpimHalcyonNodeType.CAMERA,
-					new VBox(  ) );
+					new CameraDevicePanel( null ) );
 
 			final HalcyonNode lStage1 = HalcyonNode.wrap("Stage-1",
 					SpimHalcyonNodeType.STAGE,
