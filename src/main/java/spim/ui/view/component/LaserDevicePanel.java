@@ -95,6 +95,12 @@ public class LaserDevicePanel extends HBox
 			}, 500, 100, TimeUnit.MILLISECONDS );
 		} else {
 			executor.scheduleAtFixedRate( () -> {
+
+				// In case of live image, it turns the laser on
+				if(laserOnSwitch.isSelected() != laser.getPoweredOn()) {
+					laserOnSwitch.setSelected( laser.getPoweredOn() );
+				}
+
 				currentPowerGauge.valueProperty().setValue( laser.getPower() );
 			}, 500, 100, TimeUnit.MILLISECONDS );
 		}
