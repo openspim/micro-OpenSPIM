@@ -264,7 +264,7 @@ public class Program
 		if(manualLaser && setup.getLaser() != null)
 			setup.getLaser().setPoweredOn(true);
 
-		TaggedImage ti = setup.getCamera().snapImage();
+		TaggedImage ti = setup.getCamera1().snapImage();
 
 		if(manualLaser && setup.getLaser() != null)
 			setup.getLaser().setPoweredOn(false);

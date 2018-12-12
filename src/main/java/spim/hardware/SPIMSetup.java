@@ -141,24 +141,16 @@ public class SPIMSetup {
 		return (Laser) deviceMap.get(SPIMDevice.LASER2);
 	}
 
-	public Camera getCamera() {
+	public Camera getCamera1() {
 		return (Camera) deviceMap.get(SPIMDevice.CAMERA1);
+	}
+
+	public Camera getCamera2() {
+		return (Camera) deviceMap.get(SPIMDevice.CAMERA2);
 	}
 
 	public Device getSynchronizer() {
 		return deviceMap.get(SPIMDevice.SYNCHRONIZER);
-	}
-
-	public TaggedImage snapImage() {
-		if(!core.getAutoShutter() && getLaser() != null)
-			getLaser().setPoweredOn(true);
-
-		TaggedImage ret = getCamera().snapImage();
-
-		if(!core.getAutoShutter() && getLaser() != null)
-			getLaser().setPoweredOn(false);
-
-		return ret;
 	}
 
 	/*
@@ -237,7 +229,7 @@ public class SPIMSetup {
 			Class.forName( "spim.hardware.PicardStage" );
 			Class.forName( "spim.hardware.PicardXYStage" );
 			Class.forName( "spim.hardware.PicardTwister" );
-			Class.forName( "spim.hardware.Camera" );
+			Class.forName( "spim.hardware.AndorsCMOS" );
 			Class.forName( "spim.hardware.Cobolt" );
 			Class.forName( "spim.hardware.CoherentCube" );
 			Class.forName( "spim.hardware.CoherentObis" );

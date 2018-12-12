@@ -6,7 +6,6 @@ import halcyon.model.node.HalcyonNodeType;
 import halcyon.view.TreePanel;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import org.dockfx.DockNode;
@@ -79,11 +78,11 @@ public class HalcyonMain extends HalcyonFrame
 				addNode(lLaser2);
 			}
 
-			if(setup.getCamera() != null)
+			if(setup.getCamera1() != null)
 			{
 				final HalcyonNode lCamera = HalcyonNode.wrap("Camera",
 						SpimHalcyonNodeType.CAMERA,
-						new CameraDevicePanel( gui ) );
+						new CameraDevicePanel( setup, gui ) );
 				addNode(lCamera);
 			}
 
@@ -107,7 +106,7 @@ public class HalcyonMain extends HalcyonFrame
 
 			final HalcyonNode lCamera = HalcyonNode.wrap("Camera-1",
 					SpimHalcyonNodeType.CAMERA,
-					new CameraDevicePanel( null ) );
+					new CameraDevicePanel( setup, null ) );
 
 			final HalcyonNode lStage1 = HalcyonNode.wrap("Stage-1",
 					SpimHalcyonNodeType.STAGE,

@@ -44,6 +44,7 @@ import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Translate;
 import org.micromanager.Studio;
 import org.micromanager.data.Image;
+import spim.hardware.SPIMSetup;
 import spim.ui.view.component.slider.StageSlider;
 import spim.ui.view.component.slider.customslider.Slider;
 
@@ -73,7 +74,7 @@ public class CameraDevicePanel extends ScrollPane
 
 //	private InteractiveDisplayPaneComponent< AffineTransform3D > display;
 
-	public CameraDevicePanel( Studio gui ) {
+	public CameraDevicePanel( SPIMSetup setup, Studio gui ) {
 		int width = gui == null? 512 : (int) gui.core().getImageWidth();
 		int height = gui == null? 512 : (int) gui.core().getImageHeight();
 		init(width, height);
@@ -93,9 +94,16 @@ public class CameraDevicePanel extends ScrollPane
 //		}
 
 		if(gui != null) {
+			System.out.println("Number of channels: " + gui.core().getNumberOfCameraChannels());
+
 			List<String> cameras = new ArrayList<>();
-			cameras.add( "Andor sCMOS Camera-1" );
-			cameras.add( "Andor sCMOS Camera-2" );
+
+//			cameras.add( "Andor sCMOS Camera-1" );
+//			cameras.add( "Andor sCMOS Camera-2" );
+			if(setup.getCamera1() != null)
+				cameras.add( setup.getCamera1().getDeviceName() );
+			if(setup.getCamera2() != null)
+				cameras.add( setup.getCamera2().getDeviceName() );
 
 			acquisition = new MultiAcquisition( gui.core(), cameras );
 
@@ -139,7 +147,8 @@ public class CameraDevicePanel extends ScrollPane
 //				System.out.println( String.format( "%f, %f, %f", ran.nextDouble(), ran.nextDouble(), ran.nextDouble() ) );
 
 				if(null == gui) {
-					Color c = new Color( ran.nextDouble(), ran.nextDouble(), ran.nextDouble(), 1 - alphaR * 0.01 );
+					float f = ran.nextFloat();
+					Color c = new Color( f, f, f, 1 - alphaR * 0.01 );
 
 					WritableImage newImage = new WritableImage( width, height );
 					PixelWriter writer = newImage.getPixelWriter();
@@ -201,9 +210,18 @@ public class CameraDevicePanel extends ScrollPane
 								}
 							}
 
-							newImageR.getPixelWriter().setColor( x, y, new Color( r, 0, 0, 1 - alphaR * 0.01 ) );
-							newImageG.getPixelWriter().setColor( x, y, new Color( 0, g, 0, 1 - alphaG * 0.01) );
-							newImageB.getPixelWriter().setColor( x, y, new Color( 0, 0, b, 1 - alphaB * 0.01) );
+							if(images.size() == 1)
+							{
+								newImageR.getPixelWriter().setColor( x, y, new Color( r, 0, 0, 1 - alphaR * 0.01 ) );
+								newImageG.getPixelWriter().setColor( x, y, new Color( 0, r, 0, 1 - alphaG * 0.01 ) );
+								newImageB.getPixelWriter().setColor( x, y, new Color( 0, 0, r, 1 - alphaB * 0.01 ) );
+							}
+							else
+							{
+								newImageR.getPixelWriter().setColor( x, y, new Color( r, 0, 0, 1 - alphaR * 0.01 ) );
+								newImageG.getPixelWriter().setColor( x, y, new Color( 0, g, 0, 1 - alphaG * 0.01 ) );
+								newImageB.getPixelWriter().setColor( x, y, new Color( 0, 0, b, 1 - alphaB * 0.01 ) );
+							}
 						}
 					}
 
@@ -213,7 +231,7 @@ public class CameraDevicePanel extends ScrollPane
 				}
 			}
 
-		}, 500, 200, TimeUnit.MILLISECONDS );
+		}, 500, 500, TimeUnit.MILLISECONDS );
 
 	}
 

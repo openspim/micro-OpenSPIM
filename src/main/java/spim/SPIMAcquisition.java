@@ -1308,7 +1308,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		String zStageLabel = setup.getZStage() != null ? setup.getZStage().getLabel() : null;
 		String twisterLabel = setup.getThetaStage() != null ? setup.getThetaStage().getLabel() : null;
 		String laserLabel = setup.getLaser() != null ? setup.getLaser().getLabel() : null;
-		String cameraLabel = setup.getCamera() != null ? setup.getCamera().getLabel() : null;
+		String cameraLabel = setup.getCamera1() != null ? setup.getCamera1().getLabel() : null;
 
 		xPosition.setEnabled(acqThread == null && xStageLabel != null);
 		yPosition.setEnabled(acqThread == null && yStageLabel != null);

@@ -471,7 +471,7 @@ public class AutoWindow extends JFrame implements CalibrationWindow, ActionListe
 			setup.getZStage().waitFor();
 			Thread.sleep(15);
 
-			TaggedImage ti = setup.getCamera().snapImage();
+			TaggedImage ti = setup.getCamera1().snapImage();
 			addTags(ti, 0);
 
 			// TODO: correct the below based on MM2 API

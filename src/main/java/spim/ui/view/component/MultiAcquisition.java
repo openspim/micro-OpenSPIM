@@ -18,11 +18,11 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class MultiAcquisition
 {
-	final CMMCore core;
-	final List<String> cameras;
-	Thread captureThread;
-	volatile boolean done = false, shutterOpen, autoShutter;
-	ConcurrentHashMap<String, TaggedImage> map = new ConcurrentHashMap<>();
+	private final CMMCore core;
+	private final List<String> cameras;
+	private Thread captureThread;
+	private volatile boolean done = false, shutterOpen, autoShutter;
+	private ConcurrentHashMap<String, TaggedImage> map = new ConcurrentHashMap<>();
 
 
 	public MultiAcquisition( CMMCore core, List<String> cameras )
@@ -54,7 +54,11 @@ public class MultiAcquisition
 
 	public void start() throws Exception
 	{
+		done = false;
+
+		autoShutter = core.getAutoShutter();
 		shutterOpen = core.getShutterOpen();
+
 		if (autoShutter) {
 			core.setAutoShutter(false);
 			if (!shutterOpen) {
@@ -62,16 +66,21 @@ public class MultiAcquisition
 			}
 		}
 
-		for(String camera : cameras)
+		if(cameras.size() == 1)
+			core.startContinuousSequenceAcquisition(0);
+		else
 		{
-			if(!core.isSequenceRunning(camera))
-				core.prepareSequenceAcquisition( camera );
-		}
+			for(String camera : cameras)
+			{
+				if(!core.isSequenceRunning(camera))
+					core.prepareSequenceAcquisition( camera );
+			}
 
-		for(String camera : cameras)
-		{
-			if(!core.isSequenceRunning(camera))
-				core.startSequenceAcquisition( camera, Integer.MAX_VALUE, 200, false );
+			for(String camera : cameras)
+			{
+				if(!core.isSequenceRunning(camera))
+					core.startSequenceAcquisition( camera, Integer.MAX_VALUE, 200, false );
+			}
 		}
 
 		if(null == captureThread) {
@@ -79,25 +88,20 @@ public class MultiAcquisition
 			{
 				@Override public void run()
 				{
-					String firstCamera = cameras.get( 0 );
-					String secondCamera = cameras.get( 1 );
 					try {
-						while ( (core.getRemainingImageCount() > 0
-								|| core.isSequenceRunning(firstCamera)
-								|| core.isSequenceRunning(secondCamera))
-								&& !done)
+						while ( !done )
 						{
 							if ( core.getRemainingImageCount() > 0 )
 							{
-//								System.out.println(core.getRemainingImageCount());
+//								System.out.println( core.getRemainingImageCount() );
 								TaggedImage timg = core.popNextTaggedImage();
-								String camera = (String) timg.tags.get("Camera");
+								String camera = ( String ) timg.tags.get( "Camera" );
 								map.put( camera, timg );
 							}
-							Thread.sleep(10);
+							Thread.sleep( 10 );
 						}
 					} catch ( Exception e ) {
-
+						System.out.println(e);
 					}
 				}
 			} );

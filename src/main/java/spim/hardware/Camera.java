@@ -57,6 +57,8 @@ public class Camera extends Device {
 		}
 	}
 
+
+
 	@Override
 	public DeviceType getMMType() {
 		return DeviceType.CameraDevice;
