@@ -4,6 +4,7 @@ import halcyon.HalcyonFrame;
 import halcyon.model.node.HalcyonNode;
 import halcyon.model.node.HalcyonNodeType;
 import halcyon.view.TreePanel;
+import javafx.application.Platform;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
@@ -31,7 +32,21 @@ public class HalcyonMain extends HalcyonFrame
 	public void start( Stage primaryStage )
 	{
 		primaryStage.setOnCloseRequest(event -> System.exit(0));
-		show( primaryStage, null, null );
+		Platform.runLater( new Runnable()
+		{
+			@Override public void run()
+			{
+				try
+				{
+					Thread.sleep(1000);
+				}
+				catch ( InterruptedException e )
+				{
+					e.printStackTrace();
+				}
+				show( primaryStage, null, null );
+			}
+		} );
 	}
 
 	public void show( Stage primaryStage, SPIMSetup setup, Studio gui )
@@ -98,11 +113,11 @@ public class HalcyonMain extends HalcyonFrame
 		{
 			final HalcyonNode lLaser1 = HalcyonNode.wrap( "Laser-1",
 					SpimHalcyonNodeType.LASER,
-					new LaserDevicePanel( null, 594 ) );
+					new LaserDevicePanel( null, 488 ) );
 
 			final HalcyonNode lLaser2 = HalcyonNode.wrap("Laser-2",
 					SpimHalcyonNodeType.LASER,
-					new LaserDevicePanel( null, 488 ));
+					new LaserDevicePanel( null, 561 ));
 
 			final HalcyonNode lCamera = HalcyonNode.wrap("Camera-1",
 					SpimHalcyonNodeType.CAMERA,
@@ -120,9 +135,22 @@ public class HalcyonMain extends HalcyonFrame
 
 		final HalcyonNode editor1 = HalcyonNode.wrap( "Java",
 				SpimHalcyonNodeType.EDITOR,
-				new JavaEditor(primaryStage, gui) );
+				new JavaEditor( primaryStage, gui ) );
 
 		addNode(editor1);
+
+		AcquisitionPanel acquisitionPanel = new AcquisitionPanel( primaryStage, gui );
+		final HalcyonNode control1 = HalcyonNode.wrap( "Acquisition",
+				SpimHalcyonNodeType.CONTROL,
+				acquisitionPanel );
+
+		addNode( control1 );
+
+//		final HalcyonNode control2 = HalcyonNode.wrap( "3D",
+//				SpimHalcyonNodeType.CONTROL,
+//				new Stage3DPanel() );
+//
+//		addNode( control2 );
 
 		// Custom DemoToolbar provided here
 		DockNode lToolbar = new ToolbarPanel();

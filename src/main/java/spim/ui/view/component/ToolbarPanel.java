@@ -1,6 +1,11 @@
 package spim.ui.view.component;
 
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.control.Button;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.control.ProgressIndicator;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import org.dockfx.DockNode;
 
@@ -20,6 +25,7 @@ public class ToolbarPanel extends DockNode
 		setTitle("OpenSPIM");
 
 		final VBox box = (VBox) getContents();
+		box.setSpacing( 20 );
 
 		Button btn = new Button("Test Std Out");
 		btn.setOnAction(e -> {

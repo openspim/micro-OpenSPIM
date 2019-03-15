@@ -9,7 +9,7 @@ import javafx.scene.Node;
  */
 public enum SpimHalcyonNodeType implements halcyon.model.node.HalcyonNodeType
 {
-	LASER, CAMERA, STAGE, EDITOR;
+	LASER, CAMERA, STAGE, EDITOR, CONTROL;
 
 	@Override
 	public Node getIcon()

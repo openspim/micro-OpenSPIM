@@ -64,7 +64,7 @@ public class LaserDevicePanel extends HBox
 	{
 		laserName = null == laser ? "" : laser.getDeviceName();
 		waveLength = wl;
-		waveLength = null == laser ? 488 : (int) Double.parseDouble( laser.getWavelength() );
+		waveLength = null == laser ? wl : (int) Double.parseDouble( laser.getWavelength() );
 
 		powerUnits = "mW";
 		maxPower = null == laser ? 100 : laser.getMaxPower();
