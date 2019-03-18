@@ -1,6 +1,9 @@
 package spim.ui.view.component;
 
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
 import javafx.beans.binding.BooleanBinding;
+import javafx.beans.binding.StringBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -42,6 +45,7 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.micromanager.Studio;
+import spim.hardware.SPIMSetup;
 import spim.model.data.AcquisitionSetting;
 import spim.model.data.ChannelItem;
 import spim.model.data.PositionItem;
@@ -50,6 +54,7 @@ import spim.ui.view.component.pane.LabeledPane;
 import spim.ui.view.component.util.TableViewUtil;
 
 import java.io.File;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -65,7 +70,13 @@ public class AcquisitionPanel extends BorderPane
 	final private TableView< ChannelItem > channelItemTableView;
 	final private HashMap< String, StringProperty > propertyMap;
 	final private SimpleObjectProperty<PositionItem> currentPosition;
+	final private SPIMSetup spimSetup;
+	final private Studio studio;
+	ObservableList<String> acquisitionOrderItems;
+	long imageWidth, imageHeight, imageDepth, bufferSize;
 
+
+	// Save/load acquisition setting purpose
 	// Time points panel
 	BooleanProperty enabledTimePoints;
 	StringProperty numTimePoints;
@@ -94,35 +105,32 @@ public class AcquisitionPanel extends BorderPane
 	ObjectProperty savingFormat;
 	BooleanProperty saveAsHDF5;
 
-	final private Studio studio;
-	ObservableList<String> acquisitionOrderItems;
-	long imageWidth, imageHeight, imageDepth, bufferSize;
-
-	public AcquisitionPanel(Stage stage, Studio studio) {
+	public AcquisitionPanel( Stage stage, SPIMSetup setup, Studio studio ) {
+		this.spimSetup = setup;
 		this.studio = studio;
 		this.propertyMap = new HashMap<>();
 		this.currentPosition = new SimpleObjectProperty<>();
 
 		// 1. Property Map for summary panel
-		this.propertyMap.put( "times", new SimpleStringProperty( "10" ) );
-		this.propertyMap.put( "positions", new SimpleStringProperty( "10" ) );
-		this.propertyMap.put( "slices", new SimpleStringProperty( "10" ) );
-		this.propertyMap.put( "channels", new SimpleStringProperty( "2" ) );
-		this.propertyMap.put( "totalImages", new SimpleStringProperty( "2000" ) );
+		this.propertyMap.put( "times", new SimpleStringProperty( "0" ) );
+		this.propertyMap.put( "positions", new SimpleStringProperty( "0" ) );
+		this.propertyMap.put( "slices", new SimpleStringProperty( "0" ) );
+		this.propertyMap.put( "channels", new SimpleStringProperty( "0" ) );
+		this.propertyMap.put( "totalImages", new SimpleStringProperty( "0" ) );
 		this.propertyMap.put( "totalSize", new SimpleStringProperty( "0 MB" ) );
 		this.propertyMap.put( "duration", new SimpleStringProperty( "0h 0m 0s" ) );
 		this.propertyMap.put( "order", new SimpleStringProperty( "Position > Slice > Channel" ) );
 		this.propertyMap.put( "filename", new SimpleStringProperty( "" ) );
 
-		if(studio != null)
+		if(this.studio != null)
 		{
-			System.out.println("Height: " + studio.core().getImageHeight());
-			System.out.println("Width: " + studio.core().getImageWidth());
-			System.out.println("Depth: " + studio.core().getImageBitDepth());
-			System.out.println("BufferSize: " + studio.core().getImageBufferSize());
-			this.imageWidth = studio.core().getImageWidth();
-			this.imageHeight = studio.core().getImageHeight();
-			this.imageDepth = studio.core().getImageBitDepth();
+			System.out.println("Height: " + this.studio.core().getImageHeight());
+			System.out.println("Width: " + this.studio.core().getImageWidth());
+			System.out.println("Depth: " + this.studio.core().getImageBitDepth());
+			System.out.println("BufferSize: " + this.studio.core().getImageBufferSize());
+			this.imageWidth = this.studio.core().getImageWidth();
+			this.imageHeight = this.studio.core().getImageHeight();
+			this.imageDepth = this.studio.core().getImageBitDepth();
 		}
 		else
 		{
@@ -213,6 +221,15 @@ public class AcquisitionPanel extends BorderPane
 					else
 						acquisitionOrderItems.add( "Channel" );
 				}
+
+				if( !enabledTimePoints.get() ) propertyMap.get("times").set("");
+				else propertyMap.get("times").setValue( numTimePoints.getValue() );
+
+				if( !enabledPositions.get() ) propertyMap.get("positions").set("");
+				else computeTotalPositionImages();
+
+				if( !enabledChannels.get() ) propertyMap.get("channels").set("");
+				else computeTotalChannels();
 
 				return !enabledChannels.get() && !enabledPositions.get() && !enabledZStacks.get() && !enabledTimePoints.get();
 			}
@@ -424,8 +441,16 @@ public class AcquisitionPanel extends BorderPane
 		{
 			@Override public void handle( ActionEvent event )
 			{
-				// TODO: Get the current position from the stage control and make the new position
-				positionItemTableView.getItems().add( new PositionItem( 10, 20, 30, 20, 50, 10 ) );
+				if(spimSetup != null ) {
+					double r = spimSetup.getThetaStage().getPosition() + 180.0;
+					double x = spimSetup.getXStage().getPosition();
+					double y = spimSetup.getYStage().getPosition();
+					double z = spimSetup.getZStage().getPosition();
+					positionItemTableView.getItems().add( new PositionItem( x, y, r, z, 10, 5 ) );
+				}
+				else {
+					positionItemTableView.getItems().add( new PositionItem( 10, 20, 30, 20, 50, 10 ) );
+				}
 			}
 		} );
 
@@ -449,9 +474,29 @@ public class AcquisitionPanel extends BorderPane
 
 		positionItemTableView.setContextMenu( new ContextMenu( newItem, deleteItem ) );
 
+		positionItemTableView.getItems().addListener( new InvalidationListener()
+		{
+			@Override public void invalidated( Observable observable )
+			{
+				computeTotalPositionImages();
+			}
+		} );
+
 		CheckboxPane pane = new CheckboxPane( "Positions", positionItemTableView );
 		enabledPositions = pane.selectedProperty();
 		return pane;
+	}
+
+	private void computeTotalPositionImages() {
+		long totalImages = 0;
+		for(PositionItem item : positionItemTableView.getItems())
+		{
+			if(item.getZEnd() > item.getZStart()) {
+				totalImages += (item.getZEnd() - item.getZStart()) / item.getZStep();
+			}
+		}
+
+		propertyMap.get("positions").setValue( totalImages + "" );
 	}
 
 	private CheckboxPane createSaveImagesPane() {
@@ -528,9 +573,23 @@ public class AcquisitionPanel extends BorderPane
 		// add context menu here
 		channelItemTableView.setContextMenu( new ContextMenu( newItem, deleteItem ) );
 
+		channelItemTableView.getItems().addListener( new InvalidationListener()
+		{
+			@Override public void invalidated( Observable observable )
+			{
+				computeTotalChannels();
+			}
+		} );
+
 		CheckboxPane pane = new CheckboxPane( "Channels", channelItemTableView );
 		enabledChannels = pane.selectedProperty();
 		return pane;
+	}
+
+	private void computeTotalChannels() {
+		int totalChannels = channelItemTableView.getItems().size();
+
+		propertyMap.get("channels").setValue( totalChannels + "" );
 	}
 
 	private LabeledPane createSummaryPane() {
@@ -541,37 +600,50 @@ public class AcquisitionPanel extends BorderPane
 
 		Label label = new Label();
 		label.textProperty().bind( propertyMap.get("times") );
+		label.textProperty().addListener( observable -> computeTotal() );
 		gridpane.addRow( 0, new Label("No. of time points: "), label );
 
 		label = new Label();
 		label.textProperty().bind( propertyMap.get("positions") );
-		gridpane.addRow( 1, new Label("No. of positions: "), label );
-
-		label = new Label();
-		label.textProperty().bind( propertyMap.get("slices") );
-		gridpane.addRow( 2, new Label("No. of slices: "), label );
+		label.textProperty().addListener( observable -> computeTotal() );
+		gridpane.addRow( 1, new Label("Images in positions: "), label );
 
 		label = new Label();
 		label.textProperty().bind( propertyMap.get("channels") );
-		gridpane.addRow( 3, new Label("No. of channels: "), label );
+		label.textProperty().addListener( observable -> computeTotal() );
+		gridpane.addRow( 2, new Label("No. of channels: "), label );
 
 		label = new Label();
 		label.textProperty().bind( propertyMap.get("totalImages") );
-		gridpane.addRow( 4, new Label("Total images: "), label );
+		gridpane.addRow( 3, new Label("Total images: "), label );
 
 		label = new Label();
 		label.textProperty().bind( propertyMap.get("totalSize") );
-		gridpane.addRow( 5, new Label("Total size: "), label );
+		gridpane.addRow( 4, new Label("Total size: "), label );
 
 		label = new Label();
 		label.textProperty().bind( propertyMap.get("duration") );
-		gridpane.addRow( 6, new Label("Duration: "), label );
+		gridpane.addRow( 5, new Label("Duration: "), label );
 
 		label = new Label();
 		label.textProperty().bind( propertyMap.get("order") );
-		gridpane.addRow( 7, new Label("Order: "), label );
+		gridpane.addRow( 6, new Label("Order: "), label );
 
 		return new LabeledPane( "Summary", gridpane );
+	}
+
+	private void computeTotal() {
+		long tp = propertyMap.get("times").getValue().isEmpty() ? 1 : Long.parseLong( propertyMap.get("times").getValue() );
+		long pos = propertyMap.get("positions").getValue().isEmpty() ? 1 : Long.parseLong( propertyMap.get("positions").getValue() );
+		long ch = propertyMap.get("channels").getValue().isEmpty() ? 1 : Long.parseLong( propertyMap.get("channels").getValue() );
+
+		tp = tp == 0 ? 1: tp;
+		pos = pos == 0 ? 1: pos;
+		ch = ch == 0 ? 1: ch;
+		long tot = tp * pos * ch;
+
+		propertyMap.get("totalImages").setValue( String.format( "%d", tot ) );
+		propertyMap.get("totalSize").setValue( formatFileSize( tot * bufferSize ) );
 	}
 
 	private LabeledPane createAcquisitionOrderPane() {
@@ -625,6 +697,7 @@ public class AcquisitionPanel extends BorderPane
 			{
 				if(currentPosition.get() != null && !newValue.isEmpty()) {
 					currentPosition.get().setZStart( Double.parseDouble( newValue ) );
+					computeTotalPositionImages();
 					positionItemTableView.refresh();
 				}
 			}
@@ -639,6 +712,7 @@ public class AcquisitionPanel extends BorderPane
 				if(currentPosition.get() != null && !newValue.isEmpty())
 				{
 					currentPosition.get().setZStep( Double.parseDouble( newValue ) );
+					computeTotalPositionImages();
 					positionItemTableView.refresh();
 				}
 			}
@@ -653,6 +727,7 @@ public class AcquisitionPanel extends BorderPane
 			{
 				if(currentPosition.get() != null && !newValue.isEmpty()) {
 					currentPosition.get().setZEnd( Double.parseDouble( newValue ) );
+					computeTotalPositionImages();
 					positionItemTableView.refresh();
 				}
 			}
@@ -694,6 +769,14 @@ public class AcquisitionPanel extends BorderPane
 		TextField numTimepointsField = createNumberTextField();
 		numTimePoints = numTimepointsField.textProperty();
 
+		numTimePoints.addListener( new ChangeListener< String >()
+		{
+			@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
+			{
+				propertyMap.get("times").setValue( newValue );
+			}
+		} );
+
 		GridPane.setConstraints(numTimepointsField, 2, 0); // column=2 row=0
 
 		// Interval
@@ -709,6 +792,36 @@ public class AcquisitionPanel extends BorderPane
 
 		GridPane.setConstraints(unitComboBox, 3, 1); // column=3 row=1
 
+		StringBinding sb = new StringBinding()
+		{
+			{
+				super.bind( numTimePoints, intervalTimePoints, intervalUnitTimePoints );
+			}
+			@Override protected String computeValue()
+			{
+				if( intervalTimePoints.get().isEmpty() || intervalTimePoints.get().isEmpty() ) return "0h 0m 0.00s";
+				double unit = 1;
+
+				switch ( intervalUnitTimePoints.getValue().toString() ) {
+					case "ms" : unit = 0.001;
+						break;
+					case "min" : unit = 60;
+						break;
+				}
+
+				double total = unit * Double.parseDouble( numTimePoints.getValue() ) * Double.parseDouble( intervalTimePoints.getValue() );
+
+				int h = (int) total / 3600;
+
+				int m = (int) (total - (h * 3600)) / 60;
+
+				double s = total - (h * 3600) - (m * 60);
+
+				return String.format( "%dh %dm %.02fs", h, m, s );
+			}
+		};
+
+		propertyMap.get("duration").bind( sb );
 
 		gridpane.getChildren().addAll(numTimepoints, numTimepointsField, numInterval, numIntervalField, unitComboBox);
 
@@ -733,6 +846,33 @@ public class AcquisitionPanel extends BorderPane
 		};
 		textField.setPrefWidth( 80 );
 		return textField;
+	}
+
+	// https://stackoverflow.com/questions/13539871/converting-kb-to-mb-gb-tb-dynamically
+	public static String formatFileSize(long size) {
+		String hrSize = null;
+
+		double b = size;
+		double k = size/1024.0;
+		double m = ((size/1024.0)/1024.0);
+		double g = (((size/1024.0)/1024.0)/1024.0);
+		double t = ((((size/1024.0)/1024.0)/1024.0)/1024.0);
+
+		DecimalFormat dec = new DecimalFormat("0.00");
+
+		if ( t>1 ) {
+			hrSize = dec.format(t).concat(" TB");
+		} else if ( g>1 ) {
+			hrSize = dec.format(g).concat(" GB");
+		} else if ( m>1 ) {
+			hrSize = dec.format(m).concat(" MB");
+		} else if ( k>1 ) {
+			hrSize = dec.format(k).concat(" KB");
+		} else {
+			hrSize = dec.format(b).concat(" Bytes");
+		}
+
+		return hrSize;
 	}
 
 	public class StackCube extends Group

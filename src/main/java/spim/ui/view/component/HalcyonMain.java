@@ -139,13 +139,12 @@ public class HalcyonMain extends HalcyonFrame
 
 		addNode(editor1);
 
-		AcquisitionPanel acquisitionPanel = new AcquisitionPanel( primaryStage, gui );
+		AcquisitionPanel acquisitionPanel = new AcquisitionPanel( primaryStage, setup, gui );
 		final HalcyonNode control1 = HalcyonNode.wrap( "Acquisition",
 				SpimHalcyonNodeType.CONTROL,
 				acquisitionPanel );
 
 		addNode( control1 );
-
 //		final HalcyonNode control2 = HalcyonNode.wrap( "3D",
 //				SpimHalcyonNodeType.CONTROL,
 //				new Stage3DPanel() );
