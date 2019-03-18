@@ -1,5 +1,6 @@
 package spim.ui.view.component;
 
+import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -8,6 +9,8 @@ import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -48,6 +51,7 @@ import spim.ui.view.component.util.TableViewUtil;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 /**
@@ -76,6 +80,7 @@ public class AcquisitionPanel extends BorderPane
 	BooleanProperty enabledZStacks;
 
 	// Acquisition order panel
+	BooleanProperty disabledAcquisitionOrder;
 	ObjectProperty acquisitionOrder;
 
 	// Channels panel
@@ -90,6 +95,8 @@ public class AcquisitionPanel extends BorderPane
 	BooleanProperty saveAsHDF5;
 
 	final private Studio studio;
+	ObservableList<String> acquisitionOrderItems;
+	long imageWidth, imageHeight, imageDepth, bufferSize;
 
 	public AcquisitionPanel(Stage stage, Studio studio) {
 		this.studio = studio;
@@ -102,10 +109,28 @@ public class AcquisitionPanel extends BorderPane
 		this.propertyMap.put( "slices", new SimpleStringProperty( "10" ) );
 		this.propertyMap.put( "channels", new SimpleStringProperty( "2" ) );
 		this.propertyMap.put( "totalImages", new SimpleStringProperty( "2000" ) );
-		this.propertyMap.put( "totalMemory", new SimpleStringProperty( "0 MB" ) );
+		this.propertyMap.put( "totalSize", new SimpleStringProperty( "0 MB" ) );
 		this.propertyMap.put( "duration", new SimpleStringProperty( "0h 0m 0s" ) );
 		this.propertyMap.put( "order", new SimpleStringProperty( "Position > Slice > Channel" ) );
 		this.propertyMap.put( "filename", new SimpleStringProperty( "" ) );
+
+		if(studio != null)
+		{
+			System.out.println("Height: " + studio.core().getImageHeight());
+			System.out.println("Width: " + studio.core().getImageWidth());
+			System.out.println("Depth: " + studio.core().getImageBitDepth());
+			System.out.println("BufferSize: " + studio.core().getImageBufferSize());
+			this.imageWidth = studio.core().getImageWidth();
+			this.imageHeight = studio.core().getImageHeight();
+			this.imageDepth = studio.core().getImageBitDepth();
+		}
+		else
+		{
+			this.imageWidth = 512;
+			this.imageHeight = 512;
+			this.imageDepth = 8;
+			this.bufferSize = 512 * 512;
+		}
 
 		positionItemTableView = TableViewUtil.createPositionItemDataView();
 
@@ -145,6 +170,56 @@ public class AcquisitionPanel extends BorderPane
 		content.setOrientation( Orientation.VERTICAL );
 
 
+		// Compute acquisition order logic
+		BooleanBinding bb = new BooleanBinding()
+		{
+			{
+				super.bind(enabledChannels, enabledPositions, enabledZStacks, enabledTimePoints);
+			}
+			@Override protected boolean computeValue()
+			{
+				acquisitionOrderItems.clear();
+
+				ArrayList<String> tp = new ArrayList<>(  );
+				if (enabledTimePoints.get() && enabledPositions.get() ) {
+					tp.addAll( Arrays.asList( "Time > Position", "Position > Time" ) );
+				} else if (enabledTimePoints.get()) {
+					tp.add( "Time");
+				} else if (enabledPositions.get()) {
+					tp.add( "Position");
+				}
+
+				if (enabledZStacks.get() && enabledChannels.get()) {
+					if(tp.size() > 0)
+						for(String former: tp) {
+							for(String latter : Arrays.asList( "Slice > Channel", "Channel > Slice" ) ) {
+								acquisitionOrderItems.add( former + " > " + latter );
+							}
+						}
+					else
+						acquisitionOrderItems.addAll( "Slice > Channel", "Channel > Slice" );
+				} else if (enabledZStacks.get()) {
+					if(tp.size() > 0)
+						for(String former: tp) {
+							acquisitionOrderItems.add( former + " > Slice" );
+						}
+					else
+						acquisitionOrderItems.add( "Slice" );
+				} else if (enabledChannels.get()) {
+					if(tp.size() > 0)
+						for(String former: tp) {
+							acquisitionOrderItems.add( former + " > Channel" );
+						}
+					else
+						acquisitionOrderItems.add( "Channel" );
+				}
+
+				return !enabledChannels.get() && !enabledPositions.get() && !enabledZStacks.get() && !enabledTimePoints.get();
+			}
+		};
+
+		disabledAcquisitionOrder.bind( bb );
+
 		final Slider slider = new Slider();
 		slider.setMin(-1);
 		slider.setMax(50);
@@ -173,6 +248,14 @@ public class AcquisitionPanel extends BorderPane
 		{
 			@Override public void handle( ActionEvent event )
 			{
+				if(studio != null)
+				{
+					System.out.println("Height: " + studio.core().getImageHeight());
+					System.out.println("Width: " + studio.core().getImageWidth());
+					System.out.println("Depth: " + studio.core().getImageBitDepth());
+					System.out.println("BufferSize: " + studio.core().getImageBufferSize());
+				}
+
 				startAcquisition();
 			}
 		} );
@@ -477,8 +560,8 @@ public class AcquisitionPanel extends BorderPane
 		gridpane.addRow( 4, new Label("Total images: "), label );
 
 		label = new Label();
-		label.textProperty().bind( propertyMap.get("totalMemory") );
-		gridpane.addRow( 5, new Label("Total memory: "), label );
+		label.textProperty().bind( propertyMap.get("totalSize") );
+		gridpane.addRow( 5, new Label("Total size: "), label );
 
 		label = new Label();
 		label.textProperty().bind( propertyMap.get("duration") );
@@ -492,13 +575,29 @@ public class AcquisitionPanel extends BorderPane
 	}
 
 	private LabeledPane createAcquisitionOrderPane() {
-		ComboBox orderComboBox = new ComboBox<>( FXCollections.observableArrayList(
+		acquisitionOrderItems = FXCollections.observableArrayList(
 				"Position > Slice > Channel",
-				"Position > Channel > Slice" ) );
-		orderComboBox.getSelectionModel().select( 0 );
+				"Position > Channel > Slice" );
+
+		ComboBox orderComboBox = new ComboBox<>( acquisitionOrderItems );
+
+		acquisitionOrderItems.addListener( new ListChangeListener< String >()
+		{
+			@Override public void onChanged( Change< ? extends String > c )
+			{
+				if(orderComboBox.getSelectionModel().isEmpty())
+					orderComboBox.getSelectionModel().select( 0 );
+			}
+		} );
+
 		acquisitionOrder = orderComboBox.valueProperty();
 
-		return new LabeledPane( "Acquisition Order", orderComboBox );
+		propertyMap.get("order").bind( acquisitionOrder );
+
+		LabeledPane pane = new LabeledPane( "Acquisition Order", orderComboBox );
+		disabledAcquisitionOrder = pane.disableProperty();
+
+		return pane;
 	}
 
 	private Label createZStackLabel(String name) {
