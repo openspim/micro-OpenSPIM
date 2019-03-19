@@ -5,6 +5,7 @@ import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
 import eu.hansolo.enzo.common.SymbolType;
 import eu.hansolo.enzo.onoffswitch.IconSwitch;
 
+import ij.process.ImageProcessor;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -43,7 +44,6 @@ import javafx.scene.transform.Affine;
 import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Translate;
 import org.micromanager.Studio;
-import org.micromanager.data.Image;
 import spim.hardware.SPIMSetup;
 import spim.ui.view.component.slider.StageSlider;
 import spim.ui.view.component.slider.customslider.Slider;
@@ -100,10 +100,17 @@ public class CameraDevicePanel extends ScrollPane
 
 //			cameras.add( "Andor sCMOS Camera-1" );
 //			cameras.add( "Andor sCMOS Camera-2" );
+
 			if(setup.getCamera1() != null)
-				cameras.add( setup.getCamera1().getDeviceName() );
+			{
+				cameras.add( setup.getCamera1().getLabel() );
+//				System.out.println( setup.getCamera1().getDeviceName() );
+			}
 			if(setup.getCamera2() != null)
-				cameras.add( setup.getCamera2().getDeviceName() );
+			{
+				cameras.add( setup.getCamera2().getLabel() );
+//				System.out.println( setup.getCamera2().getDeviceName() );
+			}
 
 			acquisition = new MultiAcquisition( gui.core(), cameras );
 
@@ -115,7 +122,8 @@ public class CameraDevicePanel extends ScrollPane
 					{
 						try
 						{
-							acquisition.start();
+							if(!gui.core().isSequenceRunning())
+								acquisition.start();
 						}
 						catch ( Exception e )
 						{
@@ -126,7 +134,8 @@ public class CameraDevicePanel extends ScrollPane
 					{
 						try
 						{
-							acquisition.stop();
+							if(gui.core().isSequenceRunning())
+								acquisition.stop();
 						}
 						catch ( Exception e )
 						{
@@ -167,7 +176,7 @@ public class CameraDevicePanel extends ScrollPane
 					displayG.setImage( img );
 
 				} else {
-					List< Image > images = acquisition.getImages();
+					List< ImageProcessor > images = acquisition.getImages();
 
 					WritableImage newImageR = new WritableImage( width, height );
 					WritableImage newImageG = new WritableImage( width, height );
@@ -181,7 +190,7 @@ public class CameraDevicePanel extends ScrollPane
 						{
 							for (int i = 0; i < images.size(); i++ ) {
 								double max = maxs[i];
-								maxs[i] = max < images.get(i).getIntensityAt( x, y ) ? images.get(i).getIntensityAt( x, y ) : max;
+								maxs[i] = max < images.get(i).get( x, y ) ? images.get(i).get( x, y ) : max;
 							}
 						}
 					}
@@ -199,13 +208,13 @@ public class CameraDevicePanel extends ScrollPane
 								switch ( i % 3 )
 								{
 									case 0:
-										r = (images.get( i ).getIntensityAt( x, y ) / maxs[ i ] + r) / (r == 0 ? 1.0 : 2.0);
+										r = (images.get( i ).get( x, y ) / maxs[ i ] + r) / (r == 0 ? 1.0 : 2.0);
 										break;
 									case 1:
-										g = (images.get( i ).getIntensityAt( x, y ) / maxs[ i ] + g) / (g == 0 ? 1.0 : 2.0);
+										g = (images.get( i ).get( x, y ) / maxs[ i ] + g) / (g == 0 ? 1.0 : 2.0);
 										break;
 									case 2:
-										b = (images.get( i ).getIntensityAt( x, y ) / maxs[ i ] + b) / (b == 0 ? 1.0 : 2.0);
+										b = (images.get( i ).get( x, y ) / maxs[ i ] + b) / (b == 0 ? 1.0 : 2.0);
 										break;
 								}
 							}
@@ -313,6 +322,11 @@ public class CameraDevicePanel extends ScrollPane
 		g.getChildren().add(l2);
 //		g.getChildren().add(l3);
 //		g.getChildren().add(l4);
+
+//		double screenHeight = Screen.getPrimary().getVisualBounds().getHeight();
+		scaleFactor = height > 512 ? (double) 512 / height : 1;
+		g.setScaleX( scaleFactor );
+		g.setScaleY( scaleFactor );
 
 		VBox toolBox = new VBox( 20 );
 

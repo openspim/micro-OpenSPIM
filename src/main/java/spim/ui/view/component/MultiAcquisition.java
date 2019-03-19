@@ -1,13 +1,18 @@
 package spim.ui.view.component;
 
+import ij.ImagePlus;
+import ij.process.ImageProcessor;
+import ij.process.ImageStatistics;
 import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
 import org.json.JSONException;
 import org.micromanager.data.Image;
 import org.micromanager.data.internal.DefaultImage;
+import org.micromanager.data.internal.DefaultImageJConverter;
 import org.micromanager.internal.utils.MMScriptException;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -23,7 +28,7 @@ public class MultiAcquisition
 	private Thread captureThread;
 	private volatile boolean done = false, shutterOpen, autoShutter;
 	private ConcurrentHashMap<String, TaggedImage> map = new ConcurrentHashMap<>();
-
+	private DefaultImageJConverter ipConverter = new DefaultImageJConverter();
 
 	public MultiAcquisition( CMMCore core, List<String> cameras )
 	{
@@ -31,14 +36,26 @@ public class MultiAcquisition
 		this.cameras = cameras;
 	}
 
-	public List< Image > getImages() {
-		List< Image > images = new ArrayList<>(  );
+	public List< ImageProcessor > getImages() {
+		List< ImageProcessor > images = new ArrayList<>(  );
 
 		for(TaggedImage img : map.values())
 		{
 			try
 			{
-				images.add( new DefaultImage(img) );
+				//new DefaultImage(img)
+				ImageProcessor ip = ipConverter.createProcessor( new DefaultImage( img ) );
+
+//				System.out.println(String.format( "%f, %f", ip.getHistogramMin(), ip.getHistogramMax() ));
+				// ip.resetMinAndMax();
+//				ip.setMinAndMax( 40, 60 );
+//				System.out.println(String.format( "%f, %f", ip.getMin(), ip.getMax() ));
+//				ip.setAutoThreshold( "Default" );
+//				ip.autoThreshold();
+				adjustApply( ip );
+//				System.out.println(String.format( "%f, %f", ip.getMin(), ip.getMax() ));
+
+				images.add( ip );
 			}
 			catch ( JSONException e )
 			{
@@ -50,6 +67,75 @@ public class MultiAcquisition
 			}
 		}
 		return images;
+	}
+
+	private void adjustApply(ImageProcessor ip) {
+		ImageStatistics stats = ip.getStatistics();
+		int limit = stats.pixelCount/10;
+		int[] histogram = stats.histogram;
+		int threshold = stats.pixelCount/20;
+//		System.out.println(	Arrays.toString(histogram));
+		int i = -1;
+		boolean found = false;
+		int count;
+		do {
+			i++;
+			count = histogram[i];
+			if (count>limit) count = 0;
+			found = count> threshold;
+		} while (!found && i<255);
+		int hmin = i;
+		i = 256;
+		do {
+			i--;
+			count = histogram[i];
+			if (count>limit) count = 0;
+			found = count > threshold;
+		} while (!found && i>0);
+		int hmax = i;
+
+		if (hmax>=hmin) {
+			double min = stats.histMin+hmin*stats.binSize;
+			double max = stats.histMin+hmax*stats.binSize;
+			if (min==max)
+			{min=stats.min; max=stats.max;}
+//			System.out.println(String.format( "hmax, hmin %f, %f", min, max ));
+			ip.setMinAndMax( min, max );
+		} else {
+			ip.reset();
+		}
+
+		int bitDepth = ip.getBitDepth();
+		if (bitDepth==32) {
+			System.err.println("\"Apply\" does not work with 32-bit images");
+			return;
+		}
+		int range = 256;
+		if (bitDepth==16) {
+			range = 65536;
+			int defaultRange = ImagePlus.getDefault16bitRange();
+			if (defaultRange>0)
+				range = (int)Math.pow(2,defaultRange)-1;
+		}
+		int tableSize = bitDepth==16?65536:256;
+		int[] table = new int[tableSize];
+		int min = (int)ip.getMin();
+		int max = (int)ip.getMax();
+
+
+		for (i=0; i<tableSize; i++) {
+			if (i<=min)
+				table[i] = 0;
+			else if (i>=max)
+				table[i] = range-1;
+			else
+				table[i] = (int)(((double)(i-min)/(max-min))*range);
+		}
+
+		ip.snapshot();
+		ip.applyTable(table);
+		ip.reset(ip.getMask());
+		ip.reset();
 	}
 
 	public void start() throws Exception
