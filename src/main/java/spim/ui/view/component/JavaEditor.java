@@ -22,6 +22,7 @@ import netscape.javascript.JSObject;
 import org.micromanager.Studio;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import spim.hardware.SPIMSetup;
 import spim.plugin.compile.PluginRuntime;
 
 import java.lang.reflect.InvocationTargetException;
@@ -40,11 +41,12 @@ public class JavaEditor extends BorderPane
 
 	private Stage modalStage;
 	final private Studio studio;
+	final private SPIMSetup setup;
 
 	protected Class plugin;
 
-	public JavaEditor(Stage stage, Studio studio) {
-
+	public JavaEditor( Stage stage, SPIMSetup setup, Studio studio ) {
+		this.setup = setup;
 		this.studio = studio;
 
 		editorView = new WebView();
@@ -150,10 +152,11 @@ public class JavaEditor extends BorderPane
 				+ "import org.micromanager.Studio;\n"
 				+ "import mmcorej.TaggedImage;\n"
 				+ "import mmcorej.CMMCore;\n"
+				+ "import spim.hardware.SPIMSetup;\n"
 				+ "import javax.swing.SwingUtilities;\n"
 				+ "\n"
 				+ "public class Script {\n"
-				+ "        public static void main(String[] args, Studio mm)\n"
+				+ "        public static void main(String[] args, SPIMSetup setup, Studio mm)\n"
 				+ "        {\n"
 				+ "            SwingUtilities.invokeLater(() -> {\n"
 				+ "            try {\n"
@@ -274,9 +277,10 @@ public class JavaEditor extends BorderPane
 	protected void load(Class clazz)
 	{
 		Method method = null;
+
 		try {
-			method = clazz.getMethod("main", String[].class, Studio.class);
-			method.invoke(null, new String[1], studio);
+			method = clazz.getMethod("main", String[].class, SPIMSetup.class, Studio.class);
+			method.invoke(null, new String[1], setup, studio);
 		} catch (NoSuchMethodException e) {
 			e.printStackTrace();
 		} catch (IllegalAccessException e) {

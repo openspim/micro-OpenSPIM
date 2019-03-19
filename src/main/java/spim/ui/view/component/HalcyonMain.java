@@ -135,7 +135,7 @@ public class HalcyonMain extends HalcyonFrame
 
 		final HalcyonNode editor1 = HalcyonNode.wrap( "Java",
 				SpimHalcyonNodeType.EDITOR,
-				new JavaEditor( primaryStage, gui ) );
+				new JavaEditor( primaryStage, setup, gui ) );
 
 		addNode(editor1);
 
