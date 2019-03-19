@@ -60,7 +60,8 @@ public class CompilerUtils {
 		addClassPath( "plugins/Micro-Manager/MMCoreJ.jar" );
 		addClassPath( "plugins/Micro-Manager/MMAcqEngine.jar" );
 		addClassPath( "plugins/Micro-Manager/MMJ_.jar" );
-
+		addClassPath( "plugins/Micro-Manager/MMJ_.jar" );
+		addClassPath( "mmplugins/SPIMAcquisition-2.0.jar" );
 //
 	}
 
