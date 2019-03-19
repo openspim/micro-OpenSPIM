@@ -292,7 +292,7 @@ public class AcquisitionPanel extends BorderPane
 
 		Button saveButton = new Button( "Save" );
 		saveButton.setMinSize( 120, 40 );
-		saveButton.setStyle("-fx-font: 18 arial; -fx-base: #e7e45d;");
+		saveButton.setStyle("-fx-font: 18 arial; -fx-base: #69e760;");
 		saveButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -313,7 +313,7 @@ public class AcquisitionPanel extends BorderPane
 
 		Button loadButton = new Button( "Load" );
 		loadButton.setMinSize( 120, 40 );
-		loadButton.setStyle("-fx-font: 18 arial; -fx-base: #69e760;");
+		loadButton.setStyle("-fx-font: 18 arial; -fx-base: #e7e45d;");
 		loadButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
