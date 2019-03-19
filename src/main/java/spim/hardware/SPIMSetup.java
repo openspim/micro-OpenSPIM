@@ -2,6 +2,7 @@ package spim.hardware;
 
 import ij.IJ;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.EnumMap;
 
@@ -10,7 +11,6 @@ import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 import mmcorej.StrVector;
-import mmcorej.TaggedImage;
 import org.micromanager.internal.utils.ReportingUtils;
 
 public class SPIMSetup {
@@ -21,6 +21,8 @@ public class SPIMSetup {
 		STAGE_THETA ("Picard Twister"),
 		LASER1 ("Laser"),
 		LASER2 ("Laser (2)"),
+		ARDUINO1 ("Arduino"),
+		ARDUINO2 ("Arduino (2)"),
 		CAMERA1 ("Camera"),
 		CAMERA2 ("Camera (2)"),
 		SYNCHRONIZER ("Synchronizer");
@@ -233,6 +235,7 @@ public class SPIMSetup {
 			Class.forName( "spim.hardware.Cobolt" );
 			Class.forName( "spim.hardware.CoherentCube" );
 			Class.forName( "spim.hardware.CoherentObis" );
+			Class.forName( "spim.hardware.VersaLase" );
 
 			for (SPIMDevice dev : SPIMDevice.values())
 			{
@@ -247,6 +250,59 @@ public class SPIMSetup {
 		}
 
 		return setup;
+	}
+
+//	ShutterDevice --
+//
+//		VLT_VersaLase
+//
+//		Arduino-Shutter
+//
+//	StateDevice --
+//
+//		Arduino-Switch
+//
+//	XYStageDevice --
+//
+//		Picard XY Stage
+//
+//	StageDevice --
+//
+//		Picard Twister
+//
+//		Picard Z Stage
+//
+//	CameraDevice --
+//
+//		Andor sCMOS Camera-1
+//
+//		Andor sCMOS Camera-2
+//
+//		Multi Camera
+//
+	public static void collectDeviceLabels(CMMCore core) throws Exception {
+		System.out.println("ShutterDevice --");
+		for (String s : core.getLoadedDevicesOfType(DeviceType.ShutterDevice))
+			System.out.println(s);
+
+		System.out.println("StateDevice --");
+		for (String s : core.getLoadedDevicesOfType(DeviceType.StateDevice))
+			System.out.println(s);
+
+		System.out.println("XYStageDevice --");
+		for (String s : core.getLoadedDevicesOfType(DeviceType.XYStageDevice))
+			System.out.println(s);
+
+		System.out.println("StageDevice --");
+		for (String s : core.getLoadedDevicesOfType(DeviceType.StageDevice))
+			System.out.println(s);
+
+		System.out.println("CameraDevice --");
+		for (String s : core.getLoadedDevicesOfType(DeviceType.CameraDevice))
+			System.out.println(s);
+
+		for (String s : core.getDevicePropertyNames("VLT_VersaLase"))
+			System.out.println(s);
 	}
 
 	public String getDefaultDeviceLabel(SPIMDevice dev) throws Exception {
@@ -266,18 +322,16 @@ public class SPIMSetup {
 			return labelOfSecondary(DeviceType.StageDevice, core.getFocusDevice());
 
 		case LASER1:
-			return core.getShutterDevice();
+			return getLaserDevice( 0 );
 
 		case LASER2:
-			// TODO: This might not be exact -- Arduino might end up showing up
-			// as a shutter.
-			return labelOfSecondary(DeviceType.ShutterDevice, core.getShutterDevice());
+			return getLaserDevice( 1 );
 
 		case CAMERA1:
-			return core.getCameraDevice();
+			return getCameraDevie( 0 );
 
 		case CAMERA2:
-			return labelOfSecondary(DeviceType.CameraDevice, core.getCameraDevice());
+			return getCameraDevie( 1 );
 
 		case SYNCHRONIZER:
 			// wot
@@ -286,6 +340,26 @@ public class SPIMSetup {
 		default:
 			return null;
 		}
+	}
+
+	private String getLaserDevice(int i) {
+		ArrayList<String> list = new ArrayList<>(  );
+		for (String s : core.getLoadedDevicesOfType(DeviceType.ShutterDevice)) {
+			if(s.startsWith( "Arduino" )) continue;
+			list.add( s );
+		}
+		if(i > (list.size() - 1)) return null;
+		return list.get(i);
+	}
+
+	private String getCameraDevie(int i) {
+		ArrayList<String> list = new ArrayList<>(  );
+		for (String s : core.getLoadedDevicesOfType(DeviceType.CameraDevice)) {
+			if(s.startsWith( "Multi Camera" )) continue;
+			list.add( s );
+		}
+		if(i > (list.size() - 1)) return null;
+		return list.get(i);
 	}
 
 	private Device constructIfValid(SPIMDevice type, String label) throws Exception {

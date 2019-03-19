@@ -131,22 +131,4 @@ public class GenericXYStage {
 			return DeviceType.XYStageDevice;
 		}
 	}
-
-	private static Map<String, GenericXYStage> labelToInstanceMap = new HashMap<String, GenericXYStage>();
-
-	public static Device getStage(CMMCore core, String label, boolean X) {
-		GenericXYStage instance = labelToInstanceMap.get(label);
-
-		if (instance == null) {
-			instance = new GenericXYStage();
-			labelToInstanceMap.put(label, instance);
-		}
-
-		if (X && instance.stageX == null)
-			instance.stageX = instance.new SubStage(core, label, true);
-		else if (!X && instance.stageY == null)
-			instance.stageY = instance.new SubStage(core, label, false);
-
-		return X ? instance.stageX : instance.stageY;
-	}
 }
