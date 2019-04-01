@@ -5,6 +5,7 @@ import javafx.beans.Observable;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.binding.StringBinding;
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -39,6 +40,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.RectangleBuilder;
 import javafx.scene.transform.Shear;
 import javafx.stage.DirectoryChooser;
@@ -49,6 +51,7 @@ import spim.hardware.SPIMSetup;
 import spim.model.data.AcquisitionSetting;
 import spim.model.data.ChannelItem;
 import spim.model.data.PositionItem;
+import spim.model.event.ControlEvent;
 import spim.ui.view.component.pane.CheckboxPane;
 import spim.ui.view.component.pane.LabeledPane;
 import spim.ui.view.component.util.TableViewUtil;
@@ -105,7 +108,7 @@ public class AcquisitionPanel extends BorderPane
 	ObjectProperty savingFormat;
 	BooleanProperty saveAsHDF5;
 
-	public AcquisitionPanel( Stage stage, SPIMSetup setup, Studio studio ) {
+	public AcquisitionPanel( Stage stage, SPIMSetup setup, Studio studio, StagePanel stagePanel ) {
 		this.spimSetup = setup;
 		this.studio = studio;
 		this.propertyMap = new HashMap<>();
@@ -140,7 +143,7 @@ public class AcquisitionPanel extends BorderPane
 			this.bufferSize = 512 * 512;
 		}
 
-		positionItemTableView = TableViewUtil.createPositionItemDataView();
+		positionItemTableView = TableViewUtil.createPositionItemDataView(this);
 
 		// listbox for Position list
 		SplitPane timePositionSplit = new SplitPane(
@@ -151,7 +154,7 @@ public class AcquisitionPanel extends BorderPane
 
 		// acquisition order
 		SplitPane zstackAcquisitionOrderPane = new SplitPane(
-				createZStackPane(),
+				createZStackPane(stagePanel),
 				createAcquisitionOrderPane()
 		);
 		zstackAcquisitionOrderPane.setOrientation( Orientation.VERTICAL );
@@ -381,6 +384,42 @@ public class AcquisitionPanel extends BorderPane
 		setCenter( content );
 		BorderPane.setMargin(hb, new Insets(12,12,12,12));
 		setBottom( hb );
+
+		addEventHandler( ControlEvent.STAGE, new EventHandler< ControlEvent >()
+		{
+			@Override public void handle( ControlEvent event )
+			{
+				if(event.getEventType().equals( ControlEvent.STAGE_MOVE )) {
+					PositionItem pos = (PositionItem) event.getParam()[0];
+
+					if(setup != null) {
+						double r = spimSetup.getThetaStage().getPosition() + 180.0;
+						double x = spimSetup.getXStage().getPosition();
+						double y = spimSetup.getYStage().getPosition();
+						double z = spimSetup.getZStage().getPosition();
+
+						pos.setX( x );
+						pos.setY( y );
+						pos.setR( r );
+						pos.setZStart( z );
+						pos.setZEnd( z + 10 );
+//						setup.setPosition( pos.getX(), pos.getY(), pos.getZStart(), pos.getR() - 180.0 );
+//						System.out.println("Stage_Move: " + pos);
+					}
+					else {
+						pos.setX( 200 );
+						pos.setY( 100 );
+						pos.setR( 300 );
+						pos.setZStart( 60 );
+						pos.setZEnd( 60 + 10 );
+					}
+					int i = positionItemTableView.getSelectionModel().getSelectedIndex();
+					positionItemTableView.getSelectionModel().clearSelection();
+					positionItemTableView.getSelectionModel().select( i );
+					positionItemTableView.refresh();
+				}
+			}
+		} );
 	}
 
 	private void updateUI ( AcquisitionSetting setting ) {
@@ -681,8 +720,19 @@ public class AcquisitionPanel extends BorderPane
 		return label;
 	}
 
-	private CheckboxPane createZStackPane() {
-		StackCube cube = new StackCube(50, 100, Color.CORNFLOWERBLUE, 1);
+	private CheckboxPane createZStackPane( StagePanel stagePanel ) {
+
+		StackCube cube;
+		Slider zSlider = null;
+		if(stagePanel == null)
+		{
+			zSlider = new Slider(0, 100, 0);
+			zSlider.setOrientation( Orientation.VERTICAL );
+			cube = new StackCube(50, 100, Color.CORNFLOWERBLUE, 1, zSlider.valueProperty() );
+		}
+		else
+			cube = new StackCube(50, 100, Color.CORNFLOWERBLUE, 1, stagePanel.getZValueProperty() );
+
 		cube.setTranslateX( -60 );
 
 		GridPane gridpane = new GridPane();
@@ -745,6 +795,9 @@ public class AcquisitionPanel extends BorderPane
 				}
 			}
 		} );
+
+		if(stagePanel == null && zSlider != null)
+			gridpane.add( zSlider, 3, 0, 1, 2 );
 
 		gridpane.setTranslateY( -30 );
 
@@ -877,7 +930,19 @@ public class AcquisitionPanel extends BorderPane
 
 	public class StackCube extends Group
 	{
-		public StackCube(double size, double height, Color color, double shade) {
+		public StackCube(double size, double height, Color color, double shade, DoubleProperty currentZ ) {
+
+			Rectangle current = RectangleBuilder.create() // top face
+					.width(size).height(0.25*size)
+					.fill(Color.RED.deriveColor(0.0, 1.0, (1 - 0.1*shade), 0.5))
+					.translateX(0)
+					//							.translateY(-0.75 * size)
+					.translateY( 100 - 0.75 * size )
+					.transforms( new Shear( -2, 0 ) )
+					.build();
+
+			current.translateYProperty().bind( currentZ.multiply( -1 ).add( 100 ).subtract( 0.75 * size ) );
+
 			getChildren().addAll(
 					RectangleBuilder.create() // top face
 							.width(size).height(0.25*size)
@@ -898,7 +963,8 @@ public class AcquisitionPanel extends BorderPane
 							.fill(color)
 							.translateX(-0.5*size)
 							.translateY(-0.5*size)
-							.build()
+							.build(),
+					current
 			);
 		}
 	}

@@ -1,21 +1,11 @@
 package spim.ui.view.component.util;
 
-import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyDoubleWrapper;
-import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.event.EventHandler;
-import javafx.scene.Node;
-import javafx.scene.control.Cell;
-import javafx.scene.control.ChoiceBox;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
+import javafx.event.ActionEvent;
+import javafx.event.Event;
+import javafx.scene.control.Button;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
@@ -28,12 +18,12 @@ import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
-import javafx.scene.layout.HBox;
 import javafx.util.Callback;
-import javafx.util.StringConverter;
 import javafx.util.converter.NumberStringConverter;
 import spim.model.data.ChannelItem;
 import spim.model.data.PositionItem;
+import spim.model.event.ControlEvent;
+import spim.ui.view.component.AcquisitionPanel;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -44,12 +34,12 @@ public class TableViewUtil
 {
 	private static final DataFormat SERIALIZED_MIME_TYPE = new DataFormat("application/x-java-serialized-object");
 
-	public static TableView< PositionItem > createPositionItemDataView()
+	public static TableView< PositionItem > createPositionItemDataView( AcquisitionPanel acquisitionPanel )
 	{
 		TableView<PositionItem> tv = new TableView<>();
 
 		TableColumn<PositionItem, Number> numberColumn = new TableColumn<>("X");
-		numberColumn.setPrefWidth(40);
+		numberColumn.setPrefWidth(50);
 		numberColumn.setCellValueFactory( (param) ->
 				new ReadOnlyDoubleWrapper( param.getValue().getX() )
 		);
@@ -59,9 +49,9 @@ public class TableViewUtil
 		tv.getColumns().add(numberColumn);
 
 		numberColumn = new TableColumn<>("Y");
-		numberColumn.setPrefWidth(40);
+		numberColumn.setPrefWidth(50);
 		numberColumn.setCellValueFactory( (param) ->
-				new ReadOnlyDoubleWrapper( param.getValue().getX() )
+				new ReadOnlyDoubleWrapper( param.getValue().getY() )
 		);
 		numberColumn.setCellFactory( TextFieldTableCell.forTableColumn( new NumberStringConverter() ) );
 		numberColumn.setOnEditCommit( event -> event.getRowValue().setY( event.getNewValue().doubleValue() ) );
@@ -69,9 +59,9 @@ public class TableViewUtil
 		tv.getColumns().add(numberColumn);
 
 		numberColumn = new TableColumn<>("R");
-		numberColumn.setPrefWidth(40);
+		numberColumn.setPrefWidth(50);
 		numberColumn.setCellValueFactory( (param) ->
-				new ReadOnlyDoubleWrapper( param.getValue().getX() )
+				new ReadOnlyDoubleWrapper( param.getValue().getR() )
 		);
 		numberColumn.setCellFactory( TextFieldTableCell.forTableColumn( new NumberStringConverter() ) );
 		numberColumn.setOnEditCommit( event -> event.getRowValue().setR( event.getNewValue().doubleValue() ) );
@@ -79,7 +69,7 @@ public class TableViewUtil
 		tv.getColumns().add(numberColumn);
 
 		TableColumn<PositionItem, String> column = new TableColumn<>("Z");
-		column.setPrefWidth(120);
+		column.setPrefWidth(90);
 		column.setCellValueFactory( (param) ->
 				new ReadOnlyStringWrapper( param.getValue().getZString() )
 		);
@@ -106,6 +96,42 @@ public class TableViewUtil
 		} );
 		column.setEditable( true );
 		tv.getColumns().add(column);
+
+
+		TableColumn<PositionItem, Void> btnColumn = new TableColumn<>("");
+		btnColumn.setPrefWidth(100);
+		Callback<TableColumn<PositionItem, Void>, TableCell<PositionItem, Void>> cellFactory = new Callback<TableColumn<PositionItem, Void>, TableCell<PositionItem, Void>>() {
+			@Override
+			public TableCell<PositionItem, Void> call(final TableColumn<PositionItem, Void> param) {
+				final TableCell<PositionItem, Void> cell = new TableCell<PositionItem, Void>() {
+
+					private final Button btn = new Button("Set Pos");
+
+					{
+						btn.setOnAction(( ActionEvent event) -> {
+							PositionItem data = getTableView().getItems().get( getIndex() );
+//							System.out.println( ControlEvent.STAGE_MOVE + " fired. Data: " + data);
+							Event.fireEvent( acquisitionPanel, new ControlEvent( ControlEvent.STAGE_MOVE, data ) );
+						});
+					}
+
+					@Override
+					public void updateItem(Void item, boolean empty) {
+						super.updateItem(item, empty);
+						if (empty) {
+							setGraphic(null);
+						} else {
+							setGraphic(btn);
+						}
+					}
+				};
+				return cell;
+			}
+		};
+
+		btnColumn.setCellFactory(cellFactory);
+
+		tv.getColumns().add(btnColumn);
 
 		// Drag and drop
 		tv.setRowFactory(ev -> {

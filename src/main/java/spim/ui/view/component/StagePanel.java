@@ -1,12 +1,17 @@
 package spim.ui.view.component;
 
 import javafx.application.Platform;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.Property;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import spim.hardware.SPIMSetup;
 import spim.hardware.Stage;
+import spim.ui.view.component.slider.StageSlider;
 
 import java.util.HashMap;
 import java.util.concurrent.Executors;
@@ -109,6 +114,23 @@ public class StagePanel extends BorderPane
 				}
 			}, 500, 5, TimeUnit.MILLISECONDS );
 		}
+	}
+
+	public DoubleProperty getZValueProperty() {
+		SimpleDoubleProperty property = new SimpleDoubleProperty();
+
+		double max = spimSetup.getZStage().getMaxPosition();
+		double min = spimSetup.getZStage().getMinPosition();
+
+		stageMap.get( StageUnit.Stage.Z ).deviceValueProperty().addListener( new ChangeListener< Number >()
+		{
+			@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
+			{
+				property.set( min / max * newValue.doubleValue() );
+			}
+		} );
+
+		return property;
 	}
 
 	private StageUnit createStageControl( String labelString, StageUnit.Stage stage )

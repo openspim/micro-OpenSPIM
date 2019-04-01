@@ -1,10 +1,14 @@
 package spim.ui.view.component;
 
+import com.sun.javafx.css.StyleManager;
 import halcyon.HalcyonFrame;
 import halcyon.model.node.HalcyonNode;
 import halcyon.model.node.HalcyonNodeType;
 import halcyon.view.TreePanel;
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
@@ -57,7 +61,7 @@ public class HalcyonMain extends HalcyonFrame
 		super.show( borderPane );
 	}
 
-	public BorderPane createHalcyonBorderPane( Stage primaryStage, SPIMSetup setup, Studio gui )
+	public BorderPane createHalcyonBorderPane( Stage primaryStage, SPIMSetup spimSetup, Studio studio )
 	{
 		final String rootIconPath =
 				ResourceUtil.getString("root.icon");
@@ -74,38 +78,41 @@ public class HalcyonMain extends HalcyonFrame
 
 		setTreePanel(lTreePanel);
 
-		if(null != setup)
+		StagePanel stagePanel = null;
+
+		if(null != spimSetup)
 		{
-			if(setup.getLaser() != null)
+			if(spimSetup.getLaser() != null)
 			{
 				final HalcyonNode lLaser1 = HalcyonNode.wrap( "Laser-1",
 						SpimHalcyonNodeType.LASER,
-						new LaserDevicePanel( setup.getLaser(), 488 ) );
+						new LaserDevicePanel( spimSetup.getLaser(), 488 ) );
 
 				addNode(lLaser1);
 			}
 
-			if(setup.getLaser2() != null)
+			if(spimSetup.getLaser2() != null)
 			{
 				final HalcyonNode lLaser2 = HalcyonNode.wrap("Laser-2",
 						SpimHalcyonNodeType.LASER,
-						new LaserDevicePanel( setup.getLaser2(), 594 ));
+						new LaserDevicePanel( spimSetup.getLaser2(), 594 ));
 				addNode(lLaser2);
 			}
 
-			if(setup.getCamera1() != null)
+			if(spimSetup.getCamera1() != null)
 			{
 				final HalcyonNode lCamera = HalcyonNode.wrap("Camera",
 						SpimHalcyonNodeType.CAMERA,
-						new CameraDevicePanel( setup, gui ) );
+						new CameraDevicePanel( spimSetup, studio ) );
 				addNode(lCamera);
 			}
 
-			if(setup.getZStage() != null)
+			if(spimSetup.getZStage() != null)
 			{
+				stagePanel = new StagePanel(spimSetup);
 				final HalcyonNode lStage1 = HalcyonNode.wrap("Stage-1",
 						SpimHalcyonNodeType.STAGE,
-						new StagePanel(setup) );
+						stagePanel );
 				addNode(lStage1);
 			}
 		}
@@ -121,7 +128,7 @@ public class HalcyonMain extends HalcyonFrame
 
 			final HalcyonNode lCamera = HalcyonNode.wrap("Camera-1",
 					SpimHalcyonNodeType.CAMERA,
-					new CameraDevicePanel( setup, null ) );
+					new CameraDevicePanel( spimSetup, null ) );
 
 			final HalcyonNode lStage1 = HalcyonNode.wrap("Stage-1",
 					SpimHalcyonNodeType.STAGE,
@@ -135,11 +142,11 @@ public class HalcyonMain extends HalcyonFrame
 
 		final HalcyonNode editor1 = HalcyonNode.wrap( "Java",
 				SpimHalcyonNodeType.EDITOR,
-				new JavaEditor( primaryStage, setup, gui ) );
+				new JavaEditor( primaryStage, spimSetup, studio ) );
 
 		addNode(editor1);
 
-		AcquisitionPanel acquisitionPanel = new AcquisitionPanel( primaryStage, setup, gui );
+		AcquisitionPanel acquisitionPanel = new AcquisitionPanel( primaryStage, spimSetup, studio, stagePanel );
 		final HalcyonNode control1 = HalcyonNode.wrap( "Acquisition",
 				SpimHalcyonNodeType.CONTROL,
 				acquisitionPanel );
@@ -158,6 +165,17 @@ public class HalcyonMain extends HalcyonFrame
 
 		primaryStage.getIcons()
 				.add(new Image(getClass().getResourceAsStream(ResourceUtil.getString("app.icon"))));
+
+		primaryStage.sceneProperty().addListener( new ChangeListener< Scene >()
+		{
+			@Override public void changed( ObservableValue< ? extends Scene > observable, Scene oldValue, Scene newValue )
+			{
+				if(newValue != null) {
+					newValue.getStylesheets().add("/spim/ui/view/component/default.css");
+					observable.removeListener( this );
+				}
+			}
+		} );
 
 		return createHalcyonFrame( primaryStage );
 	}
