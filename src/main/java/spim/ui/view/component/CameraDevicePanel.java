@@ -171,7 +171,7 @@ public class CameraDevicePanel extends ScrollPane
 					bandMap.put( secondCamera, new Band( new WritableImage( width, height), new int[ size ], "G" ) );
 					bandMap.get( secondCamera ).setCamera( setup.getCamera2() );
 					updateBandTable(secondCamera, 0, size);
-					resetBuffer( bandMap.get(firstCamera).image.getPixelWriter());
+					resetBuffer( bandMap.get(secondCamera).image.getPixelWriter());
 
 					bandMap.put( "hB", new Band( new WritableImage( width, height ), new int[ size ], "B" ) );
 					updateBandTable("hB", 0, size);
