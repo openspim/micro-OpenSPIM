@@ -6,6 +6,9 @@ import eu.hansolo.enzo.common.SymbolType;
 import eu.hansolo.enzo.onoffswitch.IconSwitch;
 
 import ij.process.ImageProcessor;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -25,10 +28,13 @@ import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
 import javafx.scene.effect.BlendMode;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.image.PixelReader;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 
+import javafx.scene.image.WritablePixelFormat;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -43,17 +49,29 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.transform.Affine;
 import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Translate;
+import mmcorej.TaggedImage;
+import org.controlsfx.control.RangeSlider;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.micromanager.Studio;
+import org.micromanager.internal.utils.MDUtils;
+import org.micromanager.internal.utils.MMScriptException;
+import spim.hardware.Camera;
 import spim.hardware.SPIMSetup;
+import spim.ui.view.component.pane.CheckboxPane;
 import spim.ui.view.component.slider.StageSlider;
 import spim.ui.view.component.slider.customslider.Slider;
 
+import java.nio.IntBuffer;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Random;
+import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -64,52 +82,101 @@ public class CameraDevicePanel extends ScrollPane
 {
 	private IconSwitch cameraOnSwitch;
 
-	private ImageView displayR, displayG, displayB;
+	final private TreeMap<String, Band> bandMap;
+
 	private volatile int alphaR = 0, alphaG = 0, alphaB = 0;
 	private ToggleGroup group;
 	private SimpleIntegerProperty integerProperty;
 	private Slider slider;
 	private double scaleFactor = 1;
 	private MultiAcquisition acquisition;
-
-//	private InteractiveDisplayPaneComponent< AffineTransform3D > display;
+	private WritablePixelFormat< IntBuffer > format = WritablePixelFormat.getIntArgbInstance();
+	private int[] buf;
+	private int[] rgbBuffer;
+	private int width, height;
 
 	public CameraDevicePanel( SPIMSetup setup, Studio gui ) {
-		int width = gui == null? 512 : (int) gui.core().getImageWidth();
-		int height = gui == null? 512 : (int) gui.core().getImageHeight();
-		init(width, height);
+		bandMap = new TreeMap<>();
+
+		width = gui == null? 512 : (int) gui.core().getImageWidth();
+		height = gui == null? 512 : (int) gui.core().getImageHeight();
+
+		buf = new int[width * height];
 
 		// data -> GUI
 		// CurrentPower update (data -> GUI)
 
-//		if(null == gui)
-//		{
-//			final Affine reflectTransform = new Affine();
-//
-//			reflectTransform.setMxx(-1);
-//			reflectTransform.setTx(displayG.getBoundsInLocal().getWidth());
-//			reflectTransform.appendTranslation( 200, 100 );
-//
-//			displayG.getTransforms().add(reflectTransform);
-//		}
+		//		if(null == gui)
+		//		{
+		//			final Affine reflectTransform = new Affine();
+		//
+		//			reflectTransform.setMxx(-1);
+		//			reflectTransform.setTx(displayG.getBoundsInLocal().getWidth());
+		//			reflectTransform.appendTranslation( 200, 100 );
+		//
+		//			displayG.getTransforms().add(reflectTransform);
+		//		}
+
+		cameraOnSwitch = new IconSwitch();
+
+		cameraOnSwitch.setSymbolType( SymbolType.POWER );
+		cameraOnSwitch.setSymbolColor( Color.web( "#ffffff" ) );
+		cameraOnSwitch.setSwitchColor( Color.web( "#34495e" ) );
+		cameraOnSwitch.setThumbColor( Color.web( "#ff495e" ) );
+		cameraOnSwitch.setPadding( new Insets( 0,0,0,0 ) );
 
 		if(gui != null) {
 			System.out.println("Number of channels: " + gui.core().getNumberOfCameraChannels());
 
 			List<String> cameras = new ArrayList<>();
 
-//			cameras.add( "Andor sCMOS Camera-1" );
-//			cameras.add( "Andor sCMOS Camera-2" );
+			//			cameras.add( "Andor sCMOS Camera-1" );
+			//			cameras.add( "Andor sCMOS Camera-2" );
+
 
 			if(setup.getCamera1() != null)
 			{
-				cameras.add( setup.getCamera1().getLabel() );
-//				System.out.println( setup.getCamera1().getDeviceName() );
-			}
-			if(setup.getCamera2() != null)
-			{
-				cameras.add( setup.getCamera2().getLabel() );
-//				System.out.println( setup.getCamera2().getDeviceName() );
+				String firstCamera = setup.getCamera1().getLabel();
+				cameras.add( firstCamera );
+
+				int size = 1 << gui.core().getImageBitDepth();
+				int bin = setup.getCamera1().getBinning();
+
+				width /= bin;
+				height /= bin;
+				buf = new int[width * height];
+
+				bandMap.put( firstCamera, new Band( new WritableImage( width, height ), new int[ size ], "" ) );
+				bandMap.get(firstCamera).setCamera( setup.getCamera1() );
+				updateBandTable( firstCamera, 0, size);
+				resetBuffer( bandMap.get(firstCamera).image.getPixelWriter());
+
+				if(firstCamera.equals( "DCam" )) {
+					bandMap.get( firstCamera ).setBandColor( "R" );
+					bandMap.put( firstCamera + 1, new Band( new WritableImage( width, height ), new int[ size ], "G" ) );
+					bandMap.get( firstCamera + 1).setCamera( setup.getCamera1() );
+					updateBandTable( firstCamera + 1, 0, size);
+					resetBuffer( bandMap.get(firstCamera + 1).image.getPixelWriter());
+
+					bandMap.put( "hB", new Band( new WritableImage( width, height ), new int[ size ], "B" ) );
+					updateBandTable("hB", 0, size);
+					resetBuffer( bandMap.get("hB").image.getPixelWriter());
+				}
+				else if(setup.getCamera2() != null)
+				{
+					String secondCamera = setup.getCamera2().getLabel();
+					bandMap.get( firstCamera ).setBandColor( "R" );
+					cameras.add( secondCamera );
+					//				System.out.println( setup.getCamera2().getDeviceName() );
+					bandMap.put( secondCamera, new Band( new WritableImage( width, height), new int[ size ], "G" ) );
+					bandMap.get( secondCamera ).setCamera( setup.getCamera2() );
+					updateBandTable(secondCamera, 0, size);
+					resetBuffer( bandMap.get(firstCamera).image.getPixelWriter());
+
+					bandMap.put( "hB", new Band( new WritableImage( width, height ), new int[ size ], "B" ) );
+					updateBandTable("hB", 0, size);
+					resetBuffer( bandMap.get("hB").image.getPixelWriter());
+				}
 			}
 
 			acquisition = new MultiAcquisition( gui.core(), cameras );
@@ -145,98 +212,68 @@ public class CameraDevicePanel extends ScrollPane
 				}
 			} );
 		}
+		else
+		{
+			bandMap.put( "R", new Band( new WritableImage( width, height ), new int[ 256 ], "R" ) );
+			bandMap.put( "G", new Band( new WritableImage( width, height ), new int[ 256 ], "G" ) );
+			bandMap.put( "B", new Band( new WritableImage( width, height ), new int[ 256 ], "B" ) );
 
-		Random ran = new Random( 42 );
+			rgbBuffer = new int[width * height];
+
+			updateBandTable("R", 0, 255);
+			updateBandTable("G", 0, 255);
+			updateBandTable("B", 0, 255);
+
+			Image orgImg = new javafx.scene.image.Image( getClass().getResourceAsStream( "dresden_evening.png" ),
+					width, height, false, true );
+			PixelReader pixelReader = orgImg.getPixelReader();
+			pixelReader.getPixels( 0, 0, width, height, format, rgbBuffer, 0, width );
+
+			handleBuffer(rgbBuffer);
+		}
+
+		init(width, height);
 
 		ScheduledExecutorService executor = Executors.newScheduledThreadPool( 5 );
 		executor.scheduleAtFixedRate( () -> {
 
 			if( cameraOnSwitch.isSelected() )
 			{
-//				System.out.println( String.format( "%f, %f, %f", ran.nextDouble(), ran.nextDouble(), ran.nextDouble() ) );
+				if(null != gui) {
+					HashMap<String, TaggedImage> map = acquisition.getImages();
+//					HashMap<String, ImageProcessor > map = acquisition.getDefaultImages();
+					for( String key : map.keySet() ) {
+						TaggedImage img = map.get(key);
+						JSONObject tags = img.tags;
 
-				if(null == gui) {
-					float f = ran.nextFloat();
-					Color c = new Color( f, f, f, 1 - alphaR * 0.01 );
-
-					WritableImage newImage = new WritableImage( width, height );
-					PixelWriter writer = newImage.getPixelWriter();
-
-					for ( int x = 0; x < width; x++ )
-					{
-						for ( int y = 0; y < height; y++ )
+						try
 						{
-							writer.setColor( x, y, c );
-						}
-					}
+							int bytesPerPixel = MDUtils.getBytesPerPixel(tags);
+//							int bytesPerPixel = img.getBitDepth() / 8;
 
-					displayR.setImage( newImage );
+//							System.out.println(bytesPerPixel + ":" + MDUtils.getNumberOfComponents( tags ));
+//							System.out.println(img.pix.getClass().getCanonicalName());
+//							System.out.println(new Date());
 
-					javafx.scene.image.Image img = new javafx.scene.image.Image(getClass().getResourceAsStream("dresden_evening.png"), 512, 512, false, true);
-					displayG.setImage( img );
-
-				} else {
-					List< ImageProcessor > images = acquisition.getImages();
-
-					WritableImage newImageR = new WritableImage( width, height );
-					WritableImage newImageG = new WritableImage( width, height );
-					WritableImage newImageB = new WritableImage( width, height );
-
-					double[] maxs = new double[images.size()];
-
-					for ( int x = 0; x < width; x++ )
-					{
-						for ( int y = 0; y < height; y++ )
-						{
-							for (int i = 0; i < images.size(); i++ ) {
-								double max = maxs[i];
-								maxs[i] = max < images.get(i).get( x, y ) ? images.get(i).get( x, y ) : max;
+							if( bytesPerPixel == 2 || bytesPerPixel == 8 ) {
+								// case of 16bit and 64bit RGB
+								short[] buffer = (short[]) img.pix;
+								handleBuffer( buffer, bandMap.get(key).image.getPixelWriter(), bandMap.get(key).colors, bytesPerPixel, bandMap.get(key).getBandColor(), bandMap.get(key).getOpacity() );
+							}
+							else {
+								// case of 8bit and 32bit RGB
+								byte[] buffer = (byte[]) img.pix;
+								handleBuffer( buffer, bandMap.get(key).image.getPixelWriter(), bandMap.get(key).colors, bytesPerPixel, bandMap.get(key).getBandColor(), bandMap.get(key).getOpacity() );
 							}
 						}
-					}
-
-					double r, g, b;
-
-					for ( int x = 0; x < width; x++ )
-					{
-						for ( int y = 0; y < height; y++ )
+						catch ( Exception e )
 						{
-							r = g = b = 0;
-
-							for (int i = 0; i < images.size(); i++ )
-							{
-								switch ( i % 3 )
-								{
-									case 0:
-										r = (images.get( i ).get( x, y ) / maxs[ i ] + r) / (r == 0 ? 1.0 : 2.0);
-										break;
-									case 1:
-										g = (images.get( i ).get( x, y ) / maxs[ i ] + g) / (g == 0 ? 1.0 : 2.0);
-										break;
-									case 2:
-										b = (images.get( i ).get( x, y ) / maxs[ i ] + b) / (b == 0 ? 1.0 : 2.0);
-										break;
-								}
-							}
-
-							if(images.size() == 1)
-							{
-								newImageR.getPixelWriter().setColor( x, y, new Color( r, 0, 0, 1 - alphaR * 0.01 ) );
-								newImageG.getPixelWriter().setColor( x, y, new Color( 0, r, 0, 1 - alphaG * 0.01 ) );
-								newImageB.getPixelWriter().setColor( x, y, new Color( 0, 0, r, 1 - alphaB * 0.01 ) );
-							}
-							else
-							{
-								newImageR.getPixelWriter().setColor( x, y, new Color( r, 0, 0, 1 - alphaR * 0.01 ) );
-								newImageG.getPixelWriter().setColor( x, y, new Color( 0, g, 0, 1 - alphaG * 0.01 ) );
-								newImageB.getPixelWriter().setColor( x, y, new Color( 0, 0, b, 1 - alphaB * 0.01 ) );
-							}
+							e.printStackTrace();
 						}
 					}
-
-					displayR.setImage( newImageR );
-					displayG.setImage( newImageG );
-					displayB.setImage( newImageB );
+				}
+				else {
+					handleBuffer(rgbBuffer);
 				}
 			}
 
@@ -244,59 +281,279 @@ public class CameraDevicePanel extends ScrollPane
 
 	}
 
-	private void init(int width, int height)
+	private void resetBuffer( PixelWriter writer )
 	{
-		cameraOnSwitch = new IconSwitch();
+		final int size = width * height;
+		for (int pixel = 0, row = 0, col = 0; pixel < size; pixel++) {
+			int argb = 0xff << 24;
 
-		cameraOnSwitch.setSymbolType( SymbolType.POWER );
-		cameraOnSwitch.setSymbolColor( Color.web( "#ffffff" ) );
-		cameraOnSwitch.setSwitchColor( Color.web( "#34495e" ) );
-		cameraOnSwitch.setThumbColor( Color.web( "#ff495e" ) );
-		cameraOnSwitch.setPadding( new Insets( 0,0,0,0 ) );
-		HBox box = new HBox();
+			buf[row * width + col] = argb;
+			col++;
+			if (col == width) {
+				col = 0;
+				row++;
+			}
+		}
+		writer.setPixels( 0, 0, width, height, format, buf, 0, width );
+	}
 
-		WritableImage writableImage = new WritableImage( width, height );
-		Color c = new Color( 0, 0, 0, 1 );
-		PixelWriter imageWriter = writableImage.getPixelWriter();
-		for ( int x = 0; x < width; x++ )
-		{
-			for ( int y = 0; y < height; y++ )
+	public Object getPixelsCopy(Object original) {
+		Object copy;
+		int length;
+		if (original instanceof byte[]) {
+			byte[] tmp = (byte[])((byte[])original);
+			length = tmp.length;
+			copy = new byte[length];
+		} else if (original instanceof short[]) {
+			short[] tmp = (short[])((short[])original);
+			length = tmp.length;
+			copy = new short[length];
+		} else {
+			if (!(original instanceof int[])) {
+				throw new RuntimeException("Unrecognized pixel type " + original.getClass());
+			}
+
+			int[] tmp = (int[])((int[])original);
+			length = tmp.length;
+			copy = new int[length];
+		}
+
+		System.arraycopy(original, 0, copy, 0, length);
+		return copy;
+	}
+
+	private void handleBuffer( int[] buffer )
+	{
+		for(String key : bandMap.keySet()) {
+			WritableImage writableImage = bandMap.get(key).image;
+			String bandColor = bandMap.get(key).getBandColor();
+
+			int opacity = bandMap.get(key).getOpacity();
+			int[] colors = bandMap.get(key).colors;
+			for(int i = 0; i < buffer.length; i++) {
+				int a = 0xff - opacity;
+
+				if(bandColor.equals( "R" )) {
+					int r = (int) (colors[buffer[i] >> 16 & 0xff]);
+					buf[i] = (a << 24) | (r & 0xff) << 16;
+				}
+				if(bandColor.equals( "G" )) {
+					int g = (int) (colors[buffer[i] >> 8 & 0xff]);
+					buf[i] = (a << 24) | (g & 0xff) << 8;
+				}
+				if(bandColor.equals( "B" )) {
+					int b = (int) (colors[buffer[i] & 0xff]);
+					buf[i] = (a << 24) | b & 0xff;
+				}
+//				int r = (colors[buffer[i] >> 16 & 0xff]);
+//				int g = (colors[buffer[i] >> 8 & 0xff]);
+//				int b = (colors[buffer[i] & 0xff]);
+
+//				buf[i] = (a << 24) | (r & 0xff) << 16 | (g & 0xff) << 8 | b & 0xff;
+			}
+
+			writableImage.getPixelWriter().setPixels( 0, 0, width, height, format, buf, 0, width );
+		}
+	}
+
+	private void handleBuffer( byte[] pixels, PixelWriter writer, int[] colors, int bytesPerPixel, String bandColor, int opacity )
+	{
+		final int size = buf.length * bytesPerPixel;
+
+		for (int pixel = 0, row = 0, col = 0; pixel < size; pixel += bytesPerPixel) {
+			int argb = 0;
+			if(bytesPerPixel == 4) {
+				argb += (pixels[pixel] & 0xff) << 24; 		// alpha
+				argb += colors[pixels[pixel + 1]]; 			// blue
+				argb += colors[pixels[pixel + 2]] << 8;		// green
+				argb += colors[pixels[pixel + 3]] << 16;	// red
+			}
+			else
 			{
-				imageWriter.setColor( x, y, c );
+				argb += ( 0xff - opacity ) << 24; // 255 alpha
+//				argb += colors[pixels[pixel]]; 		// blue
+//				argb += colors[pixels[pixel]] << 8; // green
+//				argb += colors[pixels[pixel]] << 16; // red
+				if(bandColor.isEmpty()) {
+					argb += colors[pixels[pixel]]; 		// blue
+					argb += colors[pixels[pixel]] << 8; // green
+					argb += colors[pixels[pixel]] << 16; // red
+				}
+				if(bandColor.equals( "R" )) {
+					int r = colors[pixels[pixel]];
+					argb |= (r & 0xff) << 16;
+				}
+				if(bandColor.equals( "G" )) {
+					int g = colors[pixels[pixel]];
+					argb |= (g & 0xff) << 8;
+				}
+				if(bandColor.equals( "B" )) {
+					int b = colors[pixels[pixel]];
+					argb |= b & 0xff;
+				}
+			}
+			buf[row * width + col] = argb;
+			col++;
+			if (col == width) {
+				col = 0;
+				row++;
 			}
 		}
 
-		displayR = new ImageView( writableImage );
-		displayR.setSmooth( false );
-		displayR.setPreserveRatio( false );
-		displayR.setBlendMode( BlendMode.RED );
+		writer.setPixels( 0, 0, width, height, format, buf, 0, width );
+	}
 
-		displayG = new ImageView( writableImage );
-		displayG.setSmooth( false );
-		displayG.setPreserveRatio( false );
-		displayG.setBlendMode( BlendMode.GREEN );
+	private void handleBuffer( short[] pixels, PixelWriter writer, int[] colors, int bytesPerPixel, String bandColor, int opacity )
+	{
+		final int size = buf.length * bytesPerPixel / 2;
 
-		displayB = new ImageView( writableImage );
-		displayB.setSmooth( false );
-		displayB.setPreserveRatio( false );
-		displayB.setBlendMode( BlendMode.BLUE );
+		for (int pixel = 0, row = 0, col = 0; pixel < size; pixel += bytesPerPixel / 2) {
+			int argb = 0;
+			if(bytesPerPixel == 8) {
+				argb += (pixels[pixel] & 0xff) << 24; // alpha
+				argb += (colors[pixels[pixel + 1]]); // blue
+				argb += ((colors[pixels[pixel + 2]]) << 8); // green
+				argb += ((colors[pixels[pixel + 3]]) << 16); // red
+			}
+			else
+			{
+				argb += ( 0xff - opacity ) << 24; // 255 alpha
+//				argb += colors[pixels[pixel]]; 		// blue
+//				argb += colors[pixels[pixel]] << 8; // green
+//				argb += colors[pixels[pixel]] << 16; // red
+				if(bandColor.isEmpty()) {
+					argb += colors[pixels[pixel]]; 		// blue
+					argb += colors[pixels[pixel]] << 8; // green
+					argb += colors[pixels[pixel]] << 16; // red
+				}
+				if(bandColor.equals( "R" )) {
+					int r = colors[pixels[pixel]];
+					argb |= (r & 0xff) << 16;
+				}
+				if(bandColor.equals( "G" )) {
+					int g = colors[pixels[pixel]];
+					argb |= (g & 0xff) << 8;
+				}
+				if(bandColor.equals( "B" )) {
+					int b = colors[pixels[pixel]];
+					argb |= b & 0xff;
+				}
+			}
+			buf[row * width + col] = argb;
+			col++;
+			if (col == width) {
+				col = 0;
+				row++;
+			}
+		}
+
+		writer.setPixels( 0, 0, width, height, format, buf, 0, width );
+	}
+
+	private void updateBandTable( String key, int low, int high ) {
+//		System.out.println(low + ":" + high);
+
+		int[] colors = bandMap.get(key).getColors();
+
+		double multiplier = 255.0 / (high - low);
+
+		for(int i = 0; i < colors.length; i++) {
+			if(i <= low)
+				colors[ i ] = 0;
+			else if(i >= high)
+				colors[ i ] = -1;
+			else
+				colors[ i ] = (int) (((double) (i - low) * multiplier));
+		}
+	}
+
+	private void init(int width, int height)
+	{
+		HBox box = new HBox();
+
+		VBox bands = new VBox();
+		for(String key : bandMap.keySet()) {
+			ImageView iv = bandMap.get(key).imageView;
+			iv.setSmooth( false );
+			iv.setPreserveRatio( false );
+			switch ( key ) {
+				case "DCam":
+				case "Andor sCMOS Camera-1":
+				case "R": iv.setBlendMode( BlendMode.RED );
+					break;
+				case "DCam1":
+				case "Andor sCMOS Camera-2":
+				case "G": iv.setBlendMode( BlendMode.GREEN );
+					break;
+				case "hB":
+				case "B": iv.setBlendMode( BlendMode.BLUE );
+					break;
+				default: iv.setBlendMode( BlendMode.MULTIPLY );
+					break;
+			}
+
+			if(key.equals( "hB" )) continue;
+
+			final RangeSlider slider = new RangeSlider(0, bandMap.get(key).colors.length - 1, 0, bandMap.get(key).colors.length - 1);
+			slider.setShowTickLabels(true);
+			slider.setMajorTickUnit( bandMap.get(key).colors.length / 5.0 );
+			slider.setShowTickMarks(true);
+			slider.lowValueProperty().addListener( new ChangeListener< Number >()
+			{
+				@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
+				{
+					updateBandTable( key, newValue.intValue(), (int) slider.getHighValue() );
+				}
+			} );
+
+			slider.highValueProperty().addListener( new ChangeListener< Number >()
+			{
+				@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
+				{
+					updateBandTable( key, (int) slider.getLowValue(), newValue.intValue() );
+				}
+			} );
+
+			TextField exp = new TextField( bandMap.get(key).camera.getExposure() + "" );
+			exp.prefHeight( 50 );
+			exp.textProperty().addListener( new ChangeListener< String >()
+			{
+				@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
+				{
+					try
+					{
+						double val = Double.parseDouble( newValue );
+						bandMap.get(key).camera.setExposure( val );
+					} catch ( NumberFormatException e ) {
+						System.err.println(e);
+					}
+				}
+			} );
+			HBox expBox = new HBox( 5, new Label( "Exposure:" ), exp );
+			expBox.setAlignment( Pos.BASELINE_LEFT );
+
+			CheckboxPane checkboxPane = new CheckboxPane( key, new VBox( 8, slider, expBox ) );
+//			CheckboxPane checkboxPane = new CheckboxPane( key, slider );
+			bandMap.get(key).enabledProperty.bind( checkboxPane.selectedProperty() );
+			bands.getChildren().add(checkboxPane);
+		}
 
 		// Grid lines 3 x 3
-//		Line l1 = new Line( 0, height / 3, width, height / 3 );
-//		l1.setStyle( "-fx-stroke: white" );
-//		l1.setBlendMode( BlendMode.ADD );
-//
-//		Line l2 = new Line( 0, height / 3 * 2, width, height / 3 * 2 );
-//		l2.setStyle( "-fx-stroke: white" );
-//		l2.setBlendMode( BlendMode.ADD );
-//
-//		Line l3 = new Line( width / 3, 0, width / 3, height );
-//		l3.setStyle( "-fx-stroke: white" );
-//		l3.setBlendMode( BlendMode.ADD );
-//
-//		Line l4 = new Line( width / 3 * 2, 0, width / 3 * 2, height );
-//		l4.setStyle( "-fx-stroke: white" );
-//		l4.setBlendMode( BlendMode.ADD );
+		//		Line l1 = new Line( 0, height / 3, width, height / 3 );
+		//		l1.setStyle( "-fx-stroke: white" );
+		//		l1.setBlendMode( BlendMode.ADD );
+		//
+		//		Line l2 = new Line( 0, height / 3 * 2, width, height / 3 * 2 );
+		//		l2.setStyle( "-fx-stroke: white" );
+		//		l2.setBlendMode( BlendMode.ADD );
+		//
+		//		Line l3 = new Line( width / 3, 0, width / 3, height );
+		//		l3.setStyle( "-fx-stroke: white" );
+		//		l3.setBlendMode( BlendMode.ADD );
+		//
+		//		Line l4 = new Line( width / 3 * 2, 0, width / 3 * 2, height );
+		//		l4.setStyle( "-fx-stroke: white" );
+		//		l4.setBlendMode( BlendMode.ADD );
 
 		// Grid lines 2 x 2
 		Line l1 = new Line( 0, height / 2, width, height / 2 );
@@ -310,7 +567,8 @@ public class CameraDevicePanel extends ScrollPane
 
 		// Clipping rectangle
 		final Rectangle outputClip = new Rectangle(width, height);
-		StackPane sp = new StackPane( displayR, displayG, displayB );
+		StackPane sp = new StackPane();
+		sp.getChildren().addAll( bandMap.values().stream().map( c -> c.imageView).collect( Collectors.toList() ) );
 		sp.setPrefSize( width, height );
 		sp.setClip( outputClip );
 
@@ -320,10 +578,10 @@ public class CameraDevicePanel extends ScrollPane
 
 		g.getChildren().add(l1);
 		g.getChildren().add(l2);
-//		g.getChildren().add(l3);
-//		g.getChildren().add(l4);
+		//		g.getChildren().add(l3);
+		//		g.getChildren().add(l4);
 
-//		double screenHeight = Screen.getPrimary().getVisualBounds().getHeight();
+		//		double screenHeight = Screen.getPrimary().getVisualBounds().getHeight();
 		scaleFactor = height > 512 ? (double) 512 / height : 1;
 		g.setScaleX( scaleFactor );
 		g.setScaleY( scaleFactor );
@@ -332,39 +590,34 @@ public class CameraDevicePanel extends ScrollPane
 
 		group = new ToggleGroup();
 
-		RadioButton button1 = new RadioButton("R");
-		button1.setToggleGroup(group);
-		button1.setSelected(true);
-		RadioButton button2 = new RadioButton("G");
-		button2.setToggleGroup(group);
-		RadioButton button3 = new RadioButton("B");
-		button3.setToggleGroup(group);
+		boolean isFirst = true;
+		HBox buttonBox = new HBox( 10 );
+		for(String key : bandMap.keySet()) {
+			if(key.equals( "hB" )) continue;
+			RadioButton button = new RadioButton(key);
+			button.setToggleGroup(group);
+			if(isFirst)
+			{
+				button.setSelected( true );
+				isFirst = false;
+			}
+			buttonBox.getChildren().add(button);
+		}
 
 		GridPane gridpane = getControlBox(width, height);
 
-		slider.setValue( alphaR );
+		slider.setValue( 0 );
 		group.selectedToggleProperty().addListener( new ChangeListener< Toggle >()
 		{
 			@Override public void changed( ObservableValue< ? extends Toggle > observable, Toggle oldValue, Toggle newValue )
 			{
 				RadioButton selectedRadioButton = (RadioButton) newValue;
 
-				switch ( selectedRadioButton.getText() ) {
-					case "R":
-						slider.setValue( alphaR );
-						break;
-					case "G":
-						slider.setValue( alphaG );
-						break;
-					case "B":
-						slider.setValue( alphaB );
-						break;
-				}
-
+				slider.setValue( bandMap.get( selectedRadioButton.getText() ).opacityProperty.get() );
 			}
 		} );
 
-		toolBox.getChildren().addAll( cameraOnSwitch, new HBox( 10, button1, button2, button3 ), gridpane );
+		toolBox.getChildren().addAll( cameraOnSwitch, bands, buttonBox, gridpane );
 		toolBox.setAlignment( Pos.CENTER );
 
 		box.setSpacing( 10 );
@@ -405,7 +658,7 @@ public class CameraDevicePanel extends ScrollPane
 
 		HBox.setHgrow( box, Priority.ALWAYS );
 
-//		getChildren().addAll( sp );
+		//		getChildren().addAll( sp );
 		setStyle( "-fx-border-style: solid;" + "-fx-border-width: 1;"
 				+ "-fx-border-color: black" );
 	}
@@ -413,21 +666,8 @@ public class CameraDevicePanel extends ScrollPane
 	private ImageView getSelectedImageView()
 	{
 		RadioButton selectedRadioButton = (RadioButton) group.getSelectedToggle();
-		ImageView iv = null;
 
-		switch ( selectedRadioButton.getText() ) {
-			case "R":
-				iv = displayR;
-				break;
-			case "G":
-				iv = displayG;
-				break;
-			case "B":
-				iv = displayB;
-				break;
-		}
-
-		return iv;
+		return bandMap.get( selectedRadioButton.getText() ).imageView;
 	}
 
 	private GridPane getControlBox( int width, int height )
@@ -586,22 +826,11 @@ public class CameraDevicePanel extends ScrollPane
 			{
 				RadioButton selectedRadioButton = (RadioButton) group.getSelectedToggle();
 
-				switch ( selectedRadioButton.getText() ) {
-					case "R":
-						alphaR = newValue.intValue();
-						break;
-					case "G":
-						alphaG = newValue.intValue();
-						break;
-					case "B":
-						alphaB = newValue.intValue();
-						break;
-				}
-
+				bandMap.get( selectedRadioButton.getText() ).opacityProperty.setValue( newValue );
 			}
 		} );
 
-		StageSlider targetSlider = new StageSlider( "", integerProperty, false, false, 0, 100, 5 );
+		StageSlider targetSlider = new StageSlider( "", integerProperty, false, false, 0, 255, 5 );
 
 		TextField textField = targetSlider.getTextField();
 		GridPane.setConstraints(textField, 2, 5, 3, 1);
@@ -614,5 +843,82 @@ public class CameraDevicePanel extends ScrollPane
 
 		gridpane.getChildren().addAll( doubleUp, up, doubleDown, down, doubleLeft, left, doubleRight, right, rotateLeft, rotateRight, mirrorX, mirrorY, reset, opacityLabel, textField, slider);
 		return gridpane;
+	}
+
+	class Band {
+		final private ImageView imageView;
+		final private WritableImage image;
+		final private int[] colors;
+		final private IntegerProperty opacityProperty;
+		final private BooleanProperty enabledProperty;
+		private Camera camera;
+		private String bandColor;
+
+		public Band( WritableImage image, int[] colors, String bandColor )
+		{
+			this.imageView = new ImageView( image );
+			this.image = image;
+			this.colors = colors;
+			this.opacityProperty = new SimpleIntegerProperty();
+			this.enabledProperty = new SimpleBooleanProperty(true);
+			this.bandColor = bandColor;
+		}
+
+		public ImageView getImageView()
+		{
+			return imageView;
+		}
+
+		public WritableImage getImage()
+		{
+			return image;
+		}
+
+		public int[] getColors()
+		{
+			return colors;
+		}
+
+		public int getOpacity()
+		{
+			if(isEnabled())
+				return opacityProperty.get();
+			else return 255;
+		}
+
+		public IntegerProperty opacityProperty()
+		{
+			return opacityProperty;
+		}
+
+		public boolean isEnabled()
+		{
+			return enabledProperty.get();
+		}
+
+		public BooleanProperty enabledProperty()
+		{
+			return enabledProperty;
+		}
+
+		public String getBandColor()
+		{
+			return bandColor;
+		}
+
+		public void setBandColor( String bandColor )
+		{
+			this.bandColor = bandColor;
+		}
+
+		public Camera getCamera()
+		{
+			return camera;
+		}
+
+		public void setCamera( Camera camera )
+		{
+			this.camera = camera;
+		}
 	}
 }

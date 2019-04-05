@@ -13,6 +13,7 @@ import org.micromanager.internal.utils.MMScriptException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -36,13 +37,14 @@ public class MultiAcquisition
 		this.cameras = cameras;
 	}
 
-	public List< ImageProcessor > getImages() {
-		List< ImageProcessor > images = new ArrayList<>(  );
+	public HashMap<String, ImageProcessor> getDefaultImages() {
+		HashMap<String, ImageProcessor> hashMap = new HashMap<>(  );
 
-		for(TaggedImage img : map.values())
+		for(String key : map.keySet())
 		{
 			try
 			{
+				TaggedImage img = map.get(key);
 				//new DefaultImage(img)
 				ImageProcessor ip = ipConverter.createProcessor( new DefaultImage( img ) );
 
@@ -52,21 +54,26 @@ public class MultiAcquisition
 //				System.out.println(String.format( "%f, %f", ip.getMin(), ip.getMax() ));
 //				ip.setAutoThreshold( "Default" );
 //				ip.autoThreshold();
-				adjustApply( ip );
+//				adjustApply( ip );
 //				System.out.println(String.format( "%f, %f", ip.getMin(), ip.getMax() ));
-
-				images.add( ip );
+				hashMap.put( key, ip );
 			}
-			catch ( JSONException e )
-			{
-				e.printStackTrace();
-			}
-			catch ( MMScriptException e )
+			catch ( JSONException | MMScriptException e )
 			{
 				e.printStackTrace();
 			}
 		}
-		return images;
+		return hashMap;
+	}
+
+	public HashMap<String, TaggedImage> getImages() {
+		HashMap<String, TaggedImage> hashMap = new HashMap<>(  );
+
+		for(String key : map.keySet())
+		{
+			hashMap.put( key, map.get(key) );
+		}
+		return hashMap;
 	}
 
 	private void adjustApply(ImageProcessor ip) {
@@ -174,21 +181,40 @@ public class MultiAcquisition
 			{
 				@Override public void run()
 				{
-					try {
+
 						while ( !done )
 						{
 							if ( core.getRemainingImageCount() > 0 )
 							{
-//								System.out.println( core.getRemainingImageCount() );
-								TaggedImage timg = core.popNextTaggedImage();
-								String camera = ( String ) timg.tags.get( "Camera" );
-								map.put( camera, timg );
+								try {
+	//								System.out.println( core.getRemainingImageCount() );
+									TaggedImage timg = core.popNextTaggedImage();
+									String camera = ( String ) timg.tags.get( "Camera" );
+									map.put( camera, timg );
+
+									if(camera.equals( "DCam" ))
+										map.put( camera + 1, timg );
+								} catch ( Exception e ) {
+									System.out.println(e);
+								}
 							}
-							Thread.sleep( 10 );
+
+//							core.clearCircularBuffer();
+
+//							for(int i = 0; i < 4; i++) {
+//								TaggedImage timg = core.getNBeforeLastTaggedImage(i);
+//								String camera = ( String ) timg.tags.get( "Camera" );
+//								map.put( camera, timg );
+//							}
+							try
+							{
+								Thread.sleep( 10 );
+							}
+							catch ( InterruptedException e )
+							{
+								e.printStackTrace();
+							}
 						}
-					} catch ( Exception e ) {
-						System.out.println(e);
-					}
 				}
 			} );
 			captureThread.start();

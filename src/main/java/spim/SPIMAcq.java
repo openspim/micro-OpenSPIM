@@ -106,11 +106,19 @@ public class SPIMAcq extends Application implements MenuPlugin
 
 		if( null != halcyonMain )
 		{
-			Platform.runLater( new Runnable()
+//			Platform.runLater( new Runnable()
+//			{
+//				@Override public void run()
+//				{
+//					halcyonMain.show();
+//				}
+//			} );
+			com.sun.javafx.application.PlatformImpl.startup( new Runnable()
 			{
 				@Override public void run()
 				{
-					halcyonMain.show();
+					halcyonMain = new HalcyonMain();
+					halcyonMain.show( mStage, setup, gui );
 				}
 			} );
 		}

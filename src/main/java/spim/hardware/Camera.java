@@ -18,6 +18,16 @@ public class Camera extends Device {
 
 	public Camera(CMMCore core, String label) {
 		super(core, label);
+//		try
+//		{
+//			for(String s : core.getDevicePropertyNames(label)){
+//				System.out.println(s);
+//			}
+//		}
+//		catch ( Exception e )
+//		{
+//			e.printStackTrace();
+//		}
 	}
 
 	public TaggedImage snapImage() {
@@ -37,7 +47,7 @@ public class Camera extends Device {
 	 */
 	public void setExposure(double exposureTime) {
 		try {
-			core.setExposure(exposureTime);
+			setProperty( "Exposure", exposureTime );
 		} catch (Exception e) {
 			ReportingUtils.logError(e);
 		}
@@ -50,14 +60,21 @@ public class Camera extends Device {
 	 */
 	public double getExposure() {
 		try {
-			return core.getExposure();
+			return getPropertyDouble( "Exposure" );
 		} catch (Exception e) {
 			ReportingUtils.logError(e);
 			return -1;
 		}
 	}
 
-
+	public int getBinning() {
+		try {
+			return Integer.parseInt( getProperty( "Binning" ) );
+		} catch (Exception e) {
+			ReportingUtils.logError(e);
+			return 1;
+		}
+	}
 
 	@Override
 	public DeviceType getMMType() {
