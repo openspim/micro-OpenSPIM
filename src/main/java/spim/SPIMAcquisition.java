@@ -68,7 +68,6 @@ import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.micromanager.MMPlugin;
 import org.micromanager.Studio;
-import org.micromanager.data.Datastore;
 import org.micromanager.internal.MMStudio;
 //import org.micromanager.api.MMPlugin;
 //import org.micromanager.api.ScriptInterface;
@@ -100,7 +99,7 @@ import spim.io.HDF5OutputHandlerMM;
 import spim.io.OutputHandler;
 import spim.io.LabelledVirtualStack;
 import spim.io.OMETIFFHandler;
-import spim.ui.view.component.RangeSlider;
+import spim.ui.view.component.RangedSlider;
 
 public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	private static final String SPIM_RANGES = "SPIM Ranges";
@@ -116,14 +115,14 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	private JButton acqFetchT;
 	private JCheckBox acqXYDevCB;
 	private JComboBox acqXYDevCmbo;
-	private RangeSlider acqRangeX;
-	private RangeSlider acqRangeY;
+	private RangedSlider acqRangeX;
+	private RangedSlider acqRangeY;
 	private JCheckBox acqZDevCB;
 	private JComboBox acqZDevCmbo;
-	private RangeSlider acqRangeZ;
+	private RangedSlider acqRangeZ;
 	private JCheckBox acqTDevCB;
 	private JComboBox acqTDevCmbo;
-	private RangeSlider acqRangeTheta;
+	private RangedSlider acqRangeTheta;
 	private JCheckBox acqTimeCB;
 	private JTextField acqStepBox;
 	private JTextField acqCountBox;
@@ -496,7 +495,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		JPanel xy_x = new JPanel();
 		xy_x.setBorder(BorderFactory.createTitledBorder("Stage X"));
 
-		acqRangeX = new RangeSlider(xSlider.getMinimum(), xSlider.getMaximum());
+		acqRangeX = new RangedSlider(xSlider.getMinimum(), xSlider.getMaximum());
 
 		xy_x.add(acqRangeX);
 		xy_x.setMaximumSize(xy_x.getPreferredSize());
@@ -506,7 +505,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		JPanel xy_y = new JPanel();
 		xy_y.setBorder(BorderFactory.createTitledBorder("Stage Y"));
 
-		acqRangeY = new RangeSlider(ySlider.getMinimum(), ySlider.getMaximum());
+		acqRangeY = new RangedSlider(ySlider.getMinimum(), ySlider.getMaximum());
 
 		xy_y.add(acqRangeY);
 		xy_y.setMaximumSize(xy_y.getPreferredSize());
@@ -541,7 +540,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 
 		z.add(Box.createRigidArea(new Dimension(10, 4)));
 
-		acqRangeZ = new RangeSlider(zSlider.getMinimum(), zSlider.getMaximum());
+		acqRangeZ = new RangedSlider(zSlider.getMinimum(), zSlider.getMaximum());
 
 		z.add(acqRangeZ);
 		z.setMaximumSize(z.getPreferredSize());
@@ -573,7 +572,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 
 		t.add(Box.createRigidArea(new Dimension(10, 4)));
 
-		acqRangeTheta = new RangeSlider(rotationSlider.getMinimum(), rotationSlider.getMaximum());
+		acqRangeTheta = new RangedSlider(rotationSlider.getMinimum(), rotationSlider.getMaximum());
 
 		t.add(acqRangeTheta);
 		t.setMaximumSize(t.getPreferredSize());
@@ -1265,7 +1264,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			double range = ((Double)acqFetchDelta.getValue()).doubleValue();
 			double value = 0;
 
-			RangeSlider target = null;
+			RangedSlider target = null;
 
 			try {
 				if(ae.getSource().equals(acqFetchX)) {

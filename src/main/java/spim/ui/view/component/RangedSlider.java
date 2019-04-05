@@ -20,14 +20,14 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.plaf.PanelUI;
 
-public class RangeSlider extends JPanel implements ChangeListener, KeyListener {
+public class RangedSlider extends JPanel implements ChangeListener, KeyListener {
 	private static final long serialVersionUID = -4704266057756694946L;
 
 	private JTextField min, step, max;
 	private JSlider sliderMin, sliderStep, sliderMax;
 	private boolean triggering;
 
-	public RangeSlider(Double minv, Double maxv) {
+	public RangedSlider(Double minv, Double maxv) {
 		triggering = true;
 
 		setLayout(new BoxLayout(this, BoxLayout.LINE_AXIS));

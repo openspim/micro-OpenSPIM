@@ -159,6 +159,24 @@
             <version>4.7.0-5</version>
         </dependency>
 
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>5.2.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna-platform</artifactId>
+            <version>5.2.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.controlsfx</groupId>
+            <artifactId>controlsfx</artifactId>
+            <version>8.40.14</version>
+        </dependency>
+
 		<!-- test-->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
