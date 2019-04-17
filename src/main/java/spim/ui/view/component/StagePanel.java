@@ -1,5 +1,6 @@
 package spim.ui.view.component;
 
+import eu.hansolo.enzo.common.SymbolType;
 import javafx.application.Platform;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.Property;
@@ -9,8 +10,10 @@ import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import spim.hardware.SPIMSetup;
 import spim.hardware.Stage;
+import spim.ui.view.component.iconswitch.IconSwitch;
 import spim.ui.view.component.slider.StageSlider;
 
 import java.util.HashMap;
@@ -185,16 +188,37 @@ public class StagePanel extends BorderPane
 
 	private VBox createControls()
 	{
-		VBox controls = new VBox( 10,
-				// rotate,
-				createStageControl( "Stage R (\u00b5-degree)",
-						StageUnit.Stage.R ),
-				createStageControl( "Stage X (\u00b5m)",
-						StageUnit.Stage.X ),
-				createStageControl( "Stage Y (\u00b5m)",
-						StageUnit.Stage.Y ),
-				createStageControl( "Stage Z (\u00b5m)",
-						StageUnit.Stage.Z ) );
+		final IconSwitch switchAll = new IconSwitch();
+		switchAll.setSymbolType( SymbolType.THUNDERSTORM );
+		switchAll.setSymbolColor( Color.web( "#ffffff" ) );
+		switchAll.setSwitchColor( Color.web( "#34495e" ) );
+		switchAll.setThumbColor( Color.web( "#ff4922" ) );
+		switchAll.setMaxSize( 60, 30 );
+
+		StageUnit stageUnitR = createStageControl( "Stage R (\u00b5-degree)",
+				StageUnit.Stage.R );
+
+		StageUnit stageUnitX = createStageControl( "Stage X (\u00b5m)",
+				StageUnit.Stage.X );
+
+		StageUnit stageUnitY = createStageControl( "Stage Y (\u00b5m)",
+				StageUnit.Stage.Y );
+
+		StageUnit stageUnitZ = createStageControl( "Stage Z (\u00b5m)",
+				StageUnit.Stage.Z );
+
+		switchAll.selectedProperty().addListener( new ChangeListener< Boolean >()
+		{
+			@Override public void changed( ObservableValue< ? extends Boolean > observable, Boolean oldValue, Boolean newValue )
+			{
+				stageUnitR.getEnabledProperty().setValue( newValue );
+				stageUnitX.getEnabledProperty().setValue( newValue );
+				stageUnitY.getEnabledProperty().setValue( newValue );
+				stageUnitZ.getEnabledProperty().setValue( newValue );
+			}
+		} );
+
+		VBox controls = new VBox( 10, switchAll, stageUnitR, stageUnitX, stageUnitY	, stageUnitZ );
 		controls.setPadding( new Insets( 10 ) );
 		return controls;
 	}

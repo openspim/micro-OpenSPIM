@@ -50,6 +50,8 @@ public class StageUnit extends Region
 
 	private final HashMap< BooleanState, BooleanProperty > booleanStateMap;
 
+	private final IconSwitch enableSwitch;
+
 	private double currentValue;
 
 	public StageUnit( String labelString, boolean isR, spim.hardware.Stage stageDevice )
@@ -78,7 +80,7 @@ public class StageUnit extends Region
 		}
 
 		// GUI
-		final IconSwitch enableSwitch = new IconSwitch();
+		enableSwitch = new IconSwitch();
 		enableSwitch.setSymbolType( SymbolType.POWER );
 		enableSwitch.setSymbolColor( Color.web( "#ffffff" ) );
 		enableSwitch.setSwitchColor( Color.web( "#34495e" ) );
@@ -278,5 +280,9 @@ public class StageUnit extends Region
 	public StageSlider getDeviceSlider()
 	{
 		return deviceSlider;
+	}
+
+	public BooleanProperty getEnabledProperty() {
+		return enableSwitch.selectedProperty();
 	}
 }
