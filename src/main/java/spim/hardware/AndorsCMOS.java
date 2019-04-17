@@ -21,18 +21,18 @@ public class AndorsCMOS extends Camera {
 	@Override
 	public int getBinning() {
 		try {
-			switch ( getProperty( label + "-Binning" ) ) {
+			switch ( getProperty( "Binning" ) ) {
 				case "1x1": return 1;
 				case "2x2": return 2;
 				case "3x3": return 3;
 				case "4x4": return 4;
-				case "8x8": return 4;
+				case "8x8": return 8;
 			}
 		} catch (Exception e) {
 			ReportingUtils.logError(e);
 			return 1;
 		}
-		return Integer.parseInt( getProperty( label + "-Binning" ) );
+		return Integer.parseInt( getProperty( "Binning" ) );
 	}
 
 	public AndorsCMOS(CMMCore core, String label) {

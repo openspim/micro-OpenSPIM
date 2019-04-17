@@ -84,7 +84,6 @@ public class CameraDevicePanel extends ScrollPane
 
 	final private TreeMap<String, Band> bandMap;
 
-	private volatile int alphaR = 0, alphaG = 0, alphaB = 0;
 	private ToggleGroup group;
 	private SimpleIntegerProperty integerProperty;
 	private Slider slider;
@@ -94,6 +93,8 @@ public class CameraDevicePanel extends ScrollPane
 	private int[] buf;
 	private int[] rgbBuffer;
 	private int width, height;
+	private double exposure = 33;
+	private volatile boolean isShownFirst = true;
 
 	public CameraDevicePanel( SPIMSetup setup, Studio gui ) {
 		bandMap = new TreeMap<>();
@@ -125,6 +126,13 @@ public class CameraDevicePanel extends ScrollPane
 		cameraOnSwitch.setThumbColor( Color.web( "#ff495e" ) );
 		cameraOnSwitch.setPadding( new Insets( 0,0,0,0 ) );
 
+		rgbBuffer = new int[width * height];
+
+		Image orgImg = new javafx.scene.image.Image( getClass().getResourceAsStream( "dresden_evening.png" ),
+				width, height, false, true );
+		PixelReader pixelReader = orgImg.getPixelReader();
+		pixelReader.getPixels( 0, 0, width, height, format, rgbBuffer, 0, width );
+
 		if(gui != null) {
 			System.out.println("Number of channels: " + gui.core().getNumberOfCameraChannels());
 
@@ -149,14 +157,16 @@ public class CameraDevicePanel extends ScrollPane
 				bandMap.put( firstCamera, new Band( new WritableImage( width, height ), new int[ size ], "" ) );
 				bandMap.get(firstCamera).setCamera( setup.getCamera1() );
 				updateBandTable( firstCamera, 0, size);
-				resetBuffer( bandMap.get(firstCamera).image.getPixelWriter());
+				resetRgbBuffer( "R", bandMap.get(firstCamera).image.getPixelWriter() );
+//				resetBuffer( bandMap.get(firstCamera).image.getPixelWriter() );
 
 				if(firstCamera.equals( "DCam" )) {
 					bandMap.get( firstCamera ).setBandColor( "R" );
 					bandMap.put( firstCamera + 1, new Band( new WritableImage( width, height ), new int[ size ], "G" ) );
 					bandMap.get( firstCamera + 1).setCamera( setup.getCamera1() );
 					updateBandTable( firstCamera + 1, 0, size);
-					resetBuffer( bandMap.get(firstCamera + 1).image.getPixelWriter());
+					resetRgbBuffer( "G", bandMap.get(firstCamera + 1).image.getPixelWriter() );
+//					resetBuffer( bandMap.get(firstCamera + 1).image.getPixelWriter());
 
 					bandMap.put( "hB", new Band( new WritableImage( width, height ), new int[ size ], "B" ) );
 					updateBandTable("hB", 0, size);
@@ -171,7 +181,8 @@ public class CameraDevicePanel extends ScrollPane
 					bandMap.put( secondCamera, new Band( new WritableImage( width, height), new int[ size ], "G" ) );
 					bandMap.get( secondCamera ).setCamera( setup.getCamera2() );
 					updateBandTable(secondCamera, 0, size);
-					resetBuffer( bandMap.get(secondCamera).image.getPixelWriter());
+					resetRgbBuffer( "G", bandMap.get(secondCamera).image.getPixelWriter() );
+//					resetBuffer( bandMap.get(secondCamera).image.getPixelWriter());
 
 					bandMap.put( "hB", new Band( new WritableImage( width, height ), new int[ size ], "B" ) );
 					updateBandTable("hB", 0, size);
@@ -185,6 +196,8 @@ public class CameraDevicePanel extends ScrollPane
 			{
 				@Override public void changed( ObservableValue< ? extends Boolean > observable, Boolean oldValue, Boolean newValue )
 				{
+					if(isShownFirst) isShownFirst = false;
+
 					if(newValue)
 					{
 						try
@@ -218,18 +231,11 @@ public class CameraDevicePanel extends ScrollPane
 			bandMap.put( "G", new Band( new WritableImage( width, height ), new int[ 256 ], "G" ) );
 			bandMap.put( "B", new Band( new WritableImage( width, height ), new int[ 256 ], "B" ) );
 
-			rgbBuffer = new int[width * height];
-
 			updateBandTable("R", 0, 255);
 			updateBandTable("G", 0, 255);
 			updateBandTable("B", 0, 255);
 
-			Image orgImg = new javafx.scene.image.Image( getClass().getResourceAsStream( "dresden_evening.png" ),
-					width, height, false, true );
-			PixelReader pixelReader = orgImg.getPixelReader();
-			pixelReader.getPixels( 0, 0, width, height, format, rgbBuffer, 0, width );
-
-			handleBuffer(rgbBuffer);
+			handleBuffer(rgbBuffer, "");
 		}
 
 		init(width, height);
@@ -240,7 +246,7 @@ public class CameraDevicePanel extends ScrollPane
 			if( cameraOnSwitch.isSelected() )
 			{
 				if(null != gui) {
-					HashMap<String, TaggedImage> map = acquisition.getImages();
+					HashMap<String, TaggedImage> map = acquisition.getImages(exposure);
 //					HashMap<String, ImageProcessor > map = acquisition.getDefaultImages();
 					for( String key : map.keySet() ) {
 						TaggedImage img = map.get(key);
@@ -273,12 +279,38 @@ public class CameraDevicePanel extends ScrollPane
 					}
 				}
 				else {
-					handleBuffer(rgbBuffer);
+					handleBuffer(rgbBuffer, "");
 				}
 			}
 
-		}, 500, 500, TimeUnit.MILLISECONDS );
+		}, 500, 200, TimeUnit.MILLISECONDS );
 
+	}
+
+	private void resetRgbBuffer( String rgb, PixelWriter writer )
+	{
+		final int size = width * height;
+		for (int pixel = 0, row = 0, col = 0; pixel < size; pixel++) {
+			int argb = 0xff << 24;
+
+			if(rgb.equals( "R" )) {
+				argb |= rgbBuffer[row * width + col] & 0xff0000;
+			}
+			if(rgb.equals( "G" )) {
+				argb |= rgbBuffer[row * width + col] & 0x00ff00;
+			}
+			if(rgb.equals( "B" )) {
+				argb |= rgbBuffer[row * width + col] & 0x0000ff;
+			}
+
+			buf[row * width + col] = argb;
+			col++;
+			if (col == width) {
+				col = 0;
+				row++;
+			}
+		}
+		writer.setPixels( 0, 0, width, height, format, buf, 0, width );
 	}
 
 	private void resetBuffer( PixelWriter writer )
@@ -322,7 +354,7 @@ public class CameraDevicePanel extends ScrollPane
 		return copy;
 	}
 
-	private void handleBuffer( int[] buffer )
+	private void handleBuffer( int[] buffer, String exclude )
 	{
 		for(String key : bandMap.keySet()) {
 			WritableImage writableImage = bandMap.get(key).image;
@@ -333,15 +365,15 @@ public class CameraDevicePanel extends ScrollPane
 			for(int i = 0; i < buffer.length; i++) {
 				int a = 0xff - opacity;
 
-				if(bandColor.equals( "R" )) {
+				if(bandColor.equals( "R" ) && !exclude.equals( "R" ) ) {
 					int r = (int) (colors[buffer[i] >> 16 & 0xff]);
 					buf[i] = (a << 24) | (r & 0xff) << 16;
 				}
-				if(bandColor.equals( "G" )) {
+				if(bandColor.equals( "G" ) && !exclude.equals( "G" ) ) {
 					int g = (int) (colors[buffer[i] >> 8 & 0xff]);
 					buf[i] = (a << 24) | (g & 0xff) << 8;
 				}
-				if(bandColor.equals( "B" )) {
+				if(bandColor.equals( "B" ) && !exclude.equals( "B" ) ) {
 					int b = (int) (colors[buffer[i] & 0xff]);
 					buf[i] = (a << 24) | b & 0xff;
 				}
@@ -364,9 +396,9 @@ public class CameraDevicePanel extends ScrollPane
 			int argb = 0;
 			if(bytesPerPixel == 4) {
 				argb += (pixels[pixel] & 0xff) << 24; 		// alpha
-				argb += colors[pixels[pixel + 1]]; 			// blue
-				argb += colors[pixels[pixel + 2]] << 8;		// green
-				argb += colors[pixels[pixel + 3]] << 16;	// red
+				argb += colors[pixels[pixel + 1] & 0xff]; 			// blue
+				argb += colors[pixels[pixel + 2] & 0xff] << 8;		// green
+				argb += colors[pixels[pixel + 3] & 0xff] << 16;	// red
 			}
 			else
 			{
@@ -375,9 +407,9 @@ public class CameraDevicePanel extends ScrollPane
 //				argb += colors[pixels[pixel]] << 8; // green
 //				argb += colors[pixels[pixel]] << 16; // red
 				if(bandColor.isEmpty()) {
-					argb += colors[pixels[pixel]]; 		// blue
-					argb += colors[pixels[pixel]] << 8; // green
-					argb += colors[pixels[pixel]] << 16; // red
+					argb += colors[pixels[pixel] & 0xff]; 		// blue
+					argb += colors[pixels[pixel] & 0xff] << 8; // green
+					argb += colors[pixels[pixel] & 0xff] << 16; // red
 				}
 				if(bandColor.equals( "R" )) {
 					int r = colors[pixels[pixel]];
@@ -410,10 +442,10 @@ public class CameraDevicePanel extends ScrollPane
 		for (int pixel = 0, row = 0, col = 0; pixel < size; pixel += bytesPerPixel / 2) {
 			int argb = 0;
 			if(bytesPerPixel == 8) {
-				argb += (pixels[pixel] & 0xff) << 24; // alpha
-				argb += (colors[pixels[pixel + 1]]); // blue
-				argb += ((colors[pixels[pixel + 2]]) << 8); // green
-				argb += ((colors[pixels[pixel + 3]]) << 16); // red
+				argb += (pixels[pixel] & 0xffff) << 24; // alpha
+				argb += (colors[pixels[pixel + 1] & 0xffff]); // blue
+				argb += ((colors[pixels[pixel + 2] & 0xffff]) << 8); // green
+				argb += ((colors[pixels[pixel + 3] & 0xffff]) << 16); // red
 			}
 			else
 			{
@@ -422,20 +454,20 @@ public class CameraDevicePanel extends ScrollPane
 //				argb += colors[pixels[pixel]] << 8; // green
 //				argb += colors[pixels[pixel]] << 16; // red
 				if(bandColor.isEmpty()) {
-					argb += colors[pixels[pixel]]; 		// blue
-					argb += colors[pixels[pixel]] << 8; // green
-					argb += colors[pixels[pixel]] << 16; // red
+					argb += colors[pixels[pixel] & 0xffff]; 		// blue
+					argb += colors[pixels[pixel] & 0xffff] << 8; // green
+					argb += colors[pixels[pixel] & 0xffff] << 16; // red
 				}
 				if(bandColor.equals( "R" )) {
-					int r = colors[pixels[pixel]];
+					int r = colors[pixels[pixel] & 0xffff];
 					argb |= (r & 0xff) << 16;
 				}
 				if(bandColor.equals( "G" )) {
-					int g = colors[pixels[pixel]];
+					int g = colors[pixels[pixel] & 0xffff];
 					argb |= (g & 0xff) << 8;
 				}
 				if(bandColor.equals( "B" )) {
-					int b = colors[pixels[pixel]];
+					int b = colors[pixels[pixel] & 0xffff];
 					argb |= b & 0xff;
 				}
 			}
@@ -503,6 +535,9 @@ public class CameraDevicePanel extends ScrollPane
 				@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
 				{
 					updateBandTable( key, newValue.intValue(), (int) slider.getHighValue() );
+
+					if(isShownFirst)
+						handleBuffer(rgbBuffer, "B");
 				}
 			} );
 
@@ -511,30 +546,47 @@ public class CameraDevicePanel extends ScrollPane
 				@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
 				{
 					updateBandTable( key, (int) slider.getLowValue(), newValue.intValue() );
+
+					if(isShownFirst)
+						handleBuffer(rgbBuffer, "B");
 				}
 			} );
 
-			TextField exp = new TextField( bandMap.get(key).camera.getExposure() + "" );
-			exp.prefHeight( 50 );
-			exp.textProperty().addListener( new ChangeListener< String >()
-			{
-				@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
+			CheckboxPane checkboxPane;
+			if(null != bandMap.get(key).camera) {
+				TextField exp = new TextField( bandMap.get(key).camera.getExposure() + "" );
+				exp.prefHeight( 50 );
+				exp.textProperty().addListener( new ChangeListener< String >()
 				{
-					try
+					@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
 					{
-						double val = Double.parseDouble( newValue );
-						bandMap.get(key).camera.setExposure( val );
-					} catch ( NumberFormatException e ) {
-						System.err.println(e);
+						try
+						{
+							double val = Double.parseDouble( newValue );
+							bandMap.get(key).camera.setExposure( val );
+							exposure = Math.max( exposure, val );
+						} catch ( NumberFormatException e ) {
+							System.err.println(e);
+						}
 					}
+				} );
+				exp.disableProperty().bind( cameraOnSwitch.selectedProperty() );
+				HBox expBox = new HBox( 5, new Label( "Exposure:" ), exp );
+				expBox.setAlignment( Pos.BASELINE_LEFT );
+
+				checkboxPane = new CheckboxPane( key, new VBox( 8, slider, expBox ) );
+			} else {
+				checkboxPane = new CheckboxPane( key, slider );
+			}
+			bandMap.get(key).enabledProperty.bind( checkboxPane.selectedProperty() );
+			bandMap.get(key).enabledProperty.addListener( new ChangeListener< Boolean >()
+			{
+				@Override public void changed( ObservableValue< ? extends Boolean > observable, Boolean oldValue, Boolean newValue )
+				{
+					if(isShownFirst)
+						handleBuffer(rgbBuffer, "B");
 				}
 			} );
-			HBox expBox = new HBox( 5, new Label( "Exposure:" ), exp );
-			expBox.setAlignment( Pos.BASELINE_LEFT );
-
-			CheckboxPane checkboxPane = new CheckboxPane( key, new VBox( 8, slider, expBox ) );
-//			CheckboxPane checkboxPane = new CheckboxPane( key, slider );
-			bandMap.get(key).enabledProperty.bind( checkboxPane.selectedProperty() );
 			bands.getChildren().add(checkboxPane);
 		}
 
