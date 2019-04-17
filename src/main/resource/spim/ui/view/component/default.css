@@ -1,3 +1,9 @@
 .table-view .table-column {
     -fx-alignment: CENTER-LEFT;
 }
+
+#read-only .thumb {
+    -fx-background-image : url("icons8-resize-vertical-16.png");
+    -fx-background-color: transparent;
+    -fx-padding: 8;
+}

@@ -55,9 +55,8 @@ public class StageSlider extends HBox
 		{
 			mSlider.valueProperty().bind( variable );
 			mSlider.setDisable( true );
-			mSlider.setStyle( "-fx-opacity: 1;" );
+			mSlider.setId( "read-only" );
 			mTextField.setDisable( true );
-			mTextField.setStyle( "-fx-opacity: 1;-fx-background-color: #DDDDDD;" );
 
 			setPadding( new Insets( 5, 20, 10, 0 ) );
 			mSlider.setPadding( new Insets( 0, 5, 0, 0 ) );
