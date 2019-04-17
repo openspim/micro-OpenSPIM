@@ -162,14 +162,9 @@ public class VersaLase extends Laser {
 		}
 
 		@Override
-		/**
-		 * Get this device's MM label.
-		 *
-		 * @return The MM label of this device.
-		 */
-		public String getLabel() {
+		public String getDeviceName() {
 			return id;
-		};
+		}
 
 		public String getLaserLabel() {
 			return getProperty( laserLabel + "LaserID" );
