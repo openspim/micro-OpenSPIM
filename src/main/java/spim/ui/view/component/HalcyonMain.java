@@ -16,6 +16,7 @@ import javafx.stage.WindowEvent;
 import org.dockfx.DockNode;
 import org.micromanager.Studio;
 import spim.hardware.SPIMSetup;
+import spim.hardware.VersaLase;
 
 import java.util.ArrayList;
 
@@ -84,11 +85,23 @@ public class HalcyonMain extends HalcyonFrame
 		{
 			if(spimSetup.getLaser() != null)
 			{
-				final HalcyonNode lLaser1 = HalcyonNode.wrap( "Laser-1",
-						SpimHalcyonNodeType.LASER,
-						new LaserDevicePanel( spimSetup.getLaser(), 488 ) );
+				System.out.println(spimSetup.getLaser().getLabel());
+				if(spimSetup.getLaser().getLabel().startsWith( "VLT_VersaLase" ))
+				{
+					final HalcyonNode lVersaLase = HalcyonNode.wrap( "VersaLase",
+							SpimHalcyonNodeType.LASER,
+							new VersaLaserDevicePanel( ( VersaLase ) spimSetup.getLaser() ) );
 
-				addNode(lLaser1);
+					addNode(lVersaLase);
+				}
+				else
+				{
+					final HalcyonNode lLaser1 = HalcyonNode.wrap( "Laser-1",
+							SpimHalcyonNodeType.LASER,
+							new LaserDevicePanel( spimSetup.getLaser(), 488 ) );
+
+					addNode(lLaser1);
+				}
 			}
 
 			if(spimSetup.getLaser2() != null)
