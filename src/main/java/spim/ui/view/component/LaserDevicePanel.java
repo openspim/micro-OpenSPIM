@@ -60,6 +60,10 @@ public class LaserDevicePanel extends HBox
 	final double granularity = 3;
 	private String laserName;
 
+	public LaserDevicePanel( Laser laser ) {
+		this(laser, Integer.parseInt( laser.getWavelength() ));
+	}
+
 	public LaserDevicePanel( Laser laser, int wl )
 	{
 		laserName = null == laser ? "" : laser.getDeviceName();

@@ -66,7 +66,7 @@ public class VersaLase extends Laser {
 					if(m.find()) {
 						String laser = m.group( 1 );
 						if( !map.containsKey( laser ) ) {
-							map.put( laser, new VersaLaseLaser( laser ) );
+							map.put( laser, new VersaLaseLaser(core, label, laser) );
 							lastLaser = laser;
 						}
 					}
@@ -79,30 +79,54 @@ public class VersaLase extends Laser {
 		}
 	}
 
-	public VersaLaseLaser getCameraA() {
+	public VersaLaseLaser getLaserA() {
 		return map.getOrDefault( "A", null );
 	}
 
-	public VersaLaseLaser getCameraB() {
+	public VersaLaseLaser getLaserB() {
 		return map.getOrDefault( "B", null );
 	}
 
-	public VersaLaseLaser getCameraC() {
+	public VersaLaseLaser getLaserC() {
 		return map.getOrDefault( "C", null );
 	}
 
-	public VersaLaseLaser getCameraD() {
+	public VersaLaseLaser getLaserD() {
 		return map.getOrDefault( "D", null );
 	}
 
-	public class VersaLaseLaser {
+	public class VersaLaseLaser extends Laser{
 		private final String laserLabel;
+		private final double maxPower;
+		private final String waveLength;
+		private final String id;
 
-		VersaLaseLaser (String label) {
+		VersaLaseLaser (CMMCore core, String parentLabel, String label) {
+			super(core, parentLabel);
+			this.id = label;
+
 			// "-LASER_A_"
-			laserLabel = String.format( "-LASER_%s_", label );
+			laserLabel = String.format( "LASER_%s_", label );
+
+			switch ( label ) {
+				case "A": maxPower = 50.0;
+					waveLength = "637";
+					break;
+				case "B": maxPower = 50.0;
+					waveLength = "561";
+					break;
+				case "C": maxPower = 50.0;
+					waveLength = "488";
+					break;
+				case "D": maxPower = 50.0;
+					waveLength = "395";
+					break;
+				default: maxPower = 50.0;
+					waveLength = "488";
+			}
 		}
 
+		@Override
 		public void setPoweredOn(boolean open) {
 			if(open) {
 				setProperty(laserLabel + "LaserEmission", "ON");
@@ -110,6 +134,42 @@ public class VersaLase extends Laser {
 				setProperty(laserLabel + "LaserEmission", "OFF");
 			}
 		}
+
+		@Override
+		public void setPower(double power) throws UnsupportedOperationException, IllegalArgumentException {
+			if(hasProperty(laserLabel + "PowerSetting"))
+				setProperty(laserLabel + "PowerSetting", power);
+			else
+				throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public double getPower() {
+			if(hasProperty(laserLabel + "PowerSetting"))
+				return getPropertyDouble(laserLabel + "PowerSetting");
+			else
+				return 0.0;
+		}
+
+		@Override
+		public double getMaxPower() {
+			return maxPower;
+		}
+
+		@Override
+		public String getWavelength() {
+			return waveLength;
+		}
+
+		@Override
+		/**
+		 * Get this device's MM label.
+		 *
+		 * @return The MM label of this device.
+		 */
+		public String getLabel() {
+			return id;
+		};
 
 		public String getLaserLabel() {
 			return getProperty( laserLabel + "LaserID" );
