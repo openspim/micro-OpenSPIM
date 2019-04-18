@@ -248,6 +248,7 @@ public class StageUnit extends Region
 		enableSwitch.selectedProperty().addListener( ( observable, oldValue, newValue ) ->
 		{
 			booleanStateMap.get( BooleanState.Enable ).set( newValue );
+			booleanStateMap.get( BooleanState.Ready ).setValue( newValue );
 			buttonsBox.setDisable( !newValue );
 		} );
 
