@@ -7,15 +7,35 @@ import javafx.beans.property.Property;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.Event;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import spim.hardware.SPIMSetup;
 import spim.hardware.Stage;
 import spim.ui.view.component.iconswitch.IconSwitch;
-import spim.ui.view.component.slider.StageSlider;
 
+import java.beans.XMLDecoder;
+import java.beans.XMLEncoder;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -218,8 +238,173 @@ public class StagePanel extends BorderPane
 			}
 		} );
 
-		VBox controls = new VBox( 10, switchAll, stageUnitR, stageUnitX, stageUnitY	, stageUnitZ );
+		SizedStack<String> stack = new SizedStack<>( 5 );
+
+		MenuButton loadLocation = new MenuButton("Load location");
+		loadLocation.setStyle("-fx-base: #8bb9e7;");
+
+//		stack.getList().addListener( new ListChangeListener< MenuItem >()
+//		{
+//			@Override public void onChanged( Change< ? extends String > c )
+//			{
+//				loadLocation.getItems().setAll( stack.getList() );
+//			}
+//		} );
+
+		EventHandler stackChanged = new EventHandler()
+		{
+			@Override public void handle( Event evt )
+			{
+				for(String str : stack.getList()) {
+					MenuItem newItem = new MenuItem( str );
+					String[] tokens = str.split( ":" );
+					double r = Double.parseDouble( tokens[0] );
+					double x = Double.parseDouble( tokens[1] );
+					double y = Double.parseDouble( tokens[2] );
+					double z = Double.parseDouble( tokens[3] );
+
+					newItem.setOnAction( event -> {
+						stageUnitR.setCurrentPos(r);
+						stageUnitX.setCurrentPos(x);
+						stageUnitY.setCurrentPos(y);
+						stageUnitZ.setCurrentPos(z);
+
+						System.out.println(str + " is loaded.");
+					} );
+
+					loadLocation.getItems().add( newItem );
+				}
+			}
+		};
+
+		stackChanged.handle( null );
+
+		stack.getList().addListener( new ListChangeListener< String >()
+		{
+			@Override public void onChanged( Change< ? extends String > c )
+			{
+				loadLocation.getItems().clear();
+				stackChanged.handle( null );
+			}
+		} );
+
+
+		Button saveCurrentLocation = new Button( "Save current positions" );
+		saveCurrentLocation.setStyle("-fx-base: #e77d8c;");
+		saveCurrentLocation.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				double r = stageUnitR.getCurrentValue();
+				double x = stageUnitX.getCurrentValue();
+				double y = stageUnitY.getCurrentValue();
+				double z = stageUnitZ.getCurrentValue();
+
+				System.out.println(String.format( "R: %f, X: %f, Y: %f, Z: %f",
+						r, x, y, z));
+
+				String newLocation = String.format( "%f:%f:%f:%f",
+						r, x, y, z);
+
+				stack.add( newLocation );
+			}
+		} );
+
+
+		HBox topHbox = new HBox( 10, new Label( "All On/Off: " ), switchAll, saveCurrentLocation, loadLocation );
+		topHbox.setAlignment( Pos.CENTER_LEFT );
+
+		VBox controls = new VBox( 10, topHbox, stageUnitR, stageUnitX, stageUnitY	, stageUnitZ );
 		controls.setPadding( new Insets( 10 ) );
 		return controls;
+	}
+
+	public class SizedStack<T>
+	{
+		final String filename = "savedLocations.txt";
+		private int maxSize;
+		private ObservableList<T> list;
+
+		public SizedStack(int size) {
+			this.maxSize = size;
+			if(isExist( filename ))
+				this.list = load( new File(getUserDataDirectory() + filename) );
+			else
+				this.list = FXCollections.observableArrayList();
+		}
+
+		public void add(T object) {
+			//If the stack is too big, remove elements until it's the right size.
+			while (this.list.size() >= maxSize) {
+				this.list.remove( this.list.size() - 1 );
+			}
+			this.list.add(0, object);
+			save( new File(getUserDataDirectory() + filename), list );
+		}
+
+		public ObservableList<T> getList() {
+			return list;
+		}
+
+		public boolean isExist(String filename)
+		{
+			String path = getUserDataDirectory();
+			if(!new File(path).exists())
+				new File(path).mkdirs();
+
+			String file = getUserDataDirectory() + filename;
+			return new File(file).exists();
+		}
+
+		public ObservableList<T> load( File file ) {
+			XMLDecoder e;
+			try
+			{
+				e = new XMLDecoder(
+						new BufferedInputStream(
+								new FileInputStream( file ) ) );
+			}
+			catch ( FileNotFoundException e1 )
+			{
+				System.err.println( e1.getMessage() );
+				return null;
+			}
+
+			ArrayList array = (ArrayList) e.readObject();
+			ObservableList<T> loadedList = FXCollections.observableArrayList(array);
+
+			e.close();
+
+			return loadedList;
+		}
+
+		public boolean save( File file, ObservableList<T> saveList ) {
+			XMLEncoder e = null;
+			try
+			{
+				e = new XMLEncoder(
+						new BufferedOutputStream(
+								new FileOutputStream( file ) ) );
+			}
+			catch ( FileNotFoundException e1 )
+			{
+				e1.printStackTrace();
+				return false;
+			}
+
+			assert e != null;
+			e.writeObject( new ArrayList<>(saveList) );
+
+			e.close();
+			return true;
+		}
+
+		String getUserDataDirectory() {
+			return System.getProperty("user.home") + File.separator + ".openspim" + File.separator + getApplicationVersionString() + File.separator;
+		}
+
+		String getApplicationVersionString() {
+			return "1.0";
+		}
 	}
 }

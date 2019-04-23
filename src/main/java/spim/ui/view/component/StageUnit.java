@@ -98,13 +98,14 @@ public class StageUnit extends Region
 		{
 			targetSlider.getSlider().setDisable( !newValue );
 			targetSlider.getTextField().setDisable( !newValue );
-			if ( !newValue )
-				indicator.setIndicatorStyle( SimpleIndicator.IndicatorStyle.GRAY );
+//			if ( !newValue )
+//				indicator.setIndicatorStyle( SimpleIndicator.IndicatorStyle.GRAY );
 
 			if ( newValue )
 			{
-				targetValueProperty.setValue( currentValue );
-				targetSlider.getSlider().setValue( currentValue );
+//				targetValueProperty.setValue( currentValue );
+//				targetSlider.getSlider().setValue( currentValue );
+				setCurrentPos(currentValue);
 			} else {
 				currentValue = ( null == stageDevice ? 0.0 : ( isR ? stageDevice.getPosition() + 180.0 : stageDevice.getPosition() ) );
 			}
@@ -134,9 +135,7 @@ public class StageUnit extends Region
 		homingButton.setAlignment( Pos.BASELINE_LEFT );
 		homingButton.setPrefWidth( 70 );
 		homingButton.setOnAction( event -> {
-			targetValueProperty.setValue( 0.0 );
-			targetSlider.getSlider().setValue( 0.0 );
-			booleanStateMap.get( BooleanState.Ready ).setValue( false );
+			setCurrentPos(0.0);
 		} );
 
 		final Button stopButton = new Button( "Stop" );
@@ -153,9 +152,10 @@ public class StageUnit extends Region
 		resetButton.setAlignment( Pos.BASELINE_LEFT );
 		resetButton.setPrefWidth( 70 );
 		resetButton.setOnAction( event -> {
-			targetValueProperty.setValue( currentValue );
-			targetSlider.getSlider().setValue( currentValue );
-			booleanStateMap.get( BooleanState.Ready ).setValue( false );
+//			targetValueProperty.setValue( currentValue );
+//			targetSlider.getSlider().setValue( currentValue );
+//			booleanStateMap.get( BooleanState.Ready ).setValue( false );
+			setCurrentPos(currentValue);
 		} );
 
 		GridPane gridPane = new GridPane();
@@ -187,9 +187,10 @@ public class StageUnit extends Region
 			{
 				double unit = isR ? -5 : -100;
 				double n = Math.max( ( ( SimpleDoubleProperty ) targetValueProperty ).get() + unit, 0);
-				targetValueProperty.setValue( n );
-				targetSlider.getSlider().setValue( n );
-				booleanStateMap.get( BooleanState.Ready ).setValue( false );
+//				targetValueProperty.setValue( n );
+//				targetSlider.getSlider().setValue( n );
+//				booleanStateMap.get( BooleanState.Ready ).setValue( false );
+				setCurrentPos(n);
 			}
 		} );
 		// 10 um
@@ -202,9 +203,10 @@ public class StageUnit extends Region
 			{
 				double unit = isR ? -1 : -10;
 				double n = Math.max( ( ( SimpleDoubleProperty ) targetValueProperty ).get() + unit, 0);
-				targetValueProperty.setValue( n );
-				targetSlider.getSlider().setValue( n );
-				booleanStateMap.get( BooleanState.Ready ).setValue( false );
+//				targetValueProperty.setValue( n );
+//				targetSlider.getSlider().setValue( n );
+//				booleanStateMap.get( BooleanState.Ready ).setValue( false );
+				setCurrentPos(n);
 			}
 		} );
 
@@ -218,9 +220,10 @@ public class StageUnit extends Region
 			{
 				double unit = isR ? 5 : 100;
 				double n = Math.min( ( ( SimpleDoubleProperty ) targetValueProperty ).get() + unit, targetSlider.getSlider().getMax() );
-				targetValueProperty.setValue( n );
-				targetSlider.getSlider().setValue( n );
-				booleanStateMap.get( BooleanState.Ready ).setValue( false );
+//				targetValueProperty.setValue( n );
+//				targetSlider.getSlider().setValue( n );
+//				booleanStateMap.get( BooleanState.Ready ).setValue( false );
+				setCurrentPos(n);
 			}
 		} );
 		// 10 um
@@ -233,9 +236,10 @@ public class StageUnit extends Region
 			{
 				double unit = isR ? 1 : 10;
 				double n = Math.min( ( ( SimpleDoubleProperty ) targetValueProperty ).get() + unit, targetSlider.getSlider().getMax() );
-				targetValueProperty.setValue( n );
-				targetSlider.getSlider().setValue( n );
-				booleanStateMap.get( BooleanState.Ready ).setValue( false );
+//				targetValueProperty.setValue( n );
+//				targetSlider.getSlider().setValue( n );
+//				booleanStateMap.get( BooleanState.Ready ).setValue( false );
+				setCurrentPos(n);
 			}
 		} );
 
@@ -276,6 +280,16 @@ public class StageUnit extends Region
 	public Property< Number > deviceValueProperty()
 	{
 		return deviceValueProperty;
+	}
+
+	public double getCurrentValue() {
+		return deviceValueProperty.getValue().doubleValue();
+	}
+
+	public void setCurrentPos(double val) {
+		targetValueProperty.setValue( val );
+		targetSlider.getSlider().setValue( val );
+		booleanStateMap.get( BooleanState.Ready ).setValue( false );
 	}
 
 	public StageSlider getDeviceSlider()
