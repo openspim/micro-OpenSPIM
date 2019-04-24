@@ -136,6 +136,11 @@ public class VersaLase extends Laser {
 		}
 
 		@Override
+		public boolean getPoweredOn() {
+			return getProperty( laserLabel + "LaserEmission" ).equals( "ON" );
+		}
+
+		@Override
 		public void setPower(double power) throws UnsupportedOperationException, IllegalArgumentException {
 			if(hasProperty(laserLabel + "PowerSetting"))
 				setProperty(laserLabel + "PowerSetting", power);
@@ -168,6 +173,27 @@ public class VersaLase extends Laser {
 
 		public String getLaserLabel() {
 			return getProperty( laserLabel + "LaserID" );
+		}
+
+		public String getLaserEmission() {
+			if(hasProperty(laserLabel + "LaserEmission"))
+				return getProperty(laserLabel + "LaserEmission");
+			else
+				throw new UnsupportedOperationException();
+		}
+
+		public String getDigitalModulation() {
+			if(hasProperty(laserLabel + "DigitalModulation"))
+				return getProperty(laserLabel + "DigitalModulation");
+			else
+				throw new UnsupportedOperationException();
+		}
+
+		public String getAnalogModulation() {
+			if(hasProperty(laserLabel + "AnalogModulation"))
+				return getProperty(laserLabel + "AnalogModulation");
+			else
+				throw new UnsupportedOperationException();
 		}
 	}
 }
