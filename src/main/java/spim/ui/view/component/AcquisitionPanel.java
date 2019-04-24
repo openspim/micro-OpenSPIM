@@ -7,6 +7,7 @@ import javafx.beans.binding.StringBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -31,6 +32,8 @@ import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.Slider;
 import javafx.scene.control.SplitPane;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.input.DragEvent;
@@ -71,10 +74,12 @@ public class AcquisitionPanel extends BorderPane
 {
 	final private TableView< PositionItem > positionItemTableView;
 	final private TableView< ChannelItem > channelItemTableView;
+	final private TableView< ChannelItem > channelItemArduinoTableView;
 	final private HashMap< String, StringProperty > propertyMap;
 	final private SimpleObjectProperty<PositionItem> currentPosition;
 	final private SPIMSetup spimSetup;
 	final private Studio studio;
+	final private TabPane channelTabPane;
 	ObservableList<String> acquisitionOrderItems;
 	long imageWidth, imageHeight, imageDepth, bufferSize;
 
@@ -100,6 +105,7 @@ public class AcquisitionPanel extends BorderPane
 	// Channels panel
 	BooleanProperty enabledChannels;
 	ArrayList<ChannelItem> channelItems;
+	ArrayList<ChannelItem> channelItemsArduino;
 
 	// Save Image panel
 	BooleanProperty enabledSaveImages;
@@ -166,13 +172,36 @@ public class AcquisitionPanel extends BorderPane
 		positionZStackSplit.setOrientation( Orientation.HORIZONTAL );
 		positionZStackSplit.setDividerPositions( 0.3, 0.6 );
 
+
+		// Two tabs for "Laser Shutter" / "Arduino Shutter"
+
 		// Channel list
 		channelItemTableView = TableViewUtil.createChannelItemDataView();
+		Tab laserTab = new Tab( "Laser Shutter" );
+		laserTab.setContent( createChannelItemTable( channelItemTableView ) );
+		laserTab.setClosable( false );
+
+		channelItemArduinoTableView = TableViewUtil.createChannelItemArduinoDataView();
+		Tab arduinoTab = new Tab( "Arduino Shutter" );
+		arduinoTab.setContent( createChannelItemArduinoTable( channelItemArduinoTableView ) );
+		arduinoTab.setClosable( false );
+
+		channelTabPane = new TabPane( laserTab, arduinoTab );
+		channelTabPane.getSelectionModel().selectedIndexProperty().addListener( new ChangeListener< Number >()
+		{
+			@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
+			{
+				computeTotalChannels();
+			}
+		} );
+
+		CheckboxPane channelPane = new CheckboxPane( "Channels", channelTabPane );
+		enabledChannels = channelPane.selectedProperty();
 
 		// Laser shutter(software) / Arduino Shutter(hardware)
 		// Save image options
 		SplitPane channelListSaveImage = new SplitPane(
-				createChannelItemTable( channelItemTableView ),
+				channelPane,
 				createSaveImagesPane()
 		);
 //		channelListSaveImage.setDividerPositions( 0.6 );
@@ -261,6 +290,21 @@ public class AcquisitionPanel extends BorderPane
 		hb.setSpacing(5);
 		hb.setAlignment( Pos.CENTER_LEFT );
 
+		SimpleBooleanProperty liveOn = new SimpleBooleanProperty( false );
+		Button liveViewButton = new Button( "LiveView Start");
+		liveViewButton.setMinSize( 100, 40 );
+		liveViewButton.setStyle("-fx-font: 12 arial; -fx-base: #49e7db;");
+		liveViewButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				liveOn.set( !liveOn.get() );
+				if(liveOn.get())
+					liveViewButton.setText( "LiveView Stop" );
+				else liveViewButton.setText( "LiveView Start" );
+			}
+		} );
+
 		Button acquireButton = new Button( "Acquire" );
 		acquireButton.setMinSize( 120, 40 );
 		acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
@@ -280,9 +324,9 @@ public class AcquisitionPanel extends BorderPane
 			}
 		} );
 
-		Button stopButton = new Button( "Stop" );
-		stopButton.setMinSize( 120, 40 );
-		stopButton.setStyle("-fx-font: 18 arial; -fx-base: #e77d8c;");
+		Button stopButton = new Button( "Stop acquisition" );
+		stopButton.setMinSize( 130, 40 );
+		stopButton.setStyle("-fx-font: 15 arial; -fx-base: #e77d8c;");
 		stopButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -291,11 +335,11 @@ public class AcquisitionPanel extends BorderPane
 			}
 		} );
 
-		hb.getChildren().addAll(acquireButton, stopButton, slider, pb, pi);
+		hb.getChildren().addAll(liveViewButton, acquireButton, stopButton, slider, pb, pi);
 
-		Button saveButton = new Button( "Save" );
-		saveButton.setMinSize( 120, 40 );
-		saveButton.setStyle("-fx-font: 18 arial; -fx-base: #69e760;");
+		Button saveButton = new Button( "Save acquisition setting" );
+		saveButton.setMinSize( 150, 40 );
+		saveButton.setStyle("-fx-font: 12 arial; -fx-base: #69e760;");
 		saveButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -314,9 +358,9 @@ public class AcquisitionPanel extends BorderPane
 			}
 		} );
 
-		Button loadButton = new Button( "Load" );
-		loadButton.setMinSize( 120, 40 );
-		loadButton.setStyle("-fx-font: 18 arial; -fx-base: #e7e45d;");
+		Button loadButton = new Button( "Load acquisition setting" );
+		loadButton.setMinSize( 150, 40 );
+		loadButton.setStyle("-fx-font: 12 arial; -fx-base: #e7e45d;");
 		loadButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -442,8 +486,12 @@ public class AcquisitionPanel extends BorderPane
 
 		// Channels panel
 		enabledChannels.set( setting.getEnabledChannels() );
+		channelTabPane.getSelectionModel().select( setting.getSelectedTab() );
 		channelItems = setting.getChannelItems();
 		channelItemTableView.getItems().setAll( channelItems );
+
+		channelItemsArduino = setting.getChannelItemsArduino();
+		channelItemArduinoTableView.getItems().setAll( channelItemsArduino );
 
 		// Save Image panel
 		enabledSaveImages.set( setting.getEnabledSaveImages() );
@@ -456,10 +504,11 @@ public class AcquisitionPanel extends BorderPane
 	private AcquisitionSetting getAcquisitionSetting() {
 		positionItems = new ArrayList<>( positionItemTableView.getItems() );
 		channelItems = new ArrayList<>( channelItemTableView.getItems() );
+		channelItemsArduino = new ArrayList<>( channelItemArduinoTableView.getItems() );
 
 		return new AcquisitionSetting( enabledTimePoints, numTimePoints, intervalTimePoints, intervalUnitTimePoints,
 				enabledPositions, positionItems, enabledZStacks, acquisitionOrder,
-				enabledChannels, channelItems, enabledSaveImages, directory, filename, savingFormat, saveAsHDF5 );
+				enabledChannels, channelTabPane.getSelectionModel().selectedIndexProperty().get(), channelItems, channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveAsHDF5 );
 	}
 
 	public void stopAcquisition()
@@ -586,7 +635,7 @@ public class AcquisitionPanel extends BorderPane
 		return pane;
 	}
 
-	private CheckboxPane createChannelItemTable(TableView< ChannelItem > channelItemTableView) {
+	private TableView< ChannelItem > createChannelItemTable(TableView< ChannelItem > channelItemTableView) {
 		channelItemTableView.setEditable( true );
 
 		MenuItem newItem = new MenuItem( "New" );
@@ -620,13 +669,52 @@ public class AcquisitionPanel extends BorderPane
 			}
 		} );
 
-		CheckboxPane pane = new CheckboxPane( "Channels", channelItemTableView );
-		enabledChannels = pane.selectedProperty();
-		return pane;
+		return channelItemTableView;
+	}
+
+	private TableView< ChannelItem > createChannelItemArduinoTable(TableView< ChannelItem > channelItemTableView) {
+		channelItemTableView.setEditable( true );
+
+		MenuItem newItem = new MenuItem( "New" );
+		newItem.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				// TODO: Get the current position from the stage control and make the new position
+				channelItemTableView.getItems().add( new ChannelItem( "Pin-13", 20 ) );
+			}
+		} );
+
+		MenuItem deleteItem = new MenuItem( "Delete" );
+		deleteItem.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(channelItemTableView.getSelectionModel().getSelectedIndex() > -1)
+					channelItemTableView.getItems().remove( channelItemTableView.getSelectionModel().getSelectedIndex() );
+			}
+		} );
+
+		// add context menu here
+		channelItemTableView.setContextMenu( new ContextMenu( newItem, deleteItem ) );
+
+		channelItemTableView.getItems().addListener( new InvalidationListener()
+		{
+			@Override public void invalidated( Observable observable )
+			{
+				computeTotalChannels();
+			}
+		} );
+
+		return channelItemTableView;
 	}
 
 	private void computeTotalChannels() {
-		int totalChannels = channelItemTableView.getItems().size();
+		int totalChannels;
+
+		if(channelTabPane.getSelectionModel().isSelected( 0 ))
+			totalChannels = channelItemTableView.getItems().size();
+		else totalChannels = channelItemArduinoTableView.getItems().size();
 
 		propertyMap.get("channels").setValue( totalChannels + "" );
 	}

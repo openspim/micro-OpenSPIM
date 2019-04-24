@@ -198,24 +198,12 @@ public class TableViewUtil
 		booleanColumn.setOnEditCommit( event -> event.getRowValue().setSelected( event.getNewValue() ) );
 		tv.getColumns().add(booleanColumn);
 
-		TableColumn<ChannelItem, ChannelItem.Type> typeColumn = new TableColumn<>("Type");
+		TableColumn<ChannelItem, ChannelItem.Type> typeColumn = new TableColumn<>("Shutter");
 		typeColumn.setPrefWidth(80);
 		typeColumn.setCellValueFactory( new PropertyValueFactory<>( "type" ) );
-		typeColumn.setCellFactory( ChoiceBoxTableCell.forTableColumn( FXCollections.observableArrayList(ChannelItem.Type.values()) ) );
+		typeColumn.setCellFactory( ChoiceBoxTableCell.forTableColumn( FXCollections.observableArrayList(ChannelItem.Type.Laser) ) );
 		typeColumn.setOnEditCommit( event -> {
 			event.getRowValue().setType( event.getNewValue() );
-			switch ( event.getNewValue() ) {
-				case Arduino:
-					event.getRowValue().setName( "Pin-13" );
-					event.getRowValue().setLaser( "" );
-					break;
-				case Laser:
-				default:
-					event.getRowValue().setName( "Camera-1" );
-					event.getRowValue().setName( "Laser-1" );
-					break;
-			}
-			event.getTableView().refresh();
 		} );
 		tv.getColumns().add(typeColumn);
 
@@ -224,9 +212,9 @@ public class TableViewUtil
 		column.setCellValueFactory( (param) ->
 				new ReadOnlyStringWrapper( param.getValue().getName() )
 		);
-		column.setCellFactory( SelectiveChoiceBoxTableCell.forTableColumn(
-				FXCollections.observableArrayList("Camera-1", "Camera-2"),
-				FXCollections.observableArrayList( "Pin-13", "Pin-12", "Pin-11", "Pin-10", "Pin-9", "Pin-8") ) );
+		column.setCellFactory( ChoiceBoxTableCell.forTableColumn(
+				FXCollections.observableArrayList("Camera-1", "Camera-2") ) );
+		column.setOnEditCommit( event -> event.getRowValue().setName( event.getNewValue() ) );
 		tv.getColumns().add(column);
 
 		column = new TableColumn<>("Laser");
@@ -236,6 +224,100 @@ public class TableViewUtil
 		);
 		column.setCellFactory( ChoiceBoxTableCell.forTableColumn( FXCollections.observableArrayList("Laser-1", "Laser-2") ) );
 		column.setOnEditCommit( event -> event.getRowValue().setLaser( event.getNewValue() ) );
+		tv.getColumns().add(column);
+
+		TableColumn<ChannelItem, Number> numberColumn = new TableColumn<>("Exposure");
+		numberColumn.setPrefWidth(100);
+		numberColumn.setCellValueFactory( (param) ->
+				new ReadOnlyDoubleWrapper( param.getValue().getValue().doubleValue() )
+		);
+		numberColumn.setCellFactory( TextFieldTableCell.forTableColumn( new NumberStringConverter() ) );
+		numberColumn.setOnEditCommit( event -> event.getRowValue().setValue( event.getNewValue().doubleValue() ) );
+		numberColumn.setEditable( true );
+		tv.getColumns().add(numberColumn);
+
+		// Drag and drop
+		tv.setRowFactory(ev -> {
+			TableRow<ChannelItem> row = new TableRow<>();
+
+			row.setOnDragDetected(event -> {
+				if (! row.isEmpty()) {
+					Integer index = row.getIndex();
+					Dragboard db = row.startDragAndDrop( TransferMode.MOVE);
+					db.setDragView(row.snapshot(null, null));
+					ClipboardContent cc = new ClipboardContent();
+					cc.put(SERIALIZED_MIME_TYPE, index);
+					db.setContent(cc);
+					event.consume();
+				}
+			});
+
+			row.setOnDragOver(event -> {
+				Dragboard db = event.getDragboard();
+				if (db.hasContent(SERIALIZED_MIME_TYPE)) {
+					if (row.getIndex() != ((Integer)db.getContent(SERIALIZED_MIME_TYPE)).intValue()) {
+						event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
+						event.consume();
+					}
+				}
+			});
+
+			row.setOnDragDropped(event -> {
+				Dragboard db = event.getDragboard();
+				if (db.hasContent(SERIALIZED_MIME_TYPE)) {
+					int draggedIndex = (Integer) db.getContent(SERIALIZED_MIME_TYPE);
+					ChannelItem draggedItem = tv.getItems().remove(draggedIndex);
+
+					int dropIndex ;
+
+					if (row.isEmpty()) {
+						dropIndex = tv.getItems().size() ;
+					} else {
+						dropIndex = row.getIndex();
+					}
+
+					tv.getItems().add(dropIndex, draggedItem);
+
+					event.setDropCompleted(true);
+					tv.getSelectionModel().select(dropIndex);
+					event.consume();
+				}
+			});
+
+			return row ;
+		});
+
+		return tv;
+	}
+
+	public static TableView< ChannelItem > createChannelItemArduinoDataView()
+	{
+		TableView<ChannelItem> tv = new TableView<>();
+
+		TableColumn<ChannelItem, Boolean> booleanColumn = new TableColumn<>("");
+		booleanColumn.setPrefWidth( 50 );
+		booleanColumn.setCellValueFactory( new PropertyValueFactory<>( "selected" ) );
+		booleanColumn.setCellFactory( tc -> new CheckBoxTableCell<>() );
+		booleanColumn.setOnEditCommit( event -> event.getRowValue().setSelected( event.getNewValue() ) );
+		tv.getColumns().add(booleanColumn);
+
+		TableColumn<ChannelItem, ChannelItem.Type> typeColumn = new TableColumn<>("Shutter");
+		typeColumn.setPrefWidth(80);
+		typeColumn.setCellValueFactory( new PropertyValueFactory<>( "type" ) );
+		typeColumn.setCellFactory( ChoiceBoxTableCell.forTableColumn( FXCollections.observableArrayList(ChannelItem.Type.Arduino) ) );
+		typeColumn.setOnEditCommit( event -> {
+			event.getRowValue().setType( event.getNewValue() );
+		} );
+		tv.getColumns().add(typeColumn);
+
+		TableColumn<ChannelItem, String> column = new TableColumn<>("Name");
+		column.setPrefWidth(100);
+		column.setCellValueFactory( (param) ->
+				new ReadOnlyStringWrapper( param.getValue().getName() )
+		);
+		column.setCellFactory( ChoiceBoxTableCell.forTableColumn(
+				FXCollections.observableArrayList( "Pin-13", "Pin-12", "Pin-11", "Pin-10", "Pin-9", "Pin-8") ) );
+		column.setOnEditCommit( event -> event.getRowValue().setName( event.getNewValue() ) );
 		tv.getColumns().add(column);
 
 		TableColumn<ChannelItem, Number> numberColumn = new TableColumn<>("Exposure");

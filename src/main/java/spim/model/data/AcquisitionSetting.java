@@ -42,7 +42,9 @@ public class AcquisitionSetting
 
 	// Channels panel
 	Boolean enabledChannels;
+	Integer selectedTab;
 	ArrayList<ChannelItem> channelItems;
+	ArrayList<ChannelItem> channelItemsArduino;
 
 	// Save Image panel
 	Boolean enabledSaveImages;
@@ -151,6 +153,26 @@ public class AcquisitionSetting
 		this.channelItems = channelItems;
 	}
 
+	public Integer getSelectedTab()
+	{
+		return selectedTab;
+	}
+
+	public void setSelectedTab(Integer n)
+	{
+		this.selectedTab = n;
+	}
+
+	public ArrayList< ChannelItem > getChannelItemsArduino()
+	{
+		return channelItemsArduino;
+	}
+
+	public void setChannelItemsArduino( ArrayList< ChannelItem > channelItems )
+	{
+		this.channelItemsArduino = channelItems;
+	}
+
 	public Boolean getEnabledSaveImages()
 	{
 		return enabledSaveImages;
@@ -205,7 +227,7 @@ public class AcquisitionSetting
 	{
 	}
 
-	public AcquisitionSetting( BooleanProperty enabledTimePoints, StringProperty numTimePoints, StringProperty intervalTimePoints, ObjectProperty intervalUnitTimePoints, BooleanProperty enabledPositions, ArrayList< PositionItem > positionItems, BooleanProperty enabledZStacks, ObjectProperty acquisitionOrder, BooleanProperty enabledChannels, ArrayList< ChannelItem > channelItems, BooleanProperty enabledSaveImages, StringProperty directory, StringProperty filename, ObjectProperty savingFormat, BooleanProperty saveAsHDF5 )
+	public AcquisitionSetting( BooleanProperty enabledTimePoints, StringProperty numTimePoints, StringProperty intervalTimePoints, ObjectProperty intervalUnitTimePoints, BooleanProperty enabledPositions, ArrayList< PositionItem > positionItems, BooleanProperty enabledZStacks, ObjectProperty acquisitionOrder, BooleanProperty enabledChannels, int selectedTabIndex, ArrayList< ChannelItem > channelItems, ArrayList< ChannelItem > channelItemsArduino, BooleanProperty enabledSaveImages, StringProperty directory, StringProperty filename, ObjectProperty savingFormat, BooleanProperty saveAsHDF5 )
 	{
 		// Time points panel
 		this.enabledTimePoints = enabledTimePoints.get();
@@ -225,7 +247,9 @@ public class AcquisitionSetting
 
 		// Channels panel
 		this.enabledChannels = enabledChannels.get();
+		this.selectedTab = selectedTabIndex;
 		this.channelItems = channelItems;
+		this.channelItemsArduino = channelItemsArduino;
 
 		// Save Image panel
 		this.enabledSaveImages = enabledSaveImages.get();

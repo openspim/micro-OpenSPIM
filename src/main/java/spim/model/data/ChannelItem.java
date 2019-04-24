@@ -33,12 +33,12 @@ public class ChannelItem
 		this.value = exposure;
 	}
 
-	public ChannelItem( String name, int pin )
+	public ChannelItem( String name, double exposure )
 	{
 		selected.set( true );
 		type.set( Type.Arduino );
 		this.name = name;
-		this.value = pin;
+		this.value = exposure;
 	}
 
 	public BooleanProperty selectedProperty() { return selected; }
