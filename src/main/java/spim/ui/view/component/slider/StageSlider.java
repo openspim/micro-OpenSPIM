@@ -63,6 +63,10 @@ public class StageSlider extends HBox
 		}
 		else
 		{
+			mTextField.setOnAction( event -> {
+				variable.setValue( mSlider.valueProperty().doubleValue() );
+			} );
+
 			mSlider.valueProperty().addListener( ( obs, oldval, newVal ) ->
 					mSlider.setValue( newVal.intValue() ) );
 
