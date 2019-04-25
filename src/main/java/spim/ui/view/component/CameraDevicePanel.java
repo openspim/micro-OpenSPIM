@@ -5,13 +5,13 @@ import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
 import eu.hansolo.enzo.common.SymbolType;
 import eu.hansolo.enzo.onoffswitch.IconSwitch;
 
-import ij.process.ImageProcessor;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
@@ -19,10 +19,13 @@ import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ColorPicker;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Spinner;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
@@ -51,11 +54,9 @@ import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Translate;
 import mmcorej.TaggedImage;
 import org.controlsfx.control.RangeSlider;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.micromanager.Studio;
 import org.micromanager.internal.utils.MDUtils;
-import org.micromanager.internal.utils.MMScriptException;
 import spim.hardware.Camera;
 import spim.hardware.SPIMSetup;
 import spim.ui.view.component.pane.CheckboxPane;
@@ -64,7 +65,6 @@ import spim.ui.view.component.slider.customslider.Slider;
 
 import java.nio.IntBuffer;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TreeMap;
@@ -95,6 +95,7 @@ public class CameraDevicePanel extends ScrollPane
 	private int width, height;
 	private double exposure = 33;
 	private volatile boolean isShownFirst = true;
+	private BooleanProperty visibleGuideLine = new SimpleBooleanProperty( true );
 
 	public CameraDevicePanel( SPIMSetup setup, Studio gui ) {
 		bandMap = new TreeMap<>();
@@ -227,6 +228,7 @@ public class CameraDevicePanel extends ScrollPane
 		}
 		else
 		{
+			isShownFirst = false;
 			bandMap.put( "R", new Band( new WritableImage( width, height ), new int[ 256 ], "R" ) );
 			bandMap.put( "G", new Band( new WritableImage( width, height ), new int[ 256 ], "G" ) );
 			bandMap.put( "B", new Band( new WritableImage( width, height ), new int[ 256 ], "B" ) );
@@ -283,7 +285,7 @@ public class CameraDevicePanel extends ScrollPane
 				}
 			}
 
-		}, 500, 200, TimeUnit.MILLISECONDS );
+		}, 500, 100, TimeUnit.MILLISECONDS );
 
 	}
 
@@ -610,11 +612,49 @@ public class CameraDevicePanel extends ScrollPane
 		// Grid lines 2 x 2
 		Line l1 = new Line( 0, height / 2, width, height / 2 );
 		l1.setStyle( "-fx-stroke: white" );
-		l1.setBlendMode( BlendMode.ADD );
+		l1.setBlendMode( BlendMode.SRC_ATOP );
 
 		Line l2 = new Line( width / 2, 0, width / 2, height );
 		l2.setStyle( "-fx-stroke: white" );
-		l2.setBlendMode( BlendMode.ADD );
+		l2.setBlendMode( BlendMode.SRC_ATOP );
+
+		Spinner<Integer> spinner = new Spinner<>( 1, 50, 1, 1 );
+
+		final ColorPicker colorPicker = new ColorPicker();
+		colorPicker.setOnAction(new EventHandler() {
+			public void handle( Event t) {
+				l1.setStyle( String.format( "-fx-stroke: #%s; -fx-stroke-width: %dpx;", Integer.toHexString(colorPicker.getValue().hashCode()), spinner.getValue() ) );
+				l2.setStyle( String.format( "-fx-stroke: #%s; -fx-stroke-width: %dpx;", Integer.toHexString(colorPicker.getValue().hashCode()), spinner.getValue() ) );
+			}
+		});
+
+		spinner.valueProperty().addListener( new ChangeListener< Integer >()
+		{
+			@Override public void changed( ObservableValue< ? extends Integer > observable, Integer oldValue, Integer newValue )
+			{
+				l1.setStyle( String.format( "-fx-stroke: #%s; -fx-stroke-width: %dpx;", Integer.toHexString(colorPicker.getValue().hashCode()), spinner.getValue() ) );
+				l2.setStyle( String.format( "-fx-stroke: #%s; -fx-stroke-width: %dpx;", Integer.toHexString(colorPicker.getValue().hashCode()), spinner.getValue() ) );
+			}
+		} );
+
+
+		CheckboxPane visibleGuideLine = new CheckboxPane( "Grid line" , new VBox( spinner, colorPicker ));
+		visibleGuideLine.setSelected( true );
+		visibleGuideLine.selectedProperty().addListener( new ChangeListener< Boolean >()
+		{
+			@Override public void changed( ObservableValue< ? extends Boolean > observable, Boolean oldValue, Boolean newValue )
+			{
+				if(newValue) {
+					l1.setStyle( String.format( "-fx-stroke: #%s; -fx-stroke-width: %dpx;", Integer.toHexString(colorPicker.getValue().hashCode()), spinner.getValue() ) );
+					l2.setStyle( String.format( "-fx-stroke: #%s; -fx-stroke-width: %dpx;", Integer.toHexString(colorPicker.getValue().hashCode()), spinner.getValue() ) );
+				}
+				else
+				{
+					l1.setStyle( "-fx-stroke: transparent;" );
+					l2.setStyle( "-fx-stroke: transparent;" );
+				}
+			}
+		} );
 
 
 		// Clipping rectangle
@@ -622,7 +662,7 @@ public class CameraDevicePanel extends ScrollPane
 		StackPane sp = new StackPane();
 		sp.getChildren().addAll( bandMap.values().stream().map( c -> c.imageView).collect( Collectors.toList() ) );
 		sp.setPrefSize( width, height );
-		sp.setClip( outputClip );
+//		sp.setClip( outputClip );
 
 		Group g = new Group();
 
@@ -630,6 +670,7 @@ public class CameraDevicePanel extends ScrollPane
 
 		g.getChildren().add(l1);
 		g.getChildren().add(l2);
+		g.setClip( outputClip );
 		//		g.getChildren().add(l3);
 		//		g.getChildren().add(l4);
 
@@ -669,7 +710,7 @@ public class CameraDevicePanel extends ScrollPane
 			}
 		} );
 
-		toolBox.getChildren().addAll( cameraOnSwitch, bands, buttonBox, gridpane );
+		toolBox.getChildren().addAll( cameraOnSwitch, bands, visibleGuideLine, buttonBox, gridpane );
 		toolBox.setAlignment( Pos.CENTER );
 
 		box.setSpacing( 10 );
