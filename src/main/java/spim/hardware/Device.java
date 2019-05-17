@@ -134,6 +134,31 @@ public abstract class Device {
 		}
 	}
 
+	public boolean hasPropertyLimits(String property) {
+		try
+		{
+			return core.hasPropertyLimits( label, property );
+		} catch ( Exception e ) {
+			return false;
+		}
+	}
+
+	public double getLowerLimit(String property) {
+		try {
+			return core.getPropertyLowerLimit( label, property );
+		} catch ( Exception e ) {
+			return 0.0f;
+		}
+	}
+
+	public double getUpperLimit(String property) {
+		try {
+			return core.getPropertyUpperLimit( label, property );
+		} catch ( Exception e ) {
+			return 0.0f;
+		}
+	}
+
 	/**
 	 * Returns true if the device is busy, as per the MM API.
 	 *

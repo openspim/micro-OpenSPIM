@@ -155,6 +155,8 @@ public class SPIMSetup {
 		return deviceMap.get(SPIMDevice.SYNCHRONIZER);
 	}
 
+	public Arduino getArduino1() { return (Arduino) deviceMap.get(SPIMDevice.ARDUINO1); }
+
 	/*
 	 * Some convenience methods for positioning the setup's 4D stage.
 	 */
@@ -236,6 +238,7 @@ public class SPIMSetup {
 			Class.forName( "spim.hardware.CoherentCube" );
 			Class.forName( "spim.hardware.CoherentObis" );
 			Class.forName( "spim.hardware.VersaLase" );
+			Class.forName( "spim.hardware.Arduino" );
 
 			for (SPIMDevice dev : SPIMDevice.values())
 			{

@@ -171,6 +171,10 @@ public class HalcyonMain extends HalcyonFrame
 //
 //		addNode( control2 );
 
+		ArduinoPanel arduinoPanel = new ArduinoPanel( spimSetup, studio );
+		final HalcyonNode arduino = HalcyonNode.wrap( "ArduinoUno", SpimHalcyonNodeType.SHUTTER, arduinoPanel );
+		addNode( arduino );
+
 		// Custom DemoToolbar provided here
 		DockNode lToolbar = new ToolbarPanel();
 		lToolbar.setPrefSize(300, 200);
