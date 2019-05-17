@@ -55,6 +55,11 @@ public class StagePanel extends BorderPane
 
 	private HashMap< StageUnit.Stage, StageUnit > stageMap = null;
 
+	private StageUnit stageUnitR;
+	private StageUnit stageUnitX;
+	private StageUnit stageUnitY;
+	private StageUnit stageUnitZ;
+
 	public StagePanel()
 	{
 		init();
@@ -206,6 +211,14 @@ public class StagePanel extends BorderPane
 		return unit;
 	}
 
+	public void goToPos(double x, double y, double z, double r)
+	{
+		stageUnitR.setCurrentPos(r);
+		stageUnitX.setCurrentPos(x);
+		stageUnitY.setCurrentPos(y);
+		stageUnitZ.setCurrentPos(z);
+	}
+
 	private VBox createControls()
 	{
 		final IconSwitch switchAll = new IconSwitch();
@@ -215,16 +228,16 @@ public class StagePanel extends BorderPane
 		switchAll.setThumbColor( Color.web( "#ff4922" ) );
 		switchAll.setMaxSize( 60, 30 );
 
-		StageUnit stageUnitR = createStageControl( "Stage R (\u00b5-degree)",
+		stageUnitR = createStageControl( "Stage R (\u00b5-degree)",
 				StageUnit.Stage.R );
 
-		StageUnit stageUnitX = createStageControl( "Stage X (\u00b5m)",
+		stageUnitX = createStageControl( "Stage X (\u00b5m)",
 				StageUnit.Stage.X );
 
-		StageUnit stageUnitY = createStageControl( "Stage Y (\u00b5m)",
+		stageUnitY = createStageControl( "Stage Y (\u00b5m)",
 				StageUnit.Stage.Y );
 
-		StageUnit stageUnitZ = createStageControl( "Stage Z (\u00b5m)",
+		stageUnitZ = createStageControl( "Stage Z (\u00b5m)",
 				StageUnit.Stage.Z );
 
 		switchAll.selectedProperty().addListener( new ChangeListener< Boolean >()
@@ -314,7 +327,7 @@ public class StagePanel extends BorderPane
 		HBox topHbox = new HBox( 10, new Label( "All On/Off: " ), switchAll, saveCurrentLocation, loadLocation );
 		topHbox.setAlignment( Pos.CENTER_LEFT );
 
-		VBox controls = new VBox( 10, topHbox, stageUnitR, stageUnitX, stageUnitY	, stageUnitZ );
+		VBox controls = new VBox( 10, topHbox, stageUnitR, stageUnitX, stageUnitY, stageUnitZ );
 		controls.setPadding( new Insets( 10 ) );
 		return controls;
 	}

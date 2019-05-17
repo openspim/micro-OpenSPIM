@@ -24,6 +24,7 @@ import spim.model.data.ChannelItem;
 import spim.model.data.PositionItem;
 import spim.model.event.ControlEvent;
 import spim.ui.view.component.AcquisitionPanel;
+import spim.ui.view.component.StagePanel;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -105,7 +106,7 @@ public class TableViewUtil
 			public TableCell<PositionItem, Void> call(final TableColumn<PositionItem, Void> param) {
 				final TableCell<PositionItem, Void> cell = new TableCell<PositionItem, Void>() {
 
-					private final Button btn = new Button("Set Pos");
+					private final Button btn = new Button("Go To");
 
 					{
 						btn.setOnAction(( ActionEvent event) -> {

@@ -42,6 +42,7 @@ import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.RectangleBuilder;
@@ -437,25 +438,26 @@ public class AcquisitionPanel extends BorderPane
 					PositionItem pos = (PositionItem) event.getParam()[0];
 
 					if(setup != null) {
-						double r = spimSetup.getThetaStage().getPosition() + 180.0;
-						double x = spimSetup.getXStage().getPosition();
-						double y = spimSetup.getYStage().getPosition();
-						double z = spimSetup.getZStage().getPosition();
-
-						pos.setX( x );
-						pos.setY( y );
-						pos.setR( r );
-						pos.setZStart( z );
-						pos.setZEnd( z + 10 );
-//						setup.setPosition( pos.getX(), pos.getY(), pos.getZStart(), pos.getR() - 180.0 );
-//						System.out.println("Stage_Move: " + pos);
+//						double r = spimSetup.getThetaStage().getPosition() + 180.0;
+//						double x = spimSetup.getXStage().getPosition();
+//						double y = spimSetup.getYStage().getPosition();
+//						double z = spimSetup.getZStage().getPosition();
+//
+//						pos.setX( x );
+//						pos.setY( y );
+//						pos.setR( r );
+//						pos.setZStart( z );
+//						pos.setZEnd( z + 10 );
+						stagePanel.goToPos( pos.getX(), pos.getY(), pos.getZStart(), pos.getR() );
+						System.out.println("Stage_Move: " + pos);
 					}
 					else {
-						pos.setX( 200 );
-						pos.setY( 100 );
-						pos.setR( 300 );
-						pos.setZStart( 60 );
-						pos.setZEnd( 60 + 10 );
+//						pos.setX( 200 );
+//						pos.setY( 100 );
+//						pos.setR( 300 );
+//						pos.setZStart( 60 );
+//						pos.setZEnd( 60 + 10 );
+						System.out.println("Stage_Move: " + pos);
 					}
 					int i = positionItemTableView.getSelectionModel().getSelectedIndex();
 					positionItemTableView.getSelectionModel().clearSelection();
@@ -521,36 +523,44 @@ public class AcquisitionPanel extends BorderPane
 		System.out.println("Acquire button pressed");
 	}
 
-	private CheckboxPane createPositionListPane(TableView< PositionItem > positionItemTableView) {
+	private CheckboxPane createPositionListPane( TableView< PositionItem > positionItemTableView ) {
 		positionItemTableView.setEditable( true );
 
-		MenuItem newItem = new MenuItem( "New" );
-		newItem.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				if(spimSetup != null ) {
-					double r = spimSetup.getThetaStage().getPosition() + 180.0;
-					double x = spimSetup.getXStage().getPosition();
-					double y = spimSetup.getYStage().getPosition();
-					double z = spimSetup.getZStage().getPosition();
-					positionItemTableView.getItems().add( new PositionItem( x, y, r, z, 10, 5 ) );
-				}
-				else {
-					positionItemTableView.getItems().add( new PositionItem( 10, 20, 30, 20, 50, 10 ) );
-				}
+		EventHandler newEventHandler = ( EventHandler< ActionEvent > ) event -> {
+			if(spimSetup != null ) {
+				double r = spimSetup.getThetaStage().getPosition() + 180.0;
+				double x = spimSetup.getXStage().getPosition();
+				double y = spimSetup.getYStage().getPosition();
+				double z = spimSetup.getZStage().getPosition();
+				positionItemTableView.getItems().add( new PositionItem( x, y, r, z, 10, 5 ) );
 			}
-		} );
+			else {
+				positionItemTableView.getItems().add( new PositionItem( 10, 20, 30, 20, 50, 10 ) );
+			}
+		};
 
-		MenuItem deleteItem = new MenuItem( "Delete" );
-		deleteItem.setOnAction( new EventHandler< ActionEvent >()
+		EventHandler deleteEventHandler = new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
 			{
 				if(positionItemTableView.getSelectionModel().getSelectedIndex() > -1)
 					positionItemTableView.getItems().remove( positionItemTableView.getSelectionModel().getSelectedIndex() );
 			}
-		} );
+		};
+
+		Button newButton = new Button("New with current Pos");
+		newButton.setOnAction( newEventHandler );
+
+		Button deleteButton = new Button("Delete");
+		deleteButton.setOnAction( deleteEventHandler );
+
+		MenuItem newItem = new MenuItem( "New with current Pos" );
+		newItem.setOnAction( event -> newButton.fire() );
+
+		MenuItem deleteItem = new MenuItem( "Delete" );
+		deleteItem.setOnAction( event -> deleteButton.fire() );
+
+		HBox hbox = new HBox( 5, newButton, deleteButton );
 
 		positionItemTableView.getSelectionModel().selectedItemProperty().addListener( new ChangeListener< PositionItem >()
 		{
@@ -570,7 +580,7 @@ public class AcquisitionPanel extends BorderPane
 			}
 		} );
 
-		CheckboxPane pane = new CheckboxPane( "Positions", positionItemTableView );
+		CheckboxPane pane = new CheckboxPane( "Positions", new VBox( hbox, positionItemTableView ) );
 		enabledPositions = pane.selectedProperty();
 		return pane;
 	}
