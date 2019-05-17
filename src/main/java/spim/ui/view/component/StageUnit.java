@@ -98,14 +98,13 @@ public class StageUnit extends Region
 		{
 			targetSlider.getSlider().setDisable( !newValue );
 			targetSlider.getTextField().setDisable( !newValue );
-//			if ( !newValue )
-//				indicator.setIndicatorStyle( SimpleIndicator.IndicatorStyle.GRAY );
+			if ( !newValue )
+				indicator.setIndicatorStyle( SimpleIndicator.IndicatorStyle.GRAY );
 
 			if ( newValue )
 			{
-//				targetValueProperty.setValue( currentValue );
-//				targetSlider.getSlider().setValue( currentValue );
-				setCurrentPos(currentValue);
+				targetValueProperty.setValue( currentValue );
+				targetSlider.getSlider().setValue( currentValue );
 			} else {
 				currentValue = ( null == stageDevice ? 0.0 : ( isR ? stageDevice.getPosition() + 180.0 : stageDevice.getPosition() ) );
 			}
@@ -135,7 +134,9 @@ public class StageUnit extends Region
 		homingButton.setAlignment( Pos.BASELINE_LEFT );
 		homingButton.setPrefWidth( 70 );
 		homingButton.setOnAction( event -> {
-			setCurrentPos(0.0);
+			targetValueProperty.setValue( 0.0 );
+			targetSlider.getSlider().setValue( 0.0 );
+			booleanStateMap.get( BooleanState.Ready ).setValue( false );
 		} );
 
 		final Button stopButton = new Button( "Stop" );
@@ -152,10 +153,9 @@ public class StageUnit extends Region
 		resetButton.setAlignment( Pos.BASELINE_LEFT );
 		resetButton.setPrefWidth( 70 );
 		resetButton.setOnAction( event -> {
-//			targetValueProperty.setValue( currentValue );
-//			targetSlider.getSlider().setValue( currentValue );
-//			booleanStateMap.get( BooleanState.Ready ).setValue( false );
-			setCurrentPos(currentValue);
+			targetValueProperty.setValue( currentValue );
+			targetSlider.getSlider().setValue( currentValue );
+			booleanStateMap.get( BooleanState.Ready ).setValue( false );
 		} );
 
 		GridPane gridPane = new GridPane();
@@ -187,10 +187,9 @@ public class StageUnit extends Region
 			{
 				double unit = isR ? -5 : -100;
 				double n = Math.max( ( ( SimpleDoubleProperty ) targetValueProperty ).get() + unit, 0);
-//				targetValueProperty.setValue( n );
-//				targetSlider.getSlider().setValue( n );
-//				booleanStateMap.get( BooleanState.Ready ).setValue( false );
-				setCurrentPos(n);
+				targetValueProperty.setValue( n );
+				targetSlider.getSlider().setValue( n );
+				booleanStateMap.get( BooleanState.Ready ).setValue( false );
 			}
 		} );
 		// 10 um
@@ -203,10 +202,9 @@ public class StageUnit extends Region
 			{
 				double unit = isR ? -1 : -10;
 				double n = Math.max( ( ( SimpleDoubleProperty ) targetValueProperty ).get() + unit, 0);
-//				targetValueProperty.setValue( n );
-//				targetSlider.getSlider().setValue( n );
-//				booleanStateMap.get( BooleanState.Ready ).setValue( false );
-				setCurrentPos(n);
+				targetValueProperty.setValue( n );
+				targetSlider.getSlider().setValue( n );
+				booleanStateMap.get( BooleanState.Ready ).setValue( false );
 			}
 		} );
 
@@ -220,10 +218,9 @@ public class StageUnit extends Region
 			{
 				double unit = isR ? 5 : 100;
 				double n = Math.min( ( ( SimpleDoubleProperty ) targetValueProperty ).get() + unit, targetSlider.getSlider().getMax() );
-//				targetValueProperty.setValue( n );
-//				targetSlider.getSlider().setValue( n );
-//				booleanStateMap.get( BooleanState.Ready ).setValue( false );
-				setCurrentPos(n);
+				targetValueProperty.setValue( n );
+				targetSlider.getSlider().setValue( n );
+				booleanStateMap.get( BooleanState.Ready ).setValue( false );
 			}
 		} );
 		// 10 um
@@ -236,10 +233,9 @@ public class StageUnit extends Region
 			{
 				double unit = isR ? 1 : 10;
 				double n = Math.min( ( ( SimpleDoubleProperty ) targetValueProperty ).get() + unit, targetSlider.getSlider().getMax() );
-//				targetValueProperty.setValue( n );
-//				targetSlider.getSlider().setValue( n );
-//				booleanStateMap.get( BooleanState.Ready ).setValue( false );
-				setCurrentPos(n);
+				targetValueProperty.setValue( n );
+				targetSlider.getSlider().setValue( n );
+				booleanStateMap.get( BooleanState.Ready ).setValue( false );
 			}
 		} );
 
@@ -252,7 +248,7 @@ public class StageUnit extends Region
 		enableSwitch.selectedProperty().addListener( ( observable, oldValue, newValue ) ->
 		{
 			booleanStateMap.get( BooleanState.Enable ).set( newValue );
-			booleanStateMap.get( BooleanState.Ready ).setValue( newValue );
+//			booleanStateMap.get( BooleanState.Ready ).setValue( newValue );
 			buttonsBox.setDisable( !newValue );
 		} );
 
