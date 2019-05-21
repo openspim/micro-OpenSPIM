@@ -1,9 +1,13 @@
 package spim.model.data;
 
+import javafx.beans.InvalidationListener;
+import javafx.beans.Observable;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -16,7 +20,7 @@ public class ChannelItem
 
 	private final BooleanProperty selected = new SimpleBooleanProperty();
 	private final ObjectProperty<Type> type = new SimpleObjectProperty<>();
-	String name;
+	private final StringProperty name = new SimpleStringProperty();
 	String laser;
 	Number value;
 
@@ -24,21 +28,29 @@ public class ChannelItem
 	{
 	}
 
-	public ChannelItem( String camera, String laser, double exposure )
+	public ChannelItem( String camera, String laser, double exposure, InvalidationListener invalidationListener )
 	{
 		selected.set( true );
 		type.set( Type.Laser );
-		this.name = camera;
+		this.name.set( camera );
 		this.laser = laser;
 		this.value = exposure;
+		selectedProperty().addListener( observable -> invalidationListener.invalidated( observable ) );
 	}
 
 	public ChannelItem( String name, double exposure )
 	{
-		selected.set( true );
 		type.set( Type.Arduino );
-		this.name = name;
+		this.name.set( name );
 		this.value = exposure;
+	}
+
+	public ChannelItem( PinItem item, int exposure, InvalidationListener invalidationListener )
+	{
+		type.set( Type.Arduino );
+		this.name.bind( item.pinNameProperty() );
+		this.value = exposure;
+		selectedProperty().addListener( observable -> invalidationListener.invalidated( observable ) );
 	}
 
 	public BooleanProperty selectedProperty() { return selected; }
@@ -65,14 +77,18 @@ public class ChannelItem
 		this.type.set( type );
 	}
 
+	public StringProperty nameProperty() {
+		return this.name;
+	}
+
 	public String getName()
 	{
-		return name;
+		return name.get();
 	}
 
 	public void setName( String name )
 	{
-		this.name = name;
+		this.name.set( name );
 	}
 
 	public String getLaser()

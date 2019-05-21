@@ -21,6 +21,7 @@ import javafx.scene.input.TransferMode;
 import javafx.util.Callback;
 import javafx.util.converter.NumberStringConverter;
 import spim.model.data.ChannelItem;
+import spim.model.data.PinItem;
 import spim.model.data.PositionItem;
 import spim.model.event.ControlEvent;
 import spim.ui.view.component.AcquisitionPanel;
@@ -312,13 +313,10 @@ public class TableViewUtil
 		tv.getColumns().add(typeColumn);
 
 		TableColumn<ChannelItem, String> column = new TableColumn<>("Name");
-		column.setPrefWidth(100);
+		column.setPrefWidth(150);
 		column.setCellValueFactory( (param) ->
-				new ReadOnlyStringWrapper( param.getValue().getName() )
+				param.getValue().nameProperty()
 		);
-		column.setCellFactory( ChoiceBoxTableCell.forTableColumn(
-				FXCollections.observableArrayList( "Pin-13", "Pin-12", "Pin-11", "Pin-10", "Pin-9", "Pin-8") ) );
-		column.setOnEditCommit( event -> event.getRowValue().setName( event.getNewValue() ) );
 		tv.getColumns().add(column);
 
 		TableColumn<ChannelItem, Number> numberColumn = new TableColumn<>("Exposure");
@@ -331,56 +329,41 @@ public class TableViewUtil
 		numberColumn.setEditable( true );
 		tv.getColumns().add(numberColumn);
 
-		// Drag and drop
-		tv.setRowFactory(ev -> {
-			TableRow<ChannelItem> row = new TableRow<>();
+		return tv;
+	}
 
-			row.setOnDragDetected(event -> {
-				if (! row.isEmpty()) {
-					Integer index = row.getIndex();
-					Dragboard db = row.startDragAndDrop( TransferMode.MOVE);
-					db.setDragView(row.snapshot(null, null));
-					ClipboardContent cc = new ClipboardContent();
-					cc.put(SERIALIZED_MIME_TYPE, index);
-					db.setContent(cc);
-					event.consume();
-				}
-			});
+	public static TableView< PinItem > createPinItemArduinoDataView()
+	{
+		TableView<PinItem> tv = new TableView<>();
 
-			row.setOnDragOver(event -> {
-				Dragboard db = event.getDragboard();
-				if (db.hasContent(SERIALIZED_MIME_TYPE)) {
-					if (row.getIndex() != ((Integer)db.getContent(SERIALIZED_MIME_TYPE)).intValue()) {
-						event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
-						event.consume();
-					}
-				}
-			});
+		TableColumn<PinItem, String> column = new TableColumn<>("Pin");
+		column.setPrefWidth(100);
+		column.setCellValueFactory( (param) ->
+				new ReadOnlyStringWrapper( param.getValue().getPin() )
+		);
+		tv.getColumns().add(column);
 
-			row.setOnDragDropped(event -> {
-				Dragboard db = event.getDragboard();
-				if (db.hasContent(SERIALIZED_MIME_TYPE)) {
-					int draggedIndex = (Integer) db.getContent(SERIALIZED_MIME_TYPE);
-					ChannelItem draggedItem = tv.getItems().remove(draggedIndex);
+		TableColumn<PinItem, Number> numberColumn = new TableColumn<>("Switch-State");
+		numberColumn.setPrefWidth(100);
+		numberColumn.setCellValueFactory( (param) ->
+				new ReadOnlyDoubleWrapper( param.getValue().getState() )
+		);
+		numberColumn.setCellFactory( TextFieldTableCell.forTableColumn( new NumberStringConverter() ) );
+		numberColumn.setOnEditCommit( event -> event.getRowValue().setState( event.getNewValue().intValue() ) );
+		numberColumn.setEditable( true );
+		tv.getColumns().add(numberColumn);
 
-					int dropIndex ;
+		column = new TableColumn<>("Hardware component");
+		column.setPrefWidth(170);
+		column.setCellValueFactory( (param) ->
+				new ReadOnlyStringWrapper( param.getValue().getPinName() )
+		);
+		column.setCellFactory( TextFieldTableCell.forTableColumn() );
+		column.setOnEditCommit( event -> event.getRowValue().setPinName( event.getNewValue() ) );
+		column.setEditable( true );
 
-					if (row.isEmpty()) {
-						dropIndex = tv.getItems().size() ;
-					} else {
-						dropIndex = row.getIndex();
-					}
-
-					tv.getItems().add(dropIndex, draggedItem);
-
-					event.setDropCompleted(true);
-					tv.getSelectionModel().select(dropIndex);
-					event.consume();
-				}
-			});
-
-			return row ;
-		});
+		tv.getColumns().add(column);
+		tv.setId( "arduino" );
 
 		return tv;
 	}

@@ -159,7 +159,11 @@ public class HalcyonMain extends HalcyonFrame
 
 		addNode(editor1);
 
-		AcquisitionPanel acquisitionPanel = new AcquisitionPanel( primaryStage, spimSetup, studio, stagePanel );
+		ArduinoPanel arduinoPanel = new ArduinoPanel( spimSetup, studio );
+		final HalcyonNode arduino = HalcyonNode.wrap( "ArduinoUno", SpimHalcyonNodeType.SHUTTER, arduinoPanel );
+		addNode( arduino );
+
+		AcquisitionPanel acquisitionPanel = new AcquisitionPanel( primaryStage, spimSetup, studio, stagePanel, arduinoPanel.getPinItemTableView() );
 		final HalcyonNode control1 = HalcyonNode.wrap( "Acquisition",
 				SpimHalcyonNodeType.CONTROL,
 				acquisitionPanel );
@@ -170,10 +174,6 @@ public class HalcyonMain extends HalcyonFrame
 //				new Stage3DPanel() );
 //
 //		addNode( control2 );
-
-		ArduinoPanel arduinoPanel = new ArduinoPanel( spimSetup, studio );
-		final HalcyonNode arduino = HalcyonNode.wrap( "ArduinoUno", SpimHalcyonNodeType.SHUTTER, arduinoPanel );
-		addNode( arduino );
 
 		// Custom DemoToolbar provided here
 		DockNode lToolbar = new ToolbarPanel();

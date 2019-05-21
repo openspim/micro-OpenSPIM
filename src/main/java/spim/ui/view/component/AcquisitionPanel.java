@@ -54,6 +54,7 @@ import org.micromanager.Studio;
 import spim.hardware.SPIMSetup;
 import spim.model.data.AcquisitionSetting;
 import spim.model.data.ChannelItem;
+import spim.model.data.PinItem;
 import spim.model.data.PositionItem;
 import spim.model.event.ControlEvent;
 import spim.ui.view.component.pane.CheckboxPane;
@@ -115,7 +116,7 @@ public class AcquisitionPanel extends BorderPane
 	ObjectProperty savingFormat;
 	BooleanProperty saveAsHDF5;
 
-	public AcquisitionPanel( Stage stage, SPIMSetup setup, Studio studio, StagePanel stagePanel ) {
+	public AcquisitionPanel( Stage stage, SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView< PinItem > pinItemTableView ) {
 		this.spimSetup = setup;
 		this.studio = studio;
 		this.propertyMap = new HashMap<>();
@@ -178,13 +179,13 @@ public class AcquisitionPanel extends BorderPane
 
 		// Channel list
 		channelItemTableView = TableViewUtil.createChannelItemDataView();
-		Tab laserTab = new Tab( "Laser Shutter" );
+		Tab laserTab = new Tab( "Software Controlled" );
 		laserTab.setContent( createChannelItemTable( channelItemTableView ) );
 		laserTab.setClosable( false );
 
 		channelItemArduinoTableView = TableViewUtil.createChannelItemArduinoDataView();
-		Tab arduinoTab = new Tab( "Arduino Shutter" );
-		arduinoTab.setContent( createChannelItemArduinoTable( channelItemArduinoTableView ) );
+		Tab arduinoTab = new Tab( "Arduino Controlled" );
+		arduinoTab.setContent( createChannelItemArduinoTable( channelItemArduinoTableView, pinItemTableView ) );
 		arduinoTab.setClosable( false );
 
 		channelTabPane = new TabPane( laserTab, arduinoTab );
@@ -493,7 +494,10 @@ public class AcquisitionPanel extends BorderPane
 		channelItemTableView.getItems().setAll( channelItems );
 
 		channelItemsArduino = setting.getChannelItemsArduino();
-		channelItemArduinoTableView.getItems().setAll( channelItemsArduino );
+		ObservableList<ChannelItem> arduinoItems = channelItemArduinoTableView.getItems();
+		for(int i = 0; i < arduinoItems.size(); i++) {
+			arduinoItems.get( i ).setSelected( channelItemsArduino.get(i).getSelected() );
+		}
 
 		// Save Image panel
 		enabledSaveImages.set( setting.getEnabledSaveImages() );
@@ -648,13 +652,15 @@ public class AcquisitionPanel extends BorderPane
 	private TableView< ChannelItem > createChannelItemTable(TableView< ChannelItem > channelItemTableView) {
 		channelItemTableView.setEditable( true );
 
+		InvalidationListener invalidationListener = observable -> computeTotalChannels();
+
 		MenuItem newItem = new MenuItem( "New" );
 		newItem.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
 			{
 				// TODO: Get the current position from the stage control and make the new position
-				channelItemTableView.getItems().add( new ChannelItem( "Camera-1", "Laser-1", 20 ) );
+				channelItemTableView.getItems().add( new ChannelItem( "Camera-1", "Laser-1", 20, invalidationListener ) );
 			}
 		} );
 
@@ -682,39 +688,15 @@ public class AcquisitionPanel extends BorderPane
 		return channelItemTableView;
 	}
 
-	private TableView< ChannelItem > createChannelItemArduinoTable(TableView< ChannelItem > channelItemTableView) {
+	private TableView< ChannelItem > createChannelItemArduinoTable( TableView< ChannelItem > channelItemTableView, TableView< PinItem > pinItemTableView ) {
 		channelItemTableView.setEditable( true );
 
-		MenuItem newItem = new MenuItem( "New" );
-		newItem.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				// TODO: Get the current position from the stage control and make the new position
-				channelItemTableView.getItems().add( new ChannelItem( "Pin-13", 20 ) );
-			}
-		} );
+		InvalidationListener invalidationListener = observable -> computeTotalChannels();
 
-		MenuItem deleteItem = new MenuItem( "Delete" );
-		deleteItem.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				if(channelItemTableView.getSelectionModel().getSelectedIndex() > -1)
-					channelItemTableView.getItems().remove( channelItemTableView.getSelectionModel().getSelectedIndex() );
-			}
-		} );
-
-		// add context menu here
-		channelItemTableView.setContextMenu( new ContextMenu( newItem, deleteItem ) );
-
-		channelItemTableView.getItems().addListener( new InvalidationListener()
-		{
-			@Override public void invalidated( Observable observable )
-			{
-				computeTotalChannels();
-			}
-		} );
+		for (PinItem item : pinItemTableView.getItems()) {
+			if(item.getState() > 0 && item.getState() < 63)
+				channelItemTableView.getItems().add( new ChannelItem( item, 20, invalidationListener ) );
+		}
 
 		return channelItemTableView;
 	}
@@ -723,8 +705,8 @@ public class AcquisitionPanel extends BorderPane
 		int totalChannels;
 
 		if(channelTabPane.getSelectionModel().isSelected( 0 ))
-			totalChannels = channelItemTableView.getItems().size();
-		else totalChannels = channelItemArduinoTableView.getItems().size();
+			totalChannels = (int) channelItemTableView.getItems().stream().filter( c -> c.getSelected() ).count();
+		else totalChannels = (int) channelItemArduinoTableView.getItems().stream().filter( c -> c.getSelected() ).count();
 
 		propertyMap.get("channels").setValue( totalChannels + "" );
 	}
