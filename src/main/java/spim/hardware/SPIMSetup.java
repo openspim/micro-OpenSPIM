@@ -336,6 +336,9 @@ public class SPIMSetup {
 		case CAMERA2:
 			return getCameraDevie( 1 );
 
+		case ARDUINO1:
+			return getArduinoDevice( 0 );
+
 		case SYNCHRONIZER:
 			// wot
 			return null;
@@ -359,6 +362,15 @@ public class SPIMSetup {
 		ArrayList<String> list = new ArrayList<>(  );
 		for (String s : core.getLoadedDevicesOfType(DeviceType.CameraDevice)) {
 			if(s.startsWith( "Multi Camera" )) continue;
+			list.add( s );
+		}
+		if(i > (list.size() - 1)) return null;
+		return list.get(i);
+	}
+
+	private String getArduinoDevice(int i) {
+		ArrayList<String> list = new ArrayList<>(  );
+		for (String s : core.getLoadedDevicesOfType(DeviceType.StateDevice)) {
 			list.add( s );
 		}
 		if(i > (list.size() - 1)) return null;
