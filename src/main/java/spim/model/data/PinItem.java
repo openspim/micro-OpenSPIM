@@ -4,6 +4,11 @@ import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import spim.ui.view.component.ArduinoPanel;
+
+import java.util.Properties;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -26,6 +31,42 @@ public class PinItem
 		this.pin = pin;
 		this.state.set(state);
 		this.pinName.set( pinName );
+	}
+
+	public static PinItem createPinItem( String pin, Properties prop, ArduinoPanel.PinList pinList ) {
+		String[] tokens = prop.getProperty( pin ).split( "," );
+		PinItem item;
+		if(tokens.length == 2) {
+			item = new PinItem( pin, Integer.parseInt( tokens[0].trim() ), tokens[1].trim());
+		}
+		else
+		{
+			item = new PinItem( pin, Integer.parseInt( tokens[0].trim() ));
+		}
+
+		item.pinNameProperty().addListener( generatePinNameChangeListener(prop, item, pinList) );
+		item.stateProperty().addListener( generateStateChangeListener(prop, item, pinList) );
+		return item;
+	}
+
+	private static ChangeListener< String > generatePinNameChangeListener( Properties prop, PinItem item, ArduinoPanel.PinList pinList ) {
+		return ( observable, oldValue, newValue ) -> {
+			if(newValue.isEmpty() || newValue.equals( "Pin-" + item.pin ))
+				prop.setProperty( item.pin, item.getState() + "" );
+			else
+				prop.setProperty( item.pin, item.getState() + ", " + newValue );
+			pinList.store();
+		};
+	}
+
+	private static ChangeListener< Number > generateStateChangeListener( Properties prop, PinItem item, ArduinoPanel.PinList pinList ) {
+		return ( observable, oldValue, newValue ) -> {
+			if(item.getPinName().equals( "Pin-" + item.pin ))
+				prop.setProperty( item.pin, newValue + "" );
+			else
+				prop.setProperty( item.pin, newValue + ", " + item.getPinName() );
+			pinList.store();
+		};
 	}
 
 	public String getPin()

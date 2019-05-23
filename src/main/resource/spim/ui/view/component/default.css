@@ -7,3 +7,22 @@
     -fx-background-color: transparent;
     -fx-padding: 8;
 }
+
+#arduino .table-cell{
+  -fx-font-weight:bold;
+  -fx-font-size:9px;
+}
+
+#arduino .table-row-cell{
+    -fx-padding: 0;
+    -fx-pref-height: 22px;
+}
+
+#arduino *.increment-button,
+#arduino *.decrement-button,
+#arduino *.increment-arrow,
+#arduino *.decrement-arrow
+{
+    -fx-padding: 0;
+    -fx-shape: "";
+}
