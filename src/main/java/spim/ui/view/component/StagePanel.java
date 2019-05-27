@@ -103,7 +103,7 @@ public class StagePanel extends BorderPane
 						} );
 					}
 				}
-			}, 500, 5, TimeUnit.MILLISECONDS );
+			}, 500, 10, TimeUnit.MILLISECONDS );
 		}
 		else
 		{
@@ -129,18 +129,19 @@ public class StagePanel extends BorderPane
 								break;
 						}
 
-						stageMap.get( stage ).deviceValueProperty().setValue( device );
-
 						double error = target - device;
 						double granularity = stage == StageUnit.Stage.R ? 2.5 : 1.5;
 
+						double finalDevice = device;
 						Platform.runLater( () -> {
+							stageMap.get( stage ).deviceValueProperty().setValue( finalDevice );
+
 							if ( abs( error ) < granularity )
 								stageMap.get( stage ).get( StageUnit.BooleanState.Ready ).set( true );
 						} );
 					}
 				}
-			}, 500, 5, TimeUnit.MILLISECONDS );
+			}, 500, 10, TimeUnit.MILLISECONDS );
 		}
 	}
 
