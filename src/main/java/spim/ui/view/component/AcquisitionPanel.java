@@ -1,13 +1,17 @@
 package spim.ui.view.component;
 
+import ij.ImagePlus;
+import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.binding.StringBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.LongProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -66,6 +70,8 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -116,11 +122,22 @@ public class AcquisitionPanel extends BorderPane
 	ObjectProperty savingFormat;
 	BooleanProperty saveAsHDF5;
 
+	// properties for progress
+	LongProperty totalImages, processedImages;
+
+	// Cameras
+	int noCams = 0;
+
+	Thread acquisitionThread = null;
+
 	public AcquisitionPanel( Stage stage, SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView< PinItem > pinItemTableView ) {
 		this.spimSetup = setup;
 		this.studio = studio;
 		this.propertyMap = new HashMap<>();
 		this.currentPosition = new SimpleObjectProperty<>();
+
+		this.totalImages = new SimpleLongProperty();
+		this.processedImages = new SimpleLongProperty();
 
 		// 1. Property Map for summary panel
 		this.propertyMap.put( "times", new SimpleStringProperty( "0" ) );
@@ -150,6 +167,11 @@ public class AcquisitionPanel extends BorderPane
 			this.imageDepth = 8;
 			this.bufferSize = 512 * 512;
 		}
+
+		if(setup.getCamera1() != null) noCams++;
+		if(setup.getCamera2() != null) noCams++;
+
+		this.bufferSize = this.imageWidth * this.imageHeight * this.imageDepth / 8;
 
 		positionItemTableView = TableViewUtil.createPositionItemDataView(this);
 
@@ -271,22 +293,10 @@ public class AcquisitionPanel extends BorderPane
 
 		disabledAcquisitionOrder.bind( bb );
 
-		final Slider slider = new Slider();
-		slider.setMin(-1);
-		slider.setMax(50);
-
-		final ProgressBar pb = new ProgressBar(-1);
-		final ProgressIndicator pi = new ProgressIndicator(-1);
+		final ProgressBar pb = new ProgressBar(0);
+		final ProgressIndicator pi = new ProgressIndicator(0);
 		pi.setMinSize( 50,50 );
 		pi.setMaxSize( 50,50 );
-
-		slider.valueProperty().addListener(new ChangeListener<Number>() {
-			public void changed( ObservableValue<? extends Number> ov,
-					Number old_val, Number new_val) {
-				pb.setProgress(new_val.doubleValue()/50);
-				pi.setProgress(new_val.doubleValue()/50);
-			}
-		});
 
 		final HBox hb = new HBox();
 		hb.setSpacing(5);
@@ -302,8 +312,15 @@ public class AcquisitionPanel extends BorderPane
 			{
 				liveOn.set( !liveOn.get() );
 				if(liveOn.get())
+				{
 					liveViewButton.setText( "LiveView Stop" );
-				else liveViewButton.setText( "LiveView Start" );
+					if(studio != null)
+						studio.live().setLiveMode( true );
+				} else {
+					liveViewButton.setText( "LiveView Start" );
+					if(studio != null)
+						studio.live().setLiveMode( false );
+				}
 			}
 		} );
 
@@ -337,7 +354,33 @@ public class AcquisitionPanel extends BorderPane
 			}
 		} );
 
-		hb.getChildren().addAll(liveViewButton, acquireButton, stopButton, slider, pb, pi);
+//		if(spimSetup == null) {
+//			final Slider slider = new Slider();
+//			slider.setMin(-1);
+//			slider.setMax(50);
+//
+//			slider.valueProperty().addListener(new ChangeListener<Number>() {
+//				public void changed( ObservableValue<? extends Number> ov,
+//						Number old_val, Number new_val) {
+//					pb.setProgress(new_val.doubleValue()/50);
+//					pi.setProgress(new_val.doubleValue()/50);
+//				}
+//			});
+//			hb.getChildren().addAll(liveViewButton, acquireButton, stopButton, slider, pb, pi);
+//		}
+//		else
+		{
+
+			processedImages.addListener( new ChangeListener< Number >()
+			{
+				@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
+				{
+					pi.setProgress( newValue.doubleValue() / totalImages.getValue() );
+				}
+			} );
+			hb.getChildren().addAll(liveViewButton, acquireButton, stopButton, pi);
+		}
+
 
 		Button saveButton = new Button( "Save acquisition setting" );
 		saveButton.setMinSize( 150, 40 );
@@ -496,8 +539,10 @@ public class AcquisitionPanel extends BorderPane
 		channelItemsArduino = setting.getChannelItemsArduino();
 		ObservableList<ChannelItem> arduinoItems = channelItemArduinoTableView.getItems();
 		for(int i = 0; i < arduinoItems.size(); i++) {
+			arduinoItems.get( i ).setValue( channelItemsArduino.get(i).getValue() );
 			arduinoItems.get( i ).setSelected( channelItemsArduino.get(i).getSelected() );
 		}
+		channelItemArduinoTableView.refresh();
 
 		// Save Image panel
 		enabledSaveImages.set( setting.getEnabledSaveImages() );
@@ -520,11 +565,82 @@ public class AcquisitionPanel extends BorderPane
 	public void stopAcquisition()
 	{
 		System.out.println("Stop button pressed");
+
+		if ( acquisitionThread == null )
+		{
+			System.err.println("Acquisition thread is not running!");
+			return;
+		}
+
+		try
+		{
+			acquisitionThread.interrupt();
+			acquisitionThread.join(30000);
+		} catch (NullPointerException npe) {
+			// Don't care.
+		} catch (InterruptedException e1) {
+			System.err.println("Couldn't stop the thread gracefully.");
+		}
+
+		acquisitionThread = null;
+		Platform.runLater( () -> processedImages.set( 0 ) );
 	}
 
 	public void startAcquisition()
 	{
 		System.out.println("Acquire button pressed");
+
+		if ( acquisitionThread != null )
+		{
+			System.err.println("Acquisition thread is running!");
+			return;
+		}
+
+		AcquisitionEngine engine = new AcquisitionEngine();
+
+		engine.init();
+
+		List<ChannelItem> channelItemList;
+
+		final boolean arduinoSelected = channelTabPane.getSelectionModel().isSelected( 1 );
+
+		if(arduinoSelected)
+			channelItemList = channelItemArduinoTableView.getItems().stream().filter( c -> c.getSelected() ).collect( Collectors.toList() );
+		else
+			channelItemList = channelItemTableView.getItems().stream().filter( c -> c.getSelected() ).collect( Collectors.toList() );
+
+		int tp = propertyMap.get("times").getValue().isEmpty() ? 1 : Integer.parseInt( propertyMap.get("times").getValue() );
+		double deltaT = Double.parseDouble( intervalTimePoints.getValue() );
+
+		double unit = getUnit( intervalUnitTimePoints.getValue().toString() );
+
+		acquisitionThread = new Thread( () -> {
+			try
+			{
+				engine.performAcquisition( spimSetup, tp, deltaT * unit, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages );
+
+				acquisitionThread = null;
+			}
+			catch ( Exception e )
+			{
+				e.printStackTrace();
+			}
+		} );
+
+		acquisitionThread.start();
+	}
+
+	static double getUnit(String unitString) {
+		double unit = 1;
+
+		switch ( unitString ) {
+			case "ms" : unit = 0.001;
+				break;
+			case "min" : unit = 60;
+				break;
+		}
+
+		return unit;
 	}
 
 	private CheckboxPane createPositionListPane( TableView< PositionItem > positionItemTableView ) {
@@ -727,26 +843,28 @@ public class AcquisitionPanel extends BorderPane
 		label.textProperty().addListener( observable -> computeTotal() );
 		gridpane.addRow( 1, new Label("Images in positions: "), label );
 
+		gridpane.addRow( 2, new Label("No. of cameras: "), new Label( noCams + ""));
+
 		label = new Label();
 		label.textProperty().bind( propertyMap.get("channels") );
 		label.textProperty().addListener( observable -> computeTotal() );
-		gridpane.addRow( 2, new Label("No. of channels: "), label );
+		gridpane.addRow( 3, new Label("No. of channels: "), label );
 
 		label = new Label();
 		label.textProperty().bind( propertyMap.get("totalImages") );
-		gridpane.addRow( 3, new Label("Total images: "), label );
+		gridpane.addRow( 4, new Label("Total images: "), label );
 
 		label = new Label();
 		label.textProperty().bind( propertyMap.get("totalSize") );
-		gridpane.addRow( 4, new Label("Total size: "), label );
+		gridpane.addRow( 5, new Label("Total size: "), label );
 
 		label = new Label();
 		label.textProperty().bind( propertyMap.get("duration") );
-		gridpane.addRow( 5, new Label("Duration: "), label );
+		gridpane.addRow( 6, new Label("Duration: "), label );
 
 		label = new Label();
 		label.textProperty().bind( propertyMap.get("order") );
-		gridpane.addRow( 6, new Label("Order: "), label );
+		gridpane.addRow( 7, new Label("Order: "), label );
 
 		return new LabeledPane( "Summary", gridpane );
 	}
@@ -759,9 +877,10 @@ public class AcquisitionPanel extends BorderPane
 		tp = tp == 0 ? 1: tp;
 		pos = pos == 0 ? 1: pos;
 		ch = ch == 0 ? 1: ch;
-		long tot = tp * pos * ch;
+		long tot = tp * pos * ch * noCams;
 
 		propertyMap.get("totalImages").setValue( String.format( "%d", tot ) );
+		this.totalImages.set( tot );
 		propertyMap.get("totalSize").setValue( formatFileSize( tot * bufferSize ) );
 	}
 
@@ -933,14 +1052,7 @@ public class AcquisitionPanel extends BorderPane
 			@Override protected String computeValue()
 			{
 				if( intervalTimePoints.get().isEmpty() || intervalTimePoints.get().isEmpty() ) return "0h 0m 0.00s";
-				double unit = 1;
-
-				switch ( intervalUnitTimePoints.getValue().toString() ) {
-					case "ms" : unit = 0.001;
-						break;
-					case "min" : unit = 60;
-						break;
-				}
+				double unit = getUnit( intervalUnitTimePoints.getValue().toString() );
 
 				double total = unit * Double.parseDouble( numTimePoints.getValue() ) * Double.parseDouble( intervalTimePoints.getValue() );
 
