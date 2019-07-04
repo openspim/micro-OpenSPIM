@@ -65,26 +65,26 @@ public class LiveWindowMouseAdapter extends MouseAdapter {
 
 		mmMouseListener = null;
 		for (final MouseListener listener : to.getMouseListeners()) {
-			if (listener instanceof CenterAndDragListener) {
-				mmMouseListener = ( CenterAndDragListener ) listener;
-				to.removeMouseListener( listener );
-			}
+//			if (listener instanceof CenterAndDragListener) {
+//				mmMouseListener = ( CenterAndDragListener ) listener;
+//				to.removeMouseListener( listener );
+//			}
 		}
 		if (mmMouseListener == null) {
 			for (final MouseMotionListener listener : to.getMouseMotionListeners()) {
-				if (listener instanceof CenterAndDragListener) {
-					mmMouseListener = ( CenterAndDragListener ) listener;
-					to.removeMouseMotionListener( listener );
-				}
+//				if (listener instanceof CenterAndDragListener) {
+//					mmMouseListener = ( CenterAndDragListener ) listener;
+//					to.removeMouseMotionListener( listener );
+//				}
 			}
 		}
 
 		mmMouseWheelListener = null;
 		for (final MouseWheelListener listener : to.getMouseWheelListeners()) {
-			if (listener instanceof ZWheelListener) {
-				mmMouseWheelListener = ( ZWheelListener ) listener;
-				to.removeMouseWheelListener( listener );
-			}
+//			if (listener instanceof ZWheelListener) {
+//				mmMouseWheelListener = ( ZWheelListener ) listener;
+//				to.removeMouseWheelListener( listener );
+//			}
 		}
 
 		to.addMouseListener(this);
@@ -124,8 +124,8 @@ public class LiveWindowMouseAdapter extends MouseAdapter {
 //		if(mmMouseListener != null)
 //			((org.micromanager.internal.navigation.CenterAndDragListener)mmMouseListener).start();
 
-		if(mmMouseWheelListener != null)
-			((org.micromanager.internal.navigation.ZWheelListener)mmMouseWheelListener).start();
+//		if(mmMouseWheelListener != null)
+//			((org.micromanager.internal.navigation.ZWheelListener)mmMouseWheelListener).start();
 
 		hookedOn = null;
 		setup = null;
