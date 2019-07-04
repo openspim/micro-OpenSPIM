@@ -50,6 +50,7 @@ public class ChannelItem
 		type.set( Type.Arduino );
 		this.name.bind( item.pinNameProperty() );
 		this.value = exposure;
+		this.laser = item.getState() + "";
 		selectedProperty().addListener( observable -> invalidationListener.invalidated( observable ) );
 	}
 
