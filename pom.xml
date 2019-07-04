@@ -20,7 +20,7 @@
 		<enforcer.skip>true</enforcer.skip>
 		<scijava.jvm.version>1.8</scijava.jvm.version>
 		<ImageJ_3D_Viewer.version>4.0.1</ImageJ_3D_Viewer.version>
-		<bio-formats.version>5.1.2</bio-formats.version>
+		<bio-formats.version>5.5.3</bio-formats.version>
 	</properties>
 
 	<repositories>
@@ -54,16 +54,6 @@
 		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.micromanager</groupId>
-			<artifactId>MMCoreJ</artifactId>
-			<version>1.4.23-SNAPSHOT</version>
-		</dependency>
-		<dependency>
-			<groupId>org.micromanager</groupId>
-			<artifactId>MMJ_</artifactId>
-			<version>1.4.23-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
@@ -199,5 +189,164 @@
 			<artifactId>bigdataviewer-core</artifactId>
 			<version>2.1.0</version>
 		</dependency>
+
+        <!-- system -->
+        <dependency>
+            <groupId>org.micromanager</groupId>
+            <artifactId>MMCoreJ</artifactId>
+            <version>2.0.0-gamma</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/libs/MMCoreJ.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>org.micromanager</groupId>
+            <artifactId>MMJ_</artifactId>
+            <version>2.0.0-gamma</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/libs/MMJ_.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>org.micromanager</groupId>
+            <artifactId>MMAcqEngine</artifactId>
+            <version>2.0.0-gamma</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/libs/MMAcqEngine.jar</systemPath>
+        </dependency>
 	</dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resource</directory>
+            </resource>
+        </resources>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>com.zenjava</groupId>
+                    <artifactId>javafx-maven-plugin</artifactId>
+                    <version>8.8.4-SNAPSHOT</version>
+                    <configuration>
+                        <vendor>Scientific Computing Facility</vendor>
+                        <mainClass>spim.ui.view.component.HalcyonMain</mainClass>
+                        <j2seVersion>1.8+</j2seVersion>
+                        <allPermissions>true</allPermissions>
+                        <bundleArguments>
+                            <!-- to include "dtjava.js" and other related files, set this to TRUE -->
+                            <jnlp.includeDT>true</jnlp.includeDT>
+
+                            <!-- the JNLP-bundler needs this, they don't use "appName" for the filename ... you have to set this, otherwise it doesn't build -->
+                            <!-- for details of that JNLP-bundler, please have a look at the source -->
+                            <!-- https://github.com/Debian/openjfx/blob/e32fd960e20c58c9b7db27e426b4bca6d52add2f/modules/fxpackager/src/main/java/com/oracle/tools/packager/jnlp/JNLPBundler.java#L84 -->
+                            <jnlp.outfile>OpenSPIM</jnlp.outfile>
+                        </bundleArguments>
+                        <keyStore>${env.KEY_STORE}</keyStore>
+                        <keyStoreAlias>${env.KEY_STORE_ALIAS}</keyStoreAlias>
+                        <keyStorePassword>${env.KEY_STORE_PASS}</keyStorePassword>
+                        <allPermissions>true</allPermissions>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <!-- required before build-native, creates target/jfx/app -->
+                            <id>create-jfxjar</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>build-jar</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <!-- creates target/jfx/web -->
+                            <id>create-jnlp-bundle</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>build-native</goal>
+                            </goals>
+                            <!-- this configuration is only specific to this execution -->
+                            <configuration>
+                                <!-- as we only want to create the JNLP-package, use fixed bundler-ID -->
+                                <bundler>jnlp</bundler>
+
+                                <bundleArguments>
+                                    <!-- this makes the JNLP-file having permissions being set -->
+                                    <!-- AND it is the trigger for signing jar-files using jarsigner -->
+                                    <jnlp.allPermisions>true</jnlp.allPermisions>
+
+                                    <!-- the JNLP-bundler is a bit picky about its parametes, it does not use <appName> -->
+                                    <jnlp.outfile>OpenSPIM</jnlp.outfile>
+                                </bundleArguments>
+
+                                <!-- this setting is required for the new "jarsigner"-feature -->
+                                <noBlobSigning>true</noBlobSigning>
+
+                                <!-- these are required, please change them for your own requirements -->
+                                <keyStore>${env.KEY_STORE}</keyStore>
+                                <keyStoreAlias>${env.KEY_STORE_ALIAS}</keyStoreAlias>
+                                <keyStorePassword>${env.KEY_STORE_PASS}</keyStorePassword>
+
+                                <!-- as this keystore is no file, please disable file-checks -->
+                                <skipKeyStoreChecking>true</skipKeyStoreChecking>
+                                <!-- this is new too and required, as PKCS11 does not want some keypass -->
+                                <skipKeypassWhileSigning>true</skipKeypassWhileSigning>
+
+                                <!-- this is used for additional parameters for the jarsigner command -->
+                                <additionalJarsignerParameters>
+                                    <additionalJarsignerParameter>-keystore</additionalJarsignerParameter>
+                                    <additionalJarsignerParameter>NONE</additionalJarsignerParameter>
+                                    <additionalJarsignerParameter>-storetype</additionalJarsignerParameter>
+                                    <additionalJarsignerParameter>PKCS11</additionalJarsignerParameter>
+                                    <additionalJarsignerParameter>-tsa</additionalJarsignerParameter>
+                                    <additionalJarsignerParameter>http://timestamp.globalsign.com/scripts/timestamp.dll</additionalJarsignerParameter>
+                                    <additionalJarsignerParameter>-providerClass</additionalJarsignerParameter>
+                                    <additionalJarsignerParameter>sun.security.pkcs11.SunPKCS11</additionalJarsignerParameter>
+                                    <additionalJarsignerParameter>-providerArg</additionalJarsignerParameter>
+                                    <additionalJarsignerParameter>${project.basedir}/src/main/resources/token/eToken.config</additionalJarsignerParameter>
+                                    <!-- I DO KNOW that this is verbose ... -->
+                                </additionalJarsignerParameters>
+
+                                <!-- the jnlp-bundler gets a bit messy, lots of files, so we want to mimic "jfx:web"-folder-structure -->
+                                <nativeOutputDir>${project.build.directory}/jfx/web</nativeOutputDir>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.1</version>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                        <encoding>UTF-8</encoding>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-antrun-plugin</artifactId>
+                    <version>1.8</version>
+                    <configuration>
+                        <target name="Copy jfx files to openSPIM folder">
+
+                            <copy todir="\\fileserver.mpi-cbg.de\openspim\openSPIM">
+                                <fileset dir="${project.build.directory}/jfx/native">
+                                    <include name="**/*"/>
+                                </fileset>
+                            </copy>
+
+                        </target>
+
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+    </build>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>oss-sonatype-snapshots</id>
+            <url>https://oss.sonatype.org/content/groups/public/</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
 </project>
