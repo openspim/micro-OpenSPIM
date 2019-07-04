@@ -1,18 +1,10 @@
 package spim.ui.view.component;
 
-import ij.ImagePlus;
-import ij.process.ImageProcessor;
-import ij.process.ImageStatistics;
 import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
-import org.json.JSONException;
-import org.micromanager.data.Image;
-import org.micromanager.data.internal.DefaultImage;
 import org.micromanager.data.internal.DefaultImageJConverter;
-import org.micromanager.internal.utils.MMScriptException;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,49 +16,26 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class MultiAcquisition
 {
+	private static final int MAX_DISPLAY_HISTORY = 20;
 	private final CMMCore core;
 	private final List<String> cameras;
 	private Thread captureThread;
-	private volatile boolean done = false, shutterOpen, autoShutter;
+	private volatile boolean done = false, shutterOpen, autoShutter, camera;
 	private ConcurrentHashMap<String, TaggedImage> map = new ConcurrentHashMap<>();
 	private DefaultImageJConverter ipConverter = new DefaultImageJConverter();
+	private final ArrayList<Long> displayUpdateTimes_;
+	private double exposureMs_;
 
 	public MultiAcquisition( CMMCore core, List<String> cameras )
 	{
 		this.core = core;
 		this.cameras = cameras;
+		displayUpdateTimes_ = new ArrayList<Long>();
 	}
 
-	public HashMap<String, ImageProcessor> getDefaultImages() {
-		HashMap<String, ImageProcessor> hashMap = new HashMap<>(  );
-
-		for(String key : map.keySet())
-		{
-			try
-			{
-				TaggedImage img = map.get(key);
-				//new DefaultImage(img)
-				ImageProcessor ip = ipConverter.createProcessor( new DefaultImage( img ) );
-
-//				System.out.println(String.format( "%f, %f", ip.getHistogramMin(), ip.getHistogramMax() ));
-				// ip.resetMinAndMax();
-//				ip.setMinAndMax( 40, 60 );
-//				System.out.println(String.format( "%f, %f", ip.getMin(), ip.getMax() ));
-//				ip.setAutoThreshold( "Default" );
-//				ip.autoThreshold();
-//				adjustApply( ip );
-//				System.out.println(String.format( "%f, %f", ip.getMin(), ip.getMax() ));
-				hashMap.put( key, ip );
-			}
-			catch ( JSONException | MMScriptException e )
-			{
-				e.printStackTrace();
-			}
-		}
-		return hashMap;
-	}
-
-	public HashMap<String, TaggedImage> getImages() {
+	public HashMap<String, TaggedImage> getImages(double exposure) {
+		exposureMs_ = exposure;
+		onImagesCalled();
 		HashMap<String, TaggedImage> hashMap = new HashMap<>(  );
 
 		for(String key : map.keySet())
@@ -76,73 +45,14 @@ public class MultiAcquisition
 		return hashMap;
 	}
 
-	private void adjustApply(ImageProcessor ip) {
-		ImageStatistics stats = ip.getStatistics();
-		int limit = stats.pixelCount/10;
-		int[] histogram = stats.histogram;
-		int threshold = stats.pixelCount/20;
-//		System.out.println(	Arrays.toString(histogram));
-		int i = -1;
-		boolean found = false;
-		int count;
-		do {
-			i++;
-			count = histogram[i];
-			if (count>limit) count = 0;
-			found = count> threshold;
-		} while (!found && i<255);
-		int hmin = i;
-		i = 256;
-		do {
-			i--;
-			count = histogram[i];
-			if (count>limit) count = 0;
-			found = count > threshold;
-		} while (!found && i>0);
-		int hmax = i;
-
-		if (hmax>=hmin) {
-			double min = stats.histMin+hmin*stats.binSize;
-			double max = stats.histMin+hmax*stats.binSize;
-			if (min==max)
-			{min=stats.min; max=stats.max;}
-//			System.out.println(String.format( "hmax, hmin %f, %f", min, max ));
-			ip.setMinAndMax( min, max );
-		} else {
-			ip.reset();
+	public void onImagesCalled() {
+		synchronized(displayUpdateTimes_) {
+			displayUpdateTimes_.add(System.currentTimeMillis());
+			while (displayUpdateTimes_.size() > MAX_DISPLAY_HISTORY) {
+				// Limit the history we maintain.
+				displayUpdateTimes_.remove(displayUpdateTimes_.get(0));
+			}
 		}
-
-		int bitDepth = ip.getBitDepth();
-		if (bitDepth==32) {
-			System.err.println("\"Apply\" does not work with 32-bit images");
-			return;
-		}
-		int range = 256;
-		if (bitDepth==16) {
-			range = 65536;
-			int defaultRange = ImagePlus.getDefault16bitRange();
-			if (defaultRange>0)
-				range = (int)Math.pow(2,defaultRange)-1;
-		}
-		int tableSize = bitDepth==16?65536:256;
-		int[] table = new int[tableSize];
-		int min = (int)ip.getMin();
-		int max = (int)ip.getMax();
-
-
-		for (i=0; i<tableSize; i++) {
-			if (i<=min)
-				table[i] = 0;
-			else if (i>=max)
-				table[i] = range-1;
-			else
-				table[i] = (int)(((double)(i-min)/(max-min))*range);
-		}
-
-		ip.snapshot();
-		ip.applyTable(table);
-		ip.reset(ip.getMask());
-		ip.reset();
 	}
 
 	public void start() throws Exception
@@ -159,6 +69,10 @@ public class MultiAcquisition
 			}
 		}
 
+		synchronized(displayUpdateTimes_) {
+			displayUpdateTimes_.clear();
+		}
+
 		if(cameras.size() == 1)
 			core.startContinuousSequenceAcquisition(0);
 		else
@@ -172,7 +86,7 @@ public class MultiAcquisition
 			for(String camera : cameras)
 			{
 				if(!core.isSequenceRunning(camera))
-					core.startSequenceAcquisition( camera, Integer.MAX_VALUE, 200, false );
+					core.startSequenceAcquisition( camera, Integer.MAX_VALUE, 0, false );
 			}
 		}
 
@@ -181,40 +95,18 @@ public class MultiAcquisition
 			{
 				@Override public void run()
 				{
-
-						while ( !done )
-						{
-							if ( core.getRemainingImageCount() > 0 )
-							{
-								try {
-	//								System.out.println( core.getRemainingImageCount() );
-									TaggedImage timg = core.popNextTaggedImage();
-									String camera = ( String ) timg.tags.get( "Camera" );
-									map.put( camera, timg );
-
-									if(camera.equals( "DCam" ))
-										map.put( camera + 1, timg );
-								} catch ( Exception e ) {
-									System.out.println(e);
-								}
-							}
-
-//							core.clearCircularBuffer();
-
-//							for(int i = 0; i < 4; i++) {
-//								TaggedImage timg = core.getNBeforeLastTaggedImage(i);
-//								String camera = ( String ) timg.tags.get( "Camera" );
-//								map.put( camera, timg );
-//							}
-							try
-							{
-								Thread.sleep( 10 );
-							}
-							catch ( InterruptedException e )
-							{
-								e.printStackTrace();
+					while ( !done )
+					{
+						waitForNextDisplay();
+						for(int i = 0; i < cameras.size(); i++) {
+							try {
+								TaggedImage timg = core.getLastTaggedImage( i );
+								String camera = ( String ) timg.tags.get( "Camera" );
+								map.put( camera, timg );
+							} catch ( Exception e ) {
 							}
 						}
+					}
 				}
 			} );
 			captureThread.start();
@@ -238,5 +130,33 @@ public class MultiAcquisition
 			if(core.isSequenceRunning(camera))
 				core.stopSequenceAcquisition( camera );
 		}
+	}
+
+	private void waitForNextDisplay() {
+		long shortestWait = -1;
+		// Determine our sleep time based on image display times (a.k.a. the
+		// amount of time passed between PixelsSetEvents).
+		synchronized(displayUpdateTimes_) {
+			for (int i = 0; i < displayUpdateTimes_.size() - 1; ++i) {
+				long delta = displayUpdateTimes_.get(i + 1) - displayUpdateTimes_.get(i);
+				if (shortestWait == -1) {
+					shortestWait = delta;
+				}
+				else {
+					shortestWait = Math.min(shortestWait, delta);
+				}
+			}
+		}
+		// Sample faster than shortestWait because glitches should not cause the
+		// system to permanently bog down; this allows us to recover if we
+		// temporarily end up displaying images slowly than we normally can.
+		// On the other hand, we don't want to sample faster than the exposure
+		// time, or slower than 2x/second.
+		int rateLimit = (int) Math.max(33, exposureMs_);
+		int waitTime = (int) Math.min(500, Math.max(rateLimit, shortestWait * .75));
+		try {
+			Thread.sleep(waitTime);
+		}
+		catch (InterruptedException e) {}
 	}
 }
