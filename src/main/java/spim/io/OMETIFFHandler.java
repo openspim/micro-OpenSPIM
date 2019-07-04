@@ -5,6 +5,7 @@ import ij.process.ImageProcessor;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.UUID;
 
 import loci.common.DataTools;
 import loci.common.services.ServiceFactory;
@@ -39,7 +40,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	private IFormatWriter writer;
 
 	private CMMCore core;
-	private int stacks, timesteps, tiles;
+	private int stacks, timesteps, tiles, channels;
 	private Row[] acqRows;
 	private double deltat;
 	private boolean exportToHDF5;
@@ -47,8 +48,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	private Thread hdf5ResaveThread;
 	private Exception rethrow;
 	
-	public OMETIFFHandler(CMMCore iCore, File outDir, String filenamePrefix, String xyDev,
-			String cDev, String zDev, String tDev, Row[] acqRows,
+	public OMETIFFHandler(CMMCore iCore, File outDir, String filenamePrefix, Row[] acqRows, int channels,
 			int iTimeSteps, double iDeltaT, int tileCount, boolean exportToHDF5) {
 
 		if(outDir == null || !outDir.exists() || !outDir.isDirectory())
@@ -66,6 +66,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		outputDirectory = outDir;
 		this.acqRows = acqRows;
 		tiles = tileCount;
+		this.channels = channels;
 		int angles = (int) (stacks / tiles);
 		
 		try {
@@ -85,30 +86,33 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 				meta.setPixelsDimensionOrder(DimensionOrder.XYCZT, image);
 				meta.setPixelsBinDataBigEndian(Boolean.FALSE, image, 0);
 				meta.setPixelsType(core.getImageBitDepth() == 8 ? PixelType.UINT8 : PixelType.UINT16, image);
-				meta.setChannelID(MetadataTools.createLSID("Channel", 0), image, 0);
-				meta.setChannelSamplesPerPixel(new PositiveInteger(1), image, 0);
 
 				int positionIndex = (int) (image/angles);
 				
 				for (int t = 0; t < timesteps; ++t) {
 					String fileName = makeFilename(filenamePrefix, image % angles, t, positionIndex, (tiles>1));
+
 					for(int z = 0; z < depth; ++z) {
-						int td = depth*t + z;
+						for(int c = 0; c < channels; ++c) {
+							int td = channels*depth*t + channels*z + c;
+							meta.setUUIDFileName(fileName, image, td);
+							//						meta.setUUIDValue("urn:uuid:" + UUID.nameUUIDFromBytes(fileName.getBytes()).toString(), image, td);
 
-						meta.setUUIDFileName(fileName, image, td);
-//						meta.setUUIDValue("urn:uuid:" + (String)UUID.nameUUIDFromBytes(fileName.getBytes()).toString(), image, td);
+							meta.setTiffDataPlaneCount(new NonNegativeInteger(1), image, td);
+							meta.setTiffDataFirstT(new NonNegativeInteger(t), image, td);
+							meta.setTiffDataFirstC(new NonNegativeInteger(c), image, td);
+							meta.setTiffDataFirstZ(new NonNegativeInteger(z), image, td);
 
-						meta.setTiffDataPlaneCount(new NonNegativeInteger(1), image, td);
-						meta.setTiffDataFirstT(new NonNegativeInteger(t), image, td);
-						meta.setTiffDataFirstC(new NonNegativeInteger(0), image, td);
-						meta.setTiffDataFirstZ(new NonNegativeInteger(z), image, td);
-					};
-				};
+							meta.setChannelID(MetadataTools.createLSID("Channel:", c), image, c);
+							meta.setChannelSamplesPerPixel(new PositiveInteger(1), image, c);
+						}
+					}
+				}
 
 				meta.setPixelsSizeX(new PositiveInteger((int)core.getImageWidth()), image);
 				meta.setPixelsSizeY(new PositiveInteger((int)core.getImageHeight()), image);
 				meta.setPixelsSizeZ(new PositiveInteger(depth), image);
-				meta.setPixelsSizeC(new PositiveInteger(1), image);
+				meta.setPixelsSizeC(new PositiveInteger(channels), image);
 				meta.setPixelsSizeT(new PositiveInteger(timesteps), image);
 
 				meta.setPixelsPhysicalSizeX(FormatTools.getPhysicalSizeX(core.getPixelSizeUm()), image);
@@ -116,7 +120,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 				meta.setPixelsPhysicalSizeZ(FormatTools.getPhysicalSizeX(Math.max(row.getZStepSize(), 1.0D)), image);
 				zStepSize[image] = Math.max(row.getZStepSize(), 1.0D);
 
-				meta.setPixelsTimeIncrement(new Time(new Double(deltat), UNITS.S), image);
+				meta.setPixelsTimeIncrement(new Time( deltat, UNITS.SECOND ), image);
 			}
 
 			writer = new ImageWriter().getWriter(makeFilename(filenamePrefix, 0, 0, 0, false));
@@ -146,9 +150,9 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	}
 
 	private void openWriter(int angleIndex, int timepoint) throws Exception {
-		writer.changeOutputFile(new File(outputDirectory, meta.getUUIDFileName(angleIndex, acqRows[angleIndex].getDepth()*timepoint)).getAbsolutePath());
+		writer.changeOutputFile(new File(outputDirectory, meta.getUUIDFileName(angleIndex, acqRows[angleIndex].getDepth()*timepoint*channels)).getAbsolutePath());
 		writer.setSeries(angleIndex);
-		meta.setUUID(meta.getUUIDValue(angleIndex, acqRows[angleIndex].getDepth()*timepoint));
+		meta.setUUID(meta.getUUIDValue(angleIndex, acqRows[angleIndex].getDepth()*timepoint*channels));
 
 		sliceCounter = 0;
 	}
@@ -179,8 +183,10 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	}
 
 	@Override
-	public void processSlice(int time, int angle, ImageProcessor ip, double X, double Y, double Z, double theta, double deltaT)
-			throws Exception {
+	public void processSlice(int expT, int c, int time, int angle, ImageProcessor ip,
+			double X, double Y, double Z, double theta, double deltaT)
+			throws Exception
+	{
 		long bitDepth = core.getImageBitDepth();
 		byte[] data = bitDepth == 8 ?
 			(byte[])ip.getPixels() :
@@ -188,14 +194,17 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 
 		int image = imageCounter % stacks;
 		int timePoint = imageCounter / stacks;
-		int plane = timePoint*acqRows[image].getDepth() + sliceCounter;
+		int plane = timePoint * acqRows[image].getDepth() + sliceCounter;
 
 		meta.setPlanePositionX(new Length(X, UNITS.REFERENCEFRAME), image, plane);
 		meta.setPlanePositionY(new Length(Y, UNITS.REFERENCEFRAME), image, plane);
 		meta.setPlanePositionZ(new Length(Z, UNITS.REFERENCEFRAME), image, plane);
+		meta.setPlaneTheC(new NonNegativeInteger(c), image, plane);
 		meta.setPlaneTheZ(new NonNegativeInteger(sliceCounter), image, plane);
 		meta.setPlaneTheT(new NonNegativeInteger(timePoint), image, plane);
-		meta.setPlaneDeltaT(new Time(deltaT, UNITS.S), image, plane);
+
+		meta.setPlaneDeltaT(new Time(deltaT, UNITS.SECOND), image, plane);
+		meta.setPlaneExposureTime(new Time(expT, UNITS.MILLISECOND), image, plane);
 
 		storeDouble(image, plane, 0, "Theta", theta);
 

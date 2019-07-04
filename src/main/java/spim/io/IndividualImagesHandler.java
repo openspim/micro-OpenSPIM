@@ -51,21 +51,22 @@ public class IndividualImagesHandler implements OutputHandler
 	}
 
 	@Override
-	public void processSlice(int time, int angle, ImageProcessor ip, double X, double Y, double Z, double theta, double deltaT)
+	public void processSlice(int expT, int C, int time, int angle, ImageProcessor ip, double X, double Y, double Z, double theta, double deltaT)
 			throws Exception {
-		String name = nameImage(X, Y, Z, theta, deltaT);
+		String name = nameImage(X, Y, C, Z, theta, deltaT);
 		ImagePlus imp = new ImagePlus(name, ip);
 		
-		imp.setProperty("Info", X + "/" + Y + "/" + Z + ", " + theta + " @ " + deltaT + "s");
+		imp.setProperty("Info", X + "/" + Y + "/" + C + "/" + Z + ", " + theta + " @ " + deltaT + "s");
 		
 		IJ.save(imp, new File(outputDirectory, name).getAbsolutePath());
 	}
 
-	private String nameImage(double X, double Y, double Z, double T, double dT) {
+	private String nameImage(double X, double Y, double C, double Z, double T, double dT) {
 		String result = new String(namingScheme);
 
 		result = result.replace("$(X)", Double.toString(X));
 		result = result.replace("$(Y)", Double.toString(Y));
+		result = result.replace("$(C)", Double.toString(C));
 		result = result.replace("$(Z)", Double.toString(Z));
 		result = result.replace("$(T)", Double.toString(T));
 		result = result.replace("$(dt)", Double.toString(dT));

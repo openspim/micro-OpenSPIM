@@ -641,7 +641,7 @@ public class Program
 			}
 		}
 */
-		handler.processSlice(time, angle, ip, setup.getXStage().getPosition(),
+		handler.processSlice(10, 0, time, angle, ip, setup.getXStage().getPosition(),
 				setup.getYStage().getPosition(),
 				setup.getZStage().getPosition(),
 				setup.getAngle(),

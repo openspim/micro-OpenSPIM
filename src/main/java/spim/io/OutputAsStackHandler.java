@@ -15,7 +15,7 @@ public class OutputAsStackHandler implements OutputHandler
 	}
 
 	@Override
-	public void processSlice(int time, int angle, ImageProcessor ip, double X, double Y, double Z, double theta, double deltaT)
+	public void processSlice(int expT, int c, int time, int angle, ImageProcessor ip, double X, double Y, double Z, double theta, double deltaT)
 			throws Exception {
 		if(stack == null)
 			stack = new ImageStack(ip.getWidth(), ip.getHeight());
