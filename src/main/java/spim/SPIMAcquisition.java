@@ -241,17 +241,17 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 		if(!gui.live().getIsLiveModeOn() || hook == liveControlsHooked)
 			return;
 
-		ImageWindow win = gui.live().getDisplay().getImageWindow();
-		if(win != null && win.isVisible()) {
-			if(!hook) {
-				listener.detach();
-				liveControlsHooked = false;
-			} else {
-				liveControlsHooked = listener.attach(win.getCanvas(), setup, calibration, -1);
-			}
-		} else {
-			ReportingUtils.logError(new NullPointerException("win=" + win + ", val?" + win.isValid() + ", vis?" + win.isVisible()), "Couldn't set hooked=" + hook);
-		}
+//		ImageWindow win = gui.live().getDisplay().getImageWindow();
+//		if(win != null && win.isVisible()) {
+//			if(!hook) {
+//				listener.detach();
+//				liveControlsHooked = false;
+//			} else {
+//				liveControlsHooked = listener.attach(win.getCanvas(), setup, calibration, -1);
+//			}
+//		} else {
+//			ReportingUtils.logError(new NullPointerException("win=" + win + ", val?" + win.isValid() + ", vis?" + win.isVisible()), "Couldn't set hooked=" + hook);
+//		}
 	}
 
 	/**
@@ -1906,8 +1906,8 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					else
 					{
 						handler = new OMETIFFHandler(
-								mmc, output, acqFilenamePrefix.getText(), null, null, null, "t", //what is the purpose of defining parameters and then passing null anyway?
-								acqRows, timeSeqs, timeStep, tileCount, exportToHdf5.isSelected());
+								mmc, output, acqFilenamePrefix.getText(),
+								acqRows, 1, timeSeqs, timeStep, tileCount, exportToHdf5.isSelected());
 					}
 
 					if(asyncCheckbox.isSelected())
