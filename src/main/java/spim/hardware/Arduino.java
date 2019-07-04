@@ -10,7 +10,7 @@ import mmcorej.DeviceType;
  */
 public class Arduino extends Device {
 	static {
-		installFactory(new Device.Factory() {
+		Device.installFactory(new Device.Factory() {
 			@Override
 			public Device manufacture( CMMCore core, String label) {
 				return new Arduino(core, label);

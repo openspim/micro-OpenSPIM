@@ -14,7 +14,7 @@ import mmcorej.DeviceType;
 
 public class Stage extends Device {
 	static {
-		installFactory(new Factory() {
+		Device.installFactory(new Factory() {
 			public Device manufacture(CMMCore core, String label) {
 				return new Stage(core, label);
 			}

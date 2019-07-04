@@ -6,7 +6,7 @@ import org.micromanager.internal.utils.ReportingUtils;
 
 public class Laser extends Device {
 	static {
-		installFactory(new Factory() {
+		Device.installFactory(new Factory() {
 			@Override
 			public Device manufacture(CMMCore core, String label) {
 				return new Laser(core, label);

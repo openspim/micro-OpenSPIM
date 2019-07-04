@@ -7,7 +7,7 @@ import mmcorej.CMMCore;
 
 public class GenericRotator extends Stage {
 	static {
-		installFactory(new Factory() {
+		Device.installFactory(new Factory() {
 			@Override
 			public Device manufacture(CMMCore core, String label) {
 				return new GenericRotator(core, label);

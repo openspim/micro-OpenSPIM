@@ -18,7 +18,7 @@ public class SPIMSetup {
 		STAGE_X ("X Stage"),
 		STAGE_Y ("Y Stage"),
 		STAGE_Z ("Z Stage"),
-		STAGE_THETA ("Picard Twister"),
+		STAGE_THETA ("Rotator"),
 		LASER1 ("Laser"),
 		LASER2 ("Laser (2)"),
 		ARDUINO1 ("Arduino"),
@@ -229,6 +229,15 @@ public class SPIMSetup {
 	public static SPIMSetup createDefaultSetup(CMMCore core) {
 		SPIMSetup setup = new SPIMSetup(core);
 
+		try
+		{
+			collectDeviceLabels(core);
+		}
+		catch ( Exception e )
+		{
+			e.printStackTrace();
+		}
+
 		try {
 			Class.forName( "spim.hardware.PicardStage" );
 			Class.forName( "spim.hardware.PicardXYStage" );
@@ -304,8 +313,8 @@ public class SPIMSetup {
 		for (String s : core.getLoadedDevicesOfType(DeviceType.CameraDevice))
 			System.out.println(s);
 
-		for (String s : core.getDevicePropertyNames("VLT_VersaLase"))
-			System.out.println(s);
+//		for (String s : core.getDevicePropertyNames("VLT_VersaLase"))
+			System.out.println(core.getFocusDevice());
 	}
 
 	public String getDefaultDeviceLabel(SPIMDevice dev) throws Exception {

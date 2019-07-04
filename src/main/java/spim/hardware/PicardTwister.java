@@ -4,7 +4,7 @@ import mmcorej.CMMCore;
 
 public class PicardTwister extends GenericRotator {
 	static {
-		installFactory(new Factory() {
+		Device.installFactory(new Factory() {
 			@Override
 			public Device manufacture(CMMCore core, String label) {
 				return new PicardTwister(core, label);

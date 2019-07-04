@@ -19,7 +19,7 @@ public class PicardStage extends Stage {
 	 * and Z stages could each be a linear stage.
 	 */
 	static {
-		installFactory(new Factory() {
+		Device.installFactory(new Factory() {
 			public Device manufacture(CMMCore core, String label) {
 				return new PicardStage(core, label);
 			}
