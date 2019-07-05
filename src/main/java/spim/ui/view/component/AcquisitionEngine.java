@@ -7,16 +7,13 @@ import javafx.beans.property.LongProperty;
 import javafx.collections.ObservableList;
 import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
-import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.micromanager.data.internal.DefaultImage;
 import org.micromanager.internal.MMStudio;
 import org.micromanager.internal.utils.ImageUtils;
-import spim.acquisition.AcquisitionStatus;
 import spim.acquisition.Row;
-import spim.algorithm.AntiDrift;
-import spim.controller.AntiDriftController;
+import spim.hardware.Device;
 import spim.hardware.SPIMSetup;
-import spim.io.AsyncOutputHandler;
+import spim.hardware.Stage;
 import spim.io.OMETIFFHandler;
 import spim.io.OutputHandler;
 import spim.model.data.ChannelItem;
@@ -57,8 +54,8 @@ public class AcquisitionEngine
 
 		final double acqBegan = System.nanoTime() / 1e9;
 
-		boolean autoShutter = core.getAutoShutter();
-		core.setAutoShutter(false);
+//		boolean autoShutter = core.getAutoShutter();
+//		core.setAutoShutter(false);
 
 		Row[] acqRows = generateRows( positionItems );
 
@@ -122,7 +119,7 @@ public class AcquisitionEngine
 //				}
 
 				// Move the stage
-//				runDevicesAtRow(core, setup, row, step);
+				runDevicesAtRow(core, setup, acqRows[step]);
 
 				// Setup the lasers
 //				if(params.isIllumFullStack() && setup.getLaser() != null)
@@ -162,7 +159,9 @@ public class AcquisitionEngine
 									setup.getArduino1().setSwitchState( channelItem.getLaser() );
 
 								core.setExposure( channelItem.getValue().doubleValue() );
-								TaggedImage ti = snapImageCam1(setup, false);
+								core.waitForDevice( camera );
+
+								TaggedImage ti = snapImageCam(setup, false);
 								ImageProcessor ip = ImageUtils.makeProcessor(ti);
 								handleSlice(setup, channelItem.getValue().intValue(), c, acqBegan, timeSeq, step, ip, handlers.get(camera));
 
@@ -219,8 +218,14 @@ public class AcquisitionEngine
 						if(setup.getArduino1() != null)
 							setup.getArduino1().setSwitchState( "0" );
 
-						if(autoShutter)
-							core.setAutoShutter(true);
+//						if(autoShutter)
+//							core.setAutoShutter(true);
+
+						for(String camera : cameras)
+						{
+							finalizeStack( tp, rown, handlers.get( camera ) );
+							handlers.get(camera).finalizeAcquisition(true);
+						}
 
 						return null;
 					}
@@ -289,8 +294,8 @@ public class AcquisitionEngine
 		for(String camera : cameras)
 			handlers.get(camera).finalizeAcquisition(true);
 
-		if(autoShutter)
-			core.setAutoShutter(true);
+//		if(autoShutter)
+//			core.setAutoShutter(true);
 
 		return null;
 	}
@@ -310,11 +315,10 @@ public class AcquisitionEngine
 		return list.toArray( new Row[0] );
 	}
 
-	private static TaggedImage snapImageCam1( SPIMSetup setup, boolean manualLaser) throws Exception {
+	private static TaggedImage snapImageCam( SPIMSetup setup, boolean manualLaser) throws Exception {
 		if(manualLaser && setup.getLaser() != null)
 			setup.getLaser().setPoweredOn(true);
 
-//		setup.getCamera1().setExposure( 10 );
 		TaggedImage ti = setup.getCamera1().snapImage();
 
 		if(manualLaser && setup.getLaser() != null)
@@ -323,17 +327,18 @@ public class AcquisitionEngine
 		return ti;
 	}
 
-	private static TaggedImage snapImageCam2( SPIMSetup setup, boolean manualLaser) throws Exception {
-		if(manualLaser && setup.getLaser() != null)
-			setup.getLaser().setPoweredOn(true);
+	private static void runDevicesAtRow(CMMCore core, SPIMSetup setup, Row row) throws Exception {
+		for ( SPIMSetup.SPIMDevice devType : row.getDevices() ) {
+			Device dev = setup.getDevice(devType);
+			Row.DeviceValueSet values = row.getValueSet(devType);
 
-		//		setup.getCamera1().setExposure( 10 );
-		TaggedImage ti = setup.getCamera2().snapImage();
-
-		if(manualLaser && setup.getLaser() != null)
-			setup.getLaser().setPoweredOn(false);
-
-		return ti;
+			if (dev instanceof Stage ) // TODO: should this be different?
+				((Stage)dev).setPosition(values.getStartPosition());
+			else
+				throw new Exception("Unknown device type for \"" + dev
+						+ "\"");
+		}
+		core.waitForSystem();
 	}
 
 	private static void handleSlice(SPIMSetup setup, int exp, int channel, double start, int time, int angle, ImageProcessor ip,

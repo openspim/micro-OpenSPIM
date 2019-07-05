@@ -1,6 +1,9 @@
 package spim.io;
 
+import ij.IJ;
 import ij.ImagePlus;
+import ij.io.FileSaver;
+import ij.plugin.HyperStackConverter;
 import ij.process.ImageProcessor;
 
 import java.io.File;
@@ -16,6 +19,7 @@ import loci.formats.ImageWriter;
 import loci.formats.MetadataTools;
 import loci.formats.meta.IMetadata;
 import loci.formats.out.OMETiffWriter;
+import loci.formats.out.TiffWriter;
 import loci.formats.services.OMEXMLService;
 import mmcorej.CMMCore;
 import ome.units.UNITS;
@@ -30,6 +34,7 @@ import spim.acquisition.Program;
 import spim.acquisition.Row;
 
 import org.micromanager.internal.utils.ReportingUtils;
+import spim.io.imgloader.ImageProcessorStackImgLoader;
 
 public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHandler
 {
@@ -47,6 +52,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	private double[] zStepSize;
 	private Thread hdf5ResaveThread;
 	private Exception rethrow;
+	private String currentFile;
 	
 	public OMETIFFHandler(CMMCore iCore, File outDir, String filenamePrefix, Row[] acqRows, int channels,
 			int iTimeSteps, double iDeltaT, int tileCount, boolean exportToHDF5) {
@@ -103,8 +109,8 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 							meta.setTiffDataFirstC(new NonNegativeInteger(c), image, td);
 							meta.setTiffDataFirstZ(new NonNegativeInteger(z), image, td);
 
-							meta.setChannelID(MetadataTools.createLSID("Channel:", c), image, c);
-							meta.setChannelSamplesPerPixel(new PositiveInteger(1), image, c);
+							meta.setChannelID(MetadataTools.createLSID("Channel-", c), image, td);
+							meta.setChannelSamplesPerPixel(new PositiveInteger(1), image, td);
 						}
 					}
 				}
@@ -146,11 +152,13 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 			posString=String.format("Pos%02d_", posIndex);
 		else
 			posString="";
-		return String.format(filenamePrefix+"TL%02d_"+posString+"Angle%01d.ome.tiff", timepoint, angleIndex);
+		return String.format(filenamePrefix+"TL%02d_"+posString+"Angle%01d.tiff", timepoint, angleIndex);
 	}
 
 	private void openWriter(int angleIndex, int timepoint) throws Exception {
-		writer.changeOutputFile(new File(outputDirectory, meta.getUUIDFileName(angleIndex, acqRows[angleIndex].getDepth()*timepoint*channels)).getAbsolutePath());
+		currentFile = new File(outputDirectory, meta.getUUIDFileName(angleIndex, acqRows[angleIndex].getDepth()*timepoint*channels)).getAbsolutePath();
+		writer.setMetadataRetrieve(meta);
+		writer.changeOutputFile(currentFile);
 		writer.setSeries(angleIndex);
 		meta.setUUID(meta.getUUIDValue(angleIndex, acqRows[angleIndex].getDepth()*timepoint*channels));
 
@@ -223,15 +231,19 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	@Override
 	public void finalizeStack(int time, int angle) throws Exception {
 		ReportingUtils.logMessage("Finished stack along time " + time + " / angle " + angle );
+		if(writer != null)
+		{
+			writer.close();
+			ImagePlus imp = IJ.openImage( currentFile );
+			ImagePlus imp2 = HyperStackConverter.toHyperStack( imp, channels, acqRows[angle].getDepth(), 1, null, "color" );
+			new FileSaver(imp2).saveAsTiff( currentFile );
+		}
 	}
 
 	@Override
 	public void finalizeAcquisition(boolean bSuccess) throws Exception {
 
 		final File firstFile = new File(outputDirectory, meta.getUUIDFileName(0, 0));
-
-		if(writer != null)
-			writer.close();
 
 		imageCounter = 0;
 
