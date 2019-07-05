@@ -1,14 +1,13 @@
 package spim.io;
 
+import ij.CompositeImage;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.io.FileSaver;
-import ij.plugin.HyperStackConverter;
 import ij.process.ImageProcessor;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.UUID;
 
 import loci.common.DataTools;
 import loci.common.services.ServiceFactory;
@@ -76,7 +75,8 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		int angles = (int) (stacks / tiles);
 		
 		try {
-			meta = new ServiceFactory().getInstance(OMEXMLService.class).createOMEXMLMetadata();
+			//meta = new ServiceFactory().getInstance(OMEXMLService.class).createOMEXMLMetadata();
+			meta = MetadataTools.createOMEXMLMetadata();
 
 			meta.createRoot();
 
@@ -109,7 +109,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 							meta.setTiffDataFirstC(new NonNegativeInteger(c), image, td);
 							meta.setTiffDataFirstZ(new NonNegativeInteger(z), image, td);
 
-							meta.setChannelID(MetadataTools.createLSID("Channel-", c), image, td);
+							meta.setChannelID(MetadataTools.createLSID("Channel", c), image, td);
 							meta.setChannelSamplesPerPixel(new PositiveInteger(1), image, td);
 						}
 					}
@@ -234,9 +234,13 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		if(writer != null)
 		{
 			writer.close();
-			ImagePlus imp = IJ.openImage( currentFile );
-			ImagePlus imp2 = HyperStackConverter.toHyperStack( imp, channels, acqRows[angle].getDepth(), 1, null, "color" );
-			new FileSaver(imp2).saveAsTiff( currentFile );
+			if(!currentFile.endsWith( ".ome.tiff" )) {
+				ImagePlus imp = IJ.openImage( currentFile );
+				imp.setDimensions( channels, acqRows[angle].getDepth(), 1 );
+				imp = new CompositeImage( imp, 1 );
+				new FileSaver(imp).saveAsTiff( currentFile );
+				//			ImagePlus imp = HyperStackConverter.toHyperStack( imp, channels, acqRows[angle].getDepth(), 1, null, "color" );
+			}
 		}
 	}
 
