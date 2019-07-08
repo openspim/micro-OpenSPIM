@@ -42,6 +42,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
@@ -951,6 +952,8 @@ public class AcquisitionPanel extends BorderPane
 				}
 			}
 		} );
+
+		setupMouseClickedHandler(label, zStartField);
 		gridpane.addRow( 0, label, zStartField );
 
 		TextField zStepField = createNumberTextField();
@@ -981,6 +984,8 @@ public class AcquisitionPanel extends BorderPane
 				}
 			}
 		} );
+
+		setupMouseClickedHandler(label, zEndField);
 		gridpane.addRow( 2, label, zEndField );
 
 		currentPosition.addListener( new ChangeListener< PositionItem >()
@@ -1006,6 +1011,19 @@ public class AcquisitionPanel extends BorderPane
 		CheckboxPane pane = new CheckboxPane( "Z-stacks", group );
 		enabledZStacks = pane.selectedProperty();
 		return pane;
+	}
+
+	private void setupMouseClickedHandler( Label label, TextField zField )
+	{
+		label.setOnMouseClicked( new EventHandler< MouseEvent >()
+		{
+			@Override public void handle( MouseEvent event )
+			{
+				if(spimSetup != null && spimSetup.getZStage() != null) {
+					zField.setText( (int) spimSetup.getZStage().getPosition() + "" );
+				}
+			}
+		} );
 	}
 
 	private CheckboxPane createTimePointsPane()
