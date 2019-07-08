@@ -93,10 +93,10 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 				meta.setPixelsBinDataBigEndian(Boolean.FALSE, image, 0);
 				meta.setPixelsType(core.getImageBitDepth() == 8 ? PixelType.UINT8 : PixelType.UINT16, image);
 
-				int positionIndex = (int) (image/angles);
+				int positionIndex = image;
 				
 				for (int t = 0; t < timesteps; ++t) {
-					String fileName = makeFilename(filenamePrefix, image % angles, t, positionIndex, (tiles>1));
+					String fileName = makeFilename(filenamePrefix, image % angles, t, positionIndex, (stacks>1));
 
 					for(int z = 0; z < depth; ++z) {
 						for(int c = 0; c < channels; ++c) {
@@ -149,10 +149,10 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	private static String makeFilename(String filenamePrefix, int angleIndex, int timepoint, int posIndex, boolean multiplePos) {
 		String posString = new String();
 		if (multiplePos)
-			posString=String.format("Pos%02d_", posIndex);
+			posString=String.format("Pos%02d", posIndex);
 		else
 			posString="";
-		return String.format(filenamePrefix+"TL%02d_"+posString+"Angle%01d.tiff", timepoint, angleIndex);
+		return String.format(filenamePrefix+"TL%02d_"+posString+".tiff", timepoint, angleIndex);
 	}
 
 	private void openWriter(int angleIndex, int timepoint) throws Exception {
