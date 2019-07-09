@@ -1,6 +1,5 @@
 package spim.ui.view.component;
 
-import ij.ImagePlus;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
@@ -209,9 +208,21 @@ public class AcquisitionPanel extends BorderPane
 		laserTab.setContent( createChannelItemTable( channelItemTableView ) );
 		laserTab.setClosable( false );
 
+		int exposure = 20;
+		if(studio != null && studio.core() != null)
+		{
+			try
+			{
+				exposure = (int) studio.core().getExposure();
+			}
+			catch ( Exception e )
+			{
+				e.printStackTrace();
+			}
+		}
 		channelItemArduinoTableView = TableViewUtil.createChannelItemArduinoDataView();
 		Tab arduinoTab = new Tab( "Arduino Controlled" );
-		arduinoTab.setContent( createChannelItemArduinoTable( channelItemArduinoTableView, pinItemTableView ) );
+		arduinoTab.setContent( createChannelItemArduinoTable( channelItemArduinoTableView, pinItemTableView, exposure ) );
 		arduinoTab.setClosable( false );
 
 		channelTabPane = new TabPane( laserTab, arduinoTab );
@@ -810,14 +821,14 @@ public class AcquisitionPanel extends BorderPane
 		return channelItemTableView;
 	}
 
-	private TableView< ChannelItem > createChannelItemArduinoTable( TableView< ChannelItem > channelItemTableView, TableView< PinItem > pinItemTableView ) {
+	private TableView< ChannelItem > createChannelItemArduinoTable( TableView< ChannelItem > channelItemTableView, TableView< PinItem > pinItemTableView, int exposure ) {
 		channelItemTableView.setEditable( true );
 
 		InvalidationListener invalidationListener = observable -> computeTotalChannels();
 
 		for (PinItem item : pinItemTableView.getItems()) {
 			if(item.getState() > 0 && item.getState() < 63)
-				channelItemTableView.getItems().add( new ChannelItem( item, 20, invalidationListener ) );
+				channelItemTableView.getItems().add( new ChannelItem( item, exposure, invalidationListener ) );
 		}
 
 		return channelItemTableView;
@@ -916,13 +927,13 @@ public class AcquisitionPanel extends BorderPane
 		return pane;
 	}
 
-	private Label createZStackLabel(String name) {
-		Label label = new Label( name );
-		label.setMinWidth( 70 );
-		label.setMinHeight( 22 );
-		label.setAlignment( Pos.BASELINE_CENTER );
-		label.setStyle("-fx-text-fill: white; -fx-background-color: #43a5e7");
-		return label;
+	private Button createZStackButton(String name) {
+		Button button = new Button( name );
+		button.setMinWidth( 70 );
+		button.setMinHeight( 22 );
+		button.setAlignment( Pos.BASELINE_CENTER );
+		button.setStyle("-fx-text-fill: white; -fx-base: #43a5e7;");
+		return button;
 	}
 
 	private CheckboxPane createZStackPane( StagePanel stagePanel ) {
@@ -944,7 +955,7 @@ public class AcquisitionPanel extends BorderPane
 		gridpane.setVgap( 8 );
 		gridpane.setHgap( 5 );
 
-		Label label = createZStackLabel( "Z-start" );
+		Button button = createZStackButton( "Z-start" );
 		TextField zStartField = createNumberTextField();
 		zStartField.textProperty().addListener( new ChangeListener< String >()
 		{
@@ -958,10 +969,11 @@ public class AcquisitionPanel extends BorderPane
 			}
 		} );
 
-		setupMouseClickedHandler(label, zStartField);
-		gridpane.addRow( 0, label, zStartField );
+		setupMouseClickedHandler(button, zStartField);
+		gridpane.addRow( 0, button, zStartField );
 
 		TextField zStepField = createNumberTextField();
+		zStepField.setText( "1.5" );
 		zStepField.textProperty().addListener( new ChangeListener< String >()
 		{
 			@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
@@ -976,7 +988,7 @@ public class AcquisitionPanel extends BorderPane
 		} );
 		gridpane.addRow( 1, new Label( "Z-step (\u03BCm)" ), zStepField );
 
-		label = createZStackLabel( "Z-end" );
+		button = createZStackButton( "Z-end" );
 		TextField zEndField = createNumberTextField();
 		zEndField.textProperty().addListener( new ChangeListener< String >()
 		{
@@ -990,8 +1002,8 @@ public class AcquisitionPanel extends BorderPane
 			}
 		} );
 
-		setupMouseClickedHandler(label, zEndField);
-		gridpane.addRow( 2, label, zEndField );
+		setupMouseClickedHandler(button, zEndField);
+		gridpane.addRow( 2, button, zEndField );
 
 		currentPosition.addListener( new ChangeListener< PositionItem >()
 		{
@@ -999,7 +1011,7 @@ public class AcquisitionPanel extends BorderPane
 			{
 				if(newValue != null) {
 					zStartField.setText( (int)newValue.getZStart() + "" );
-					zStepField.setText( (int)newValue.getZStep() + "");
+					zStepField.setText( (double)newValue.getZStep() + "");
 					zEndField.setText( (int)newValue.getZEnd() + "");
 				}
 			}
@@ -1007,6 +1019,26 @@ public class AcquisitionPanel extends BorderPane
 
 		if(stagePanel == null && zSlider != null)
 			gridpane.add( zSlider, 3, 0, 1, 2 );
+
+		Button newButton = new Button( "New Pos" );
+		newButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(spimSetup != null ) {
+					double r = spimSetup.getThetaStage().getPosition() + 180.0;
+					double x = spimSetup.getXStage().getPosition();
+					double y = spimSetup.getYStage().getPosition();
+					double z = spimSetup.getZStage().getPosition();
+					positionItemTableView.getItems().add( new PositionItem( x, y, r, Integer.parseInt( zStartField.getText() ),
+							Integer.parseInt( zEndField.getText() ), Double.parseDouble( zStepField.getText() ) ) );
+				}
+				else {
+					positionItemTableView.getItems().add( new PositionItem( 10, 20, 30, 20, 50, 10 ) );
+				}
+			}
+		} );
+		gridpane.addRow( 3, newButton );
 
 		gridpane.setTranslateY( -30 );
 
@@ -1018,11 +1050,11 @@ public class AcquisitionPanel extends BorderPane
 		return pane;
 	}
 
-	private void setupMouseClickedHandler( Label label, TextField zField )
+	private void setupMouseClickedHandler( Button label, TextField zField )
 	{
-		label.setOnMouseClicked( new EventHandler< MouseEvent >()
+		label.setOnAction( new EventHandler< ActionEvent >()
 		{
-			@Override public void handle( MouseEvent event )
+			@Override public void handle( ActionEvent event )
 			{
 				if(spimSetup != null && spimSetup.getZStage() != null) {
 					zField.setText( (int) spimSetup.getZStage().getPosition() + "" );
@@ -1101,13 +1133,13 @@ public class AcquisitionPanel extends BorderPane
 	private TextField createNumberTextField() {
 		TextField textField = new TextField() {
 			@Override public void replaceText(int start, int end, String text) {
-				if (text.matches("[0-9]*")) {
+				if (text.matches("[0-9\\.]*")) {
 					super.replaceText(start, end, text);
 				}
 			}
 
 			@Override public void replaceSelection(String text) {
-				if (text.matches("[0-9]*")) {
+				if (text.matches("[0-9\\.]*")) {
 					super.replaceSelection(text);
 				}
 			}
