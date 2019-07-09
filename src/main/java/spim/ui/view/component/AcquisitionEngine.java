@@ -39,7 +39,7 @@ public class AcquisitionEngine
 		// setup OEMTIFFHandler or HDF5OutputHandler
 	}
 
-	public static ImagePlus performAcquisition ( SPIMSetup setup, int timeSeqs, double timeStep, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList<PositionItem> positionItems, List<ChannelItem> channelItems, LongProperty processedImages ) throws Exception
+	public static ImagePlus performAcquisition ( SPIMSetup setup, StagePanel stagePanel, int timeSeqs, double timeStep, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList<PositionItem> positionItems, List<ChannelItem> channelItems, LongProperty processedImages ) throws Exception
 	{
 		final MMStudio frame = MMStudio.getInstance();
 
@@ -119,7 +119,10 @@ public class AcquisitionEngine
 //				}
 
 				// Move the stage
-				runDevicesAtRow(core, setup, acqRows[step]);
+//				runDevicesAtRow(core, setup, acqRows[step]);
+				stagePanel.goToPos( positionItem.getX(), positionItem.getY(), positionItem.getZStart(), positionItem.getR() );
+				core.waitForSystem();
+
 
 				// Setup the lasers
 //				if(params.isIllumFullStack() && setup.getLaser() != null)
@@ -131,7 +134,9 @@ public class AcquisitionEngine
 				// Traverse Z stacks
 				for(double zStart = positionItem.getZStart(); zStart <= positionItem.getZEnd(); zStart += positionItem.getZStep()) {
 					// Move Z stacks
-					setup.getZStage().setPosition(zStart);
+//					setup.getZStage().setPosition(zStart);
+					stagePanel.goToPos( positionItem.getX(), positionItem.getY(), zStart, positionItem.getR() );
+					core.waitForSystem();
 
 					// Wait for image synchronization
 					core.waitForImageSynchro();
@@ -333,7 +338,13 @@ public class AcquisitionEngine
 			Row.DeviceValueSet values = row.getValueSet(devType);
 
 			if (dev instanceof Stage ) // TODO: should this be different?
-				((Stage)dev).setPosition(values.getStartPosition());
+			{
+				if( devType == SPIMSetup.SPIMDevice.STAGE_THETA ) {
+					( ( Stage ) dev ).setPosition( values.getStartPosition() - 180 );
+				}
+				else
+					( ( Stage ) dev ).setPosition( values.getStartPosition() );
+			}
 			else
 				throw new Exception("Unknown device type for \"" + dev
 						+ "\"");

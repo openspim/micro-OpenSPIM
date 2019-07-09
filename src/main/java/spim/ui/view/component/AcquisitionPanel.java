@@ -128,6 +128,7 @@ public class AcquisitionPanel extends BorderPane
 
 	// Cameras
 	int noCams = 0;
+	final StagePanel stagePanel;
 
 	Thread acquisitionThread = null;
 
@@ -139,6 +140,8 @@ public class AcquisitionPanel extends BorderPane
 
 		this.totalImages = new SimpleLongProperty();
 		this.processedImages = new SimpleLongProperty();
+
+		this.stagePanel = stagePanel;
 
 		// 1. Property Map for summary panel
 		this.propertyMap.put( "times", new SimpleStringProperty( "0" ) );
@@ -615,10 +618,12 @@ public class AcquisitionPanel extends BorderPane
 
 		double unit = getUnit( intervalUnitTimePoints.getValue().toString() );
 
+		Platform.runLater( () -> processedImages.set( 0 ) );
+
 		acquisitionThread = new Thread( () -> {
 			try
 			{
-				engine.performAcquisition( spimSetup, tp, deltaT * unit, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages );
+				engine.performAcquisition( spimSetup, stagePanel, tp, deltaT * unit, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages );
 
 				acquisitionThread = null;
 			}
@@ -653,7 +658,7 @@ public class AcquisitionPanel extends BorderPane
 				double x = spimSetup.getXStage().getPosition();
 				double y = spimSetup.getYStage().getPosition();
 				double z = spimSetup.getZStage().getPosition();
-				positionItemTableView.getItems().add( new PositionItem( x, y, r, z, 10, 5 ) );
+				positionItemTableView.getItems().add( new PositionItem( x, y, r, z, 10, 1.5 ) );
 			}
 			else {
 				positionItemTableView.getItems().add( new PositionItem( 10, 20, 30, 20, 50, 10 ) );

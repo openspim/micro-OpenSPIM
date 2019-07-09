@@ -7,6 +7,7 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
+import loci.common.DebugTools;
 import mmcorej.CMMCore;
 import org.micromanager.MenuPlugin;
 import org.micromanager.Studio;
@@ -96,6 +97,7 @@ public class SPIMAcq extends Application implements MenuPlugin
 
 	public void run( Stage primaryStage, CMMCore core )
 	{
+		DebugTools.enableLogging( "OFF" );
 		Platform.setImplicitExit( false );
 
 		if(null == setup)
