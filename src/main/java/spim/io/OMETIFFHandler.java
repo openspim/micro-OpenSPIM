@@ -198,7 +198,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		long bitDepth = core.getImageBitDepth();
 		byte[] data = bitDepth == 8 ?
 			(byte[])ip.getPixels() :
-			DataTools.shortsToBytes((short[])ip.getPixels(), true);
+			DataTools.shortsToBytes((short[])ip.getPixels(), false);
 
 		int image = imageCounter % stacks;
 		int timePoint = imageCounter / stacks;
