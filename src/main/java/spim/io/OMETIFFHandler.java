@@ -149,10 +149,10 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	private static String makeFilename(String filenamePrefix, int angleIndex, int timepoint, int posIndex, boolean multiplePos) {
 		String posString = new String();
 		if (multiplePos)
-			posString=String.format("Pos%02d", posIndex);
+			posString=String.format("_Pos%02d", posIndex);
 		else
 			posString="";
-		return String.format(filenamePrefix+"TL%02d_"+posString+".tiff", timepoint, angleIndex);
+		return String.format(filenamePrefix+"TL%02d"+posString+".tiff", timepoint, angleIndex);
 	}
 
 	private void openWriter(int angleIndex, int timepoint) throws Exception {
