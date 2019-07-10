@@ -53,7 +53,7 @@ public class AcquisitionEngine
 		// setup OEMTIFFHandler or HDF5OutputHandler
 	}
 
-	public static ImagePlus performAcquisition ( SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, double timeStep, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList<PositionItem> positionItems, List<ChannelItem> channelItems, LongProperty processedImages ) throws Exception
+	public static ImagePlus performAcquisition( SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, double timeStep, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave ) throws Exception
 	{
 		final MMStudio frame = MMStudio.getInstance();
 
@@ -181,16 +181,18 @@ public class AcquisitionEngine
 			}
 
 		HashMap<String, OutputHandler> handlers = new HashMap<>(  );
-		for(String camera : cameras) {
-			OutputHandler handler = new OMETIFFHandler(
-					core, output, acqFilenamePrefix + "_" + camera + "_",
-					//what is the purpose of defining parameters and then passing null anyway?
-					acqRows, channelItems.size(), timeSeqs, timeStep, 1, false);
 
-//			handler = new AsyncOutputHandler(handler, (ij.IJ.maxMemory() - ij.IJ.currentMemory())/(core.getImageWidth()*core.getImageHeight()*core.getBytesPerPixel()*2), false);
+		if(bSave)
+			for(String camera : cameras) {
+				OutputHandler handler = new OMETIFFHandler(
+						core, output, acqFilenamePrefix + "_" + camera + "_",
+						//what is the purpose of defining parameters and then passing null anyway?
+						acqRows, channelItems.size(), timeSeqs, timeStep, 1, false);
 
-			handlers.put( camera, handler );
-		}
+	//			handler = new AsyncOutputHandler(handler, (ij.IJ.maxMemory() - ij.IJ.currentMemory())/(core.getImageWidth()*core.getImageHeight()*core.getBytesPerPixel()*2), false);
+
+				handlers.put( camera, handler );
+			}
 
 		long acqStart = System.currentTimeMillis();
 
@@ -239,8 +241,8 @@ public class AcquisitionEngine
 //				if(params.isIllumFullStack() && setup.getLaser() != null)
 //					setup.getLaser().setPoweredOn(true);
 
-				for(String camera : cameras)
-					beginStack( tp, rown, handlers.get(camera) );
+				for( OutputHandler handler : handlers.values() )
+					beginStack( tp, rown, handler );
 
 				// Traverse Z stacks
 				int noSlice = 0;
@@ -375,9 +377,10 @@ public class AcquisitionEngine
 				if(setup.getArduino1() != null)
 					setup.getArduino1().setSwitchState( "0" );
 
-
-				for(String camera : cameras)
-					finalizeStack( tp, rown, handlers.get(camera) );
+				for( OutputHandler handler : handlers.values() )
+				{
+					finalizeStack( tp, rown, handler );
+				}
 
 //				if(params.isIllumFullStack() && setup.getLaser() != null)
 //					setup.getLaser().setPoweredOn(false);
@@ -432,8 +435,10 @@ public class AcquisitionEngine
 
 //		setStatus( AcquisitionStatus.DONE );
 
-		for(String camera : cameras)
-			handlers.get(camera).finalizeAcquisition(true);
+		for( OutputHandler handler : handlers.values() )
+		{
+			handler.finalizeAcquisition( true );
+		}
 
 //		if(autoShutter)
 //			core.setAutoShutter(true);
@@ -565,8 +570,8 @@ public class AcquisitionEngine
 
 	private static void handleSlice(SPIMSetup setup, int exp, int channel, double start, int time, int angle, ImageProcessor ip,
 			OutputHandler handler) throws Exception {
-
-		handler.processSlice(exp, channel, time, angle, ip, setup.getXStage().getPosition(),
+		if(null != handler)
+			handler.processSlice(exp, channel, time, angle, ip, setup.getXStage().getPosition(),
 				setup.getYStage().getPosition(),
 				setup.getZStage().getPosition(),
 				setup.getAngle(),
