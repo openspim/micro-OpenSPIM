@@ -16,6 +16,8 @@ import javafx.scene.layout.VBox;
 import org.dockfx.DockNode;
 import org.micromanager.Studio;
 
+import java.awt.Rectangle;
+
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
@@ -65,12 +67,17 @@ public class ToolbarPanel extends DockNode
 		java.awt.Rectangle roi = null;
 		try
 		{
-			roi = studio.core().getROI();
+			if(studio != null && studio.core() != null)
+				roi = studio.core().getROI();
 		}
 		catch ( Exception e )
 		{
 			e.printStackTrace();
 		}
+
+		if(null == roi)
+			roi = new Rectangle( 0, 0, 512, 512 );
+
 		Label roiXYLabel = new Label(String.format( "X=%d, Y=%d", roi.x, roi.y ) );
 		Label roiWLabel = new Label(String.format( "Width=%d", roi.width ));
 		Label roiHLabel = new Label(String.format( "Height=%d", roi.height ));

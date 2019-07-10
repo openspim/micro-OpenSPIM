@@ -149,13 +149,12 @@ public class StagePanel extends BorderPane
 		SimpleDoubleProperty property = new SimpleDoubleProperty();
 
 		double max = spimSetup.getZStage().getMaxPosition();
-		double min = spimSetup.getZStage().getMinPosition();
 
 		stageMap.get( StageUnit.Stage.Z ).deviceValueProperty().addListener( new ChangeListener< Number >()
 		{
 			@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
 			{
-				property.set( min / max * newValue.doubleValue() );
+				property.set( newValue.doubleValue() / max * 100 );
 			}
 		} );
 

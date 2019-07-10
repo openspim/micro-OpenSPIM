@@ -10,6 +10,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -130,6 +131,10 @@ public class AcquisitionPanel extends BorderPane
 	final StagePanel stagePanel;
 
 	Thread acquisitionThread = null;
+	double maxZStack = 5000;
+
+	SimpleDoubleProperty zStart = new SimpleDoubleProperty( 25 );
+	SimpleDoubleProperty zEnd = new SimpleDoubleProperty( 75 );
 
 	public AcquisitionPanel( Stage stage, SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView< PinItem > pinItemTableView ) {
 		this.spimSetup = setup;
@@ -151,6 +156,9 @@ public class AcquisitionPanel extends BorderPane
 				computeTotal();
 			}
 		} );
+
+		this.zStart = new SimpleDoubleProperty( 0 );
+		this.zEnd = new SimpleDoubleProperty( 0 );
 
 		// 1. Property Map for summary panel
 		this.propertyMap.put( "times", new SimpleStringProperty( "0" ) );
@@ -181,8 +189,15 @@ public class AcquisitionPanel extends BorderPane
 			this.bufferSize = 512 * 512;
 		}
 
-		if(setup.getCamera1() != null) noCams++;
-		if(setup.getCamera2() != null) noCams++;
+		if(setup != null)
+		{
+			if ( setup.getCamera1() != null )
+				noCams++;
+			if ( setup.getCamera2() != null )
+				noCams++;
+
+			maxZStack = setup.getZStage().getMaxPosition();
+		}
 
 		this.bufferSize = this.imageWidth * this.imageHeight * this.imageDepth / 8;
 
@@ -936,14 +951,15 @@ public class AcquisitionPanel extends BorderPane
 
 		StackCube cube;
 		Slider zSlider = null;
+
 		if(stagePanel == null)
 		{
 			zSlider = new Slider(0, 100, 0);
 			zSlider.setOrientation( Orientation.VERTICAL );
-			cube = new StackCube(50, 100, Color.CORNFLOWERBLUE, 1, zSlider.valueProperty() );
+			cube = new StackCube(50, 100, Color.CORNFLOWERBLUE, 1, zStart, zEnd, zSlider.valueProperty() );
 		}
 		else
-			cube = new StackCube(50, 100, Color.CORNFLOWERBLUE, 1, stagePanel.getZValueProperty() );
+			cube = new StackCube(50, 100, Color.CORNFLOWERBLUE, 1, zStart, zEnd, stagePanel.getZValueProperty() );
 
 		cube.setTranslateX( -60 );
 
@@ -958,7 +974,9 @@ public class AcquisitionPanel extends BorderPane
 			@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
 			{
 				if(currentPosition.get() != null && !newValue.isEmpty()) {
-					currentPosition.get().setZStart( Double.parseDouble( newValue ) );
+					double z = Double.parseDouble( newValue );
+					currentPosition.get().setZStart( z );
+					zStart.set( z / maxZStack * 100 );
 					computeTotalPositionImages();
 					positionItemTableView.refresh();
 				}
@@ -966,7 +984,7 @@ public class AcquisitionPanel extends BorderPane
 		} );
 
 		setupMouseClickedHandler(button, zStartField);
-		gridpane.addRow( 0, button, zStartField );
+		gridpane.addRow( 2, button, zStartField );
 
 		TextField zStepField = createNumberTextField();
 		zStepField.setText( "1.5" );
@@ -991,7 +1009,9 @@ public class AcquisitionPanel extends BorderPane
 			@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
 			{
 				if(currentPosition.get() != null && !newValue.isEmpty()) {
-					currentPosition.get().setZEnd( Double.parseDouble( newValue ) );
+					double z = Double.parseDouble( newValue );
+					currentPosition.get().setZEnd( z );
+					zEnd.set( z / maxZStack * 100 );
 					computeTotalPositionImages();
 					positionItemTableView.refresh();
 				}
@@ -999,7 +1019,7 @@ public class AcquisitionPanel extends BorderPane
 		} );
 
 		setupMouseClickedHandler(button, zEndField);
-		gridpane.addRow( 2, button, zEndField );
+		gridpane.addRow( 0, button, zEndField );
 
 		currentPosition.addListener( new ChangeListener< PositionItem >()
 		{
@@ -1009,6 +1029,9 @@ public class AcquisitionPanel extends BorderPane
 					zStartField.setText( (int)newValue.getZStart() + "" );
 					zStepField.setText( (double)newValue.getZStep() + "");
 					zEndField.setText( (int)newValue.getZEnd() + "");
+
+					zStart.set( newValue.getZStart() / maxZStack * 100 );
+					zEnd.set( newValue.getZEnd() / maxZStack * 100 );
 				}
 			}
 		} );
@@ -1173,7 +1196,10 @@ public class AcquisitionPanel extends BorderPane
 
 	public class StackCube extends Group
 	{
-		public StackCube(double size, double height, Color color, double shade, DoubleProperty currentZ ) {
+		public StackCube(double size, double height, Color color, double shade,
+				DoubleProperty startZ, DoubleProperty endZ,
+				DoubleProperty currentZ ) {
+
 
 			Rectangle current = RectangleBuilder.create() // top face
 					.width(size).height(0.25*size)
@@ -1185,6 +1211,42 @@ public class AcquisitionPanel extends BorderPane
 					.build();
 
 			current.translateYProperty().bind( currentZ.multiply( -1 ).add( 100 ).subtract( 0.75 * size ) );
+
+			double currentStackSize = endZ.get() - startZ.get();
+			double startPosition = 100 - endZ.get();
+
+			Color posStackColor = Color.GREEN.deriveColor(0.0, 1.0, (1 - 0.1*shade), 0.5);
+
+			Rectangle currentStackTopFace = RectangleBuilder.create() // top face
+					.width(size).height(0.25*size)
+					.fill(posStackColor.deriveColor(0.0, 1.0, (1 - 0.1*shade), 1.0))
+					.translateX(0)
+					.translateY( startPosition - 0.75 * size)
+					.transforms( new Shear( -2, 0 ) )
+					.build();
+
+			currentStackTopFace.translateYProperty().bind( endZ.multiply( -1 ).add( 100 ).subtract( 0.75 * size ) );
+
+			Rectangle currentStackRightFace = RectangleBuilder.create() // right face
+					.width(size/2).height(currentStackSize)
+					.fill(posStackColor.deriveColor(0.0, 1.0, (1 - 0.3*shade), 1.0))
+					.translateX( 0.5 * size )
+					.translateY( startPosition -0.5 * size )
+					.transforms( new Shear( 0, -0.5 ) )
+					.build();
+
+			currentStackRightFace.heightProperty().bind( endZ.subtract( startZ ) );
+			currentStackRightFace.translateYProperty().bind( endZ.multiply( -1 ).add(100).subtract( 0.5 * size ) );
+
+			Rectangle currentStackFrontFace = RectangleBuilder.create() // front face
+					.width(size).height(currentStackSize)
+					.fill(posStackColor)
+					.translateX( -0.5 * size )
+					.translateY( startPosition -0.5 * size )
+					.build();
+
+			currentStackFrontFace.heightProperty().bind( endZ.subtract( startZ ) );
+			currentStackFrontFace.translateYProperty().bind( endZ.multiply( -1 ).add( 100 ).subtract( 0.5 * size ) );
 
 			getChildren().addAll(
 					RectangleBuilder.create() // top face
@@ -1207,6 +1269,9 @@ public class AcquisitionPanel extends BorderPane
 							.translateX(-0.5*size)
 							.translateY(-0.5*size)
 							.build(),
+					currentStackTopFace,
+					currentStackRightFace,
+					currentStackFrontFace,
 					current
 			);
 		}
