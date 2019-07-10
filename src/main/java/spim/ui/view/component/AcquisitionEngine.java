@@ -7,7 +7,21 @@ import javafx.beans.property.LongProperty;
 import javafx.collections.ObservableList;
 import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
+import org.json.JSONException;
+import org.micromanager.MultiStagePosition;
+import org.micromanager.PositionList;
+import org.micromanager.PropertyMap;
+import org.micromanager.data.Coords;
+import org.micromanager.data.Datastore;
+import org.micromanager.data.DatastoreFrozenException;
+import org.micromanager.data.DatastoreRewriteException;
+import org.micromanager.data.Image;
+import org.micromanager.data.Metadata;
+import org.micromanager.data.SummaryMetadata;
 import org.micromanager.data.internal.DefaultImage;
+import org.micromanager.display.DisplayWindow;
+import org.micromanager.events.AcquisitionEndedEvent;
+import org.micromanager.events.AcquisitionStartedEvent;
 import org.micromanager.internal.MMStudio;
 import org.micromanager.internal.utils.ImageUtils;
 import spim.acquisition.Row;
@@ -21,6 +35,8 @@ import spim.model.data.PositionItem;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -44,13 +60,28 @@ public class AcquisitionEngine
 		final MMStudio frame = MMStudio.getInstance();
 
 		boolean liveOn = false;
+		Datastore store = null;
+		DisplayWindow display = null;
+
 		if(frame != null) {
 			liveOn = frame.live().getIsLiveModeOn();
 			if(liveOn)
 				frame.live().setLiveMode(false);
+
+//			store = frame.data().createMultipageTIFFDatastore(output.getAbsolutePath(), false, false);
+
+			store = frame.data().createRAMDatastore();
+			display = frame.displays().createDisplay(store);
+			frame.displays().manage(store);
 		}
 
 		final CMMCore core = frame.getCore();
+
+//		final AcquisitionSettings acqSettings = acqSettingsOrig;
+//
+//		// generate string for log file
+//		Gson gson = new GsonBuilder().setPrettyPrinting().create();
+//		final String acqSettingsJSON = gson.toJson(acqSettings);
 
 		final double acqBegan = System.nanoTime() / 1e9;
 
@@ -71,6 +102,80 @@ public class AcquisitionEngine
 			cameras.add( setup.getCamera2().getLabel() );
 		}
 
+		String[] channelNames = new String[cameras.size() * channelItems.size()];
+
+		int ch = 0;
+		for(String cam : cameras) {
+			for(ChannelItem chItem : channelItems)
+				channelNames[ch++] = cam + "-" + chItem.getName();
+		}
+
+		MultiStagePosition[] multiStagePositions = positionItems.stream().map( c -> new MultiStagePosition( c.toString(), c.getX(), c.getY(), c.getZString(), c.getZStart() )).toArray(MultiStagePosition[]::new);
+
+		SummaryMetadata.SummaryMetadataBuilder smb = frame.data().getSummaryMetadataBuilder();
+		smb = smb.channelNames(channelNames).
+				zStepUm( core.getPixelSizeUm() ).
+				prefix(acqFilenamePrefix).
+				stagePositions(multiStagePositions).
+				startDate((new Date()).toString());
+
+		smb = smb.intendedDimensions(frame.data().getCoordsBuilder().
+				channel(channelItems.size()).
+				z(timeSeqs).
+				time(timeSeqs).
+				stagePosition(acqRows.length).
+				build());
+
+
+		PropertyMap pm = store.getSummaryMetadata().getUserData();
+		PropertyMap.PropertyMapBuilder pmb = frame.data().getPropertyMapBuilder();
+		if (pm != null) {
+			pmb = pm.copy();
+		}
+
+		if(setup.getCamera1() != null)
+		{
+			pmb.putString("Camera-1", setup.getCamera1().getLabel() );
+		}
+
+		if(setup.getCamera2() != null)
+		{
+			pmb.putString("Camera-2", setup.getCamera2().getLabel() );
+		}
+
+
+		//		pmb.putString("FirstSide", firstSide);
+//		pmb.putString("SlicePeriod_ms", actualSlicePeriodLabel_.getText());
+//		pmb.putDouble("LaserExposure_ms",
+//				(double) PanelUtils.getSpinnerFloatValue(durationLaser_));
+//		pmb.putString("VolumeDuration",
+//				actualVolumeDurationLabel_.getText());
+//		pmb.putString("SPIMmode", spimMode.toString());
+//		// Multi-page TIFF saving code wants this one:
+//		// TODO: support other types than GRAY16  (NS: Why?? Cameras are all 16-bits, so not much reason for anything else
+//		pmb.putString("PixelType", "GRAY16");
+//		pmb.putDouble("z-step_um", getVolumeSliceStepSize());
+//		// Properties for use by MultiViewRegistration plugin
+//		// Format is: x_y_z, set to 1 if we should rotate around this axis.
+//		pmb.putString("MVRotationAxis", "0_1_0");
+//		pmb.putString("MVRotations", viewString);
+
+		store.setSummaryMetadata(smb.userData(pmb.build()).build());
+
+		Datastore finalStore1 = store;
+		frame.events().post( new AcquisitionStartedEvent()
+		{
+			@Override public Datastore getDatastore()
+			{
+				return finalStore1;
+			}
+
+			@Override public Object getSource()
+			{
+				return this;
+			}
+		} );
+
 		HashMap<String, OutputHandler> handlers = new HashMap<>(  );
 		for(String camera : cameras) {
 			OutputHandler handler = new OMETIFFHandler(
@@ -82,6 +187,8 @@ public class AcquisitionEngine
 
 			handlers.put( camera, handler );
 		}
+
+		long acqStart = System.currentTimeMillis();
 
 		// Scheduled timeline
 		// Dynamic timeline
@@ -120,7 +227,7 @@ public class AcquisitionEngine
 
 				// Move the stage
 //				runDevicesAtRow(core, setup, acqRows[step]);
-				stagePanel.goToPos( positionItem.getX(), positionItem.getY(), positionItem.getZStart(), positionItem.getR() );
+				stagePanel.goToPos( positionItem.getX(), positionItem.getY(), positionItem.getR() );
 				core.waitForSystem();
 
 
@@ -132,10 +239,10 @@ public class AcquisitionEngine
 					beginStack( tp, rown, handlers.get(camera) );
 
 				// Traverse Z stacks
+				int noSlice = 0;
 				for(double zStart = positionItem.getZStart(); zStart <= positionItem.getZEnd(); zStart += positionItem.getZStep()) {
 					// Move Z stacks
-//					setup.getZStage().setPosition(zStart);
-					stagePanel.goToPos( positionItem.getX(), positionItem.getY(), zStart, positionItem.getR() );
+					stagePanel.goToZ( zStart );
 					core.waitForSystem();
 
 					// Wait for image synchronization
@@ -152,12 +259,14 @@ public class AcquisitionEngine
 					if(arduinoSelected) {
 						// Channel iteration
 
+						long now = System.currentTimeMillis();
+
+						int c = 0;
 						for(String camera : cameras)
 						{
 							core.setCameraDevice( camera );
 							core.waitForDevice( camera );
 
-							int c = 0;
 							for( ChannelItem channelItem : channelItems ) {
 								// Snap an image
 								if(setup.getArduino1() != null)
@@ -170,13 +279,16 @@ public class AcquisitionEngine
 								ImageProcessor ip = ImageUtils.makeProcessor(ti);
 								handleSlice(setup, channelItem.getValue().intValue(), c, acqBegan, timeSeq, step, ip, handlers.get(camera));
 
+								addImageToAcquisition(frame, store,
+									timeSeq, c, noSlice, zStart,
+									positionItem, now - acqStart, ti);
 
 //						if(ad != null)
 //							addAntiDriftSlice(ad, ip);
 //						if(params.isUpdateLive())
 //							updateLiveImage(frame, ti);
-								if(liveOn)
-									frame.live().displayImage( new DefaultImage( ti ) );
+//								if(liveOn)
+//									frame.live().displayImage( new DefaultImage( ti ) );
 
 								Platform.runLater( () -> processedImages.set( processedImages.get() + 1 ) );
 								++c;
@@ -232,8 +344,28 @@ public class AcquisitionEngine
 							handlers.get(camera).finalizeAcquisition(true);
 						}
 
+						if (store != null) {
+							store.freeze();
+						}
+
+						Datastore finalStore = store;
+						frame.events().post( new AcquisitionEndedEvent()
+						{
+							@Override public Datastore getStore()
+							{
+								return finalStore;
+							}
+
+							@Override public Object getSource()
+							{
+								return this;
+							}
+						});
+
 						return null;
 					}
+
+					noSlice++;
 				}
 
 				if(setup.getArduino1() != null)
@@ -302,7 +434,82 @@ public class AcquisitionEngine
 //		if(autoShutter)
 //			core.setAutoShutter(true);
 
+		if (store != null) {
+			store.freeze();
+		}
+
+		Datastore finalStore = store;
+		frame.events().post( new AcquisitionEndedEvent()
+		{
+			@Override public Datastore getStore()
+			{
+				return finalStore;
+			}
+
+			@Override public Object getSource()
+			{
+				return this;
+			}
+		});
+
 		return null;
+	}
+
+	private static void addImageToAcquisition( MMStudio studio, Datastore store, int frame, int channel,
+			int slice, double zPos, PositionItem position, long ms, TaggedImage taggedImg ) throws
+			JSONException, DatastoreFrozenException,
+			DatastoreRewriteException, Exception
+	{
+
+		Coords.CoordsBuilder cb = studio.data().getCoordsBuilder();
+
+		Coords coord = cb.time(frame).channel(channel).z(slice).build();
+		Image img = studio.data().convertTaggedImage(taggedImg);
+		Metadata md = img.getMetadata();
+		Metadata.MetadataBuilder mdb = md.copy();
+		PropertyMap ud = md.getUserData();
+		ud = ud.copy().putDouble("Z-Step-um", position.getZStep()).build();
+		String posName = position.toString();
+		mdb = mdb.xPositionUm(position.getX()).yPositionUm(position.getY()).zPositionUm( zPos );
+
+		md = mdb.positionName(posName).userData(ud).build();
+		img = img.copyWith(coord, md);
+
+		store.putImage(img);
+
+      /*
+      // create required coordinate tags
+      try {
+         MDUtils.setFrameIndex(tags, frame);
+         tags.put(MMTags.Image.FRAME, frame);
+         MDUtils.setChannelIndex(tags, channel);
+         MDUtils.setChannelName(tags, channelNames_[channel]);
+         MDUtils.setSliceIndex(tags, slice);
+         MDUtils.setPositionIndex(tags, position);
+         MDUtils.setElapsedTimeMs(tags, ms);
+         MDUtils.setImageTime(tags, MDUtils.getCurrentTime());
+         MDUtils.setZStepUm(tags, PanelUtils.getSpinnerFloatValue(stepSize_));
+
+         if (!tags.has(MMTags.Summary.SLICES_FIRST) && !tags.has(MMTags.Summary.TIME_FIRST)) {
+            // add default setting
+            tags.put(MMTags.Summary.SLICES_FIRST, true);
+            tags.put(MMTags.Summary.TIME_FIRST, false);
+         }
+         if (acq.getPositions() > 1) {
+            // if no position name is defined we need to insert a default one
+            if (tags.has(MMTags.Image.POS_NAME)) {
+               tags.put(MMTags.Image.POS_NAME, "Pos" + position);
+            }
+         }
+         // update frames if necessary
+         if (acq.getFrames() <= frame) {
+            acq.setProperty(MMTags.Summary.FRAMES, Integer.toString(frame + 1));
+         }
+      } catch (JSONException e) {
+         throw new Exception(e);
+      }
+      bq.put(taggedImg);
+              */
 	}
 
 	private static Row[] generateRows( ObservableList< PositionItem > positionItems )

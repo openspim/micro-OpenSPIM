@@ -220,6 +220,16 @@ public class StagePanel extends BorderPane
 		stageUnitZ.setCurrentPos(z);
 	}
 
+	public void goToPos(double x, double y, double r) {
+		stageUnitR.setCurrentPos(r);
+		stageUnitX.setCurrentPos(x);
+		stageUnitY.setCurrentPos(y);
+	}
+
+	public void goToZ(double z) {
+		stageUnitZ.setCurrentPos(z);
+	}
+
 	private VBox createControls()
 	{
 		final IconSwitch switchAll = new IconSwitch();
