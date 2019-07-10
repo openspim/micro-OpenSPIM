@@ -9,6 +9,7 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TitledPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -70,8 +71,9 @@ public class ToolbarPanel extends DockNode
 		{
 			e.printStackTrace();
 		}
-		Label roiXYLabel = new Label(String.format( "[X=%d, Y=%d]", roi.x, roi.y ) );
-		Label roiWHLabel = new Label(String.format( "[Width=%d, Height=%d]", roi.width, roi.height ));
+		Label roiXYLabel = new Label(String.format( "X=%d, Y=%d", roi.x, roi.y ) );
+		Label roiWLabel = new Label(String.format( "Width=%d", roi.width ));
+		Label roiHLabel = new Label(String.format( "Height=%d", roi.height ));
 
 		roiRectangle.addListener( new ChangeListener()
 		{
@@ -79,8 +81,9 @@ public class ToolbarPanel extends DockNode
 			{
 				if(null != newValue) {
 					java.awt.Rectangle roi = ( java.awt.Rectangle ) newValue;
-					roiXYLabel.setText( String.format( "[X=%d, Y=%d]", roi.x, roi.y ) );
-					roiWHLabel.setText( String.format( "[Width=%d, Height=%d]", roi.width, roi.height ) );
+					roiXYLabel.setText( String.format( "X=%d, Y=%d", roi.x, roi.y ) );
+					roiWLabel.setText( String.format( "Width=%d", roi.width ) );
+					roiHLabel.setText( String.format( "Height=%d", roi.height ) );
 				}
 			}
 		} );
@@ -108,6 +111,9 @@ public class ToolbarPanel extends DockNode
 					{
 						studio.core().clearROI();
 						roiRectangle.setValue( studio.core().getROI() );
+						if(studio.live() != null && studio.live().getDisplay() != null && studio.live().getDisplay().getImagePlus() != null && studio.live().getDisplay().getImagePlus().getRoi() != null) {
+							studio.live().getDisplay().getImagePlus().deleteRoi();
+						}
 					}
 				}
 				catch ( Exception e )
@@ -117,10 +123,14 @@ public class ToolbarPanel extends DockNode
 			}
 		} );
 
-		gridpane.addRow( 2, setRoiButton );
-		gridpane.addRow( 3, clearRoiButton );
-		gridpane.addRow( 4, roiXYLabel );
-		gridpane.addRow( 5, roiWHLabel );
+		gridpane.addRow( 2, new HBox(  ) );
+
+		TitledPane titledPane = new TitledPane( "Region of Interest", new VBox( 3, roiXYLabel, roiWLabel, roiHLabel ) );
+		titledPane.setCollapsible( false );
+
+		gridpane.addRow( 3, titledPane );
+		gridpane.addRow( 4, new HBox( 3, setRoiButton, clearRoiButton) );
+
 
 
 		//		btn = new Button("Test Std Err");
