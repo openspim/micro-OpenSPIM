@@ -9,7 +9,6 @@ import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
 import org.json.JSONException;
 import org.micromanager.MultiStagePosition;
-import org.micromanager.PositionList;
 import org.micromanager.PropertyMap;
 import org.micromanager.data.Coords;
 import org.micromanager.data.Datastore;
@@ -18,7 +17,6 @@ import org.micromanager.data.DatastoreRewriteException;
 import org.micromanager.data.Image;
 import org.micromanager.data.Metadata;
 import org.micromanager.data.SummaryMetadata;
-import org.micromanager.data.internal.DefaultImage;
 import org.micromanager.display.DisplayWindow;
 import org.micromanager.events.AcquisitionEndedEvent;
 import org.micromanager.events.AcquisitionStartedEvent;
@@ -33,9 +31,9 @@ import spim.io.OutputHandler;
 import spim.model.data.ChannelItem;
 import spim.model.data.PositionItem;
 
+import java.awt.Rectangle;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -55,7 +53,7 @@ public class AcquisitionEngine
 		// setup OEMTIFFHandler or HDF5OutputHandler
 	}
 
-	public static ImagePlus performAcquisition ( SPIMSetup setup, StagePanel stagePanel, int timeSeqs, double timeStep, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList<PositionItem> positionItems, List<ChannelItem> channelItems, LongProperty processedImages ) throws Exception
+	public static ImagePlus performAcquisition ( SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, double timeStep, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList<PositionItem> positionItems, List<ChannelItem> channelItems, LongProperty processedImages ) throws Exception
 	{
 		final MMStudio frame = MMStudio.getInstance();
 
@@ -175,6 +173,12 @@ public class AcquisitionEngine
 				return this;
 			}
 		} );
+
+		if(null != roiRectangle)
+			for(String camera : cameras)
+			{
+				frame.core().setROI( camera, roiRectangle.x, roiRectangle.y, roiRectangle.width, roiRectangle.height );
+			}
 
 		HashMap<String, OutputHandler> handlers = new HashMap<>(  );
 		for(String camera : cameras) {

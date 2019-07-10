@@ -4,6 +4,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.StringProperty;
 
+import java.awt.Rectangle;
 import java.beans.XMLDecoder;
 import java.beans.XMLEncoder;
 import java.io.BufferedInputStream;
@@ -52,6 +53,7 @@ public class AcquisitionSetting
 	String filename;
 	Object savingFormat;
 	Boolean saveAsHDF5;
+	Object roiRectangle;
 
 	public Boolean getEnabledTimePoints()
 	{
@@ -223,11 +225,21 @@ public class AcquisitionSetting
 		this.saveAsHDF5 = saveAsHDF5;
 	}
 
+	public Object getRoiRectangle()
+	{
+		return roiRectangle;
+	}
+
+	public void setRoiRectangle( Rectangle roiRectangle )
+	{
+		this.roiRectangle = roiRectangle;
+	}
+
 	public AcquisitionSetting()
 	{
 	}
 
-	public AcquisitionSetting( BooleanProperty enabledTimePoints, StringProperty numTimePoints, StringProperty intervalTimePoints, ObjectProperty intervalUnitTimePoints, BooleanProperty enabledPositions, ArrayList< PositionItem > positionItems, BooleanProperty enabledZStacks, ObjectProperty acquisitionOrder, BooleanProperty enabledChannels, int selectedTabIndex, ArrayList< ChannelItem > channelItems, ArrayList< ChannelItem > channelItemsArduino, BooleanProperty enabledSaveImages, StringProperty directory, StringProperty filename, ObjectProperty savingFormat, BooleanProperty saveAsHDF5 )
+	public AcquisitionSetting( BooleanProperty enabledTimePoints, StringProperty numTimePoints, StringProperty intervalTimePoints, ObjectProperty intervalUnitTimePoints, BooleanProperty enabledPositions, ArrayList< PositionItem > positionItems, BooleanProperty enabledZStacks, ObjectProperty acquisitionOrder, BooleanProperty enabledChannels, int selectedTabIndex, ArrayList< ChannelItem > channelItems, ArrayList< ChannelItem > channelItemsArduino, BooleanProperty enabledSaveImages, StringProperty directory, StringProperty filename, ObjectProperty savingFormat, BooleanProperty saveAsHDF5, ObjectProperty roiRectangle )
 	{
 		// Time points panel
 		this.enabledTimePoints = enabledTimePoints.get();
@@ -257,6 +269,7 @@ public class AcquisitionSetting
 		this.filename = filename.get();
 		this.savingFormat = savingFormat.get();
 		this.saveAsHDF5 = saveAsHDF5.get();
+		this.roiRectangle = roiRectangle.get();
 	}
 
 	public static AcquisitionSetting load( File file ) {

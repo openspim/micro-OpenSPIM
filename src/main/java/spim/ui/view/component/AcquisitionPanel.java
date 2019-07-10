@@ -1,5 +1,6 @@
 package spim.ui.view.component;
 
+import ij.gui.Roi;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
@@ -41,7 +42,6 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
@@ -121,6 +121,7 @@ public class AcquisitionPanel extends BorderPane
 	StringProperty filename;
 	ObjectProperty savingFormat;
 	BooleanProperty saveAsHDF5;
+	ObjectProperty roiRectangle;
 
 	// properties for progress
 	LongProperty totalImages, processedImages;
@@ -141,6 +142,15 @@ public class AcquisitionPanel extends BorderPane
 		this.processedImages = new SimpleLongProperty();
 
 		this.stagePanel = stagePanel;
+		this.roiRectangle = new SimpleObjectProperty();
+		try
+		{
+			this.roiRectangle.setValue( studio.core().getROI() );
+		}
+		catch ( Exception e )
+		{
+			e.printStackTrace();
+		}
 
 		// 1. Property Map for summary panel
 		this.propertyMap.put( "times", new SimpleStringProperty( "0" ) );
@@ -340,7 +350,7 @@ public class AcquisitionPanel extends BorderPane
 		} );
 
 		Button acquireButton = new Button( "Acquire" );
-		acquireButton.setMinSize( 120, 40 );
+		acquireButton.setMinSize( 130, 40 );
 		acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
 		acquireButton.setOnAction( new EventHandler< ActionEvent >()
 		{
@@ -354,18 +364,16 @@ public class AcquisitionPanel extends BorderPane
 					System.out.println("BufferSize: " + studio.core().getImageBufferSize());
 				}
 
-				startAcquisition();
-			}
-		} );
-
-		Button stopButton = new Button( "Stop acquisition" );
-		stopButton.setMinSize( 130, 40 );
-		stopButton.setStyle("-fx-font: 15 arial; -fx-base: #e77d8c;");
-		stopButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				stopAcquisition();
+				if(acquisitionThread == null) {
+					startAcquisition(acquireButton);
+					acquireButton.setText( "Stop acquisition" );
+					acquireButton.setStyle("-fx-font: 15 arial; -fx-base: #e77d8c;");
+				}
+				else {
+					stopAcquisition();
+					acquireButton.setText( "Acquire" );
+					acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
+				}
 			}
 		} );
 
@@ -393,7 +401,7 @@ public class AcquisitionPanel extends BorderPane
 					pi.setProgress( newValue.doubleValue() / totalImages.getValue() );
 				}
 			} );
-			hb.getChildren().addAll(liveViewButton, acquireButton, stopButton, pi);
+			hb.getChildren().addAll(liveViewButton, acquireButton, pi);
 		}
 
 
@@ -565,6 +573,7 @@ public class AcquisitionPanel extends BorderPane
 		filename.set( setting.getFilename() );
 		savingFormat.set( setting.getSavingFormat() );
 		saveAsHDF5.set( setting.getSaveAsHDF5() );
+		roiRectangle.set( setting.getRoiRectangle() );
 	}
 
 	private AcquisitionSetting getAcquisitionSetting() {
@@ -574,7 +583,7 @@ public class AcquisitionPanel extends BorderPane
 
 		return new AcquisitionSetting( enabledTimePoints, numTimePoints, intervalTimePoints, intervalUnitTimePoints,
 				enabledPositions, positionItems, enabledZStacks, acquisitionOrder,
-				enabledChannels, channelTabPane.getSelectionModel().selectedIndexProperty().get(), channelItems, channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveAsHDF5 );
+				enabledChannels, channelTabPane.getSelectionModel().selectedIndexProperty().get(), channelItems, channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveAsHDF5, roiRectangle );
 	}
 
 	public void stopAcquisition()
@@ -601,7 +610,7 @@ public class AcquisitionPanel extends BorderPane
 		Platform.runLater( () -> processedImages.set( 0 ) );
 	}
 
-	public void startAcquisition()
+	public void startAcquisition( Button acquireButton )
 	{
 		System.out.println("Acquire button pressed");
 
@@ -634,9 +643,13 @@ public class AcquisitionPanel extends BorderPane
 		acquisitionThread = new Thread( () -> {
 			try
 			{
-				engine.performAcquisition( spimSetup, stagePanel, tp, deltaT * unit, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages );
+				engine.performAcquisition( spimSetup, stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages );
 
 				acquisitionThread = null;
+				Platform.runLater( () -> {
+					acquireButton.setText( "Acquire" );
+					acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
+				} );
 			}
 			catch ( Exception e )
 			{
@@ -776,6 +789,67 @@ public class AcquisitionPanel extends BorderPane
 		CheckBox ch = new CheckBox( "Save as HDF5" );
 		gridpane.addRow( 3, ch );
 		saveAsHDF5 = ch.selectedProperty();
+
+		java.awt.Rectangle roi = null;
+		try
+		{
+			roi = studio.core().getROI();
+		}
+		catch ( Exception e )
+		{
+			e.printStackTrace();
+		}
+		Label roiLabel = new Label(String.format( "[X=%d, Y=%d, Width=%d, Height=%d]", roi.x, roi.y, roi.width, roi.height ));
+
+		roiRectangle.addListener( new ChangeListener()
+		{
+			@Override public void changed( ObservableValue observable, Object oldValue, Object newValue )
+			{
+				if(null != newValue) {
+					java.awt.Rectangle roi = ( java.awt.Rectangle ) newValue;
+					imageWidth = roi.width;
+					imageHeight = roi.height;
+					bufferSize = imageWidth * imageHeight * imageDepth / 8;
+					computeTotal();
+					roiLabel.setText( String.format( "[X=%d, Y=%d, Width=%d, Height=%d]", roi.x, roi.y, roi.width, roi.height ) );
+				}
+			}
+		} );
+
+		Button setRoiButton = new Button( "Set ROI" );
+		setRoiButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(studio != null && studio.live() != null && studio.live().getDisplay() != null && studio.live().getDisplay().getImagePlus() != null && studio.live().getDisplay().getImagePlus().getRoi() != null) {
+						Roi ipRoi = studio.live().getDisplay().getImagePlus().getRoi();
+						roiRectangle.setValue( ipRoi.getBounds() );
+					}
+			}
+		} );
+
+		Button clearRoiButton = new Button("Clear");
+		clearRoiButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				try
+				{
+					if(studio != null && studio.core() != null)
+					{
+						studio.core().clearROI();
+						roiRectangle.setValue( studio.core().getROI() );
+					}
+				}
+				catch ( Exception e )
+				{
+					e.printStackTrace();
+				}
+			}
+		} );
+
+		gridpane.addRow( 4, new Label( "ROI" ), new HBox( 5, setRoiButton, clearRoiButton ) );
+		gridpane.add( roiLabel, 1, 5, 1, 1 );
 
 		CheckboxPane pane = new CheckboxPane( "Save Images", gridpane, 12 );
 		enabledSaveImages = pane.selectedProperty();
