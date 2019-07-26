@@ -286,7 +286,7 @@ public class AcquisitionEngine
 								handleSlice(setup, channelItem.getValue().intValue(), c, acqBegan, timeSeq, step, ip, handlers.get(camera));
 
 								addImageToAcquisition(frame, store,
-									timeSeq, c, noSlice, zStart,
+										step, timeSeq, c, noSlice, zStart,
 									positionItem, now - acqStart, ti);
 
 //						if(ad != null)
@@ -464,7 +464,7 @@ public class AcquisitionEngine
 		return null;
 	}
 
-	private static void addImageToAcquisition( MMStudio studio, Datastore store, int frame, int channel,
+	private static void addImageToAcquisition( MMStudio studio, Datastore store, int pos, int frame, int channel,
 			int slice, double zPos, PositionItem position, long ms, TaggedImage taggedImg ) throws
 			JSONException, DatastoreFrozenException,
 			DatastoreRewriteException, Exception
@@ -472,7 +472,7 @@ public class AcquisitionEngine
 
 		Coords.CoordsBuilder cb = studio.data().getCoordsBuilder();
 
-		Coords coord = cb.time(frame).channel(channel).z(slice).build();
+		Coords coord = cb.stagePosition( pos ).time(frame).channel(channel).z(slice).build();
 		Image img = studio.data().convertTaggedImage(taggedImg);
 		Metadata md = img.getMetadata();
 		Metadata.MetadataBuilder mdb = md.copy();
@@ -571,7 +571,7 @@ public class AcquisitionEngine
 	private static void handleSlice(SPIMSetup setup, int exp, int channel, double start, int time, int angle, ImageProcessor ip,
 			OutputHandler handler) throws Exception {
 		if(null != handler)
-			handler.processSlice(exp, channel, time, angle, ip, setup.getXStage().getPosition(),
+			handler.processSlice(time, angle, ip, setup.getXStage().getPosition(),
 				setup.getYStage().getPosition(),
 				setup.getZStage().getPosition(),
 				setup.getAngle(),
