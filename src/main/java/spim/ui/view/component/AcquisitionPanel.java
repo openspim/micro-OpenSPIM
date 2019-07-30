@@ -968,24 +968,25 @@ public class AcquisitionPanel extends BorderPane
 		gridpane.setVgap( 8 );
 		gridpane.setHgap( 5 );
 
-		Button button = createZStackButton( "Z-start" );
+		Button startButton = createZStackButton( "Z-start" );
 		TextField zStartField = createNumberTextField();
 		zStartField.textProperty().addListener( new ChangeListener< String >()
 		{
 			@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
 			{
-				if(currentPosition.get() != null && !newValue.isEmpty()) {
+				if(!newValue.isEmpty()) {
 					double z = Double.parseDouble( newValue );
-					currentPosition.get().setZStart( z );
 					zStart.set( z / maxZStack * 100 );
-					computeTotalPositionImages();
-					positionItemTableView.refresh();
+					if(currentPosition.get() != null) {
+						currentPosition.get().setZStart( z );
+						computeTotalPositionImages();
+						positionItemTableView.refresh();
+					}
 				}
 			}
 		} );
 
-		setupMouseClickedHandler(button, zStartField);
-		gridpane.addRow( 0, button, zStartField );
+		gridpane.addRow( 0, startButton, zStartField );
 
 		TextField zStepField = createNumberTextField();
 		zStepField.setText( "1.5" );
@@ -1003,24 +1004,27 @@ public class AcquisitionPanel extends BorderPane
 		} );
 		gridpane.addRow( 1, new Label( "Z-step (\u03BCm)" ), zStepField );
 
-		button = createZStackButton( "Z-end" );
+		Button endButton = createZStackButton( "Z-end" );
 		TextField zEndField = createNumberTextField();
 		zEndField.textProperty().addListener( new ChangeListener< String >()
 		{
 			@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
 			{
-				if(currentPosition.get() != null && !newValue.isEmpty()) {
+				if(!newValue.isEmpty()) {
 					double z = Double.parseDouble( newValue );
-					currentPosition.get().setZEnd( z );
 					zEnd.set( z / maxZStack * 100 );
-					computeTotalPositionImages();
-					positionItemTableView.refresh();
+					if(currentPosition.get() != null) {
+						currentPosition.get().setZEnd( z );
+						computeTotalPositionImages();
+						positionItemTableView.refresh();
+					}
 				}
 			}
 		} );
 
-		setupMouseClickedHandler(button, zEndField);
-		gridpane.addRow( 2, button, zEndField );
+		setupMouseClickedHandler(startButton, zStartField, endButton, zEndField);
+
+		gridpane.addRow( 2, endButton, zEndField );
 
 		currentPosition.addListener( new ChangeListener< PositionItem >()
 		{
@@ -1028,7 +1032,7 @@ public class AcquisitionPanel extends BorderPane
 			{
 				if(newValue != null) {
 					zStartField.setText( (int)newValue.getZStart() + "" );
-					zStepField.setText( (double)newValue.getZStep() + "");
+					zStepField.setText( newValue.getZStep() + "");
 					zEndField.setText( (int)newValue.getZEnd() + "");
 
 					zStart.set( newValue.getZStart() / maxZStack * 100 );
@@ -1070,14 +1074,46 @@ public class AcquisitionPanel extends BorderPane
 		return pane;
 	}
 
-	private void setupMouseClickedHandler( Button label, TextField zField )
+	private void setupMouseClickedHandler( Button startButton, TextField zStartField, Button endButton, TextField zEndField )
 	{
-		label.setOnAction( new EventHandler< ActionEvent >()
+		startButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
 			{
 				if(spimSetup != null && spimSetup.getZStage() != null) {
-					zField.setText( (int) spimSetup.getZStage().getPosition() + "" );
+					int currentPosition = (int) spimSetup.getZStage().getPosition();
+					if(zEndField.getText().isEmpty())
+						zStartField.setText( currentPosition + "" );
+					else {
+						int zEnd = Integer.parseInt( zEndField.getText() );
+						if(zEnd < currentPosition) {
+							zEndField.setText( currentPosition + "" );
+							zStartField.setText( zEnd + "" );
+						} else {
+							zStartField.setText( currentPosition + "" );
+						}
+					}
+				}
+			}
+		} );
+
+		endButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(spimSetup != null && spimSetup.getZStage() != null) {
+					int currentPosition = (int) spimSetup.getZStage().getPosition();
+					if(zStartField.getText().isEmpty())
+						zEndField.setText( currentPosition + "" );
+					else {
+						int zStart = Integer.parseInt( zStartField.getText() );
+						if(zStart < currentPosition) {
+							zEndField.setText( currentPosition + "" );
+						} else {
+							zStartField.setText( currentPosition + "" );
+							zEndField.setText( zStart + "" );
+						}
+					}
 				}
 			}
 		} );
