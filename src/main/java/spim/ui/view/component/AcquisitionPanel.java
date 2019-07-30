@@ -1149,6 +1149,7 @@ public class AcquisitionPanel extends BorderPane
 
 		TextField numTimepointsField = createNumberTextField();
 		numTimePoints = numTimepointsField.textProperty();
+		numTimePoints.setValue( "1" );
 
 		numTimePoints.addListener( new ChangeListener< String >()
 		{
@@ -1165,6 +1166,7 @@ public class AcquisitionPanel extends BorderPane
 		GridPane.setConstraints(numInterval, 1, 1); // column=1 row=1
 		TextField numIntervalField = createNumberTextField();
 		intervalTimePoints = numIntervalField.textProperty();
+		intervalTimePoints.setValue( "1" );
 
 		GridPane.setConstraints(numIntervalField, 2, 1); // column=2 row=1
 		ComboBox unitComboBox = new ComboBox<>( FXCollections.observableArrayList( "ms", "sec", "min" ) );
