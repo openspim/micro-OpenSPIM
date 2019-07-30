@@ -5,6 +5,7 @@ import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
+import javafx.event.EventHandler;
 import javafx.scene.control.Button;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
@@ -17,6 +18,7 @@ import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
 import javafx.scene.input.Dragboard;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
 import javafx.util.Callback;
 import javafx.util.converter.NumberStringConverter;
@@ -40,12 +42,72 @@ public class TableViewUtil
 	{
 		TableView<PositionItem> tv = new TableView<>();
 
+		Callback<TableColumn<PositionItem, Number>, TableCell<PositionItem, Number>> factory =
+				new Callback<TableColumn<PositionItem, Number>, TableCell<PositionItem, Number>>() {
+					public TableCell call(TableColumn p) {
+						TableCell cell = new TableCell<PositionItem, Number>() {
+							@Override
+							public void updateItem(Number item, boolean empty) {
+								super.updateItem(item, empty);
+								setText(empty ? null : getString());
+								setGraphic(null);
+							}
+
+							private String getString() {
+								return getItem() == null ? "" : getItem().toString();
+							}
+//							/** {@inheritDoc} */
+//							@Override public void startEdit() {
+//								if (! isEditable()
+//										|| ! getTableView().isEditable()
+//										|| ! getTableColumn().isEditable()) {
+//									return;
+//								}
+//								super.startEdit();
+//
+//								if (isEditing()) {
+//									if (textField == null) {
+//										textField = CellUtils.createTextField(this, getConverter());
+//									}
+//
+//									CellUtils.startEdit(this, getConverter(), null, null, textField);
+//								}
+//							}
+//
+//							/** {@inheritDoc} */
+//							@Override public void cancelEdit() {
+//								super.cancelEdit();
+//								CellUtils.cancelEdit(this, getConverter(), null);
+//							}
+//
+//							/** {@inheritDoc} */
+//							@Override public void updateItem(T item, boolean empty) {
+//								super.updateItem(item, empty);
+//								CellUtils.updateItem(this, getConverter(), null, null, textField);
+//							}
+						};
+
+						cell.addEventFilter( MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+							@Override
+							public void handle(MouseEvent event) {
+								if (event.getClickCount() > 1) {
+									System.out.println("double clicked!");
+									TableCell c = (TableCell) event.getSource();
+									c.startEdit();
+									System.out.println("Cell text: " + c.getText());
+								}
+							}
+						});
+						return cell;
+					}
+				};
+
 		TableColumn<PositionItem, Number> numberColumn = new TableColumn<>("X");
 		numberColumn.setPrefWidth(50);
 		numberColumn.setCellValueFactory( (param) ->
 				new ReadOnlyDoubleWrapper( param.getValue().getX() )
 		);
-		numberColumn.setCellFactory( TextFieldTableCell.forTableColumn( new NumberStringConverter() ) );
+		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter( ) ) );
 		numberColumn.setOnEditCommit( event -> event.getRowValue().setX( event.getNewValue().doubleValue() ) );
 		numberColumn.setEditable( true );
 		tv.getColumns().add(numberColumn);
@@ -55,7 +117,7 @@ public class TableViewUtil
 		numberColumn.setCellValueFactory( (param) ->
 				new ReadOnlyDoubleWrapper( param.getValue().getY() )
 		);
-		numberColumn.setCellFactory( TextFieldTableCell.forTableColumn( new NumberStringConverter() ) );
+		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
 		numberColumn.setOnEditCommit( event -> event.getRowValue().setY( event.getNewValue().doubleValue() ) );
 		numberColumn.setEditable( true );
 		tv.getColumns().add(numberColumn);
@@ -65,7 +127,7 @@ public class TableViewUtil
 		numberColumn.setCellValueFactory( (param) ->
 				new ReadOnlyDoubleWrapper( param.getValue().getR() )
 		);
-		numberColumn.setCellFactory( TextFieldTableCell.forTableColumn( new NumberStringConverter() ) );
+		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
 		numberColumn.setOnEditCommit( event -> event.getRowValue().setR( event.getNewValue().doubleValue() ) );
 		numberColumn.setEditable( true );
 		tv.getColumns().add(numberColumn);
@@ -75,7 +137,7 @@ public class TableViewUtil
 		column.setCellValueFactory( (param) ->
 				new ReadOnlyStringWrapper( param.getValue().getZString() )
 		);
-		column.setCellFactory( TextFieldTableCell.forTableColumn() );
+		column.setCellFactory( NumberFieldTableCell.forTableColumn() );
 		column.setOnEditCommit( event -> {
 			String zString = event.getNewValue();
 			String[] tokens = zString.split( ":" );
@@ -233,7 +295,7 @@ public class TableViewUtil
 		numberColumn.setCellValueFactory( (param) ->
 				new ReadOnlyDoubleWrapper( param.getValue().getValue().doubleValue() )
 		);
-		numberColumn.setCellFactory( TextFieldTableCell.forTableColumn( new NumberStringConverter() ) );
+		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
 		numberColumn.setOnEditCommit( event -> event.getRowValue().setValue( event.getNewValue().doubleValue() ) );
 		numberColumn.setEditable( true );
 		tv.getColumns().add(numberColumn);
@@ -324,7 +386,7 @@ public class TableViewUtil
 		numberColumn.setCellValueFactory( (param) ->
 				new ReadOnlyDoubleWrapper( param.getValue().getValue().doubleValue() )
 		);
-		numberColumn.setCellFactory( TextFieldTableCell.forTableColumn( new NumberStringConverter() ) );
+		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
 		numberColumn.setOnEditCommit( event -> event.getRowValue().setValue( event.getNewValue().doubleValue() ) );
 		numberColumn.setEditable( true );
 		tv.getColumns().add(numberColumn);
@@ -348,7 +410,7 @@ public class TableViewUtil
 		numberColumn.setCellValueFactory( (param) ->
 				new ReadOnlyDoubleWrapper( param.getValue().getState() )
 		);
-		numberColumn.setCellFactory( TextFieldTableCell.forTableColumn( new NumberStringConverter() ) );
+		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
 		numberColumn.setOnEditCommit( event -> event.getRowValue().setState( event.getNewValue().intValue() ) );
 		numberColumn.setEditable( true );
 		tv.getColumns().add(numberColumn);
@@ -358,7 +420,7 @@ public class TableViewUtil
 		column.setCellValueFactory( (param) ->
 				new ReadOnlyStringWrapper( param.getValue().getPinName() )
 		);
-		column.setCellFactory( TextFieldTableCell.forTableColumn() );
+		column.setCellFactory( NumberFieldTableCell.forTableColumn() );
 		column.setOnEditCommit( event -> event.getRowValue().setPinName( event.getNewValue() ) );
 		column.setEditable( true );
 

@@ -42,6 +42,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
@@ -977,12 +978,15 @@ public class AcquisitionPanel extends BorderPane
 				if(!newValue.isEmpty()) {
 					double z = Double.parseDouble( newValue );
 					zStart.set( z / maxZStack * 100 );
-					if(currentPosition.get() != null) {
-						currentPosition.get().setZStart( z );
-						computeTotalPositionImages();
-						positionItemTableView.refresh();
-					}
 				}
+			}
+		} );
+
+		zStartField.setOnAction( event -> {
+			if(currentPosition.get() != null) {
+				currentPosition.get().setZStart( Double.parseDouble( zStartField.getText() ) );
+				computeTotalPositionImages();
+				positionItemTableView.refresh();
 			}
 		} );
 
@@ -990,16 +994,12 @@ public class AcquisitionPanel extends BorderPane
 
 		TextField zStepField = createNumberTextField();
 		zStepField.setText( "1.5" );
-		zStepField.textProperty().addListener( new ChangeListener< String >()
-		{
-			@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
+		zStepField.setOnAction( event -> {
+			if(currentPosition.get() != null)
 			{
-				if(currentPosition.get() != null && !newValue.isEmpty())
-				{
-					currentPosition.get().setZStep( Double.parseDouble( newValue ) );
-					computeTotalPositionImages();
-					positionItemTableView.refresh();
-				}
+				currentPosition.get().setZStep( Double.parseDouble( zStepField.getText() ) );
+				computeTotalPositionImages();
+				positionItemTableView.refresh();
 			}
 		} );
 		gridpane.addRow( 1, new Label( "Z-step (\u03BCm)" ), zStepField );
@@ -1013,12 +1013,15 @@ public class AcquisitionPanel extends BorderPane
 				if(!newValue.isEmpty()) {
 					double z = Double.parseDouble( newValue );
 					zEnd.set( z / maxZStack * 100 );
-					if(currentPosition.get() != null) {
-						currentPosition.get().setZEnd( z );
-						computeTotalPositionImages();
-						positionItemTableView.refresh();
-					}
 				}
+			}
+		} );
+
+		zEndField.setOnAction( event -> {
+			if(currentPosition.get() != null) {
+				currentPosition.get().setZEnd( Double.parseDouble( zEndField.getText() ) );
+				computeTotalPositionImages();
+				positionItemTableView.refresh();
 			}
 		} );
 
@@ -1062,7 +1065,22 @@ public class AcquisitionPanel extends BorderPane
 				}
 			}
 		} );
-		gridpane.addRow( 3, newButton );
+
+		Button updateButton = new Button("Update");
+		updateButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(currentPosition.get() != null) {
+					currentPosition.get().setZStart( Double.parseDouble( zStartField.getText() ) );
+					currentPosition.get().setZStep( Double.parseDouble( zStepField.getText() ) );
+					currentPosition.get().setZEnd( Double.parseDouble( zEndField.getText() ) );
+					computeTotalPositionImages();
+					positionItemTableView.refresh();
+				}
+			}
+		} );
+		gridpane.addRow( 3, newButton, updateButton );
 
 		gridpane.setTranslateY( -30 );
 
@@ -1081,16 +1099,16 @@ public class AcquisitionPanel extends BorderPane
 			@Override public void handle( ActionEvent event )
 			{
 				if(spimSetup != null && spimSetup.getZStage() != null) {
-					int currentPosition = (int) spimSetup.getZStage().getPosition();
+					int currPos = (int) spimSetup.getZStage().getPosition();
 					if(zEndField.getText().isEmpty())
-						zStartField.setText( currentPosition + "" );
+						zStartField.setText( currPos + "" );
 					else {
 						int zEnd = Integer.parseInt( zEndField.getText() );
-						if(zEnd < currentPosition) {
-							zEndField.setText( currentPosition + "" );
+						if(zEnd < currPos) {
+							zEndField.setText( currPos + "" );
 							zStartField.setText( zEnd + "" );
 						} else {
-							zStartField.setText( currentPosition + "" );
+							zStartField.setText( currPos + "" );
 						}
 					}
 				}
@@ -1102,15 +1120,15 @@ public class AcquisitionPanel extends BorderPane
 			@Override public void handle( ActionEvent event )
 			{
 				if(spimSetup != null && spimSetup.getZStage() != null) {
-					int currentPosition = (int) spimSetup.getZStage().getPosition();
+					int currPos = (int) spimSetup.getZStage().getPosition();
 					if(zStartField.getText().isEmpty())
-						zEndField.setText( currentPosition + "" );
+						zEndField.setText( currPos + "" );
 					else {
 						int zStart = Integer.parseInt( zStartField.getText() );
-						if(zStart < currentPosition) {
-							zEndField.setText( currentPosition + "" );
+						if(zStart < currPos) {
+							zEndField.setText( currPos + "" );
 						} else {
-							zStartField.setText( currentPosition + "" );
+							zStartField.setText( currPos + "" );
 							zEndField.setText( zStart + "" );
 						}
 					}
