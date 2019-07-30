@@ -696,7 +696,7 @@ public class AcquisitionPanel extends BorderPane
 			}
 		};
 
-		Button newButton = new Button("New with current Pos");
+		Button newButton = new Button("New");
 		newButton.setOnAction( newEventHandler );
 
 		Button deleteButton = new Button("Delete");
@@ -961,6 +961,7 @@ public class AcquisitionPanel extends BorderPane
 		else
 			cube = new StackCube(50, 100, Color.CORNFLOWERBLUE, 1, zStart, zEnd, stagePanel.getZValueProperty() );
 
+//		cube.setRotate( 180 );
 		cube.setTranslateX( -60 );
 
 		GridPane gridpane = new GridPane();
@@ -984,7 +985,7 @@ public class AcquisitionPanel extends BorderPane
 		} );
 
 		setupMouseClickedHandler(button, zStartField);
-		gridpane.addRow( 2, button, zStartField );
+		gridpane.addRow( 0, button, zStartField );
 
 		TextField zStepField = createNumberTextField();
 		zStepField.setText( "1.5" );
@@ -1019,7 +1020,7 @@ public class AcquisitionPanel extends BorderPane
 		} );
 
 		setupMouseClickedHandler(button, zEndField);
-		gridpane.addRow( 0, button, zEndField );
+		gridpane.addRow( 2, button, zEndField );
 
 		currentPosition.addListener( new ChangeListener< PositionItem >()
 		{
@@ -1206,14 +1207,14 @@ public class AcquisitionPanel extends BorderPane
 					.fill(Color.RED.deriveColor(0.0, 1.0, (1 - 0.1*shade), 0.5))
 					.translateX(0)
 					//							.translateY(-0.75 * size)
-					.translateY( 100 - 0.75 * size )
+					.translateY( - 0.75 * size )
 					.transforms( new Shear( -2, 0 ) )
 					.build();
 
-			current.translateYProperty().bind( currentZ.multiply( -1 ).add( 100 ).subtract( 0.75 * size ) );
+			current.translateYProperty().bind( currentZ.subtract( 0.75 * size ) );
 
 			double currentStackSize = endZ.get() - startZ.get();
-			double startPosition = 100 - endZ.get();
+			double endPosition = startZ.get();
 
 			Color posStackColor = Color.GREEN.deriveColor(0.0, 1.0, (1 - 0.1*shade), 0.5);
 
@@ -1221,32 +1222,32 @@ public class AcquisitionPanel extends BorderPane
 					.width(size).height(0.25*size)
 					.fill(posStackColor.deriveColor(0.0, 1.0, (1 - 0.1*shade), 1.0))
 					.translateX(0)
-					.translateY( startPosition - 0.75 * size)
+					.translateY( endPosition - 0.75 * size)
 					.transforms( new Shear( -2, 0 ) )
 					.build();
 
-			currentStackTopFace.translateYProperty().bind( endZ.multiply( -1 ).add( 100 ).subtract( 0.75 * size ) );
+			currentStackTopFace.translateYProperty().bind( startZ.subtract( 0.75 * size ) );
 
 			Rectangle currentStackRightFace = RectangleBuilder.create() // right face
 					.width(size/2).height(currentStackSize)
 					.fill(posStackColor.deriveColor(0.0, 1.0, (1 - 0.3*shade), 1.0))
 					.translateX( 0.5 * size )
-					.translateY( startPosition -0.5 * size )
+					.translateY( endPosition -0.5 * size )
 					.transforms( new Shear( 0, -0.5 ) )
 					.build();
 
 			currentStackRightFace.heightProperty().bind( endZ.subtract( startZ ) );
-			currentStackRightFace.translateYProperty().bind( endZ.multiply( -1 ).add(100).subtract( 0.5 * size ) );
+			currentStackRightFace.translateYProperty().bind( startZ.subtract( 0.5 * size ) );
 
 			Rectangle currentStackFrontFace = RectangleBuilder.create() // front face
 					.width(size).height(currentStackSize)
 					.fill(posStackColor)
 					.translateX( -0.5 * size )
-					.translateY( startPosition -0.5 * size )
+					.translateY( endPosition -0.5 * size )
 					.build();
 
 			currentStackFrontFace.heightProperty().bind( endZ.subtract( startZ ) );
-			currentStackFrontFace.translateYProperty().bind( endZ.multiply( -1 ).add( 100 ).subtract( 0.5 * size ) );
+			currentStackFrontFace.translateYProperty().bind( startZ.subtract( 0.5 * size ) );
 
 			getChildren().addAll(
 					RectangleBuilder.create() // top face
