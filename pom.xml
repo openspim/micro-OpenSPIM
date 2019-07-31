@@ -6,9 +6,9 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<groupId>sc.fiji</groupId>
-		<artifactId>pom-fiji</artifactId>
-		<version>18.1.0</version>
+		<groupId>org.scijava</groupId>
+		<artifactId>pom-scijava</artifactId>
+		<version>28.0.0-SNAPSHOT</version>
 		<relativePath />
 	</parent>
 
@@ -20,7 +20,6 @@
 		<enforcer.skip>true</enforcer.skip>
 		<scijava.jvm.version>1.8</scijava.jvm.version>
 		<ImageJ_3D_Viewer.version>4.0.1</ImageJ_3D_Viewer.version>
-		<bio-formats.version>5.5.3</bio-formats.version>
 	</properties>
 
 	<repositories>
@@ -31,26 +30,6 @@
 	</repositories>
 
 	<dependencies>
-		<dependency>
-			<groupId>ome</groupId>
-			<artifactId>formats-api</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>ome</groupId>
-			<artifactId>formats-common</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>ome</groupId>
-			<artifactId>formats-gpl</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>ome</groupId>
-			<artifactId>ome-xml</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>ome</groupId>
-			<artifactId>formats-bsd</artifactId>
-		</dependency>
 		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
@@ -91,23 +70,6 @@
 			<groupId>org.scijava</groupId>
 			<artifactId>vecmath</artifactId>
 		</dependency>
-        <dependency>
-            <groupId>org.scijava</groupId>
-            <artifactId>scijava-common</artifactId>
-            <version>2.76.0</version>
-        </dependency>
-		<dependency>
-			<groupId>org.beanshell</groupId>
-			<artifactId>bsh</artifactId>
-			<version>2.0b4</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>18.0</version>
-			<scope>test</scope>
-		</dependency>
 		<dependency>
 			<groupId>com.fifesoft</groupId>
 			<artifactId>rsyntaxtextarea</artifactId>
@@ -118,12 +80,6 @@
 			<groupId>org.clojure</groupId>
 			<artifactId>clojure</artifactId>
 			<version>1.6.0</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.miglayout</groupId>
-			<artifactId>miglayout-swing</artifactId>
-			<version>4.2</version>
 			<scope>test</scope>
 		</dependency>
         <dependency>
@@ -192,27 +148,11 @@
 
         <!-- system -->
         <dependency>
-            <groupId>org.micromanager</groupId>
-            <artifactId>MMCoreJ</artifactId>
-            <version>2.0.0-gamma</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/libs/MMCoreJ.jar</systemPath>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>org.micromanager</groupId>
-            <artifactId>MMJ_</artifactId>
-            <version>2.0.0-gamma</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/libs/MMJ_.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>org.micromanager</groupId>
-            <artifactId>MMAcqEngine</artifactId>
-            <version>2.0.0-gamma</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/libs/MMAcqEngine.jar</systemPath>
-        </dependency>
-	</dependencies>
+    </dependencies>
 
     <build>
         <resources>
