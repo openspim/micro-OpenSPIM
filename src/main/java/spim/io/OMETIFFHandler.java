@@ -1,15 +1,16 @@
 package spim.io;
 
-import ij.CompositeImage;
-import ij.IJ;
 import ij.ImagePlus;
-import ij.io.FileSaver;
 import ij.process.ImageProcessor;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 import loci.common.DataTools;
+import loci.common.services.DependencyException;
+import loci.common.services.ServiceException;
 import loci.common.services.ServiceFactory;
 import loci.formats.FormatException;
 import loci.formats.FormatTools;
@@ -17,8 +18,7 @@ import loci.formats.IFormatWriter;
 import loci.formats.ImageWriter;
 import loci.formats.MetadataTools;
 import loci.formats.meta.IMetadata;
-import loci.formats.out.OMETiffWriter;
-import loci.formats.out.TiffWriter;
+
 import loci.formats.services.OMEXMLService;
 import mmcorej.CMMCore;
 import ome.units.UNITS;
@@ -28,12 +28,14 @@ import ome.xml.model.enums.DimensionOrder;
 import ome.xml.model.enums.PixelType;
 import ome.xml.model.primitives.NonNegativeInteger;
 import ome.xml.model.primitives.PositiveInteger;
+import org.micromanager.data.SummaryMetadata;
+import org.micromanager.data.internal.DefaultSummaryMetadata;
+import org.micromanager.internal.propertymap.NonPropertyMapJSONFormats;
 import spim.acquisition.AcquisitionStatus;
 import spim.acquisition.Program;
 import spim.acquisition.Row;
 
 import org.micromanager.internal.utils.ReportingUtils;
-import spim.io.imgloader.ImageProcessorStackImgLoader;
 
 public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHandler
 {
@@ -52,9 +54,11 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	private Thread hdf5ResaveThread;
 	private Exception rethrow;
 	private String currentFile;
+	final private String prefix;
+	final SummaryMetadata metadat;
 	
 	public OMETIFFHandler(CMMCore iCore, File outDir, String filenamePrefix, Row[] acqRows, int channels,
-			int iTimeSteps, double iDeltaT, int tileCount, boolean exportToHDF5) {
+			int iTimeSteps, double iDeltaT, int tileCount, SummaryMetadata metadata, boolean exportToHDF5) {
 
 		if(outDir == null || !outDir.exists() || !outDir.isDirectory())
 			throw new IllegalArgumentException("Null path specified: " + outDir.toString());
@@ -73,6 +77,8 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		tiles = tileCount;
 		this.channels = channels;
 		int angles = (int) (stacks / tiles);
+		this.prefix = filenamePrefix;
+		this.metadat = metadata;
 		
 		try {
 			//meta = new ServiceFactory().getInstance(OMEXMLService.class).createOMEXMLMetadata();
@@ -130,10 +136,6 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 			}
 
 			writer = new ImageWriter().getWriter(makeFilename(filenamePrefix, 0, 0, 0, false));
-			if (writer instanceof OMETiffWriter ) {
-				ij.IJ.log("calling setBigTiff(true)");
-				((OMETiffWriter) writer).setBigTiff(true);
-			}
 
 			writer.setWriteSequentially(true);
 			writer.setMetadataRetrieve(meta);
@@ -191,7 +193,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	}
 
 	@Override
-	public void processSlice(int expT, int c, int time, int angle, ImageProcessor ip,
+	public void processSlice(int expT, int c, ImageProcessor ip,
 			double X, double Y, double Z, double theta, double deltaT)
 			throws Exception
 	{
@@ -234,13 +236,6 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		if(writer != null)
 		{
 			writer.close();
-			if(!currentFile.endsWith( ".ome.tiff" )) {
-				ImagePlus imp = IJ.openImage( currentFile );
-				imp.setDimensions( channels, acqRows[angle].getDepth(), 1 );
-				imp = new CompositeImage( imp, 1 );
-				new FileSaver(imp).saveAsTiff( currentFile );
-				//			ImagePlus imp = HyperStackConverter.toHyperStack( imp, channels, acqRows[angle].getDepth(), 1, null, "color" );
-			}
 		}
 	}
 
@@ -252,6 +247,39 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		imageCounter = 0;
 
 		writer = null;
+
+		// save metadata
+		{
+			PrintWriter pw = new PrintWriter( outputDirectory + File.separator + prefix + "OMEXMLMetadata.ome" );
+			pw.print(xmlToString());
+			pw.close();
+
+			String summaryMetadataString = NonPropertyMapJSONFormats.summaryMetadata().toJSON( ((DefaultSummaryMetadata) metadat).toPropertyMap() );
+
+			File file = new File(outputDirectory, prefix + "metadata.json");
+			FileWriter writer = null;
+			try {
+				writer = new FileWriter(file);
+				writer.write( "{" + "\n" );
+				writer.write( "\"Summary\": " );
+				writer.write(summaryMetadataString);
+				writer.write("\n}\n");
+				writer.close();
+			}
+			catch (IOException e) {
+				ReportingUtils.logError(e, "Error while saving DisplaySettings");
+			}
+			finally {
+				if (writer != null) {
+					try {
+						writer.close();
+					}
+					catch (IOException e) {
+						ReportingUtils.logError(e, "Error while closing writer");
+					}
+				}
+			}
+		}
 
 		if (bSuccess && exportToHDF5 && Program.getStatus().equals( AcquisitionStatus.DONE ))
 		{
@@ -276,6 +304,16 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 			hdf5ResaveThread.setPriority( Thread.MAX_PRIORITY );
 			hdf5ResaveThread.setUncaughtExceptionHandler(this);
 			hdf5ResaveThread.start();
+		}
+	}
+
+	String xmlToString() {
+		try {
+			OMEXMLService service = new ServiceFactory().getInstance( OMEXMLService.class);
+			return service.getOMEXML(meta) + " ";
+		} catch ( DependencyException | ServiceException ex) {
+			ReportingUtils.logError(ex);
+			return "";
 		}
 	}
 

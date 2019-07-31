@@ -22,6 +22,7 @@ import org.micromanager.events.AcquisitionEndedEvent;
 import org.micromanager.events.AcquisitionStartedEvent;
 import org.micromanager.internal.MMStudio;
 import org.micromanager.internal.utils.ImageUtils;
+import org.micromanager.internal.utils.ReportingUtils;
 import spim.acquisition.Row;
 import spim.hardware.Device;
 import spim.hardware.SPIMSetup;
@@ -187,7 +188,7 @@ public class AcquisitionEngine
 				OutputHandler handler = new OMETIFFHandler(
 						core, output, acqFilenamePrefix + "_" + camera + "_",
 						//what is the purpose of defining parameters and then passing null anyway?
-						acqRows, channelItems.size(), timeSeqs, timeStep, 1, false);
+						acqRows, channelItems.size(), timeSeqs, timeStep, 1, smb.userData(pmb.build()).build(), false);
 
 	//			handler = new AsyncOutputHandler(handler, (ij.IJ.maxMemory() - ij.IJ.currentMemory())/(core.getImageWidth()*core.getImageHeight()*core.getBytesPerPixel()*2), false);
 
@@ -281,7 +282,8 @@ public class AcquisitionEngine
 								core.setExposure( channelItem.getValue().doubleValue() );
 								core.waitForDevice( camera );
 
-								TaggedImage ti = snapImageCam(setup, false);
+//								TaggedImage ti = snapImageCam(setup, false);
+								TaggedImage ti = snapImage( core );
 								ImageProcessor ip = ImageUtils.makeProcessor(ti);
 								handleSlice(setup, channelItem.getValue().intValue(), c, acqBegan, timeSeq, step, ip, handlers.get(camera));
 
@@ -548,6 +550,33 @@ public class AcquisitionEngine
 		return ti;
 	}
 
+	/**
+	 * To avoid the null returned from the system for snapImage
+	 * @param core
+	 * @return
+	 * @throws InterruptedException
+	 */
+	private static TaggedImage snapImage( CMMCore core ) throws InterruptedException
+	{
+		TaggedImage ti = null;
+
+		while(ti == null)
+		{
+			try
+			{
+				core.snapImage();
+				ti = core.getTaggedImage();
+			}
+			catch ( Exception e )
+			{
+				ReportingUtils.logError( e );
+			}
+			Thread.sleep( 10 );
+		}
+
+		return ti;
+	}
+
 	private static void runDevicesAtRow(CMMCore core, SPIMSetup setup, Row row) throws Exception {
 		for ( SPIMSetup.SPIMDevice devType : row.getDevices() ) {
 			Device dev = setup.getDevice(devType);
@@ -571,7 +600,7 @@ public class AcquisitionEngine
 	private static void handleSlice(SPIMSetup setup, int exp, int channel, double start, int time, int angle, ImageProcessor ip,
 			OutputHandler handler) throws Exception {
 		if(null != handler)
-			handler.processSlice(time, angle, ip, setup.getXStage().getPosition(),
+			handler.processSlice(exp, channel, ip, setup.getXStage().getPosition(),
 				setup.getYStage().getPosition(),
 				setup.getZStage().getPosition(),
 				setup.getAngle(),
