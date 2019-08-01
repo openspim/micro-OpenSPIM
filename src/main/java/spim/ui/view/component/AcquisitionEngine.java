@@ -600,7 +600,7 @@ public class AcquisitionEngine
 	private static void handleSlice(SPIMSetup setup, int exp, int channel, double start, int time, int angle, ImageProcessor ip,
 			OutputHandler handler) throws Exception {
 		if(null != handler)
-			handler.processSlice(exp, channel, ip, setup.getXStage().getPosition(),
+			handler.processSlice(time, angle, exp, channel, ip, setup.getXStage().getPosition(),
 				setup.getYStage().getPosition(),
 				setup.getZStage().getPosition(),
 				setup.getAngle(),
