@@ -263,10 +263,10 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 
 	/**
 	 * Process ImageProcessor slice.
-	 * @param expT the exposure
-	 * @param channel the channel
 	 * @param time the time
 	 * @param angle the angle
+	 * @param exp the exp
+	 * @param c the c
 	 * @param ip the ip
 	 * @param X the x
 	 * @param Y the y
@@ -275,7 +275,7 @@ public class HDF5OutputHandler implements OutputHandler, Thread.UncaughtExceptio
 	 * @param deltaT the delta t
 	 * @throws Exception the exception
 	 */
-	@Override public void processSlice( int expT, int channel, int time, int angle, ImageProcessor ip, double X, double Y, double Z, double theta, double deltaT ) throws Exception
+	@Override public void processSlice( int time, int angle, int exp, int c, ImageProcessor ip, double X, double Y, double Z, double theta, double deltaT ) throws Exception
 	{
 //		ij.IJ.log("Time "+ time + " Angle: "+ angle );
 		imgLoaders.get(angle).get(time).process( ip );

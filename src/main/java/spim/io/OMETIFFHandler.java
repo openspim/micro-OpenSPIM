@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.UUID;
 
 import loci.common.DataTools;
 import loci.common.services.DependencyException;
@@ -76,7 +77,6 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		this.acqRows = acqRows;
 		tiles = tileCount;
 		this.channels = channels;
-		int angles = (int) (stacks / tiles);
 		this.prefix = filenamePrefix;
 		this.metadat = metadata;
 		
@@ -102,13 +102,13 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 				int positionIndex = image;
 				
 				for (int t = 0; t < timesteps; ++t) {
-					String fileName = makeFilename(filenamePrefix, image % angles, t, positionIndex, (stacks>1));
+					String fileName = makeFilename(filenamePrefix, image, t, positionIndex, (stacks>1));
 
 					for(int z = 0; z < depth; ++z) {
 						for(int c = 0; c < channels; ++c) {
 							int td = channels*depth*t + channels*z + c;
 							meta.setUUIDFileName(fileName, image, td);
-							//						meta.setUUIDValue("urn:uuid:" + UUID.nameUUIDFromBytes(fileName.getBytes()).toString(), image, td);
+							meta.setUUIDValue("urn:uuid:" + UUID.nameUUIDFromBytes(fileName.getBytes()).toString(), image, td);
 
 							meta.setTiffDataPlaneCount(new NonNegativeInteger(1), image, td);
 							meta.setTiffDataFirstT(new NonNegativeInteger(t), image, td);
@@ -125,7 +125,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 				meta.setPixelsSizeY(new PositiveInteger((int)core.getImageHeight()), image);
 				meta.setPixelsSizeZ(new PositiveInteger(depth), image);
 				meta.setPixelsSizeC(new PositiveInteger(channels), image);
-				meta.setPixelsSizeT(new PositiveInteger(timesteps), image);
+				meta.setPixelsSizeT(new PositiveInteger(1), image);
 
 				meta.setPixelsPhysicalSizeX(FormatTools.getPhysicalSizeX(core.getPixelSizeUm()), image);
 				meta.setPixelsPhysicalSizeY(FormatTools.getPhysicalSizeX(core.getPixelSizeUm()), image);
@@ -177,8 +177,8 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	public void beginStack(int time, int angle) throws Exception {
 		ReportingUtils.logMessage("Beginning stack along time " + time + " / angle " + angle );
 
-		if(++imageCounter < stacks * timesteps)
-			openWriter(imageCounter % stacks, imageCounter / stacks);
+		++imageCounter;
+		openWriter(angle, time);
 	}
 
 	private int doubleAnnotations = 0;
@@ -193,7 +193,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	}
 
 	@Override
-	public void processSlice(int expT, int c, ImageProcessor ip,
+	public void processSlice(int time, int angle, int expT, int c, ImageProcessor ip,
 			double X, double Y, double Z, double theta, double deltaT)
 			throws Exception
 	{
@@ -203,15 +203,14 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 			DataTools.shortsToBytes((short[])ip.getPixels(), false);
 
 		int image = imageCounter % stacks;
-		int timePoint = imageCounter / stacks;
-		int plane = timePoint * acqRows[image].getDepth() + sliceCounter;
+		int plane = sliceCounter;
 
 		meta.setPlanePositionX(new Length(X, UNITS.REFERENCEFRAME), image, plane);
 		meta.setPlanePositionY(new Length(Y, UNITS.REFERENCEFRAME), image, plane);
 		meta.setPlanePositionZ(new Length(Z, UNITS.REFERENCEFRAME), image, plane);
 		meta.setPlaneTheC(new NonNegativeInteger(c), image, plane);
 		meta.setPlaneTheZ(new NonNegativeInteger(sliceCounter), image, plane);
-		meta.setPlaneTheT(new NonNegativeInteger(timePoint), image, plane);
+		meta.setPlaneTheT(new NonNegativeInteger(time), image, plane);
 
 		meta.setPlaneDeltaT(new Time(deltaT, UNITS.SECOND), image, plane);
 		meta.setPlaneExposureTime(new Time(expT, UNITS.MILLISECOND), image, plane);
@@ -221,7 +220,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		try {
 			writer.saveBytes(plane, data);
 		} catch(java.io.IOException ioe) {
-			finalizeStack(0, 0);
+			finalizeStack(time, angle);
 			if(writer != null)
 				writer.close();
 			throw new Exception("Error writing OME-TIFF.", ioe);
