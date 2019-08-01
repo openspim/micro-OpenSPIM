@@ -10,6 +10,8 @@ import mmcorej.TaggedImage;
 import org.json.JSONException;
 import org.micromanager.MultiStagePosition;
 import org.micromanager.PropertyMap;
+import org.micromanager.PropertyMaps;
+import org.micromanager.data.Coordinates;
 import org.micromanager.data.Coords;
 import org.micromanager.data.Datastore;
 import org.micromanager.data.DatastoreFrozenException;
@@ -111,25 +113,26 @@ public class AcquisitionEngine
 
 		MultiStagePosition[] multiStagePositions = positionItems.stream().map( c -> new MultiStagePosition( c.toString(), c.getX(), c.getY(), c.getZString(), c.getZStart() )).toArray(MultiStagePosition[]::new);
 
-		SummaryMetadata.SummaryMetadataBuilder smb = frame.data().getSummaryMetadataBuilder();
+		SummaryMetadata.Builder smb = frame.data().getSummaryMetadataBuilder();
+
 		smb = smb.channelNames(channelNames).
 				zStepUm( core.getPixelSizeUm() ).
 				prefix(acqFilenamePrefix).
 				stagePositions(multiStagePositions).
 				startDate((new Date()).toString());
 
-		smb = smb.intendedDimensions(frame.data().getCoordsBuilder().
+		smb = smb.intendedDimensions( Coordinates.builder().
 				channel(channelItems.size()).
 				z(timeSeqs).
-				time(timeSeqs).
+				t(timeSeqs).
 				stagePosition(acqRows.length).
 				build());
 
 
 		PropertyMap pm = store.getSummaryMetadata().getUserData();
-		PropertyMap.PropertyMapBuilder pmb = frame.data().getPropertyMapBuilder();
+		PropertyMap.Builder pmb = PropertyMaps.builder();
 		if (pm != null) {
-			pmb = pm.copy();
+			pmb = pm.copyBuilder();
 		}
 
 		if(setup.getCamera1() != null)
@@ -159,6 +162,16 @@ public class AcquisitionEngine
 //		pmb.putString("MVRotationAxis", "0_1_0");
 //		pmb.putString("MVRotations", viewString);
 
+		if(null != roiRectangle)
+		{
+			for ( String camera : cameras )
+			{
+				frame.core().setROI( camera, roiRectangle.x, roiRectangle.y, roiRectangle.width, roiRectangle.height );
+			}
+
+			pmb.putIntegerList("ROI", roiRectangle.x, roiRectangle.y, roiRectangle.width, roiRectangle.height );
+		}
+
 		store.setSummaryMetadata(smb.userData(pmb.build()).build());
 
 		Datastore finalStore1 = store;
@@ -174,12 +187,6 @@ public class AcquisitionEngine
 				return this;
 			}
 		} );
-
-		if(null != roiRectangle)
-			for(String camera : cameras)
-			{
-				frame.core().setROI( camera, roiRectangle.x, roiRectangle.y, roiRectangle.width, roiRectangle.height );
-			}
 
 		HashMap<String, OutputHandler> handlers = new HashMap<>(  );
 
