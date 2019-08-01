@@ -11,6 +11,7 @@ import org.json.JSONException;
 import org.micromanager.MultiStagePosition;
 import org.micromanager.PropertyMap;
 import org.micromanager.PropertyMaps;
+import org.micromanager.UserProfile;
 import org.micromanager.data.Coordinates;
 import org.micromanager.data.Coords;
 import org.micromanager.data.Datastore;
@@ -18,13 +19,16 @@ import org.micromanager.data.DatastoreFrozenException;
 import org.micromanager.data.DatastoreRewriteException;
 import org.micromanager.data.Image;
 import org.micromanager.data.Metadata;
+import org.micromanager.data.RewritableDatastore;
 import org.micromanager.data.SummaryMetadata;
+import org.micromanager.data.internal.DefaultSummaryMetadata;
 import org.micromanager.display.DisplayWindow;
 import org.micromanager.events.AcquisitionEndedEvent;
 import org.micromanager.events.AcquisitionStartedEvent;
 import org.micromanager.internal.MMStudio;
 import org.micromanager.internal.utils.ImageUtils;
 import org.micromanager.internal.utils.ReportingUtils;
+import org.micromanager.internal.utils.UserProfileStaticInterface;
 import spim.acquisition.Row;
 import spim.hardware.Device;
 import spim.hardware.SPIMSetup;
@@ -36,6 +40,7 @@ import spim.model.data.PositionItem;
 
 import java.awt.Rectangle;
 import java.io.File;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -61,7 +66,7 @@ public class AcquisitionEngine
 		final MMStudio frame = MMStudio.getInstance();
 
 		boolean liveOn = false;
-		Datastore store = null;
+		RewritableDatastore store = null;
 		DisplayWindow display = null;
 
 		if(frame != null) {
@@ -71,8 +76,9 @@ public class AcquisitionEngine
 
 //			store = frame.data().createMultipageTIFFDatastore(output.getAbsolutePath(), false, false);
 
-			store = frame.data().createRAMDatastore();
+			store = frame.data().createRewritableRAMDatastore();
 			display = frame.displays().createDisplay(store);
+			display.setCustomTitle( acqFilenamePrefix );
 			frame.displays().manage(store);
 		}
 
@@ -113,7 +119,24 @@ public class AcquisitionEngine
 
 		MultiStagePosition[] multiStagePositions = positionItems.stream().map( c -> new MultiStagePosition( c.toString(), c.getX(), c.getY(), c.getZString(), c.getZStart() )).toArray(MultiStagePosition[]::new);
 
-		SummaryMetadata.Builder smb = frame.data().getSummaryMetadataBuilder();
+//		Metadata.Builder mb = frame.data().getMetadataBuilder();
+//		mb.
+
+//		SummaryMetadata.Builder smb = frame.data().getSummaryMetadataBuilder();
+
+		PropertyMap.Builder pm = PropertyMaps.builder();
+
+		SummaryMetadata.Builder smb = new DefaultSummaryMetadata.Builder();
+
+		UserProfile profile = UserProfileStaticInterface.getInstance();
+		smb = smb.userName( System.getProperty("user.name") )
+				.profileName( profile.getProfileName() );
+
+		try {
+			smb = smb.computerName( InetAddress.getLocalHost().getHostName());
+		}
+		catch ( Exception ignored ) {
+		}
 
 		smb = smb.channelNames(channelNames).
 				zStepUm( core.getPixelSizeUm() ).
@@ -128,21 +151,14 @@ public class AcquisitionEngine
 				stagePosition(acqRows.length).
 				build());
 
-
-		PropertyMap pm = store.getSummaryMetadata().getUserData();
-		PropertyMap.Builder pmb = PropertyMaps.builder();
-		if (pm != null) {
-			pmb = pm.copyBuilder();
-		}
-
 		if(setup.getCamera1() != null)
 		{
-			pmb.putString("Camera-1", setup.getCamera1().getLabel() );
+			pm.putString("Camera-1", setup.getCamera1().getLabel() );
 		}
 
 		if(setup.getCamera2() != null)
 		{
-			pmb.putString("Camera-2", setup.getCamera2().getLabel() );
+			pm.putString("Camera-2", setup.getCamera2().getLabel() );
 		}
 
 
@@ -169,10 +185,10 @@ public class AcquisitionEngine
 				frame.core().setROI( camera, roiRectangle.x, roiRectangle.y, roiRectangle.width, roiRectangle.height );
 			}
 
-			pmb.putIntegerList("ROI", roiRectangle.x, roiRectangle.y, roiRectangle.width, roiRectangle.height );
+			pm.putIntegerList("ROI", roiRectangle.x, roiRectangle.y, roiRectangle.width, roiRectangle.height );
 		}
 
-		store.setSummaryMetadata(smb.userData(pmb.build()).build());
+		store.setSummaryMetadata(smb.userData(pm.build()).build());
 
 		Datastore finalStore1 = store;
 		frame.events().post( new AcquisitionStartedEvent()
@@ -195,7 +211,7 @@ public class AcquisitionEngine
 				OutputHandler handler = new OMETIFFHandler(
 						core, output, acqFilenamePrefix + "_" + camera + "_",
 						//what is the purpose of defining parameters and then passing null anyway?
-						acqRows, channelItems.size(), timeSeqs, timeStep, 1, smb.userData(pmb.build()).build(), false);
+						acqRows, channelItems.size(), timeSeqs, timeStep, 1, smb.userData(pm.build()).build(), false);
 
 	//			handler = new AsyncOutputHandler(handler, (ij.IJ.maxMemory() - ij.IJ.currentMemory())/(core.getImageWidth()*core.getImageHeight()*core.getBytesPerPixel()*2), false);
 
@@ -218,6 +234,8 @@ public class AcquisitionEngine
 			{
 				final int tp = timeSeq;
 				final int rown = step;
+
+				display.setCustomTitle( acqFilenamePrefix + String.format( " t=%d, p=%d", timeSeq, step ));
 
 //				AntiDriftController ad = null;
 //				if(row.getZContinuous() != true && params.isAntiDriftOn()) {
@@ -294,8 +312,7 @@ public class AcquisitionEngine
 								ImageProcessor ip = ImageUtils.makeProcessor(ti);
 								handleSlice(setup, channelItem.getValue().intValue(), c, acqBegan, timeSeq, step, ip, handlers.get(camera));
 
-								addImageToAcquisition(frame, store,
-										step, timeSeq, c, noSlice, zStart,
+								addImageToAcquisition(frame, store, c, noSlice, zStart,
 									positionItem, now - acqStart, ti);
 
 //						if(ad != null)
@@ -473,20 +490,21 @@ public class AcquisitionEngine
 		return null;
 	}
 
-	private static void addImageToAcquisition( MMStudio studio, Datastore store, int pos, int frame, int channel,
+	private static void addImageToAcquisition( MMStudio studio, RewritableDatastore store, int channel,
 			int slice, double zPos, PositionItem position, long ms, TaggedImage taggedImg ) throws
 			JSONException, DatastoreFrozenException,
 			DatastoreRewriteException, Exception
 	{
+		if(slice == 0) store.deleteAllImages();
 
-		Coords.CoordsBuilder cb = studio.data().getCoordsBuilder();
+		Coords.Builder cb = Coordinates.builder();
 
-		Coords coord = cb.stagePosition( pos ).time(frame).channel(channel).z(slice).build();
+		Coords coord = cb.p(0).t(0).c(channel).z(slice).build();
 		Image img = studio.data().convertTaggedImage(taggedImg);
 		Metadata md = img.getMetadata();
-		Metadata.MetadataBuilder mdb = md.copy();
+		Metadata.Builder mdb = md.copyBuilderPreservingUUID();
 		PropertyMap ud = md.getUserData();
-		ud = ud.copy().putDouble("Z-Step-um", position.getZStep()).build();
+		ud = ud.copyBuilder().putDouble("Z-Step-um", position.getZStep()).build();
 		String posName = position.toString();
 		mdb = mdb.xPositionUm(position.getX()).yPositionUm(position.getY()).zPositionUm( zPos );
 

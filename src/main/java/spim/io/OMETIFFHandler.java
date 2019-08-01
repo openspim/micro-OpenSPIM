@@ -29,6 +29,7 @@ import ome.xml.model.enums.DimensionOrder;
 import ome.xml.model.enums.PixelType;
 import ome.xml.model.primitives.NonNegativeInteger;
 import ome.xml.model.primitives.PositiveInteger;
+import org.micromanager.PropertyMap;
 import org.micromanager.data.SummaryMetadata;
 import org.micromanager.data.internal.DefaultSummaryMetadata;
 import org.micromanager.internal.propertymap.NonPropertyMapJSONFormats;
@@ -56,7 +57,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	private Exception rethrow;
 	private String currentFile;
 	final private String prefix;
-	final SummaryMetadata metadat;
+	final PropertyMap metadataMap;
 	
 	public OMETIFFHandler(CMMCore iCore, File outDir, String filenamePrefix, Row[] acqRows, int channels,
 			int iTimeSteps, double iDeltaT, int tileCount, SummaryMetadata metadata, boolean exportToHDF5) {
@@ -78,7 +79,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		tiles = tileCount;
 		this.channels = channels;
 		this.prefix = filenamePrefix;
-		this.metadat = metadata;
+		this.metadataMap = (( DefaultSummaryMetadata) metadata).toPropertyMap();
 		
 		try {
 			//meta = new ServiceFactory().getInstance(OMEXMLService.class).createOMEXMLMetadata();
@@ -253,16 +254,17 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 			pw.print(xmlToString());
 			pw.close();
 
-			String summaryMetadataString = NonPropertyMapJSONFormats.summaryMetadata().toJSON( ((DefaultSummaryMetadata) metadat).toPropertyMap() );
+			PropertyMap.Builder pmb = metadataMap.copyBuilder();
+			pmb.putInteger( "Width", (int) core.getImageWidth() );
+			pmb.putInteger( "Height", (int) core.getImageHeight() );
+
+			String summaryMetadataString = NonPropertyMapJSONFormats.summaryMetadata().toJSON( pmb.build() );
 
 			File file = new File(outputDirectory, prefix + "metadata.json");
 			FileWriter writer = null;
 			try {
 				writer = new FileWriter(file);
-				writer.write( "{" + "\n" );
-				writer.write( "\"Summary\": " );
-				writer.write(summaryMetadataString);
-				writer.write("\n}\n");
+				writer.write( summaryMetadataString );
 				writer.close();
 			}
 			catch (IOException e) {
