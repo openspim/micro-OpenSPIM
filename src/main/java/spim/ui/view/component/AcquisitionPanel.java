@@ -26,6 +26,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
@@ -42,7 +43,6 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
@@ -166,6 +166,7 @@ public class AcquisitionPanel extends BorderPane
 		this.propertyMap.put( "positions", new SimpleStringProperty( "0" ) );
 		this.propertyMap.put( "slices", new SimpleStringProperty( "0" ) );
 		this.propertyMap.put( "channels", new SimpleStringProperty( "0" ) );
+		this.propertyMap.put( "cams", new SimpleStringProperty( "0" ) );
 		this.propertyMap.put( "totalImages", new SimpleStringProperty( "0" ) );
 		this.propertyMap.put( "totalSize", new SimpleStringProperty( "0 MB" ) );
 		this.propertyMap.put( "duration", new SimpleStringProperty( "0h 0m 0s" ) );
@@ -227,13 +228,6 @@ public class AcquisitionPanel extends BorderPane
 
 
 		// Two tabs for "Laser Shutter" / "Arduino Shutter"
-
-		// Channel list
-		channelItemTableView = TableViewUtil.createChannelItemDataView();
-		Tab laserTab = new Tab( "Software Controlled" );
-		laserTab.setContent( createChannelItemTable( channelItemTableView ) );
-		laserTab.setClosable( false );
-
 		int exposure = 20;
 		if(studio != null && studio.core() != null)
 		{
@@ -246,6 +240,19 @@ public class AcquisitionPanel extends BorderPane
 				e.printStackTrace();
 			}
 		}
+
+		// Channel list
+		channelItemTableView = TableViewUtil.createChannelItemDataView(setup);
+		Tab laserTab = new Tab( "Software Controlled" );
+		Node viewContent = null;
+		if(setup != null) {
+			viewContent = createChannelItemTable( channelItemTableView, setup.getCamera1().getLabel(), setup.getLaser().getLabel(), exposure );
+		} else {
+			viewContent = createChannelItemTable( channelItemTableView, "Camera-1", "Laser-1", exposure );
+		}
+		laserTab.setContent( viewContent );
+		laserTab.setClosable( false );
+
 		channelItemArduinoTableView = TableViewUtil.createChannelItemArduinoDataView();
 		Tab arduinoTab = new Tab( "Arduino Controlled" );
 		arduinoTab.setContent( createChannelItemArduinoTable( channelItemArduinoTableView, pinItemTableView, exposure ) );
@@ -794,7 +801,7 @@ public class AcquisitionPanel extends BorderPane
 		return pane;
 	}
 
-	private TableView< ChannelItem > createChannelItemTable(TableView< ChannelItem > channelItemTableView) {
+	private TableView< ChannelItem > createChannelItemTable( TableView< ChannelItem > channelItemTableView, String camera, String laser, int exp ) {
 		channelItemTableView.setEditable( true );
 
 		InvalidationListener invalidationListener = observable -> computeTotalChannels();
@@ -805,7 +812,7 @@ public class AcquisitionPanel extends BorderPane
 			@Override public void handle( ActionEvent event )
 			{
 				// TODO: Get the current position from the stage control and make the new position
-				channelItemTableView.getItems().add( new ChannelItem( "Camera-1", "Laser-1", 20, invalidationListener ) );
+				channelItemTableView.getItems().add( new ChannelItem( camera, laser, exp, invalidationListener ) );
 			}
 		} );
 
@@ -849,9 +856,14 @@ public class AcquisitionPanel extends BorderPane
 	private void computeTotalChannels() {
 		int totalChannels;
 
-		if(channelTabPane.getSelectionModel().isSelected( 0 ))
+		if(channelTabPane.getSelectionModel().isSelected( 0 )) {
 			totalChannels = (int) channelItemTableView.getItems().stream().filter( c -> c.getSelected() ).count();
-		else totalChannels = (int) channelItemArduinoTableView.getItems().stream().filter( c -> c.getSelected() ).count();
+			propertyMap.get("cams").setValue( 1 + "" );
+		}
+		else {
+			totalChannels = (int) channelItemArduinoTableView.getItems().stream().filter( c -> c.getSelected() ).count();
+			propertyMap.get("cams").setValue( 2 + "" );
+		}
 
 		propertyMap.get("channels").setValue( totalChannels + "" );
 	}
@@ -872,7 +884,10 @@ public class AcquisitionPanel extends BorderPane
 		label.textProperty().addListener( observable -> computeTotal() );
 		gridpane.addRow( 1, new Label("Images in positions: "), label );
 
-		gridpane.addRow( 2, new Label("No. of cameras: "), new Label( noCams + ""));
+		label = new Label();
+		label.textProperty().bind( propertyMap.get("cams") );
+		label.textProperty().addListener( observable -> computeTotal() );
+		gridpane.addRow( 2, new Label("No. of cameras: "), label);
 
 		label = new Label();
 		label.textProperty().bind( propertyMap.get("channels") );
@@ -902,11 +917,13 @@ public class AcquisitionPanel extends BorderPane
 		long tp = propertyMap.get("times").getValue().isEmpty() ? 1 : Long.parseLong( propertyMap.get("times").getValue() );
 		long pos = propertyMap.get("positions").getValue().isEmpty() ? 1 : Long.parseLong( propertyMap.get("positions").getValue() );
 		long ch = propertyMap.get("channels").getValue().isEmpty() ? 1 : Long.parseLong( propertyMap.get("channels").getValue() );
+		long cams = propertyMap.get("cams").getValue().isEmpty() ? 1 : Long.parseLong( propertyMap.get("cams").getValue() );
 
 		tp = tp == 0 ? 1: tp;
 		pos = pos == 0 ? 1: pos;
+		cams = cams == 0 ? 1: cams;
 		ch = ch == 0 ? 1: ch;
-		long tot = tp * pos * ch * noCams;
+		long tot = tp * pos * ch * cams;
 
 		propertyMap.get("totalImages").setValue( String.format( "%d", tot ) );
 		this.totalImages.set( tot );

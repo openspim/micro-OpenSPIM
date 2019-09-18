@@ -287,11 +287,11 @@ public class AcquisitionEngine
 //						return cleanAbort(params, liveOn, autoShutter, continuousThread);
 //					}
 
+					long now = System.currentTimeMillis();
+
 					// Cameras
 					if(arduinoSelected) {
 						// Channel iteration
-
-						long now = System.currentTimeMillis();
 
 						int c = 0;
 						for(String camera : cameras)
@@ -315,12 +315,10 @@ public class AcquisitionEngine
 								addImageToAcquisition(frame, store, c, noSlice, zStart,
 									positionItem, now - acqStart, ti);
 
-//						if(ad != null)
-//							addAntiDriftSlice(ad, ip);
-//						if(params.isUpdateLive())
-//							updateLiveImage(frame, ti);
-//								if(liveOn)
-//									frame.live().displayImage( new DefaultImage( ti ) );
+								//						if(ad != null)
+								//							addAntiDriftSlice(ad, ip);
+								//						if(params.isUpdateLive())
+								//							updateLiveImage(frame, ti);
 
 								Platform.runLater( () -> processedImages.set( processedImages.get() + 1 ) );
 								++c;
@@ -331,26 +329,36 @@ public class AcquisitionEngine
 					else
 					{
 						// Channel iteration
-//						int c = 0;
-//						for( ChannelItem channelItem : channelItems ) {
-//							// Snap an image
-//							//TaggedImage ti = snapImage(setup, !params.isIllumFullStack());
-//
-//							TaggedImage ti = snapImage(setup, false);
-//
-//							ImageProcessor ip = ImageUtils.makeProcessor(ti);
-//
-//
-//							// Handle the slice image
-//							handleSlice(setup, channelItem.getValue().intValue(), c, acqBegan, timeSeq, step, ip, handler);
-//
-//							//						if(ad != null)
-//							//							addAntiDriftSlice(ad, ip);
-//							//						if(params.isUpdateLive())
-//							//							updateLiveImage(frame, ti);
-//							Platform.runLater( () -> processedImages.set( processedImages.get() + 1 ) );
-//							++c;
-//						}
+						int c = 0;
+						for( ChannelItem channelItem : channelItems ) {
+							// Snap an image
+							//TaggedImage ti = snapImage(setup, !params.isIllumFullStack());
+							core.setCameraDevice( channelItem.getName() );
+							core.setExposure( channelItem.getValue().doubleValue() );
+							core.waitForDevice( channelItem.getName() );
+
+							core.setShutterOpen( channelItem.getLaser(), true );
+
+							TaggedImage ti = snapImage(core);
+
+							ImageProcessor ip = ImageUtils.makeProcessor(ti);
+
+
+							// Handle the slice image
+							handleSlice(setup, channelItem.getValue().intValue(), c, acqBegan, timeSeq, step, ip, handlers.get(channelItem.getName()));
+
+							addImageToAcquisition(frame, store, c, noSlice, zStart,
+									positionItem, now - acqStart, ti);
+
+							//						if(ad != null)
+							//							addAntiDriftSlice(ad, ip);
+							//						if(params.isUpdateLive())
+							//							updateLiveImage(frame, ti);
+							Platform.runLater( () -> processedImages.set( processedImages.get() + 1 ) );
+
+							core.setShutterOpen( channelItem.getLaser(), false );
+							++c;
+						}
 					}
 
 //					double stackProg = Math.max(Math.min((zStart - start)/(end - start),1),0);

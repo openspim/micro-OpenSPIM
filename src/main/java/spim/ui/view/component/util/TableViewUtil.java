@@ -3,6 +3,7 @@ package spim.ui.view.component.util;
 import javafx.beans.property.ReadOnlyDoubleWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
@@ -22,12 +23,16 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
 import javafx.util.Callback;
 import javafx.util.converter.NumberStringConverter;
+import spim.hardware.SPIMSetup;
 import spim.model.data.ChannelItem;
 import spim.model.data.PinItem;
 import spim.model.data.PositionItem;
 import spim.model.event.ControlEvent;
 import spim.ui.view.component.AcquisitionPanel;
 import spim.ui.view.component.StagePanel;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -251,8 +256,36 @@ public class TableViewUtil
 		return tv;
 	}
 
-	public static TableView< ChannelItem > createChannelItemDataView()
+	public static TableView< ChannelItem > createChannelItemDataView( SPIMSetup setup )
 	{
+		ObservableList<String> cameras = FXCollections.observableArrayList();
+		ObservableList<String> lasers = FXCollections.observableArrayList();
+
+		if(setup == null) {
+			cameras.addAll( "Camera-1", "Camera-2" );
+			lasers.addAll( "Laser-1", "Laser-2" );
+		} else {
+			if ( setup.getCamera1() != null )
+			{
+				cameras.add( setup.getCamera1().getLabel() );
+			}
+
+			if ( setup.getCamera2() != null )
+			{
+				cameras.add( setup.getCamera2().getLabel() );
+			}
+
+			if ( setup.getLaser() != null )
+			{
+				lasers.add( setup.getLaser().getLabel() );
+			}
+
+			if ( setup.getLaser2() != null )
+			{
+				lasers.add( setup.getLaser2().getLabel() );
+			}
+		}
+
 		TableView<ChannelItem> tv = new TableView<>();
 
 		TableColumn<ChannelItem, Boolean> booleanColumn = new TableColumn<>("");
@@ -276,8 +309,7 @@ public class TableViewUtil
 		column.setCellValueFactory( (param) ->
 				new ReadOnlyStringWrapper( param.getValue().getName() )
 		);
-		column.setCellFactory( ChoiceBoxTableCell.forTableColumn(
-				FXCollections.observableArrayList("Camera-1", "Camera-2") ) );
+		column.setCellFactory( ChoiceBoxTableCell.forTableColumn( cameras ) );
 		column.setOnEditCommit( event -> event.getRowValue().setName( event.getNewValue() ) );
 		tv.getColumns().add(column);
 
@@ -286,7 +318,7 @@ public class TableViewUtil
 		column.setCellValueFactory( (param) ->
 				new ReadOnlyStringWrapper( param.getValue().getLaser() )
 		);
-		column.setCellFactory( ChoiceBoxTableCell.forTableColumn( FXCollections.observableArrayList("Laser-1", "Laser-2") ) );
+		column.setCellFactory( ChoiceBoxTableCell.forTableColumn( lasers ) );
 		column.setOnEditCommit( event -> event.getRowValue().setLaser( event.getNewValue() ) );
 		tv.getColumns().add(column);
 
