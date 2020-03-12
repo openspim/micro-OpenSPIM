@@ -127,16 +127,6 @@ public class TableViewUtil
 		numberColumn.setEditable( true );
 		tv.getColumns().add(numberColumn);
 
-		numberColumn = new TableColumn<>("R");
-		numberColumn.setPrefWidth(50);
-		numberColumn.setCellValueFactory( (param) ->
-				new ReadOnlyDoubleWrapper( param.getValue().getR() )
-		);
-		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
-		numberColumn.setOnEditCommit( event -> event.getRowValue().setR( event.getNewValue().doubleValue() ) );
-		numberColumn.setEditable( true );
-		tv.getColumns().add(numberColumn);
-
 		TableColumn<PositionItem, String> column = new TableColumn<>("Z");
 		column.setPrefWidth(90);
 		column.setCellValueFactory( (param) ->
@@ -145,12 +135,11 @@ public class TableViewUtil
 		column.setCellFactory( NumberFieldTableCell.forTableColumn() );
 		column.setOnEditCommit( event -> {
 			String zString = event.getNewValue();
-			String[] tokens = zString.split( ":" );
+			String[] tokens = zString.split( "-" );
 
 			if(tokens.length == 3) {
 				event.getRowValue().setZStart( Double.parseDouble( tokens[0] ) );
-				event.getRowValue().setZStep( Double.parseDouble( tokens[1] ) );
-				event.getRowValue().setZEnd( Double.parseDouble( tokens[2] ) );
+				event.getRowValue().setZEnd( Double.parseDouble( tokens[1] ) );
 			} else if(tokens.length == 1) {
 				event.getRowValue().setZStart( Double.parseDouble( tokens[0] ) );
 				event.getRowValue().setZStep( 1 );
@@ -166,6 +155,25 @@ public class TableViewUtil
 		column.setEditable( true );
 		tv.getColumns().add(column);
 
+		numberColumn = new TableColumn<>("Z-Step");
+		numberColumn.setPrefWidth(50);
+		numberColumn.setCellValueFactory( (param) ->
+				new ReadOnlyDoubleWrapper( param.getValue().getZStep() )
+		);
+		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
+		numberColumn.setOnEditCommit( event -> event.getRowValue().setZStep( event.getNewValue().doubleValue() ) );
+		numberColumn.setEditable( true );
+		tv.getColumns().add(numberColumn);
+
+		numberColumn = new TableColumn<>("R");
+		numberColumn.setPrefWidth(50);
+		numberColumn.setCellValueFactory( (param) ->
+				new ReadOnlyDoubleWrapper( param.getValue().getR() )
+		);
+		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
+		numberColumn.setOnEditCommit( event -> event.getRowValue().setR( event.getNewValue().doubleValue() ) );
+		numberColumn.setEditable( true );
+		tv.getColumns().add(numberColumn);
 
 		TableColumn<PositionItem, Void> btnColumn = new TableColumn<>("");
 		btnColumn.setPrefWidth(100);
