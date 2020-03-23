@@ -120,7 +120,7 @@ public class SPIMAcq extends Application implements MenuPlugin
 				@Override public void run()
 				{
 					halcyonMain = new HalcyonMain();
-					halcyonMain.show( mStage, setup, gui );
+					halcyonMain.show( mStage, gui );
 				}
 			} );
 		}
@@ -147,7 +147,7 @@ public class SPIMAcq extends Application implements MenuPlugin
 
 					Thread.currentThread().setContextClassLoader( getClass().getClassLoader() );
 					halcyonMain = new HalcyonMain();
-					halcyonMain.show( mStage, setup, gui );
+					halcyonMain.show( mStage, gui );
 				}
 			} );
 		}

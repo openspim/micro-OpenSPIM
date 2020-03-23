@@ -20,7 +20,9 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.Stop;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
+import org.micromanager.Studio;
 import spim.hardware.Laser;
+import spim.hardware.SPIMSetup;
 import spim.ui.view.component.rbg.RadialBargraph;
 import spim.ui.view.component.rbg.RadialBargraphBuilder;
 
@@ -59,6 +61,7 @@ public class LaserDevicePanel extends HBox
 	private int waveLength;
 	final double granularity = 3;
 	private String laserName;
+	ScheduledExecutorService executor;
 
 	public LaserDevicePanel( Laser laser ) {
 		this(laser, Integer.parseInt( laser.getWavelength() ));
@@ -75,7 +78,7 @@ public class LaserDevicePanel extends HBox
 		minPower = null == laser ? 0 : laser.getMinPower();
 
 		init();
-		ScheduledExecutorService executor = Executors.newScheduledThreadPool( 5 );
+		executor = Executors.newScheduledThreadPool( 5 );
 
 		// data -> GUI
 		// CurrentPower update (data -> GUI)
@@ -99,11 +102,16 @@ public class LaserDevicePanel extends HBox
 			}, 500, 100, TimeUnit.MILLISECONDS );
 		} else {
 			executor.scheduleAtFixedRate( () -> {
+				if(laser.isInvalid()) {
+					executor.shutdown();
+					executor = null;
+					return;
+				}
 
 				// In case of live image, it turns the laser on
-//				if(laserOnSwitch.isSelected() != laser.getPoweredOn()) {
-//					laserOnSwitch.setSelected( laser.getPoweredOn() );
-//				}
+				//				if(laserOnSwitch.isSelected() != laser.getPoweredOn()) {
+				//					laserOnSwitch.setSelected( laser.getPoweredOn() );
+				//				}
 
 				currentPowerGauge.valueProperty().setValue( laser.getPower() );
 			}, 500, 100, TimeUnit.MILLISECONDS );

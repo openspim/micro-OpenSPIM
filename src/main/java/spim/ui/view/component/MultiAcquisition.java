@@ -2,7 +2,6 @@ package spim.ui.view.component;
 
 import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
-import org.micromanager.data.internal.DefaultImageJConverter;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,20 +16,26 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MultiAcquisition
 {
 	private static final int MAX_DISPLAY_HISTORY = 20;
-	private final CMMCore core;
-	private final List<String> cameras;
 	private Thread captureThread;
 	private volatile boolean done = false, shutterOpen, autoShutter, camera;
 	private ConcurrentHashMap<String, TaggedImage> map = new ConcurrentHashMap<>();
-	private DefaultImageJConverter ipConverter = new DefaultImageJConverter();
 	private final ArrayList<Long> displayUpdateTimes_;
 	private double exposureMs_;
+
+	private CMMCore core;
+	private List<String> cameras;
 
 	public MultiAcquisition( CMMCore core, List<String> cameras )
 	{
 		this.core = core;
 		this.cameras = cameras;
 		displayUpdateTimes_ = new ArrayList<Long>();
+	}
+
+	public void setSetup( CMMCore core, List<String> cameras )
+	{
+		this.core = core;
+		this.cameras = cameras;
 	}
 
 	public HashMap<String, TaggedImage> getImages(double exposure) {
@@ -104,6 +109,16 @@ public class MultiAcquisition
 								String camera = ( String ) timg.tags.get( "Camera" );
 								map.put( camera, timg );
 							} catch ( Exception e ) {
+							}
+						}
+
+						if(!core.isSequenceRunning() && core.getRemainingImageCount() > 0) {
+							try
+							{
+								core.popNextImage();
+							}
+							catch ( Exception e )
+							{
 							}
 						}
 					}

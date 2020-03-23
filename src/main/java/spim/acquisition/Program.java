@@ -17,7 +17,7 @@ import mmcorej.TaggedImage;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.micromanager.SnapLiveManager;
 import org.micromanager.internal.MMStudio;
-import org.micromanager.internal.utils.ImageUtils;
+import org.micromanager.internal.utils.imageanalysis.ImageUtils;
 import org.micromanager.internal.utils.MDUtils;
 import org.micromanager.internal.utils.ReportingUtils;
 
@@ -641,7 +641,7 @@ public class Program
 			}
 		}
 */
-		handler.processSlice(10, 0, time, angle, ip, setup.getXStage().getPosition(),
+		handler.processSlice(time, angle, 0, 0, ip, setup.getXStage().getPosition(),
 				setup.getYStage().getPosition(),
 				setup.getZStage().getPosition(),
 				setup.getAngle(),

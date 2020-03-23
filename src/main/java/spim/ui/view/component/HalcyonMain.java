@@ -1,18 +1,19 @@
 package spim.ui.view.component;
 
-import com.sun.javafx.css.StyleManager;
 import halcyon.HalcyonFrame;
 import halcyon.model.node.HalcyonNode;
 import halcyon.model.node.HalcyonNodeType;
 import halcyon.view.TreePanel;
 import javafx.application.Platform;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
-import javafx.stage.WindowEvent;
+
 import org.dockfx.DockNode;
 import org.micromanager.Studio;
 import spim.hardware.SPIMSetup;
@@ -27,6 +28,8 @@ import java.util.ArrayList;
  */
 public class HalcyonMain extends HalcyonFrame
 {
+	ObjectProperty<Studio> mmStudioProperty = new SimpleObjectProperty<>();
+
 	public HalcyonMain() {
 		super("OpenSPIM v2.0",
 				ResourceUtil.getString("app.icon"),
@@ -49,21 +52,28 @@ public class HalcyonMain extends HalcyonFrame
 				{
 					e.printStackTrace();
 				}
-				show( primaryStage, null, null );
+				show( primaryStage, null );
 			}
 		} );
 	}
 
-	public void show( Stage primaryStage, SPIMSetup setup, Studio gui )
+	public void show( Stage primaryStage, Studio gui )
 	{
 		// TODO: support other type of devices
-		BorderPane borderPane = createHalcyonBorderPane( primaryStage, setup, gui );
+		BorderPane borderPane = createHalcyonBorderPane( primaryStage, gui );
 
 		super.show( borderPane );
 	}
 
-	public BorderPane createHalcyonBorderPane( Stage primaryStage, SPIMSetup spimSetup, Studio studio )
+	private BorderPane createHalcyonBorderPane( Stage primaryStage, Studio studio )
 	{
+		SPIMSetup spimSetup = null;
+
+		if(studio != null && studio.getCMMCore() != null)
+		{
+			spimSetup = SPIMSetup.createDefaultSetup( studio.getCMMCore() );
+		}
+
 		final String rootIconPath =
 				ResourceUtil.getString("root.icon");
 
@@ -79,96 +89,46 @@ public class HalcyonMain extends HalcyonFrame
 
 		setTreePanel(lTreePanel);
 
-		StagePanel stagePanel = null;
+		final HalcyonNode lLaser1 = HalcyonNode.wrap( "Laser-1",
+				SpimHalcyonNodeType.LASER,
+				new LaserDevicePanel( null, 488 ) );
 
-		if(null != spimSetup)
-		{
-			if(spimSetup.getLaser() != null)
-			{
-				System.out.println(spimSetup.getLaser().getLabel());
-				if(spimSetup.getLaser().getLabel().startsWith( "VLT_VersaLase" ))
-				{
-					final HalcyonNode lVersaLase = HalcyonNode.wrap( "VersaLase",
-							SpimHalcyonNodeType.LASER,
-							new VersaLaserDevicePanel( ( VersaLase ) spimSetup.getLaser() ) );
+		final HalcyonNode lLaser2 = HalcyonNode.wrap("Laser-2",
+				SpimHalcyonNodeType.LASER,
+				new LaserDevicePanel( null, 561 ));
 
-					addNode(lVersaLase);
-				}
-				else
-				{
-					final HalcyonNode lLaser1 = HalcyonNode.wrap( "Laser-1",
-							SpimHalcyonNodeType.LASER,
-							new LaserDevicePanel( spimSetup.getLaser(), 488 ) );
+		CameraDevicePanel cameraDevicePanel = new CameraDevicePanel( spimSetup, null );
+		final HalcyonNode lCamera = HalcyonNode.wrap("Camera",
+				SpimHalcyonNodeType.CAMERA, cameraDevicePanel );
 
-					addNode(lLaser1);
-				}
-			}
+		StagePanel stagePanel = new StagePanel(null);
+		final HalcyonNode lStage1 = HalcyonNode.wrap("Stage-1",
+				SpimHalcyonNodeType.STAGE,
+				stagePanel );
 
-			if(spimSetup.getLaser2() != null)
-			{
-				final HalcyonNode lLaser2 = HalcyonNode.wrap("Laser-2",
-						SpimHalcyonNodeType.LASER,
-						new LaserDevicePanel( spimSetup.getLaser2(), 594 ));
-				addNode(lLaser2);
-			}
+		addNode(lLaser1);
+		addNode(lLaser2);
+		addNode(lCamera);
+		addNode(lStage1);
 
-			if(spimSetup.getCamera1() != null)
-			{
-				final HalcyonNode lCamera = HalcyonNode.wrap("Camera",
-						SpimHalcyonNodeType.CAMERA,
-						new CameraDevicePanel( spimSetup, studio ) );
-				addNode(lCamera);
-			}
-
-			if(spimSetup.getZStage() != null)
-			{
-				stagePanel = new StagePanel(spimSetup);
-				final HalcyonNode lStage1 = HalcyonNode.wrap("Stage-1",
-						SpimHalcyonNodeType.STAGE,
-						stagePanel );
-				addNode(lStage1);
-			}
-		}
-		else
-		{
-			final HalcyonNode lLaser1 = HalcyonNode.wrap( "Laser-1",
-					SpimHalcyonNodeType.LASER,
-					new LaserDevicePanel( null, 488 ) );
-
-			final HalcyonNode lLaser2 = HalcyonNode.wrap("Laser-2",
-					SpimHalcyonNodeType.LASER,
-					new LaserDevicePanel( null, 561 ));
-
-			final HalcyonNode lCamera = HalcyonNode.wrap("Camera-1",
-					SpimHalcyonNodeType.CAMERA,
-					new CameraDevicePanel( spimSetup, null ) );
-
-			final HalcyonNode lStage1 = HalcyonNode.wrap("Stage-1",
-					SpimHalcyonNodeType.STAGE,
-					new StagePanel(null) );
-
-			addNode(lLaser1);
-			addNode(lLaser2);
-			addNode(lCamera);
-			addNode(lStage1);
-		}
-
+		JavaEditor javaEditor = new JavaEditor( primaryStage, spimSetup, studio );
 		final HalcyonNode editor1 = HalcyonNode.wrap( "Java",
 				SpimHalcyonNodeType.EDITOR,
-				new JavaEditor( primaryStage, spimSetup, studio ) );
+				javaEditor );
 
 		addNode(editor1);
 
-		ArduinoPanel arduinoPanel = new ArduinoPanel( spimSetup, studio );
+		ArduinoPanel arduinoPanel = new ArduinoPanel( spimSetup );
 		final HalcyonNode arduino = HalcyonNode.wrap( "ArduinoUno", SpimHalcyonNodeType.SHUTTER, arduinoPanel );
 		addNode( arduino );
 
-		AcquisitionPanel acquisitionPanel = new AcquisitionPanel( primaryStage, spimSetup, studio, stagePanel, arduinoPanel.getPinItemTableView() );
+		AcquisitionPanel acquisitionPanel = new AcquisitionPanel( primaryStage, spimSetup, studio, null, arduinoPanel.getPinItemTableView() );
 		final HalcyonNode control1 = HalcyonNode.wrap( "Acquisition",
 				SpimHalcyonNodeType.CONTROL,
 				acquisitionPanel );
 
 		addNode( control1 );
+
 //		final HalcyonNode control2 = HalcyonNode.wrap( "3D",
 //				SpimHalcyonNodeType.CONTROL,
 //				new Stage3DPanel() );
@@ -176,9 +136,83 @@ public class HalcyonMain extends HalcyonFrame
 //		addNode( control2 );
 
 		// Custom DemoToolbar provided here
-		DockNode lToolbar = new ToolbarPanel(studio, acquisitionPanel.roiRectangleProperty());
+		ToolbarPanel lToolbar = new ToolbarPanel( studio, acquisitionPanel.roiRectangleProperty(), getHostServices(), mmStudioProperty );
 		lToolbar.setPrefSize(300, 200);
 		addToolbar(lToolbar);
+
+		mmStudioProperty.addListener( new ChangeListener< Studio >()
+		{
+			@Override public void changed( ObservableValue< ? extends Studio > observable, Studio oldValue, Studio studio )
+			{
+				if(studio != null && studio.getCMMCore() != null) {
+					Platform.runLater( new Runnable()
+					{
+						@Override public void run()
+						{
+							SPIMSetup spimSetup = SPIMSetup.createDefaultSetup( studio.getCMMCore() );
+
+							if(spimSetup.getLaser() != null)
+							{
+								removeAllNodes( SpimHalcyonNodeType.LASER );
+
+								if(spimSetup.getLaser().getLabel().startsWith( "VLT_VersaLase" ))
+								{
+									final HalcyonNode lVersaLase = HalcyonNode.wrap( "VersaLase",
+											SpimHalcyonNodeType.LASER, new VersaLaserDevicePanel( ( VersaLase ) spimSetup.getLaser() )
+											 );
+
+									addNode(lVersaLase);
+								}
+								else
+								{
+									final HalcyonNode lLaser1 = HalcyonNode.wrap( "Laser-1",
+											SpimHalcyonNodeType.LASER,
+											new LaserDevicePanel( spimSetup.getLaser(), 488 ) );
+
+									addNode(lLaser1);
+								}
+							}
+
+							if(spimSetup.getLaser2() != null)
+							{
+								final HalcyonNode lLaser2 = HalcyonNode.wrap("Laser-2",
+										SpimHalcyonNodeType.LASER,
+										new LaserDevicePanel( spimSetup.getLaser2(), 594 ));
+								addNode(lLaser2);
+							}
+
+							removeNoChildNode();
+
+							if(spimSetup.getZStage() != null)
+							{
+								stagePanel.setSetup(spimSetup, studio);
+							}
+
+							cameraDevicePanel.setSetup( spimSetup, studio );
+							lToolbar.setSetup( spimSetup, studio );
+							javaEditor.setSetup(spimSetup, studio);
+							arduinoPanel.setSetup(spimSetup, studio);
+							acquisitionPanel.setStagePanel( stagePanel );
+							acquisitionPanel.setSetup( spimSetup, studio );
+						}
+					} );
+				} else {
+					Platform.runLater( new Runnable()
+				    {
+					   @Override public void run()
+					   {
+						   stagePanel.setSetup( null, studio );
+						   cameraDevicePanel.setSetup( null, studio );
+						   lToolbar.setSetup( null, studio );
+						   javaEditor.setSetup( null, studio );
+						   arduinoPanel.setSetup( null, studio );
+						   acquisitionPanel.setStagePanel( null );
+						   acquisitionPanel.setSetup( null, studio );
+					   }
+				    });
+				}
+			}
+		} );
 
 		primaryStage.getIcons()
 				.add(new Image(getClass().getResourceAsStream(ResourceUtil.getString("app.icon"))));
@@ -197,11 +231,11 @@ public class HalcyonMain extends HalcyonFrame
 		return createHalcyonFrame( primaryStage );
 	}
 
-	@Override
-	protected void callFrameClosed( WindowEvent closeEvent )
-	{
-		hide();
-	}
+//	@Override
+//	protected void callFrameClosed( WindowEvent closeEvent )
+//	{
+//		hide();
+//	}
 
 	public static void main(String[] args) throws Exception
 	{

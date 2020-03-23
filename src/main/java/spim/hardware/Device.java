@@ -45,6 +45,20 @@ public abstract class Device {
 	};
 
 	/**
+	 * Returns the device's status of the core.
+	 *
+	 * @return true if this device is invalid. Otherwise, it returns false.
+	 */
+	public boolean isInvalid() {
+		try {
+			core.getDeviceName( label );
+		} catch (Exception e) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
 	 * Returns true if this device contains a property by the given name. By
 	 * default, just maps to the core call.
 	 */

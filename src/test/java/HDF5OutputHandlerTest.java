@@ -49,7 +49,7 @@ public class HDF5OutputHandlerTest
 			ImagePlus firstChannel0 = ImageGenerator.generateByteBlob( width, height, depth, 32 + 3 * t, 32 + 3 * t, 64, 12.5f, 12.5f, 10.0f );
 			handler.beginStack( t - 1, 0 );
 			for (int z=1; z <= depth; z++) {
-				handler.processSlice( 10, 0, t - 1, 0, firstChannel0.getStack().getProcessor( z ), 0, 0, z - 1, 0, t - 1 );
+				handler.processSlice( t - 1, 0, 0, 0, firstChannel0.getStack().getProcessor( z ), 0, 0, z - 1, 0, t - 1 );
 			}
 			handler.finalizeStack( t - 1, 0 );
 
@@ -57,7 +57,7 @@ public class HDF5OutputHandlerTest
 			ImagePlus firstChannel1 = ImageGenerator.generateByteBlob(width, height, depth, 96 - 3*t, 96 - 3*t, 64, 12.5f , 12.5f, 10.0f);
 			handler.beginStack( t - 1, 1 );
 			for (int z=1; z <= depth; z++) {
-				handler.processSlice( 10, 0, t - 1, 1, firstChannel1.getStack().getProcessor( z ), 1, 0, z - 1, 1, t - 1 );
+				handler.processSlice( t - 1, 1, 0, 0, firstChannel1.getStack().getProcessor( z ), 1, 0, z - 1, 1, t - 1 );
 			}
 			handler.finalizeStack( t - 1, 1 );
 		}

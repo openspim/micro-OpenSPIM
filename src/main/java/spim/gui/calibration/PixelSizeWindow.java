@@ -38,7 +38,7 @@ import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction;
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.AbstractSimplex;
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.NelderMeadSimplex;
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.SimplexOptimizer;
-import org.micromanager.internal.utils.ImageUtils;
+import org.micromanager.internal.utils.imageanalysis.ImageUtils;
 
 import mmcorej.CMMCore;
 

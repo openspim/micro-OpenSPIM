@@ -1,6 +1,8 @@
 package spim.ui.view.component;
 
 import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.Property;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -28,6 +30,9 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -35,11 +40,19 @@ import java.util.Properties;
  * Organization: MPI-CBG Dresden
  * Date: May 2019
  */
-public class ArduinoPanel extends BorderPane
+public class ArduinoPanel extends BorderPane implements SPIMSetupInjectable
 {
-	final TableView< PinItem > pinItemTableView;
+	final HashMap< Property, ChangeListener > listenerMap = new HashMap<>(  );
 
-	public ArduinoPanel( SPIMSetup setup, Studio studio ) {
+	final TableView< PinItem > pinItemTableView;
+	final ComboBox<String> blankOnComboBox;
+	final ComboBox<String> blankingModeComboBox;
+	final TextField labelTextField;
+	final ComboBox<String> sequenceComboBox;
+	final IntegerProperty stateProperty;
+	final StageSlider stateSlider;
+
+	public ArduinoPanel( SPIMSetup setup ) {
 
 		GridPane gridPane = new GridPane();
 		GridPane.setMargin( gridPane, new Insets( 20 ) );
@@ -49,81 +62,34 @@ public class ArduinoPanel extends BorderPane
 
 		// "Blank On"
 		Label label = new Label( "Blank On" );
-		ComboBox<String> blankOnComboBox = new ComboBox<>( FXCollections.observableArrayList("High", "Low") );
+		blankOnComboBox = new ComboBox<>( FXCollections.observableArrayList("High", "Low") );
 		blankOnComboBox.getSelectionModel().select( 0 );
 		gridPane.addRow( 0, label, blankOnComboBox );
 
 		// "Blanking Mode"
 		label = new Label( "Blanking Mode" );
-		ComboBox<String> blankingModeComboBox = new ComboBox<>( FXCollections.observableArrayList("On", "Off") );
+		blankingModeComboBox = new ComboBox<>( FXCollections.observableArrayList("On", "Off") );
 		blankingModeComboBox.getSelectionModel().select( 0 );
 		gridPane.addRow( 1, label, blankingModeComboBox );
 
 		// "Label"
 		label = new Label( "Label" );
-		TextField labelTextField = new TextField( "16" );
+		labelTextField = new TextField( "16" );
 		gridPane.addRow( 2, label, labelTextField );
 
 		// "Sequence"
 		label = new Label( "Sequence" );
-		ComboBox<String> sequenceComboBox = new ComboBox<>( FXCollections.observableArrayList("On", "Off") );
+		sequenceComboBox = new ComboBox<>( FXCollections.observableArrayList("On", "Off") );
 		sequenceComboBox.getSelectionModel().select( 1 );
 		gridPane.addRow( 3, label, sequenceComboBox );
 
 		// "State"
 		label = new Label( "State" );
-		IntegerProperty stateProperty = new SimpleIntegerProperty( 16 );
-		StageSlider stateSlider = new StageSlider( "", stateProperty, false, false, 0, 64, 2 );
+		stateProperty = new SimpleIntegerProperty( 16 );
+		stateSlider = new StageSlider( "", stateProperty, false, false, 0, 64, 2 );
 		gridPane.addRow( 4, label, stateSlider );
 
-		if(setup != null && setup.getArduino1() != null) {
-			Arduino arduino = setup.getArduino1();
-			blankOnComboBox.getSelectionModel().select( arduino.getBlankOn() );
-			blankingModeComboBox.getSelectionModel().select( arduino.getBlankingMode() );
-			labelTextField.setText( arduino.getSwitchLabel() );
-			sequenceComboBox.getSelectionModel().select( arduino.getSequence() );
-			stateProperty.set( Integer.parseInt( arduino.getSwitchState() ) );
-
-			blankOnComboBox.valueProperty().addListener( new ChangeListener< String >()
-			{
-				@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
-				{
-					arduino.setBlankOn( newValue );
-				}
-			} );
-
-			blankingModeComboBox.valueProperty().addListener( new ChangeListener< String >()
-			{
-				@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
-				{
-					arduino.setBlankingMode( newValue );
-				}
-			} );
-
-			labelTextField.textProperty().addListener( new ChangeListener< String >()
-			{
-				@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
-				{
-					arduino.setSwitchLabel( newValue );
-				}
-			} );
-
-			sequenceComboBox.valueProperty().addListener( new ChangeListener< String >()
-			{
-				@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
-				{
-					arduino.setSequence( newValue );
-				}
-			} );
-
-			stateProperty.addListener( new ChangeListener< Number >()
-			{
-				@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
-				{
-					arduino.setSwitchState( newValue.toString() );
-				}
-			} );
-		}
+		setSetup( setup, null );
 
 		Image image = new Image( getClass().getResourceAsStream( "arduino-uno.png" ) );
 
@@ -153,6 +119,48 @@ public class ArduinoPanel extends BorderPane
 		gridPane.addRow( 5, iv1, pinItemTableView );
 
 		setCenter( gridPane );
+	}
+
+	@Override public void setSetup( SPIMSetup setup, Studio studio ) {
+
+		// Remove all the listeners
+		listenerMap.keySet().stream().forEach( c -> c.removeListener( listenerMap.get(c) ) );
+
+		if(setup != null && setup.getArduino1() != null)
+		{
+			Arduino arduino = setup.getArduino1();
+			blankOnComboBox.getSelectionModel().select( arduino.getBlankOn() );
+			blankingModeComboBox.getSelectionModel().select( arduino.getBlankingMode() );
+			labelTextField.setText( arduino.getSwitchLabel() );
+			sequenceComboBox.getSelectionModel().select( arduino.getSequence() );
+			stateProperty.set( Integer.parseInt( arduino.getSwitchState() ) );
+
+			ChangeListener listener = ( ChangeListener< String > ) ( observable, oldValue, newValue ) -> arduino.setBlankOn( newValue );
+			blankOnComboBox.valueProperty().addListener( listener );
+			listenerMap.put( blankOnComboBox.valueProperty(), listener );
+
+			listener = ( ChangeListener< String > ) ( observable, oldValue, newValue ) -> arduino.setBlankingMode( newValue );
+			blankingModeComboBox.valueProperty().addListener( listener );
+			listenerMap.put( blankingModeComboBox.valueProperty(), listener);
+
+			listener = ( ChangeListener< String > ) ( observable, oldValue, newValue ) -> arduino.setSwitchLabel( newValue );
+			labelTextField.textProperty().addListener(listener);
+			listenerMap.put( labelTextField.textProperty(), listener);
+
+			listener =  new ChangeListener< String >()
+			{
+				@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
+				{
+					arduino.setSequence( newValue );
+				}
+			};
+			sequenceComboBox.valueProperty().addListener(listener);
+			listenerMap.put( sequenceComboBox.valueProperty(), listener );
+
+			listener = ( ChangeListener< Number > ) ( observable, oldValue, newValue ) -> arduino.setSwitchState( newValue.toString() );
+			stateProperty.addListener(listener);
+			listenerMap.put(stateProperty, listener);
+		}
 	}
 
 	TableView< PinItem > getPinItemTableView() {

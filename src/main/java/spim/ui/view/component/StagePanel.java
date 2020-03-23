@@ -23,6 +23,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import org.micromanager.Studio;
 import spim.hardware.SPIMSetup;
 import spim.hardware.Stage;
 import spim.ui.view.component.iconswitch.IconSwitch;
@@ -49,7 +50,7 @@ import static java.lang.Math.signum;
  * Organization: MPI-CBG Dresden
  * Date: September 2018
  */
-public class StagePanel extends BorderPane
+public class StagePanel extends BorderPane implements SPIMSetupInjectable
 {
 	private SPIMSetup spimSetup;
 
@@ -59,6 +60,8 @@ public class StagePanel extends BorderPane
 	private StageUnit stageUnitX;
 	private StageUnit stageUnitY;
 	private StageUnit stageUnitZ;
+
+	ScheduledExecutorService executor;
 
 	public StagePanel()
 	{
@@ -71,13 +74,76 @@ public class StagePanel extends BorderPane
 		init();
 	}
 
+	@Override public void setSetup( SPIMSetup setup, Studio studio )
+	{
+		this.spimSetup = setup;
+
+		initExecutor();
+
+		if(setup != null) {
+			executor.scheduleAtFixedRate( () -> {
+				monitorSPIM();
+			}, 500, 10, TimeUnit.MILLISECONDS );
+		}
+	}
+
+	private void initExecutor() {
+		if(executor != null) {
+			executor.shutdown();
+			try {
+				if (!executor.awaitTermination(800, TimeUnit.MILLISECONDS)) {
+					executor.shutdownNow();
+				}
+			} catch (InterruptedException e) {
+				executor.shutdownNow();
+			}
+		}
+
+		executor = Executors.newScheduledThreadPool( 5 );
+	}
+
+	private void monitorSPIM() {
+		for ( StageUnit.Stage stage : stageMap.keySet() )
+		{
+			if ( stageMap.get( stage ).get( StageUnit.BooleanState.Enable ).get() &&
+					!stageMap.get( stage ).get( StageUnit.BooleanState.Ready ).get() )
+			{
+				double target = stageMap.get( stage ).targetValueProperty().getValue().doubleValue();
+
+				double device = 0d;
+				// read the value from the device
+				switch ( stage ) {
+					case R: device = spimSetup.getThetaStage().getPosition() + 180.0;
+						break;
+					case X: device = spimSetup.getXStage().getPosition();
+						break;
+					case Y: device = spimSetup.getYStage().getPosition();
+						break;
+					case Z: device = spimSetup.getZStage().getPosition();
+						break;
+				}
+
+				double error = target - device;
+				double granularity = stage == StageUnit.Stage.R ? 2.5 : 1.5;
+
+				double finalDevice = device;
+				Platform.runLater( () -> {
+					stageMap.get( stage ).deviceValueProperty().setValue( finalDevice );
+
+					if ( abs( error ) < granularity )
+						stageMap.get( stage ).get( StageUnit.BooleanState.Ready ).set( true );
+				} );
+			}
+		}
+	}
+
 	public void init()
 	{
 		stageMap = new HashMap<>();
 
 		setCenter( createControls() );
 
-		ScheduledExecutorService executor = Executors.newScheduledThreadPool( 5 );
+		initExecutor();
 
 		if(spimSetup == null) {
 			System.out.println("SPIM setup is null");
@@ -108,39 +174,7 @@ public class StagePanel extends BorderPane
 		else
 		{
 			executor.scheduleAtFixedRate( () -> {
-
-				for ( StageUnit.Stage stage : stageMap.keySet() )
-				{
-					if ( stageMap.get( stage ).get( StageUnit.BooleanState.Enable ).get() &&
-							!stageMap.get( stage ).get( StageUnit.BooleanState.Ready ).get() )
-					{
-						double target = stageMap.get( stage ).targetValueProperty().getValue().doubleValue();
-
-						double device = 0d;
-						// read the value from the device
-						switch ( stage ) {
-							case R: device = spimSetup.getThetaStage().getPosition() + 180.0;
-								break;
-							case X: device = spimSetup.getXStage().getPosition();
-								break;
-							case Y: device = spimSetup.getYStage().getPosition();
-								break;
-							case Z: device = spimSetup.getZStage().getPosition();
-								break;
-						}
-
-						double error = target - device;
-						double granularity = stage == StageUnit.Stage.R ? 2.5 : 1.5;
-
-						double finalDevice = device;
-						Platform.runLater( () -> {
-							stageMap.get( stage ).deviceValueProperty().setValue( finalDevice );
-
-							if ( abs( error ) < granularity )
-								stageMap.get( stage ).get( StageUnit.BooleanState.Ready ).set( true );
-						} );
-					}
-				}
+				monitorSPIM();
 			}, 500, 10, TimeUnit.MILLISECONDS );
 		}
 	}

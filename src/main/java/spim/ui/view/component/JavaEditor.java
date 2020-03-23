@@ -35,13 +35,13 @@ import java.util.regex.Pattern;
  * Organization: MPI-CBG Dresden
  * Date: October 2018
  */
-public class JavaEditor extends BorderPane
+public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 {
 	WebView editorView;
 
 	private Stage modalStage;
-	final private Studio studio;
-	final private SPIMSetup setup;
+	private Studio studio;
+	private SPIMSetup setup;
 
 	protected Class plugin;
 
@@ -74,6 +74,11 @@ public class JavaEditor extends BorderPane
 				}
 			}
 		} );
+	}
+
+	@Override public void setSetup( SPIMSetup setup, Studio studio ) {
+		this.setup = setup;
+		this.studio = studio;
 	}
 
 	public void initialize(Stage aModalStage) {

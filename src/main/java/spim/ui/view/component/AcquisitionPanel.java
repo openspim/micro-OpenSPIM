@@ -62,6 +62,7 @@ import spim.model.data.ChannelItem;
 import spim.model.data.PinItem;
 import spim.model.data.PositionItem;
 import spim.model.event.ControlEvent;
+import spim.ui.view.component.acq.MMAcquisitionRunner;
 import spim.ui.view.component.pane.CheckboxPane;
 import spim.ui.view.component.pane.LabeledPane;
 import spim.ui.view.component.util.TableViewUtil;
@@ -79,15 +80,15 @@ import java.util.stream.Collectors;
  * Organization: MPI-CBG Dresden
  * Date: March 2019
  */
-public class AcquisitionPanel extends BorderPane
+public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 {
 	final private TableView< PositionItem > positionItemTableView;
-	final private TableView< ChannelItem > channelItemTableView;
+	private TableView< ChannelItem > channelItemTableView;
 	final private TableView< ChannelItem > channelItemArduinoTableView;
 	final private HashMap< String, StringProperty > propertyMap;
 	final private SimpleObjectProperty<PositionItem> currentPosition;
-	final private SPIMSetup spimSetup;
-	final private Studio studio;
+	private SPIMSetup spimSetup;
+	private Studio studio;
 	final private TabPane channelTabPane;
 	ObservableList<String> acquisitionOrderItems;
 	long imageWidth, imageHeight, imageDepth, bufferSize;
@@ -129,13 +130,21 @@ public class AcquisitionPanel extends BorderPane
 
 	// Cameras
 	int noCams = 0;
-	final StagePanel stagePanel;
+	StagePanel stagePanel;
 
 	Thread acquisitionThread = null;
 	double maxZStack = 5000;
 
 	SimpleDoubleProperty zStart = new SimpleDoubleProperty( 25 );
 	SimpleDoubleProperty zEnd = new SimpleDoubleProperty( 75 );
+
+	BooleanProperty continuous;
+
+	Group zStackGroup;
+	GridPane zStackGridPane;
+	StackCube cube;
+	Slider zSlider = null;
+	Tab laserTab;
 
 	public AcquisitionPanel( Stage stage, SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView< PinItem > pinItemTableView ) {
 		this.spimSetup = setup;
@@ -243,7 +252,7 @@ public class AcquisitionPanel extends BorderPane
 
 		// Channel list
 		channelItemTableView = TableViewUtil.createChannelItemDataView(setup);
-		Tab laserTab = new Tab( "Software Controlled" );
+		laserTab = new Tab( "Software Controlled" );
 		Node viewContent = null;
 		if(setup != null) {
 			viewContent = createChannelItemTable( channelItemTableView, setup.getCamera1().getLabel(), setup.getLaser().getLabel(), exposure );
@@ -351,6 +360,9 @@ public class AcquisitionPanel extends BorderPane
 		hb.setAlignment( Pos.CENTER_LEFT );
 
 
+		CheckBox continuousCheckBox = new CheckBox( "Continuous" );
+		continuous = continuousCheckBox.selectedProperty();
+
 		Button acquireButton = new Button( "Acquire" );
 		acquireButton.setMinSize( 130, 40 );
 		acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
@@ -403,7 +415,7 @@ public class AcquisitionPanel extends BorderPane
 					pi.setProgress( newValue.doubleValue() / totalImages.getValue() );
 				}
 			} );
-			hb.getChildren().addAll(acquireButton, pi);
+			hb.getChildren().addAll(continuousCheckBox, acquireButton, pi);
 		}
 
 
@@ -537,6 +549,85 @@ public class AcquisitionPanel extends BorderPane
 		} );
 	}
 
+	@Override public void setSetup( SPIMSetup setup, Studio studio )
+	{
+		this.spimSetup = setup;
+		this.studio = studio;
+
+		if(studio != null)
+		{
+			System.out.println("Height: " + this.studio.core().getImageHeight());
+			System.out.println("Width: " + this.studio.core().getImageWidth());
+			System.out.println("Depth: " + this.studio.core().getImageBitDepth());
+			System.out.println("BufferSize: " + this.studio.core().getImageBufferSize());
+			this.imageWidth = studio.core().getImageWidth();
+			this.imageHeight = studio.core().getImageHeight();
+			this.imageDepth = studio.core().getImageBitDepth();
+
+			if(setup != null)
+			{
+				if ( setup.getCamera1() != null )
+					noCams++;
+				if ( setup.getCamera2() != null )
+					noCams++;
+
+				maxZStack = setup.getZStage().getMaxPosition();
+
+				int exposure = 20;
+				try
+				{
+					exposure = (int) studio.core().getExposure();
+				}
+				catch ( Exception e )
+				{
+					e.printStackTrace();
+				}
+
+				channelItemTableView = TableViewUtil.createChannelItemDataView(setup);
+				Node viewContent = createChannelItemTable( channelItemTableView, setup.getCamera1().getLabel(), setup.getLaser().getLabel(), exposure );
+				laserTab.setContent( viewContent );
+			}
+		} else {
+			this.imageWidth = 512;
+			this.imageHeight = 512;
+			this.imageDepth = 8;
+			this.bufferSize = 512 * 512;
+
+			if(setup == null)
+			{
+				noCams = 0;
+				maxZStack = 100;
+				int exposure = 20;
+
+				channelItemTableView = TableViewUtil.createChannelItemDataView(setup);
+				Node viewContent = createChannelItemTable( channelItemTableView, "Camera-1", "Laser-1", exposure );
+				laserTab.setContent( viewContent );
+			}
+		}
+	}
+
+	public void setStagePanel(StagePanel stagePanel) {
+
+		if(stagePanel != null) {
+			zStackGridPane.getChildren().remove( zSlider );
+			this.stagePanel = stagePanel;
+
+			zStackGroup.getChildren().remove( cube );
+			cube = new StackCube(50, 100, Color.CORNFLOWERBLUE, 1, zStart, zEnd, stagePanel.getZValueProperty() );
+		} else {
+			this.stagePanel = null;
+			zSlider = new Slider(0, 100, 0);
+
+			zSlider.setOrientation( Orientation.VERTICAL );
+			cube = new StackCube(50, 100, Color.CORNFLOWERBLUE, 1, zStart, zEnd, zSlider.valueProperty() );
+
+			zStackGridPane.add( zSlider, 3, 0, 1, 2 );
+		}
+
+		zStackGroup.getChildren().add( 0, cube );
+		cube.setTranslateX( -60 );
+	}
+
 	private void updateUI ( AcquisitionSetting setting ) {
 		// Time points panel
 		enabledTimePoints.set( setting.getEnabledTimePoints() );
@@ -626,7 +717,7 @@ public class AcquisitionPanel extends BorderPane
 			return;
 		}
 
-		AcquisitionEngine engine = new AcquisitionEngine();
+		MMAcquisitionEngine engine = new MMAcquisitionEngine();
 
 		engine.init();
 
@@ -649,7 +740,11 @@ public class AcquisitionPanel extends BorderPane
 		acquisitionThread = new Thread( () -> {
 			try
 			{
-				engine.performAcquisition( spimSetup, stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages, 				enabledSaveImages.get() );
+				engine.performAcquisition( spimSetup, stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages, enabledSaveImages.get(), continuous.get() );
+
+//				new MMAcquisitionRunner().runAcquisition();
+
+//				engine.performAcquisitionMM( spimSetup, stagePanel, (java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages, enabledSaveImages.get());
 
 				acquisitionThread = null;
 				Platform.runLater( () -> {
@@ -967,8 +1062,7 @@ public class AcquisitionPanel extends BorderPane
 
 	private CheckboxPane createZStackPane( StagePanel stagePanel ) {
 
-		StackCube cube;
-		Slider zSlider = null;
+
 
 		if(stagePanel == null)
 		{
@@ -982,9 +1076,9 @@ public class AcquisitionPanel extends BorderPane
 //		cube.setRotate( 180 );
 		cube.setTranslateX( -60 );
 
-		GridPane gridpane = new GridPane();
-		gridpane.setVgap( 8 );
-		gridpane.setHgap( 5 );
+		zStackGridPane = new GridPane();
+		zStackGridPane.setVgap( 8 );
+		zStackGridPane.setHgap( 5 );
 
 		Button startButton = createZStackButton( "Z-start" );
 		TextField zStartField = createNumberTextField();
@@ -1007,7 +1101,7 @@ public class AcquisitionPanel extends BorderPane
 			}
 		} );
 
-		gridpane.addRow( 0, startButton, zStartField );
+		zStackGridPane.addRow( 0, startButton, zStartField );
 
 		TextField zStepField = createNumberTextField();
 		zStepField.setText( "1.5" );
@@ -1019,7 +1113,7 @@ public class AcquisitionPanel extends BorderPane
 				positionItemTableView.refresh();
 			}
 		} );
-		gridpane.addRow( 1, new Label( "Z-step (\u03BCm)" ), zStepField );
+		zStackGridPane.addRow( 1, new Label( "Z-step (\u03BCm)" ), zStepField );
 
 		Button endButton = createZStackButton( "Z-end" );
 		TextField zEndField = createNumberTextField();
@@ -1044,7 +1138,7 @@ public class AcquisitionPanel extends BorderPane
 
 		setupMouseClickedHandler(startButton, zStartField, endButton, zEndField);
 
-		gridpane.addRow( 2, endButton, zEndField );
+		zStackGridPane.addRow( 2, endButton, zEndField );
 
 		currentPosition.addListener( new ChangeListener< PositionItem >()
 		{
@@ -1062,7 +1156,7 @@ public class AcquisitionPanel extends BorderPane
 		} );
 
 		if(stagePanel == null && zSlider != null)
-			gridpane.add( zSlider, 3, 0, 1, 2 );
+			zStackGridPane.add( zSlider, 3, 0, 1, 2 );
 
 		Button newButton = new Button( "New Pos" );
 		newButton.setOnAction( new EventHandler< ActionEvent >()
@@ -1097,14 +1191,14 @@ public class AcquisitionPanel extends BorderPane
 				}
 			}
 		} );
-		gridpane.addRow( 3, newButton, updateButton );
+		zStackGridPane.addRow( 3, newButton, updateButton );
 
-		gridpane.setTranslateY( -30 );
+		zStackGridPane.setTranslateY( -30 );
 
 		// create a group
-		Group group = new Group(cube, gridpane );
+		zStackGroup = new Group(cube, zStackGridPane );
 
-		CheckboxPane pane = new CheckboxPane( "Z-stacks", group );
+		CheckboxPane pane = new CheckboxPane( "Z-stacks", zStackGroup );
 		enabledZStacks = pane.selectedProperty();
 		return pane;
 	}

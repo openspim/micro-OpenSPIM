@@ -68,10 +68,11 @@ import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.micromanager.MMPlugin;
 import org.micromanager.Studio;
+import org.micromanager.data.internal.DefaultSummaryMetadata;
 import org.micromanager.internal.MMStudio;
 //import org.micromanager.api.MMPlugin;
 //import org.micromanager.api.ScriptInterface;
-import org.micromanager.internal.utils.ImageUtils;
+import org.micromanager.internal.utils.imageanalysis.ImageUtils;
 //import org.micromanager.utils.NumberUtils;
 import org.micromanager.internal.utils.NumberUtils;
 import org.micromanager.internal.utils.ReportingUtils;
@@ -1907,7 +1908,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					{
 						handler = new OMETIFFHandler(
 								mmc, output, acqFilenamePrefix.getText(),
-								acqRows, 1, timeSeqs, timeStep, tileCount, exportToHdf5.isSelected());
+								acqRows, 1, timeSeqs, timeStep, tileCount, new DefaultSummaryMetadata.Builder().build(), exportToHdf5.isSelected());
 					}
 
 					if(asyncCheckbox.isSelected())

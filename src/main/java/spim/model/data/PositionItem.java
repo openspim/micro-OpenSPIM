@@ -60,7 +60,7 @@ public class PositionItem
 
 	public String getZString() {
 		if(zStart < zEnd)
-			return String.format( "%.0f:%.1f:%.0f", zStart, zStep, zEnd );
+			return String.format( "%.0f-%.0f", zStart, zEnd );
 		else
 			return String.format( "%.0f", zStart );
 	}

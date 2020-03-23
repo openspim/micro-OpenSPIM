@@ -1,6 +1,11 @@
 package spim.ui.view.component;
 
+import halcyon.controller.ViewManager;
+import ij.IJ;
+import ij.ImageJ;
 import ij.gui.Roi;
+import ij.plugin.MacroInstaller;
+import javafx.application.HostServices;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
@@ -13,8 +18,12 @@ import javafx.scene.control.TitledPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 import org.dockfx.DockNode;
 import org.micromanager.Studio;
+import spim.hardware.SPIMSetup;
+import spim.mm.MMUtils;
+import spim.mm.MicroManager;
 
 import java.awt.Rectangle;
 
@@ -23,12 +32,14 @@ import java.awt.Rectangle;
  * Organization: MPI-CBG Dresden
  * Date: October 2018
  */
-public class ToolbarPanel extends DockNode
+public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 {
+	Studio studio;
 
-	public ToolbarPanel( Studio studio, ObjectProperty roiRectangle )
+	public ToolbarPanel( Studio mmStudio, ObjectProperty roiRectangle, HostServices hostServices, ObjectProperty< Studio > mmStudioObjectProperty )
 	{
 		super(new VBox());
+		this.studio = mmStudio;
 		getDockTitleBar().setVisible(false);
 
 		setTitle("OpenSPIM");
@@ -138,6 +149,44 @@ public class ToolbarPanel extends DockNode
 		gridpane.addRow( 3, titledPane );
 		gridpane.addRow( 4, new HBox( 3, setRoiButton, clearRoiButton) );
 
+		Button ijButton = new Button( "Open IJ" );
+		ijButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(null == IJ.getInstance() ) {
+					ij.ImageJ ij = new ImageJ( );
+					ij.show();
+				} else {
+					IJ.getInstance().show();
+				}
+			}
+		} );
+
+		Button mmButton = new Button( "Open MM2");
+		mmButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(null == MicroManager.getInstance()) {
+					MMUtils.host = hostServices;
+					Stage stage = new Stage();
+					if (!MMUtils.isSystemLibrairiesLoaded())
+					{
+						// load micro manager libraries
+						if (!MMUtils.fixSystemLibrairies( stage ))
+							return;
+					}
+
+					MicroManager.init( stage, mmStudioObjectProperty );
+				} else {
+					MicroManager.getInstance().show();
+				}
+			}
+		} );
+
+		gridpane.addRow( 5, new HBox(3, ijButton, mmButton) );
+
 
 
 		//		btn = new Button("Test Std Err");
@@ -156,5 +205,9 @@ public class ToolbarPanel extends DockNode
 //		btn = new Button("488");
 //		btn.setStyle("-fx-background-color: #0FAFF0");
 //		box.getChildren().add(btn);
+	}
+
+	@Override public void setSetup( SPIMSetup setup, Studio studio ) {
+		this.studio = studio;
 	}
 }
