@@ -146,6 +146,12 @@
 			<version>2.1.0</version>
 		</dependency>
 
+        <dependency>
+            <groupId>org.msgpack</groupId>
+            <artifactId>msgpack</artifactId>
+            <version>0.6.12</version>
+        </dependency>
+
         <!-- system -->
         <dependency>
             <groupId>junit</groupId>
