@@ -6,6 +6,7 @@ import ij.IJ;
 import ij.Macro;
 import ij.plugin.Duplicator;
 import ij.plugin.PlugIn;
+
 import javafx.beans.property.ObjectProperty;
 import javafx.scene.control.Alert;
 import javafx.stage.Stage;
@@ -17,11 +18,13 @@ import mmcorej.TaggedImage;
 import org.json.JSONObject;
 
 import org.micromanager.Studio;
+import org.micromanager.UserProfile;
 import org.micromanager.acquisition.SequenceSettings;
 import org.micromanager.acquisition.internal.AcquisitionEngine;
 import org.micromanager.acquisition.internal.AcquisitionWrapperEngine;
 import org.micromanager.acquisition.internal.IAcquisitionEngine2010;
 import org.micromanager.display.internal.displaywindow.imagej.MMVirtualStack;
+
 import org.micromanager.internal.MMStudio;
 import org.micromanager.internal.MMVersion;
 import org.micromanager.internal.MainFrame;
@@ -29,17 +32,26 @@ import org.micromanager.internal.utils.GUIUtils;
 import org.micromanager.internal.utils.MDUtils;
 import org.micromanager.internal.utils.ReportingUtils;
 
+import org.micromanager.internal.utils.UserProfileManager;
+import org.micromanager.profile.internal.DefaultUserProfile;
+import org.micromanager.profile.internal.UserProfileAdmin;
+import org.micromanager.profile.internal.gui.HardwareConfigurationManager;
 import spim.mm.patch.WindowPositioningPatch;
-
-import javax.swing.SwingUtilities;
+import spim.ui.view.component.HalcyonMain;
 
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.beans.ExceptionListener;
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.prefs.Preferences;
@@ -71,51 +83,120 @@ public class MicroManager implements PlugIn, CommandListener
 	static ReentrantLock rlock;
 	static String sysConfigFile = "";
 	public static String orgUserDir = "";
+	OpenSPIMEventCallback callback = new OpenSPIMEventCallback();
+	static Thread mmThread;
 
 	static {
 		new WindowPositioningPatch().applyPatches();
 	}
 
 	public MicroManager(ObjectProperty<Studio> studioObjectProperty) {
+		rlock = new ReentrantLock(true);
 		mmStudioProperty = studioObjectProperty;
 		run(null);
 	}
 
+	private void rememberSysConfig(String profileNameAutoStart) throws IOException
+	{
+		UserProfileManager userProfileManager_ = new UserProfileManager();
+		UserProfileAdmin profileAdmin = userProfileManager_.getAdmin();
+		Iterator iterator = profileAdmin.getProfileUUIDsAndNames().entrySet().iterator();
+		UserProfile profile = null;
+
+		while(iterator.hasNext()) {
+			Map.Entry<UUID, String> entry = ( Map.Entry )iterator.next();
+			String name = entry.getValue();
+			if (name.equals(profileNameAutoStart)) {
+				profile = profileAdmin.getAutosavingProfile((UUID)entry.getKey(), new ExceptionListener() {
+					public void exceptionThrown(Exception e) {
+						System.err.println("Exception Listener:" + e);
+					}
+				});
+				break;
+			}
+		}
+
+		List<String> files = profile.getSettings(HardwareConfigurationManager.class).getStringList("RECENTLY_USED", (new File("MMConfig_demo.cfg")).getAbsolutePath());
+		ListIterator it = files.listIterator();
+
+		while(true) {
+			File file;
+			do {
+				if (!it.hasNext()) {
+					files.add(0, sysConfigFile);
+					it = files.listIterator(files.size());
+
+					while(it.hasPrevious() && files.size() > 10) {
+						file = new File((String)it.previous());
+						if (!file.isFile()) {
+							it.remove();
+						}
+					}
+
+					while(files.size() > 10) {
+						files.remove(files.size() - 1);
+					}
+
+					profile.getSettings(HardwareConfigurationManager.class).putStringList("RECENTLY_USED", files);
+					try
+					{
+						(( DefaultUserProfile )profile).close();
+					}
+					catch ( InterruptedException e )
+					{
+						e.printStackTrace();
+					}
+					profileAdmin.shutdownAutosaves();
+					return;
+				}
+
+				file = new File((String)it.next());
+			} while(file.isFile() && !file.equals(sysConfigFile));
+
+			it.remove();
+		}
+	}
+
 	@Override
 	public void run(final String arg) {
-		SwingUtilities.invokeLater(
+		mmThread = new Thread(
 			() -> {
-				try {
-					if (mmstudio == null || !mmstudio.getIsProgramRunning()) {
+				Thread.currentThread().setContextClassLoader( HalcyonMain.class.getClassLoader() );
 
-						Executer.addCommandListener(MicroManager.this);
+				try
+				{
+					if ( mmstudio == null || !mmstudio.getIsProgramRunning() )
+					{
+
+						Executer.addCommandListener( MicroManager.this );
 
 						String profileNameAutoStart = parseMacroOptions();
+						rememberSysConfig(profileNameAutoStart);
 
-						mmstudio = new MMStudio( true, profileNameAutoStart );
+						mmstudio = new MMStudio( true, parseMacroOptions() );
 						ReportingUtils.setCore( null );
-						mmstudio.getCore().registerCallback( new OpenSPIMEventCallback() );
-						mmstudio.setSysConfigFile( sysConfigFile );
 
 						final MainFrame frame = mmstudio.getFrame();
 
-						if (frame != null)
+						if ( frame != null )
 						{
+
+							ReportingUtils.SetContainingFrame( frame );
 							// force some initialization stuff on micro manager
-							frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_OPENED));
+//							frame.dispatchEvent( new WindowEvent( frame, WindowEvent.WINDOW_OPENED ) );
 							// hide the main frame of Micro-Manager (we don't want it)
-							frame.setVisible(true);
-							frame.setExitStrategy(false);
+							frame.setVisible( true );
+							frame.setExitStrategy( false );
 							// Hide on Exit
 							frame.setDefaultCloseOperation( HIDE_ON_CLOSE );
 							frame.addWindowListener( new WindowAdapter()
 							{
 								@Override public void windowClosing( WindowEvent e )
 								{
-									super.windowClosing( e );
-									instance = null;
-									mmstudio = null;
-									shutdown();
+								super.windowClosing( e );
+								instance = null;
+								mmstudio = null;
+								shutdown();
 								}
 							} );
 						}
@@ -123,30 +204,38 @@ public class MicroManager implements PlugIn, CommandListener
 						// get the MM core
 						final CMMCore core = getCore();
 
+//						core.registerCallback( new OpenSPIMEventCallback() );
+						mmStudioProperty.set( MicroManager.getMMStudio() );
+
+//						ReportingUtils.setCore( core );
 						// set core for reporting
-						core.enableDebugLog(false);
-//						core.enableStderrLog(false);
+						core.enableDebugLog( false );
+						core.enableStderrLog( false );
 
 						try
 						{
 							// initialize circular buffer (only if a camera is present)
-							if (!StringUtil.isEmpty(core.getCameraDevice()))
+							if ( !StringUtil.isEmpty( core.getCameraDevice() ) )
 								core.initializeCircularBuffer();
 						}
-						catch (Throwable e)
+						catch ( Throwable e )
 						{
-							throw new Exception("Error while initializing circular buffer of Micro Manager", e);
+							throw new Exception( "Error while initializing circular buffer of Micro Manager", e );
 						}
 
-//						liveManager = new LiveListenerThread();
-//						liveManager.start();
+						//						liveManager = new LiveListenerThread();
+						//						liveManager.start();
 					}
 				}
-				catch ( Throwable t ) {
+				catch ( Throwable t )
+				{
 					shutdown();
-					System.err.println(String.format( "Could not initialize Micro Manager !\n%s", t));
+					System.err.println( String.format( "Could not initialize Micro Manager !\n%s", t ) );
 				}
-			} );
+			});
+
+		mmThread.setContextClassLoader( HalcyonMain.class.getClassLoader() );
+		mmThread.start();
 	}
 
 	private String parseMacroOptions()
@@ -1016,18 +1105,40 @@ public class MicroManager implements PlugIn, CommandListener
 		return core.getExposure();
 	}
 
-	/**
-	 * Set the exposure of the current camera
-	 */
-	public static void setExposure(double exposure) throws Exception
+	public static void setCameraDevice(String camera) throws Exception
 	{
 		final CMMCore core = getCore();
 		if (core == null)
 			return;
 
-		final MMStudio mmstudio = getMMStudio();
+		if (!core.getCameraDevice().equals( camera )) {
+			lock();
+			try
+			{
+				core.setCameraDevice(camera);
+			}
+			finally
+			{
+				unlock();
+			}
+		}
+	}
+
+	/**
+	 * Set the exposure of the current camera
+	 */
+	public static void setExposure(String camera, double exposure) throws Exception
+	{
+		final CMMCore core = getCore();
+		if (core == null)
+			return;
+
 		if (mmstudio == null)
 			return;
+
+		if (!core.getCameraDevice().equals( camera )) {
+			setCameraDevice( camera );
+		}
 
 		// exposure actually changed ?
 		if (core.getExposure() != exposure)
@@ -1045,7 +1156,8 @@ public class MicroManager implements PlugIn, CommandListener
 					stopLiveMode();
 
 				// better to use mmstudio method so it handles exposure synchronization
-				mmstudio.setExposure(exposure);
+				mmstudio.setExposure( exposure );
+
 				// // set new exposure
 				// core.setExposure(exposure);
 
@@ -1272,31 +1384,31 @@ public class MicroManager implements PlugIn, CommandListener
 	/**
 	 * Returns the current shutter device open state.
 	 */
-	public static boolean isShutterOpen() throws Exception
+	public static boolean isShutterOpen(String shutterLabel) throws Exception
 	{
 		final CMMCore core = getCore();
 		if (core == null)
 			return false;
 
-		return core.getShutterOpen();
+		return core.getShutterOpen(shutterLabel);
 	}
 
 	/**
 	 * Open / close the current shutter device.
 	 */
-	public static void setShutterOpen(boolean value) throws Exception
+	public static void setShutterOpen(String shutterLabel, boolean value) throws Exception
 	{
 		final CMMCore core = getCore();
 		if (core == null)
 			return;
 
 		// value changed ?
-		if (value != isShutterOpen())
+		if (value != isShutterOpen(shutterLabel))
 		{
 			lock();
 			try
 			{
-				core.setShutterOpen(value);
+				core.setShutterOpen(shutterLabel, value);
 			}
 			finally
 			{
@@ -1315,6 +1427,27 @@ public class MicroManager implements PlugIn, CommandListener
 			return false;
 
 		return core.getAutoShutter();
+	}
+
+	/**
+	 * Wait for System
+	 */
+	public static void waitForSystem() throws Exception
+	{
+		final CMMCore core = getCore();
+		if (core == null)
+			return;
+
+		core.waitForSystem();
+	}
+
+	public static void waitForImageSynchro() throws Exception
+	{
+		final CMMCore core = getCore();
+		if (core == null)
+			return;
+
+		core.waitForImageSynchro();
 	}
 
 	/**
@@ -1798,7 +1931,7 @@ public class MicroManager implements PlugIn, CommandListener
 		@Override
 		public void onExposureChanged(String deviceName, double exposure)
 		{
-			System.out.println("ExposureChanged");
+			System.out.println("ExposureChanged: " + deviceName + " - " + exposure);
 		}
 
 		@Override

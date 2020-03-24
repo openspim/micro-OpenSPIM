@@ -65,6 +65,13 @@ public class PositionItem
 			return String.format( "%.0f", zStart );
 	}
 
+	public String getPosZString() {
+		if(zStart < zEnd)
+			return String.format( "%.0f:%.1f:%.0f", zStart, zStep, zEnd );
+		else
+			return String.format( "%.0f", zStart );
+	}
+
 	public void setX( double x )
 	{
 		this.x = x;

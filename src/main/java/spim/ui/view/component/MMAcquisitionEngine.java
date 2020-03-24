@@ -5,6 +5,7 @@ import ij.process.ImageProcessor;
 import javafx.application.Platform;
 import javafx.beans.property.LongProperty;
 import javafx.collections.ObservableList;
+import loci.common.DebugTools;
 import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
 import org.json.JSONException;
@@ -13,6 +14,7 @@ import org.micromanager.PositionList;
 import org.micromanager.PropertyMap;
 import org.micromanager.PropertyMaps;
 import org.micromanager.StagePosition;
+import org.micromanager.Studio;
 import org.micromanager.UserProfile;
 import org.micromanager.acquisition.ChannelSpec;
 import org.micromanager.acquisition.SequenceSettings;
@@ -32,6 +34,7 @@ import org.micromanager.events.AcquisitionEndedEvent;
 import org.micromanager.events.AcquisitionStartedEvent;
 import org.micromanager.internal.AcquisitionEngine2010;
 import org.micromanager.internal.MMStudio;
+import org.micromanager.internal.utils.GUIUtils;
 import org.micromanager.internal.utils.UserProfileManager;
 import org.micromanager.internal.utils.imageanalysis.ImageUtils;
 import org.micromanager.internal.utils.ReportingUtils;
@@ -41,10 +44,13 @@ import spim.hardware.SPIMSetup;
 import spim.hardware.Stage;
 import spim.io.OMETIFFHandler;
 import spim.io.OutputHandler;
+import spim.mm.MicroManager;
 import spim.model.data.ChannelItem;
 import spim.model.data.PositionItem;
 import spim.ui.view.component.acq.AcqWrapperEngine;
 import spim.ui.view.component.testing.AE2010ImageDecoder;
+
+import javax.swing.SwingUtilities;
 
 import java.awt.Color;
 import java.awt.Rectangle;
@@ -71,6 +77,10 @@ public class MMAcquisitionEngine
 	static volatile boolean done;
 	static Thread captureThread;
 
+	static {
+		DebugTools.enableLogging( "OFF" );
+	}
+
 	public void init() {
 		// Setting parameters
 		// AcquisitionEngine2010
@@ -81,9 +91,9 @@ public class MMAcquisitionEngine
 	}
 
 	@SuppressWarnings("Duplicates")
-	public static ImagePlus performAcquisition( SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, double timeStep, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, boolean continuous ) throws Exception
+	public static ImagePlus performAcquisition( Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, double timeStep, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, boolean continuous ) throws Exception
 	{
-		final MMStudio frame = MMStudio.getInstance();
+		final Studio frame = studio;
 
 		if(frame == null) return null;
 
@@ -104,7 +114,7 @@ public class MMAcquisitionEngine
 			frame.displays().manage(store);
 		}
 
-		final CMMCore core = frame.getCore();
+		final CMMCore core = frame.core();
 
 //		final AcquisitionSettings acqSettings = acqSettingsOrig;
 //
@@ -256,7 +266,7 @@ public class MMAcquisitionEngine
 //				core.waitForSystem();
 				for(String camera : cameras)
 				{
-					core.setExposure( camera, 100 );
+					MicroManager.setExposure( camera, 100 );
 
 					if(!core.isSequenceRunning(camera))
 						core.prepareSequenceAcquisition( camera );
@@ -342,7 +352,8 @@ public class MMAcquisitionEngine
 
 				// Move the stage
 //				runDevicesAtRow(core, setup, acqRows[step]);
-				stagePanel.goToPos( positionItem.getX(), positionItem.getY(), positionItem.getR() );
+				if(stagePanel != null)
+					stagePanel.goToPos( positionItem.getX(), positionItem.getY(), positionItem.getR() );
 				core.waitForSystem();
 
 
@@ -359,7 +370,8 @@ public class MMAcquisitionEngine
 				{
 					try {
 						// Move Z stacks
-						stagePanel.goToZ( zStart );
+						if(stagePanel != null)
+							stagePanel.goToZ( zStart );
 						core.waitForSystem();
 
 						// Wait for image synchronization
@@ -468,7 +480,6 @@ public class MMAcquisitionEngine
 								else
 								{
 									core.setCameraDevice( channelItem.getName() );
-
 									core.setShutterOpen( channelItem.getLaser(), true );
 									core.setExposure( channelItem.getName(), channelItem.getValue().doubleValue() );
 									core.waitForDevice( channelItem.getName() );
@@ -507,6 +518,7 @@ public class MMAcquisitionEngine
 						//					});
 					} catch (Exception e) {
 //					if (Thread.interrupted()) {
+						System.err.println(e);
 						finalize(true, setup, cameras, frame, tp, rown, handlers, store);
 						return null;
 					}
@@ -981,7 +993,7 @@ public class MMAcquisitionEngine
 		return frame.getAcquisitionEngine2010();
 	}
 
-	private static void finalize(boolean finalizeStack, SPIMSetup setup, List<String> cameras, final MMStudio frame, final int tp, final int rown, HashMap<String, OutputHandler> handlers, RewritableDatastore store) throws Exception
+	private static void finalize(boolean finalizeStack, SPIMSetup setup, List<String> cameras, final Studio frame, final int tp, final int rown, HashMap<String, OutputHandler> handlers, RewritableDatastore store) throws Exception
 	{
 		final CMMCore core = frame.core();
 
@@ -1041,7 +1053,7 @@ public class MMAcquisitionEngine
 //		ij.IJ.log("finalize");
 	}
 
-	private static void addImageToAcquisition( MMStudio studio, RewritableDatastore store, int channel,
+	private static void addImageToAcquisition( Studio studio, RewritableDatastore store, int channel,
 			int slice, double zPos, PositionItem position, long ms, TaggedImage taggedImg ) throws
 			JSONException, DatastoreFrozenException,
 			DatastoreRewriteException, Exception
@@ -1108,7 +1120,7 @@ public class MMAcquisitionEngine
 		for( PositionItem item : positionItems )
 		{
 			list.add( new Row( canonicalDevices,
-					new String[] {"" + item.getX(), "" + item.getY(), "" + item.getR(), item.getZString()} ) );
+					new String[] {"" + item.getX(), "" + item.getY(), "" + item.getR(), item.getPosZString()} ) );
 		}
 
 		return list.toArray( new Row[0] );

@@ -3,8 +3,11 @@ package spim;
 import ij.ImageJ;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.stage.Stage;
 import loci.common.DebugTools;
+import org.micromanager.Studio;
 import spim.mm.MMUtils;
 import spim.mm.MicroManager;
 import spim.ui.view.component.HalcyonMain;
@@ -56,7 +59,8 @@ public class SlimOpenSPIM extends Application
 						return;
 				}
 
-				MicroManager.init( plugin.getStage(), null );
+				ObjectProperty< Studio > mmStudioProperty = new SimpleObjectProperty<>();
+				MicroManager.init( plugin.getStage(), mmStudioProperty );
 			}
 		} );
 

@@ -14,8 +14,8 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
-import org.dockfx.DockNode;
 import org.micromanager.Studio;
+
 import spim.hardware.SPIMSetup;
 import spim.hardware.VersaLase;
 
@@ -44,6 +44,7 @@ public class HalcyonMain extends HalcyonFrame
 		{
 			@Override public void run()
 			{
+				Thread.currentThread().setContextClassLoader( getClass().getClassLoader() );
 				try
 				{
 					Thread.sleep(1000);

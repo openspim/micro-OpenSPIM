@@ -56,7 +56,11 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.micromanager.Studio;
+import org.micromanager.internal.MMStudio;
+import org.micromanager.internal.utils.GUIUtils;
+import spim.SlimOpenSPIM;
 import spim.hardware.SPIMSetup;
+import spim.mm.MicroManager;
 import spim.model.data.AcquisitionSetting;
 import spim.model.data.ChannelItem;
 import spim.model.data.PinItem;
@@ -67,7 +71,10 @@ import spim.ui.view.component.pane.CheckboxPane;
 import spim.ui.view.component.pane.LabeledPane;
 import spim.ui.view.component.util.TableViewUtil;
 
+import javax.swing.SwingUtilities;
+
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -737,20 +744,26 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		Platform.runLater( () -> processedImages.set( 0 ) );
 
-		acquisitionThread = new Thread( () -> {
+		acquisitionThread = new Thread(() ->
+		{
+			Thread.currentThread().setContextClassLoader( HalcyonMain.class.getClassLoader() );
+
 			try
 			{
-				engine.performAcquisition( spimSetup, stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages, enabledSaveImages.get(), continuous.get() );
+				engine.performAcquisition( studio, spimSetup, stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages, enabledSaveImages.get(), continuous.get() );
 
 //				new MMAcquisitionRunner().runAcquisition();
 
 //				engine.performAcquisitionMM( spimSetup, stagePanel, (java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages, enabledSaveImages.get());
+
 
 				acquisitionThread = null;
 				Platform.runLater( () -> {
 					acquireButton.setText( "Acquire" );
 					acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
 				} );
+
+//				Thread.currentThread().setContextClassLoader( getClass().getClassLoader() );
 			}
 			catch ( Exception e )
 			{
