@@ -1,6 +1,5 @@
 package spim;
 
-import ij.ImageJ;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
@@ -10,7 +9,6 @@ import loci.common.DebugTools;
 import org.micromanager.Studio;
 import spim.mm.MMUtils;
 import spim.mm.MicroManager;
-import spim.ui.view.component.HalcyonMain;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -19,71 +17,28 @@ import spim.ui.view.component.HalcyonMain;
  */
 public class SlimOpenSPIM extends Application
 {
-	static Stage mStage;
-	public static void main( final String[] args )
-	{
-
-//		MMStudio app = MMStudio.getInstance();
-//
-//		if (app == null) {
-//			app = new MMStudio(true);
-//			MMStudio.getFrame().setVisible(true);
-//			ReportingUtils.SetContainingFrame(MMStudio.getFrame());
-//		}
-//		SPIMAcq plugin = new SPIMAcq();
-//		plugin.setContext( app );
-//		plugin.getSubMenu();
-		// verify that system libraries are loaded
-//		if (!MMUtils.isSystemLibrairiesLoaded())
-//		{
-//			// load micro manager libraries
-//			if (!MMUtils.fixSystemLibrairies())
-//				return;
-//		}
-
-//		MicroManager.init();
-		SlimOpenSPIM plugin = new SlimOpenSPIM();
-		com.sun.javafx.application.PlatformImpl.startup( new Runnable()
-		{
-			@Override public void run()
-			{
-				DebugTools.enableLogging( "OFF" );
-				Platform.setImplicitExit( false );
-
-				MicroManager.orgUserDir = System.getProperty( "user.dir" );
-				MMUtils.host = plugin.getHostServices();
-				if (!MMUtils.isSystemLibrairiesLoaded())
-				{
-					// load micro manager libraries
-					if (!MMUtils.fixSystemLibrairies( plugin.getStage() ))
-						return;
-				}
-
-				ObjectProperty< Studio > mmStudioProperty = new SimpleObjectProperty<>();
-				MicroManager.init( plugin.getStage(), mmStudioProperty );
-			}
-		} );
-
-	}
-
-	Stage getStage() {
-		if ( mStage == null )
-			mStage = new Stage();
-		return mStage;
-	}
-
 	@Override
-	public void start( Stage arg0 ) throws Exception {
-		MMUtils.host = getHostServices();
-		mStage = arg0;
+	public void start( Stage stage ) {
+		stage.setOnCloseRequest(event -> System.exit(0));
 
+		DebugTools.enableLogging( "OFF" );
+		Platform.setImplicitExit( false );
+
+		MicroManager.orgUserDir = System.getProperty( "user.dir" );
+		MMUtils.host = getHostServices();
 		if (!MMUtils.isSystemLibrairiesLoaded())
 		{
 			// load micro manager libraries
-			if (!MMUtils.fixSystemLibrairies(arg0))
+			if (!MMUtils.fixSystemLibrairies( stage ))
 				return;
 		}
 
-//		MicroManager.init();
+		ObjectProperty< Studio > mmStudioProperty = new SimpleObjectProperty<>();
+		MicroManager.init( stage, mmStudioProperty );
+	}
+
+	public static void main( final String[] args )
+	{
+		launch( SlimOpenSPIM.class );
 	}
 }
