@@ -137,7 +137,7 @@ public class TableViewUtil
 			String zString = event.getNewValue();
 			String[] tokens = zString.split( "-" );
 
-			if(tokens.length == 3) {
+			if(tokens.length == 2) {
 				event.getRowValue().setZStart( Double.parseDouble( tokens[0] ) );
 				event.getRowValue().setZEnd( Double.parseDouble( tokens[1] ) );
 			} else if(tokens.length == 1) {
