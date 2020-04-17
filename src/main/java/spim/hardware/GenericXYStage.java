@@ -53,11 +53,12 @@ public class GenericXYStage {
 			try {
 				if (iAmX) {
 					if (destY < 0) destY = core.getYPosition(label);
-					core.setXYPosition(label, pos, GenericXYStage.this.destY);
+					core.setXYPosition( label, pos, GenericXYStage.this.destY );
 					GenericXYStage.this.destX = pos;
 				} else {
 					if (destX < 0) destX = core.getXPosition(label);
-					core.setXYPosition(label, GenericXYStage.this.destX, pos);
+					core.waitForDevice( label );
+					core.setXYPosition( label, GenericXYStage.this.destX, pos );
 					GenericXYStage.this.destY = pos;
 				}
 			} catch (Exception e) {
