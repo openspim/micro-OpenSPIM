@@ -95,6 +95,14 @@ public class StageSlider extends HBox
 		}
 	}
 
+	public void updateMinMaxTick(double min, double max, double tick) {
+		mSlider.setBlockIncrement( tick );
+		mSlider.setMajorTickUnit( tick );
+
+		mSlider.setMin( min );
+		mSlider.setMax( max );
+	}
+
 	public Slider getSlider()
 	{
 		return mSlider;

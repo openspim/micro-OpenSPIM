@@ -63,6 +63,8 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 
 	ScheduledExecutorService executor;
 
+	ChangeListener targetPropertyChangeListener;
+
 	public StagePanel()
 	{
 		init();
@@ -80,7 +82,57 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 
 		initExecutor();
 
+		// rebound the control
+		for ( StageUnit.Stage stage : stageMap.keySet() )
+		{
+			Stage stageDevice = null;
+
+			StageUnit unit = stageMap.get(stage);
+
+			if(setup != null) {
+				switch ( stage ) {
+					case R: stageDevice = spimSetup.getThetaStage();
+						spimSetup.isConnected( SPIMSetup.SPIMDevice.STAGE_THETA );
+						break;
+					case X: stageDevice = spimSetup.getXStage();
+						spimSetup.isConnected( SPIMSetup.SPIMDevice.STAGE_X );
+						break;
+					case Y: stageDevice = spimSetup.getYStage();
+						spimSetup.isConnected( SPIMSetup.SPIMDevice.STAGE_Y );
+						break;
+					case Z: stageDevice = spimSetup.getZStage();
+						spimSetup.isConnected( SPIMSetup.SPIMDevice.STAGE_Z );
+						break;
+				}
+			}
+
+			unit.setStageDevice( stageDevice );
+
+			final Property< Number > targetProperty = unit.targetValueProperty();
+
+			if(targetPropertyChangeListener != null)
+				targetProperty.removeListener( targetPropertyChangeListener );
+
+			if(setup != null) {
+				targetPropertyChangeListener = ( ChangeListener< Number > ) ( observable, oldValue, newValue ) -> {
+					switch ( stage ) {
+						case R:
+							spimSetup.getThetaStage().setPosition( newValue.doubleValue() - 180.0 );
+							break;
+						case X: spimSetup.getXStage().setPosition( newValue.doubleValue() );
+							break;
+						case Y: spimSetup.getYStage().setPosition( newValue.doubleValue() );
+							break;
+						case Z: spimSetup.getZStage().setPosition( newValue.doubleValue() );
+							break;
+					}
+				};
+				targetProperty.addListener( targetPropertyChangeListener );
+			}
+		}
+
 		if(setup != null) {
+			// start executor for monitoring values
 			executor.scheduleAtFixedRate( () -> {
 				monitorSPIM();
 			}, 500, 10, TimeUnit.MILLISECONDS );
@@ -197,48 +249,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 
 	private StageUnit createStageControl( String labelString, StageUnit.Stage stage )
 	{
-		StageUnit unit;
-
-		if( null == spimSetup ) {
-			unit = new StageUnit( labelString, stage == StageUnit.Stage.R, null );
-		}
-		else {
-			Stage stageDevice = null;
-
-			switch ( stage ) {
-				case R: stageDevice = spimSetup.getThetaStage();
-					spimSetup.isConnected( SPIMSetup.SPIMDevice.STAGE_THETA );
-					break;
-				case X: stageDevice = spimSetup.getXStage();
-					spimSetup.isConnected( SPIMSetup.SPIMDevice.STAGE_X );
-					break;
-				case Y: stageDevice = spimSetup.getYStage();
-					spimSetup.isConnected( SPIMSetup.SPIMDevice.STAGE_Y );
-					break;
-				case Z: stageDevice = spimSetup.getZStage();
-					spimSetup.isConnected( SPIMSetup.SPIMDevice.STAGE_Z );
-					break;
-			}
-
-			unit = new StageUnit( labelString, stage == StageUnit.Stage.R, stageDevice );
-
-			final Property< Number > targetProperty = unit.targetValueProperty();
-
-			targetProperty.addListener( ( observable, oldValue, newValue ) ->
-			{
-				switch ( stage ) {
-					case R:
-						spimSetup.getThetaStage().setPosition( newValue.doubleValue() - 180.0 );
-						break;
-					case X: spimSetup.getXStage().setPosition( newValue.doubleValue() );
-						break;
-					case Y: spimSetup.getYStage().setPosition( newValue.doubleValue() );
-						break;
-					case Z: spimSetup.getZStage().setPosition( newValue.doubleValue() );
-						break;
-				}
-			} );
-		}
+		final StageUnit unit = new StageUnit( labelString, stage == StageUnit.Stage.R, null );
 
 		stageMap.put( stage, unit );
 

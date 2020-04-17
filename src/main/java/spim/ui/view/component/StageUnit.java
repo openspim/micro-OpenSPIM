@@ -52,11 +52,31 @@ public class StageUnit extends Region
 
 	private final IconSwitch enableSwitch;
 
+	private final boolean isR;
+
+	private spim.hardware.Stage stageDevice;
+
 	private double currentValue;
+
+	public void setStageDevice(spim.hardware.Stage stageDevice) {
+		this.stageDevice = stageDevice;
+
+		final double min = ( isR ? 0.0 : ( null == stageDevice ? 0.0 : stageDevice.getMinPosition() ) );
+		final double max = ( isR ? 360.0 : ( null == stageDevice ? 9000.0 : stageDevice.getMaxPosition() ) );
+		final double tick = isR ? 60.0 : 1000;
+
+		currentValue = ( null == stageDevice ? 0.0 : ( isR ? stageDevice.getPosition() + 180.0 : stageDevice.getPosition() ) );
+
+		targetSlider.updateMinMaxTick( min, max, tick );
+
+	}
 
 	public StageUnit( String labelString, boolean isR, spim.hardware.Stage stageDevice )
 	{
 		final Label stageLabel = new Label( labelString );
+
+		this.isR = isR;
+		this.stageDevice = stageDevice;
 
 		// Initial properties
 		final double min = ( isR ? 0.0 : ( null == stageDevice ? 0.0 : stageDevice.getMinPosition() ) );
@@ -106,7 +126,7 @@ public class StageUnit extends Region
 				targetValueProperty.setValue( currentValue );
 				targetSlider.getSlider().setValue( currentValue );
 			} else {
-				currentValue = ( null == stageDevice ? 0.0 : ( isR ? stageDevice.getPosition() + 180.0 : stageDevice.getPosition() ) );
+				currentValue = ( null == this.stageDevice ? 0.0 : ( isR ? this.stageDevice.getPosition() + 180.0 : this.stageDevice.getPosition() ) );
 			}
 		} );
 
@@ -146,7 +166,7 @@ public class StageUnit extends Region
 			booleanStateMap.get( BooleanState.Ready ).setValue( true );
 			double pos = deviceValueProperty.getValue().doubleValue();
 			targetSlider.getSlider().setValue( pos );
-			if(null != stageDevice) stageDevice.setPosition( pos );
+			if(null != this.stageDevice) this.stageDevice.setPosition( pos );
 		} );
 
 		final Button resetButton = new Button( "Reset" );
