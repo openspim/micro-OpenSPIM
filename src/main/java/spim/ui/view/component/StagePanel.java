@@ -65,6 +65,10 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 
 	ChangeListener targetPropertyChangeListener;
 
+	// For undo task
+	StageUnit lastUsedStageUnit;
+	double lastUsedLocation;
+
 	public StagePanel()
 	{
 		init();
@@ -286,14 +290,34 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		stageUnitR = createStageControl( "Stage R (\u00b5-degree)",
 				StageUnit.Stage.R );
 
+		stageUnitR.targetValueProperty().addListener( ( observable, oldValue, newValue ) -> {
+			lastUsedStageUnit = stageUnitR;
+			lastUsedLocation = lastUsedStageUnit.deviceValueProperty().getValue().doubleValue();
+		} );
+
 		stageUnitX = createStageControl( "Stage X (\u00b5m)",
 				StageUnit.Stage.X );
+
+		stageUnitX.targetValueProperty().addListener( ( observable, oldValue, newValue ) -> {
+			lastUsedStageUnit = stageUnitX;
+			lastUsedLocation = lastUsedStageUnit.deviceValueProperty().getValue().doubleValue();
+		} );
 
 		stageUnitY = createStageControl( "Stage Y (\u00b5m)",
 				StageUnit.Stage.Y );
 
+		stageUnitY.targetValueProperty().addListener( ( observable, oldValue, newValue ) -> {
+			lastUsedStageUnit = stageUnitY;
+			lastUsedLocation = lastUsedStageUnit.deviceValueProperty().getValue().doubleValue();
+		} );
+
 		stageUnitZ = createStageControl( "Stage Z (\u00b5m)",
 				StageUnit.Stage.Z );
+
+		stageUnitZ.targetValueProperty().addListener( ( observable, oldValue, newValue ) -> {
+			lastUsedStageUnit = stageUnitZ;
+			lastUsedLocation = lastUsedStageUnit.deviceValueProperty().getValue().doubleValue();
+		} );
 
 		switchAll.selectedProperty().addListener( new ChangeListener< Boolean >()
 		{
@@ -368,10 +392,10 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 				double y = stageUnitY.getCurrentValue();
 				double z = stageUnitZ.getCurrentValue();
 
-				System.out.println(String.format( "R: %f, X: %f, Y: %f, Z: %f",
+				System.out.println(String.format( "Saved location - R: %.1f, X: %.1f, Y: %.1f, Z: %.1f",
 						r, x, y, z));
 
-				String newLocation = String.format( "%f:%f:%f:%f",
+				String newLocation = String.format( "%.1f:%.1f:%.1f:%.1f",
 						r, x, y, z);
 
 				stack.add( newLocation );
@@ -382,7 +406,19 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		HBox topHbox = new HBox( 10, new Label( "All On/Off: " ), switchAll, saveCurrentLocation, loadLocation );
 		topHbox.setAlignment( Pos.CENTER_LEFT );
 
-		VBox controls = new VBox( 10, topHbox, stageUnitR, stageUnitX, stageUnitY, stageUnitZ );
+		Button undoBtn = new Button( "Go back to the last used position" );
+		undoBtn.setStyle("-fx-base: #c1e796;");
+		undoBtn.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(lastUsedStageUnit != null) {
+					lastUsedStageUnit.setCurrentPos( lastUsedLocation );
+				}
+			}
+		} );
+
+		VBox controls = new VBox( 10, topHbox, stageUnitR, stageUnitX, stageUnitY, stageUnitZ, undoBtn );
 		controls.setPadding( new Insets( 10 ) );
 		return controls;
 	}
