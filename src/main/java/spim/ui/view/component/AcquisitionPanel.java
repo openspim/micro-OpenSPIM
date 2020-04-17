@@ -33,7 +33,6 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.Slider;
 import javafx.scene.control.SplitPane;
@@ -56,25 +55,18 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.micromanager.Studio;
-import org.micromanager.internal.MMStudio;
-import org.micromanager.internal.utils.GUIUtils;
-import spim.SlimOpenSPIM;
+
 import spim.hardware.SPIMSetup;
-import spim.mm.MicroManager;
 import spim.model.data.AcquisitionSetting;
 import spim.model.data.ChannelItem;
 import spim.model.data.PinItem;
 import spim.model.data.PositionItem;
 import spim.model.event.ControlEvent;
-import spim.ui.view.component.acq.MMAcquisitionRunner;
 import spim.ui.view.component.pane.CheckboxPane;
 import spim.ui.view.component.pane.LabeledPane;
 import spim.ui.view.component.util.TableViewUtil;
 
-import javax.swing.SwingUtilities;
-
 import java.io.File;
-import java.lang.reflect.InvocationTargetException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -142,8 +134,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	Thread acquisitionThread = null;
 	double maxZStack = 5000;
 
-	SimpleDoubleProperty zStart = new SimpleDoubleProperty( 25 );
-	SimpleDoubleProperty zEnd = new SimpleDoubleProperty( 75 );
+	// For StackCube sizing
+	SimpleDoubleProperty zStart;
+	SimpleDoubleProperty zEnd;
 
 	BooleanProperty continuous;
 
@@ -357,7 +350,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		disabledAcquisitionOrder.bind( bb );
 
-		final ProgressBar pb = new ProgressBar(0);
 		final ProgressIndicator pi = new ProgressIndicator(0);
 		pi.setMinSize( 50,50 );
 		pi.setMaxSize( 50,50 );
