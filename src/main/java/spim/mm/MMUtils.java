@@ -4,6 +4,7 @@ import javafx.application.HostServices;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.DialogPane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import mmcorej.TaggedImage;
@@ -77,6 +78,12 @@ public class MMUtils
 			ButtonType buttonTypeCancel = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
 
 			alert.getButtonTypes().setAll(buttonTypeChooseMMFolder, buttonTypeDownloadMM, buttonTypeCancel);
+
+			// https://stackoverflow.com/questions/45866249/javafx-8-alert-different-button-sizes
+			DialogPane pane = alert.getDialogPane();
+			pane.getButtonTypes().stream()
+					.map(pane::lookupButton)
+					.forEach(btn-> ButtonBar.setButtonUniformSize( btn, false));
 
 			Optional<ButtonType> result = alert.showAndWait();
 			if (result.get() == buttonTypeChooseMMFolder){

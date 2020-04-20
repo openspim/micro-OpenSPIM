@@ -22,8 +22,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import org.micromanager.internal.MMStudio;
-import spim.ui.view.component.HalcyonMain;
 
 import java.io.BufferedReader;
 import java.io.File;
