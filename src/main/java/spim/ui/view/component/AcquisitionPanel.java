@@ -517,7 +517,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				if(event.getEventType().equals( ControlEvent.STAGE_MOVE )) {
 					PositionItem pos = (PositionItem) event.getParam()[0];
 
-					if(setup != null) {
+					if(spimSetup != null) {
 //						double r = spimSetup.getThetaStage().getPosition() + 180.0;
 //						double x = spimSetup.getXStage().getPosition();
 //						double y = spimSetup.getYStage().getPosition();
@@ -528,7 +528,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 //						pos.setR( r );
 //						pos.setZStart( z );
 //						pos.setZEnd( z + 10 );
-						stagePanel.goToPos( pos.getX(), pos.getY(), pos.getZStart(), pos.getR() );
+						AcquisitionPanel.this.stagePanel.goToPos( pos.getX(), pos.getY(), pos.getZStart(), pos.getR() );
 						System.out.println("Stage_Move: " + pos);
 					}
 					else {
