@@ -5,21 +5,21 @@
 	http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<parent>
-		<groupId>org.scijava</groupId>
-		<artifactId>pom-scijava</artifactId>
-		<version>28.0.0-SNAPSHOT</version>
-		<relativePath />
-	</parent>
-
 	<groupId>org.openspim</groupId>
 	<artifactId>SPIMAcquisition</artifactId>
 	<version>1.0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>SlimOpenSPIM</name>
 
 	<properties>
-		<enforcer.skip>true</enforcer.skip>
+        <mainClass>spim.SlimOpenSPIM</mainClass>
 		<scijava.jvm.version>1.8</scijava.jvm.version>
-		<ImageJ_3D_Viewer.version>4.0.1</ImageJ_3D_Viewer.version>
+        <ij.version>1.52p</ij.version>
+        <mmj.jar.path>${project.basedir}/lib/MMJ_.jar</mmj.jar.path>
+        <mmcore.jar.path>${project.basedir}/lib/MMCoreJ.jar</mmcore.jar.path>
+        <dockfx.jar.path>${project.basedir}/../../git-projects/DockFX/target/DockFX-0.1.12.jar</dockfx.jar.path>
+        <halcyon.jar.path>${project.basedir}/../../git-projects/Halcyon/target/Halcyon-0.2.8.jar</halcyon.jar.path>
 	</properties>
 
 	<repositories>
@@ -33,42 +33,47 @@
 		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
+            <version>${ij.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-math3</artifactId>
+            <version>3.6.1</version>
 		</dependency>
 		<dependency>
 			<groupId>io.scif</groupId>
 			<artifactId>scifio</artifactId>
+            <version>0.37.3</version>
 		</dependency>
 		<dependency>
 			<groupId>io.scif</groupId>
 			<artifactId>scifio-bf-compat</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>sc.fiji</groupId>
-			<artifactId>3D_Viewer</artifactId>
+            <version>3.0.0</version>
 		</dependency>
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-algorithm</artifactId>
+            <version>0.11.1</version>
 		</dependency>
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-algorithm-fft</artifactId>
+            <version>0.2.0</version>
 		</dependency>
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-algorithm-gpl</artifactId>
+            <version>0.2.3</version>
 		</dependency>
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-ij</artifactId>
+            <version>2.0.0-beta-44</version>
 		</dependency>
 		<dependency>
 			<groupId>org.scijava</groupId>
 			<artifactId>vecmath</artifactId>
+            <version>1.6.0-scijava-2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fifesoft</groupId>
@@ -123,6 +128,30 @@
             <version>8.40.14</version>
         </dependency>
 
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <version>1.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>sc.fiji</groupId>
+            <artifactId>3D_Viewer</artifactId>
+            <version>4.0.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ome</groupId>
+            <artifactId>formats-api</artifactId>
+            <version>5.5.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ome</groupId>
+            <artifactId>formats-bsd</artifactId>
+            <version>5.5.3</version>
+        </dependency>
+
 		<!-- test-->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
@@ -156,7 +185,40 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <version>4.12</version>
             <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>Micromanager</groupId>
+            <artifactId>MMJ</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${mmj.jar.path}</systemPath>
+        </dependency>
+
+        <dependency>
+            <groupId>Micromanager</groupId>
+            <artifactId>MMCore</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${mmcore.jar.path}</systemPath>
+        </dependency>
+
+        <dependency>
+            <groupId>dockFX</groupId>
+            <artifactId>DockFX</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${dockfx.jar.path}</systemPath>
+        </dependency>
+
+        <dependency>
+            <groupId>Halcyon</groupId>
+            <artifactId>Halcyon</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${halcyon.jar.path}</systemPath>
         </dependency>
     </dependencies>
 
@@ -174,7 +236,7 @@
                     <version>8.8.4-SNAPSHOT</version>
                     <configuration>
                         <vendor>Scientific Computing Facility</vendor>
-                        <mainClass>spim.ui.view.component.HalcyonMain</mainClass>
+                        <mainClass>spim.SlimOpenSPIM</mainClass>
                         <j2seVersion>1.8+</j2seVersion>
                         <allPermissions>true</allPermissions>
                         <bundleArguments>
@@ -260,8 +322,9 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.1</version>
                     <configuration>
-                        <source>${java.version}</source>
-                        <target>${java.version}</target>
+                        <forceJavacCompilerUse>true</forceJavacCompilerUse>
+                        <source>1.8</source>
+                        <target>1.8</target>
                         <encoding>UTF-8</encoding>
                     </configuration>
                 </plugin>
@@ -272,7 +335,7 @@
                     <configuration>
                         <target name="Copy jfx files to openSPIM folder">
 
-                            <copy todir="\\fileserver.mpi-cbg.de\openspim\openSPIM">
+                            <copy todir="\\fileserver.mpi-cbg.de\openspim\openSPIM\gamma">
                                 <fileset dir="${project.build.directory}/jfx/native">
                                     <include name="**/*"/>
                                 </fileset>

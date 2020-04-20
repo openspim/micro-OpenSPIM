@@ -188,6 +188,16 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		gridpane.addRow( 5, new HBox(3, ijButton, mmButton) );
 
 
+		Button resetMMPathBtn = new Button( "Rest MM Path" );
+		resetMMPathBtn.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				MMUtils.resetLibrayPath();
+			}
+		} );
+
+		gridpane.addRow( 6, new HBox(3, resetMMPathBtn) );
 
 		//		btn = new Button("Test Std Err");
 //		btn.setOnAction(e -> {

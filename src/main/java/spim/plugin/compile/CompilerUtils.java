@@ -9,8 +9,6 @@ package spim.plugin.compile;
  * @since 9/3/13
  */
 import com.sun.tools.javac.api.JavacTool;
-import mmcorej.CMMCore;
-import spim.SPIMAcq;
 
 import javax.tools.JavaCompiler;
 import javax.tools.StandardJavaFileManager;

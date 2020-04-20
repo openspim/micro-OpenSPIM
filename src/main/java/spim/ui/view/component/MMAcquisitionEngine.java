@@ -9,11 +9,11 @@ import loci.common.DebugTools;
 import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
 import org.json.JSONException;
+
 import org.micromanager.MultiStagePosition;
 import org.micromanager.PositionList;
 import org.micromanager.PropertyMap;
 import org.micromanager.PropertyMaps;
-import org.micromanager.StagePosition;
 import org.micromanager.Studio;
 import org.micromanager.UserProfile;
 import org.micromanager.acquisition.ChannelSpec;
@@ -32,9 +32,8 @@ import org.micromanager.data.internal.DefaultSummaryMetadata;
 import org.micromanager.display.DisplayWindow;
 import org.micromanager.events.AcquisitionEndedEvent;
 import org.micromanager.events.AcquisitionStartedEvent;
-import org.micromanager.internal.AcquisitionEngine2010;
+
 import org.micromanager.internal.MMStudio;
-import org.micromanager.internal.utils.GUIUtils;
 import org.micromanager.internal.utils.UserProfileManager;
 import org.micromanager.internal.utils.imageanalysis.ImageUtils;
 import org.micromanager.internal.utils.ReportingUtils;

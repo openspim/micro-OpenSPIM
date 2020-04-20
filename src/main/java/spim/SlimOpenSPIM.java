@@ -9,6 +9,7 @@ import loci.common.DebugTools;
 import org.micromanager.Studio;
 import spim.mm.MMUtils;
 import spim.mm.MicroManager;
+import spim.ui.view.component.HalcyonMain;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -39,6 +40,7 @@ public class SlimOpenSPIM extends Application
 
 	public static void main( final String[] args )
 	{
-		launch( SlimOpenSPIM.class );
+//		launch( args );
+		launch( HalcyonMain.class );
 	}
 }
