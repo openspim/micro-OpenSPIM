@@ -8,8 +8,8 @@ import javafx.collections.ObservableList;
 import loci.common.DebugTools;
 import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
-import org.json.JSONException;
 
+import mmcorej.org.json.JSONException;
 import org.micromanager.MultiStagePosition;
 import org.micromanager.PositionList;
 import org.micromanager.PropertyMap;

@@ -52,8 +52,9 @@ import javafx.scene.transform.Affine;
 import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Translate;
 import mmcorej.TaggedImage;
+import mmcorej.org.json.JSONObject;
 import org.controlsfx.control.RangeSlider;
-import org.json.JSONObject;
+
 import org.micromanager.Studio;
 import org.micromanager.internal.utils.MDUtils;
 import spim.hardware.Camera;

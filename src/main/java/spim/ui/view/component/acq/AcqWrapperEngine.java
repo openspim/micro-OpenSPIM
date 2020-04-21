@@ -11,7 +11,8 @@ import mmcorej.Configuration;
 import mmcorej.PropertySetting;
 import mmcorej.StrVector;
 import mmcorej.TaggedImage;
-import org.json.JSONObject;
+
+import mmcorej.org.json.JSONObject;
 import org.micromanager.PositionList;
 import org.micromanager.Studio;
 import org.micromanager.acquisition.ChannelSpec;
@@ -23,9 +24,10 @@ import org.micromanager.acquisition.internal.MMAcquisition;
 import org.micromanager.data.Datastore;
 import org.micromanager.data.Pipeline;
 import org.micromanager.events.AcquisitionEndedEvent;
-import org.micromanager.events.internal.ChannelGroupEvent;
+import org.micromanager.events.ChannelGroupChangedEvent;
 import org.micromanager.events.internal.DefaultAcquisitionEndedEvent;
 import org.micromanager.events.internal.DefaultAcquisitionStartedEvent;
+import org.micromanager.events.internal.DefaultChannelGroupChangedEvent;
 import org.micromanager.events.internal.InternalShutdownCommencingEvent;
 import org.micromanager.internal.MMStudio;
 import org.micromanager.internal.interfaces.AcqSettingsListener;
@@ -630,7 +632,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 				}
 				return false;
 			}
-			studio_.events().post(new ChannelGroupEvent());
+			studio_.events().post(new DefaultChannelGroupChangedEvent(group));
 			return true;
 		} else {
 			return false;

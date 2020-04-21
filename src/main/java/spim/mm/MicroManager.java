@@ -15,8 +15,8 @@ import mmcorej.MMCoreJ;
 import mmcorej.MMEventCallback;
 import mmcorej.StrVector;
 import mmcorej.TaggedImage;
-import org.json.JSONObject;
 
+import mmcorej.org.json.JSONObject;
 import org.micromanager.Studio;
 import org.micromanager.UserProfile;
 import org.micromanager.acquisition.SequenceSettings;
@@ -68,7 +68,7 @@ public class MicroManager implements PlugIn, CommandListener
 	/**
 	 * Metadata associated to last retrieved image.
 	 */
-	private static final Map<Integer, JSONObject > metadatas = new HashMap<Integer, JSONObject>(4);
+	private static final Map<Integer, JSONObject> metadatas = new HashMap<Integer, JSONObject>(4);
 
 //	static final List<AcquisitionListener> acqListeners = new ArrayList<AcquisitionListener>();
 	static final List<LiveListener> liveListeners = new ArrayList<LiveListener>();
@@ -93,7 +93,7 @@ public class MicroManager implements PlugIn, CommandListener
 	public MicroManager(ObjectProperty<Studio> studioObjectProperty) {
 		rlock = new ReentrantLock(true);
 		mmStudioProperty = studioObjectProperty;
-		run(null);
+//		run(null);
 	}
 
 	private void rememberSysConfig(String profileNameAutoStart) throws IOException
@@ -161,8 +161,6 @@ public class MicroManager implements PlugIn, CommandListener
 	public void run(final String arg) {
 		mmThread = new Thread(
 			() -> {
-				Thread.currentThread().setContextClassLoader( HalcyonMain.class.getClassLoader() );
-
 				try
 				{
 					if ( mmstudio == null || !mmstudio.getIsProgramRunning() )
@@ -174,6 +172,7 @@ public class MicroManager implements PlugIn, CommandListener
 						rememberSysConfig(profileNameAutoStart);
 
 						mmstudio = new MMStudio( true, parseMacroOptions() );
+//						mmstudio = new MMStudio( false );
 						ReportingUtils.setCore( null );
 
 						final MainFrame frame = mmstudio.getFrame();

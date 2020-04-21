@@ -43,6 +43,7 @@ import javax.swing.SpinnerNumberModel;
 
 import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
+import mmcorej.org.json.JSONException;
 import net.imglib2.algorithm.localextrema.LocalExtrema;
 import net.imglib2.algorithm.localization.Gaussian;
 import net.imglib2.algorithm.localization.LevenbergMarquardtSolver;
@@ -56,7 +57,6 @@ import org.apache.commons.math3.geometry.euclidean.threed.Line;
 import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.apache.commons.math3.geometry.euclidean.twod.Vector2D;
-import org.json.JSONException;
 import org.micromanager.internal.MMStudio;
 import org.micromanager.SnapLiveManager;
 //import org.micromanager.imagedisplay.VirtualAcquisitionDisplay;
@@ -539,7 +539,8 @@ public class AutoWindow extends JFrame implements CalibrationWindow, ActionListe
 		return c;
 	};
 
-	private void addTags(TaggedImage ti, int channel) throws JSONException {
+	private void addTags(TaggedImage ti, int channel) throws JSONException
+	{
 		MDUtils.setChannelIndex(ti.tags, channel);
 		MDUtils.setFrameIndex(ti.tags, 0);
 		MDUtils.setPositionIndex(ti.tags, 0);
