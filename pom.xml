@@ -25,6 +25,10 @@
 			<id>imagej.public</id>
 			<url>http://maven.imagej.net/content/groups/public</url>
 		</repository>
+        <repository>
+            <id>local-repo</id>
+            <url>file://${basedir}/local-repo</url>
+        </repository>
 	</repositories>
 
 	<dependencies>
@@ -186,20 +190,18 @@
             <scope>compile</scope>
         </dependency>
 
+        <!-- Install the system dependencies for release -->
+        <!-- Please, run scripts/installMMDeps.sh        -->
         <dependency>
-            <groupId>Micromanager</groupId>
-            <artifactId>MMJ</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${mmj.jar.path}</systemPath>
+            <groupId>org.micromanager</groupId>
+            <artifactId>MMCoreJ</artifactId>
+            <version>2.0.0</version>
         </dependency>
 
         <dependency>
-            <groupId>Micromanager</groupId>
-            <artifactId>MMCore</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${mmcore.jar.path}</systemPath>
+            <groupId>org.micromanager</groupId>
+            <artifactId>MMJ_</artifactId>
+            <version>2.0.0</version>
         </dependency>
 
         <dependency>
