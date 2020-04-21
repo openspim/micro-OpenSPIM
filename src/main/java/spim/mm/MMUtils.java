@@ -1,6 +1,5 @@
 package spim.mm;
 
-import javafx.application.HostServices;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
@@ -12,6 +11,7 @@ import org.micromanager.acquisition.internal.TaggedImageQueue;
 import org.micromanager.internal.ConfigGroupPad;
 import spim.SlimOpenSPIM;
 
+import java.awt.Desktop;
 import java.beans.XMLDecoder;
 import java.beans.XMLEncoder;
 import java.io.BufferedInputStream;
@@ -22,8 +22,11 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -48,8 +51,6 @@ public class MMUtils
 	private static String microManagerFolder = null;
 	static File demoConfigFile = null;
 	private static boolean loaded = false;
-
-	public static HostServices host;
 
 	public static boolean isSystemLibrairiesLoaded()
 	{
@@ -94,8 +95,19 @@ public class MMUtils
 					microManagerFolder = folder.getPath();
 				}
 			} else if (result.get() == buttonTypeDownloadMM) {
-				openBrowser(
-						"http://www.micro-manager.org/wiki/Download%20Micro-Manager_Latest%20Release");
+				try
+				{
+					openBrowser(
+							"http://www.micro-manager.org/wiki/Download%20Micro-Manager_Latest%20Release");
+				}
+				catch ( URISyntaxException e )
+				{
+					e.printStackTrace();
+				}
+				catch ( IOException e )
+				{
+					e.printStackTrace();
+				}
 
 				Alert info = new Alert( Alert.AlertType.INFORMATION );
 				info.setHeaderText( "Restart this plugin after Micro-Manager installation complete." );
@@ -458,12 +470,12 @@ public class MMUtils
 	/**
 	 * Open an URL in the default system browser
 	 */
-	public static boolean openBrowser(String uri)
+	public static boolean openBrowser(String uri) throws URISyntaxException, IOException
 	{
 		if (uri == null)
 			return false;
 
-		host.showDocument(uri);
+		Desktop.getDesktop().browse( new URI( uri ) );
 
 		return true;
 	}

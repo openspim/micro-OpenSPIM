@@ -1,11 +1,8 @@
 package spim.ui.view.component;
 
-import halcyon.controller.ViewManager;
 import ij.IJ;
 import ij.ImageJ;
 import ij.gui.Roi;
-import ij.plugin.MacroInstaller;
-import javafx.application.HostServices;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
@@ -36,7 +33,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 {
 	Studio studio;
 
-	public ToolbarPanel( Studio mmStudio, ObjectProperty roiRectangle, HostServices hostServices, ObjectProperty< Studio > mmStudioObjectProperty )
+	public ToolbarPanel( Studio mmStudio, ObjectProperty roiRectangle, ObjectProperty< Studio > mmStudioObjectProperty )
 	{
 		super(new VBox());
 		this.studio = mmStudio;
@@ -169,7 +166,6 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			@Override public void handle( ActionEvent event )
 			{
 				if(null == MicroManager.getInstance()) {
-					MMUtils.host = hostServices;
 					Stage stage = new Stage();
 					if (!MMUtils.isSystemLibrairiesLoaded())
 					{

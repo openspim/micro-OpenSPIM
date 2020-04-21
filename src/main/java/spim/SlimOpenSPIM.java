@@ -26,7 +26,6 @@ public class SlimOpenSPIM extends Application
 		Platform.setImplicitExit( false );
 
 		MicroManager.orgUserDir = System.getProperty( "user.dir" );
-		MMUtils.host = getHostServices();
 		if (!MMUtils.isSystemLibrairiesLoaded())
 		{
 			// load micro manager libraries
