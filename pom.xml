@@ -205,19 +205,15 @@
         </dependency>
 
         <dependency>
-            <groupId>dockFX</groupId>
+            <groupId>org.dockfx</groupId>
             <artifactId>DockFX</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${dockfx.jar.path}</systemPath>
+            <version>0.1.12</version>
         </dependency>
 
         <dependency>
-            <groupId>Halcyon</groupId>
+            <groupId>net.halcyon</groupId>
             <artifactId>Halcyon</artifactId>
-            <version>1.0</version>
-            <scope>system</scope>
-            <systemPath>${halcyon.jar.path}</systemPath>
+            <version>0.2.8</version>
         </dependency>
     </dependencies>
 
