@@ -18,8 +18,6 @@
         <ij.version>1.52p</ij.version>
         <mmj.jar.path>${project.basedir}/lib/MMJ_.jar</mmj.jar.path>
         <mmcore.jar.path>${project.basedir}/lib/MMCoreJ.jar</mmcore.jar.path>
-        <dockfx.jar.path>${project.basedir}/../../git-projects/DockFX/target/DockFX-0.1.12.jar</dockfx.jar.path>
-        <halcyon.jar.path>${project.basedir}/../../git-projects/Halcyon/target/Halcyon-0.2.8.jar</halcyon.jar.path>
 	</properties>
 
 	<repositories>
