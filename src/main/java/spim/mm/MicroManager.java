@@ -93,7 +93,7 @@ public class MicroManager implements PlugIn, CommandListener
 	public MicroManager(ObjectProperty<Studio> studioObjectProperty) {
 		rlock = new ReentrantLock(true);
 		mmStudioProperty = studioObjectProperty;
-//		run(null);
+		run(null);
 	}
 
 	private void rememberSysConfig(String profileNameAutoStart) throws IOException
@@ -172,7 +172,6 @@ public class MicroManager implements PlugIn, CommandListener
 						rememberSysConfig(profileNameAutoStart);
 
 						mmstudio = new MMStudio( true, parseMacroOptions() );
-//						mmstudio = new MMStudio( false );
 						ReportingUtils.setCore( null );
 
 						final MainFrame frame = mmstudio.getFrame();

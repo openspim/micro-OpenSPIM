@@ -25,8 +25,11 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -139,8 +142,8 @@ public class MMUtils
 		}
 		else
 		{
-			// load DLL
-			loadDllFrom(new File( microManagerFolder ));
+			// load DLL - no need
+//			loadDllFrom(new File( microManagerFolder ));
 			// find configuration file
 			File[] cfg = new File( microManagerFolder ).listFiles( new FilenameFilter()
 			{
@@ -320,18 +323,39 @@ public class MMUtils
 		if (files == null || files.length == 0)
 			return false;
 
-		final ClassLoader cl = SlimOpenSPIM.class.getClassLoader();
-//		if (cl instanceof PluginClassLoader)
-//		{
-//			for (File f : files)
-//			{
-//				final String path = f.getAbsolutePath();
-//				final String ext = getFileExtension(path, false).toLowerCase();
-//
-//				if (ext.equals("jar") || ext.equals("class"))
-//					((PluginClassLoader) cl).add(path);
-//			}
-//		}
+		URLClassLoader classLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
+		Class clazz= URLClassLoader.class;
+		Method method= null;
+		try
+		{
+			method = clazz.getDeclaredMethod("addURL", new Class[] { URL.class });
+		} catch (NoSuchMethodException e)
+		{
+			e.printStackTrace();
+		}
+		method.setAccessible(true);
+
+		for (File f : files)
+		{
+			final String path = f.getAbsolutePath();
+			final String ext = getFileExtension(path, false).toLowerCase();
+
+			if (ext.equals("jar") || ext.equals("class")) {
+				try
+				{
+					method.invoke(classLoader, new Object[] { f.toURL() });
+				} catch (IllegalAccessException e)
+				{
+					e.printStackTrace();
+				} catch (InvocationTargetException e)
+				{
+					e.printStackTrace();
+				} catch (MalformedURLException e)
+				{
+					e.printStackTrace();
+				}
+			}
+		}
 
 		return true;
 	}
