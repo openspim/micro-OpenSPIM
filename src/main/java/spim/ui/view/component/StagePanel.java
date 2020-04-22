@@ -25,7 +25,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import org.micromanager.Studio;
 import spim.hardware.SPIMSetup;
-import spim.hardware.Stage;
 import spim.ui.view.component.iconswitch.IconSwitch;
 
 import java.beans.XMLDecoder;
@@ -55,6 +54,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 	private SPIMSetup spimSetup;
 
 	private HashMap< StageUnit.Stage, StageUnit > stageMap = null;
+	private HashMap< StageUnit.Stage, ChangeListener > changeListenerMap = null;
 
 	private StageUnit stageUnitR;
 	private StageUnit stageUnitX;
@@ -62,8 +62,6 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 	private StageUnit stageUnitZ;
 
 	ScheduledExecutorService executor;
-
-	ChangeListener targetPropertyChangeListener;
 
 	// For undo task
 	StageUnit lastUsedStageUnit;
@@ -89,23 +87,19 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		// rebound the control
 		for ( StageUnit.Stage stage : stageMap.keySet() )
 		{
-			Stage stageDevice = null;
+			spim.hardware.Stage stageDevice = null;
 
 			StageUnit unit = stageMap.get(stage);
 
 			if(setup != null) {
 				switch ( stage ) {
 					case R: stageDevice = spimSetup.getThetaStage();
-						spimSetup.isConnected( SPIMSetup.SPIMDevice.STAGE_THETA );
 						break;
 					case X: stageDevice = spimSetup.getXStage();
-						spimSetup.isConnected( SPIMSetup.SPIMDevice.STAGE_X );
 						break;
 					case Y: stageDevice = spimSetup.getYStage();
-						spimSetup.isConnected( SPIMSetup.SPIMDevice.STAGE_Y );
 						break;
 					case Z: stageDevice = spimSetup.getZStage();
-						spimSetup.isConnected( SPIMSetup.SPIMDevice.STAGE_Z );
 						break;
 				}
 			}
@@ -114,11 +108,11 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 
 			final Property< Number > targetProperty = unit.targetValueProperty();
 
-			if(targetPropertyChangeListener != null)
-				targetProperty.removeListener( targetPropertyChangeListener );
+			if(changeListenerMap.get(stage) != null)
+				targetProperty.removeListener( changeListenerMap.get(stage) );
 
 			if(setup != null) {
-				targetPropertyChangeListener = ( ChangeListener< Number > ) ( observable, oldValue, newValue ) -> {
+				ChangeListener< Number > targetPropertyChangeListener = ( observable, oldValue, newValue ) -> {
 					switch ( stage ) {
 						case R:
 							spimSetup.getThetaStage().setPosition( newValue.doubleValue() - 180.0 );
@@ -131,6 +125,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 							break;
 					}
 				};
+				changeListenerMap.put(stage, targetPropertyChangeListener);
 				targetProperty.addListener( targetPropertyChangeListener );
 			}
 		}
@@ -196,6 +191,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 	public void init()
 	{
 		stageMap = new HashMap<>();
+		changeListenerMap = new HashMap<>();
 
 		setCenter( createControls() );
 

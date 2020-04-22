@@ -68,7 +68,7 @@ public class StageUnit extends Region
 		currentValue = ( null == stageDevice ? 0.0 : ( isR ? stageDevice.getPosition() + 180.0 : stageDevice.getPosition() ) );
 
 		targetSlider.updateMinMaxTick( min, max, tick );
-
+		deviceSlider.updateMinMaxTick( min, max, tick );
 	}
 
 	public StageUnit( String labelString, boolean isR, spim.hardware.Stage stageDevice )
