@@ -39,14 +39,12 @@ import org.micromanager.profile.internal.gui.HardwareConfigurationManager;
 import spim.mm.patch.WindowPositioningPatch;
 import spim.ui.view.component.HalcyonMain;
 
-import javax.swing.WindowConstants;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.ExceptionListener;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -167,13 +165,13 @@ public class MicroManager implements PlugIn, CommandListener
 					if ( mmstudio == null || !mmstudio.getIsProgramRunning() )
 					{
 
-//						Executer.addCommandListener( MicroManager.this );
+						Executer.addCommandListener( MicroManager.this );
 
 						String profileNameAutoStart = parseMacroOptions();
 						rememberSysConfig(profileNameAutoStart);
 
 						mmstudio = new MMStudio( true, profileNameAutoStart );
-//						ReportingUtils.setCore( null );
+						ReportingUtils.setCore( null );
 
 						final MainFrame frame = mmstudio.getFrame();
 
@@ -185,9 +183,9 @@ public class MicroManager implements PlugIn, CommandListener
 //							frame.dispatchEvent( new WindowEvent( frame, WindowEvent.WINDOW_OPENED ) );
 							// hide the main frame of Micro-Manager (we don't want it)
 							frame.setVisible( true );
-							frame.setExitStrategy( true );
+							frame.setExitStrategy( false );
 							// Hide on Exit
-							frame.setDefaultCloseOperation( WindowConstants.EXIT_ON_CLOSE );
+							frame.setDefaultCloseOperation( HIDE_ON_CLOSE );
 							frame.addWindowListener( new WindowAdapter()
 							{
 								@Override public void windowClosing( WindowEvent e )
