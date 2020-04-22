@@ -3,14 +3,11 @@ package spim.ui.view.component;
 import eu.hansolo.enzo.common.Marker;
 import eu.hansolo.enzo.common.SymbolType;
 import eu.hansolo.enzo.onoffswitch.IconSwitch;
-import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.CornerRadii;
@@ -40,7 +37,7 @@ import static java.lang.Math.signum;
  * Organization: MPI-CBG Dresden
  * Date: October 2018
  */
-public class LaserDevicePanel extends HBox
+public class LaserDevicePanel extends HBox implements SPIMSetupInjectable
 {
 
 	//	private LaserDeviceInterface mLaserDeviceInterface;
@@ -144,6 +141,20 @@ public class LaserDevicePanel extends HBox
 		getChildren().addAll( pane, targetPowerGauge, currentPowerGauge );
 		setStyle( "-fx-border-style: solid;" + "-fx-border-width: 1;"
 				+ "-fx-border-color: black" );
+	}
+
+	@Override public void setSetup( SPIMSetup setup, Studio studio )
+	{
+		if(executor != null) {
+			executor.shutdown();
+			try {
+				if (!executor.awaitTermination(800, TimeUnit.MILLISECONDS)) {
+					executor.shutdownNow();
+				}
+			} catch (InterruptedException e) {
+				executor.shutdownNow();
+			}
+		}
 	}
 
 	private void init()

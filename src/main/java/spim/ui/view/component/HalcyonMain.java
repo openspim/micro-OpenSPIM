@@ -141,6 +141,9 @@ public class HalcyonMain extends HalcyonFrame
 		lToolbar.setPrefSize(300, 200);
 		addToolbar(lToolbar);
 
+		final VersaLaserDevicePanel[] versaLaserDevicePanel = new VersaLaserDevicePanel[ 1 ];
+		final LaserDevicePanel[] lasers = new LaserDevicePanel[ 2 ];
+
 		mmStudioProperty.addListener( new ChangeListener< Studio >()
 		{
 			@Override public void changed( ObservableValue< ? extends Studio > observable, Studio oldValue, Studio studio )
@@ -158,17 +161,17 @@ public class HalcyonMain extends HalcyonFrame
 
 								if(spimSetup.getLaser().getLabel().startsWith( "VLT_VersaLase" ))
 								{
+									versaLaserDevicePanel[ 0 ] = new VersaLaserDevicePanel( ( VersaLase ) spimSetup.getLaser() );
 									final HalcyonNode lVersaLase = HalcyonNode.wrap( "VersaLase",
-											SpimHalcyonNodeType.LASER, new VersaLaserDevicePanel( ( VersaLase ) spimSetup.getLaser() )
-											 );
+											SpimHalcyonNodeType.LASER, versaLaserDevicePanel[ 0 ] );
 
 									addNode(lVersaLase);
 								}
 								else
 								{
+									lasers[ 0 ] = new LaserDevicePanel( spimSetup.getLaser(), 488 );
 									final HalcyonNode lLaser1 = HalcyonNode.wrap( "Laser-1",
-											SpimHalcyonNodeType.LASER,
-											new LaserDevicePanel( spimSetup.getLaser(), 488 ) );
+											SpimHalcyonNodeType.LASER, lasers[ 0 ] );
 
 									addNode(lLaser1);
 								}
@@ -176,9 +179,9 @@ public class HalcyonMain extends HalcyonFrame
 
 							if(spimSetup.getLaser2() != null)
 							{
+								lasers[ 1 ] = new LaserDevicePanel( spimSetup.getLaser2(), 594 );
 								final HalcyonNode lLaser2 = HalcyonNode.wrap("Laser-2",
-										SpimHalcyonNodeType.LASER,
-										new LaserDevicePanel( spimSetup.getLaser2(), 594 ));
+										SpimHalcyonNodeType.LASER, lasers[ 1 ]);
 								addNode(lLaser2);
 							}
 
@@ -202,6 +205,11 @@ public class HalcyonMain extends HalcyonFrame
 				    {
 					   @Override public void run()
 					   {
+					   	   if(versaLaserDevicePanel[0] != null) versaLaserDevicePanel[0].setSetup( null, studio );
+
+					   	   if(lasers[0] != null) lasers[0].setSetup( null, studio );
+					   	   if(lasers[1] != null) lasers[1].setSetup( null, studio );
+
 						   stagePanel.setSetup( null, studio );
 						   cameraDevicePanel.setSetup( null, studio );
 						   lToolbar.setSetup( null, studio );

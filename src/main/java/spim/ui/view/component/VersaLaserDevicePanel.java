@@ -3,37 +3,53 @@ package spim.ui.view.component;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
+import org.micromanager.Studio;
+import spim.hardware.SPIMSetup;
 import spim.hardware.VersaLase;
+
+import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: April 2019
  */
-public class VersaLaserDevicePanel extends VBox
+public class VersaLaserDevicePanel extends VBox implements SPIMSetupInjectable
 {
+	LaserDevicePanel laserPanels[] = new LaserDevicePanel[4];
+
 	public VersaLaserDevicePanel( VersaLase laser )
 	{
 		if(laser.getLaserA() != null)
 		{
-			getChildren().add( new LaserDevicePanel( laser.getLaserA() ) );
+			laserPanels[ 0 ] = new LaserDevicePanel( laser.getLaserA() );
+			getChildren().add( laserPanels[ 0 ] );
 			getChildren().add( createInfoPane( laser.getLaserA() ) );
 		}
 		if(laser.getLaserB() != null)
 		{
-			getChildren().add( new LaserDevicePanel( laser.getLaserB() ) );
+			laserPanels[ 1 ] = new LaserDevicePanel( laser.getLaserB() );
+			getChildren().add( laserPanels[ 1 ] );
 			getChildren().add( createInfoPane( laser.getLaserB() ) );
 		}
 		if(laser.getLaserC() != null)
 		{
-			getChildren().add( new LaserDevicePanel( laser.getLaserC() ) );
+			laserPanels[ 2 ] = new LaserDevicePanel( laser.getLaserC() );
+			getChildren().add( laserPanels[ 2 ] );
 			getChildren().add( createInfoPane( laser.getLaserC() ) );
 		}
 		if(laser.getLaserD() != null)
 		{
-			getChildren().add( new LaserDevicePanel( laser.getLaserD() ) );
+			laserPanels[ 3 ] = new LaserDevicePanel( laser.getLaserD() );
+			getChildren().add( laserPanels[ 3 ] );
 			getChildren().add( createInfoPane( laser.getLaserD() ) );
 		}
+	}
+
+	@Override public void setSetup( SPIMSetup setup, Studio studio )
+	{
+		Arrays.stream( laserPanels ).filter( Objects::nonNull ).forEach( c -> c.setSetup( setup, studio ) );
 	}
 
 	private GridPane createInfoPane( VersaLase.VersaLaseLaser laser )
