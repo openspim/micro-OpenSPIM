@@ -60,15 +60,8 @@ public class PicardXYStage extends GenericXYStage {
 
 	}
 
-	private static Map<String, PicardXYStage> labelToInstanceMap = new HashMap<String, PicardXYStage>();
-
 	public static Device getStage(CMMCore core, String label, boolean X) {
-		PicardXYStage instance = labelToInstanceMap.get(label);
-
-		if (instance == null) {
-			instance = new PicardXYStage();
-			labelToInstanceMap.put(label, instance);
-		}
+		PicardXYStage instance = new PicardXYStage();
 
 		if (X && instance.stageX == null)
 			instance.stageX = instance.new PicardSubStage(core, label, true);
