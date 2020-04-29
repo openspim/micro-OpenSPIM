@@ -509,8 +509,8 @@ public class TableViewUtil
 
 			if(event.getRowValue().getType().equals( TimePointItem.Type.Wait )) {
 				event.getRowValue().setNoTimePoints( 0 );
-				event.getTableView().refresh();
 			}
+			event.getTableView().refresh();
 		} );
 		tv.getColumns().add(typeColumn);
 
