@@ -1,38 +1,45 @@
 package spim.ui.view.component.util;
 
 import javafx.beans.property.ReadOnlyDoubleWrapper;
+import javafx.beans.property.ReadOnlyIntegerWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
+import javafx.geometry.Pos;
+
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.ChoiceBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
+import javafx.scene.layout.HBox;
 import javafx.util.Callback;
 import javafx.util.converter.NumberStringConverter;
 import spim.hardware.SPIMSetup;
 import spim.model.data.ChannelItem;
 import spim.model.data.PinItem;
 import spim.model.data.PositionItem;
+import spim.model.data.TimePointItem;
 import spim.model.event.ControlEvent;
 import spim.ui.view.component.AcquisitionPanel;
-import spim.ui.view.component.StagePanel;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -466,6 +473,196 @@ public class TableViewUtil
 
 		tv.getColumns().add(column);
 		tv.setId( "arduino" );
+
+		return tv;
+	}
+
+	public static TableView< TimePointItem > createTimePointItemDataView() {
+		TableView<TimePointItem> tv = new TableView<>();
+
+		TableColumn<TimePointItem, Number> numberColumn = new TableColumn<>( "#" );
+		numberColumn.setPrefWidth( 20 );
+		numberColumn.setCellValueFactory(new Callback< TableColumn.CellDataFeatures<TimePointItem, Number>, ObservableValue<Number> >() {
+			@Override public ObservableValue<Number> call( TableColumn.CellDataFeatures<TimePointItem, Number> p) {
+				return new ReadOnlyIntegerWrapper(tv.getItems().indexOf(p.getValue()) + 1);
+			}
+		});
+		numberColumn.setSortable(false);
+		tv.getColumns().add(numberColumn);
+
+		ObservableList<TimePointItem.Type> types = FXCollections.observableArrayList();
+		ObservableList<TimePointItem.IntervalUnit> units = FXCollections.observableArrayList();
+
+		types.addAll( Arrays.asList( TimePointItem.Type.values() ) );
+		units.addAll( Arrays.asList( TimePointItem.IntervalUnit.values() ) );
+
+		TableColumn<TimePointItem, TimePointItem.Type> typeColumn = new TableColumn<>();
+		Label columnLabel = new Label("Type");
+		columnLabel.setTooltip(new Tooltip("Choose either Acq(acquisition) or Wait(wait for specific time)"));
+		typeColumn.setGraphic( columnLabel );
+		typeColumn.setSortable(false);
+		typeColumn.setPrefWidth(60);
+		typeColumn.setCellValueFactory( new PropertyValueFactory<>( "type" ) );
+		typeColumn.setCellFactory( TimePointChoiceBoxTableCell.forTableColumn( types ) );
+		typeColumn.setOnEditCommit( event -> {
+			event.getRowValue().setType( event.getNewValue() );
+
+			if(event.getRowValue().getType().equals( TimePointItem.Type.Wait )) {
+				event.getRowValue().setNoTimePoints( 0 );
+				event.getTableView().refresh();
+			}
+		} );
+		tv.getColumns().add(typeColumn);
+
+
+		TableColumn<TimePointItem, Void> optionColumn = new TableColumn<>("Plan");
+		optionColumn.setPrefWidth(500);
+		Callback<TableColumn<TimePointItem, Void>, TableCell<TimePointItem, Void>> cellFactory = new Callback<TableColumn<TimePointItem, Void>, TableCell<TimePointItem, Void>>() {
+			@Override
+			public TableCell<TimePointItem, Void> call(final TableColumn<TimePointItem, Void> param) {
+				final TableCell<TimePointItem, Void> cell = new TableCell<TimePointItem, Void>() {
+					HBox createHbox()
+					{
+						HBox hbox = null;
+						TimePointItem data = getTableView().getItems().get( getIndex() );
+						if(data != null) {
+							hbox = new HBox();
+							hbox.setAlignment( Pos.CENTER_LEFT );
+
+							NumberStringConverter converter = new NumberStringConverter();
+
+							if(data.getType().equals( TimePointItem.Type.Acq )) {
+								TextField tp = new TextField();
+								tp.setMaxWidth( 50 );
+								tp.textProperty().bindBidirectional( data.getNoTimePointsProperty(), converter );
+
+								hbox.getChildren().addAll( new Label( "No. Timepoints: " ), tp, new Label( "  Interval: " ) );
+							} else if(data.getType().equals( TimePointItem.Type.Wait )) {
+								hbox.getChildren().addAll( new Label( "Wait for: " ));
+							}
+
+							TextField interval = new TextField();
+							interval.setMaxWidth( 50 );
+							interval.textProperty().bindBidirectional( data.getIntervalProperty(), converter );
+
+							ComboBox<TimePointItem.IntervalUnit> comboBox = new ComboBox<>();
+							comboBox.getItems().setAll( TimePointItem.IntervalUnit.values() );
+
+							comboBox.valueProperty().bindBidirectional( data.getIntervalUnitProperty() );
+
+							hbox.getChildren().addAll( interval, comboBox );
+						}
+						return hbox;
+					}
+
+					@Override
+					public void updateItem(Void item, boolean empty) {
+						super.updateItem(item, empty);
+						if (empty) {
+							setGraphic(null);
+						} else {
+							setGraphic(createHbox());
+						}
+					}
+				};
+				return cell;
+			}
+		};
+		optionColumn.setCellFactory( cellFactory );
+		tv.getColumns().add(optionColumn);
+
+//		numberColumn = new TableColumn<>();
+//		columnLabel = new Label("Int.");
+//		columnLabel.setTooltip(new Tooltip("Acq: interval value between each time points.\nWait: wait for this value and go to the next step."));
+//		numberColumn.setGraphic(columnLabel);
+//
+//		numberColumn.setSortable(false);
+//		numberColumn.setPrefWidth(50);
+//		numberColumn.setCellValueFactory( (param) ->
+//				new ReadOnlyIntegerWrapper( param.getValue().getInterval() )
+//		);
+//		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
+//		numberColumn.setOnEditCommit( event -> event.getRowValue().setInterval( event.getNewValue().intValue() ) );
+//		numberColumn.setEditable( true );
+//		tv.getColumns().add(numberColumn);
+//
+//		TableColumn<TimePointItem, TimePointItem.IntervalUnit> intervalTypeColumn = new TableColumn<>();
+//		columnLabel = new Label("Unit");
+//		columnLabel.setTooltip(new Tooltip("Interval time unit among ms(milli-second), sec(second), min(minute), hour(hour)"));
+//		intervalTypeColumn.setGraphic( columnLabel );
+//
+//		intervalTypeColumn.setSortable(false);
+//		intervalTypeColumn.setPrefWidth(55);
+//		intervalTypeColumn.setCellValueFactory( new PropertyValueFactory<>( "intervalUnit" ) );
+//		intervalTypeColumn.setCellFactory( ChoiceBoxTableCell.forTableColumn( units ) );
+//		intervalTypeColumn.setOnEditCommit( event -> {
+//			event.getRowValue().setIntervalUnit( event.getNewValue() );
+//		} );
+//		tv.getColumns().add(intervalTypeColumn);
+//
+//		numberColumn = new TableColumn<>();
+//		columnLabel = new Label("Timepoints");
+//		columnLabel.setTooltip(new Tooltip("Set the number of timepoints for Acquisition type.\nThis value is ignored for Wait type."));
+//		numberColumn.setGraphic( columnLabel );
+//
+//		numberColumn.setSortable(false);
+//		numberColumn.setPrefWidth(80);
+//		numberColumn.setCellValueFactory( new PropertyValueFactory<>( "noTimePoints" ) );
+//		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
+//		numberColumn.setOnEditCommit( event -> event.getRowValue().setNoTimePoints( event.getNewValue().intValue() ) );
+//		numberColumn.setEditable( true );
+//		tv.getColumns().add(numberColumn);
+
+		// Drag and drop
+		tv.setRowFactory(ev -> {
+			TableRow<TimePointItem> row = new TableRow<TimePointItem>();
+
+			row.setOnDragDetected(event -> {
+				if (! row.isEmpty()) {
+					Integer index = row.getIndex();
+					Dragboard db = row.startDragAndDrop( TransferMode.MOVE);
+					db.setDragView(row.snapshot(null, null));
+					ClipboardContent cc = new ClipboardContent();
+					cc.put(SERIALIZED_MIME_TYPE, index);
+					db.setContent(cc);
+					event.consume();
+				}
+			});
+
+			row.setOnDragOver(event -> {
+				Dragboard db = event.getDragboard();
+				if (db.hasContent(SERIALIZED_MIME_TYPE)) {
+					if (row.getIndex() != ((Integer)db.getContent(SERIALIZED_MIME_TYPE)).intValue()) {
+						event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
+						event.consume();
+					}
+				}
+			});
+
+			row.setOnDragDropped(event -> {
+				Dragboard db = event.getDragboard();
+				if (db.hasContent(SERIALIZED_MIME_TYPE)) {
+					int draggedIndex = (Integer) db.getContent(SERIALIZED_MIME_TYPE);
+					TimePointItem draggedItem = tv.getItems().remove(draggedIndex);
+
+					int dropIndex ;
+
+					if (row.isEmpty()) {
+						dropIndex = tv.getItems().size() ;
+					} else {
+						dropIndex = row.getIndex();
+					}
+
+					tv.getItems().add(dropIndex, draggedItem);
+
+					event.setDropCompleted(true);
+					tv.getSelectionModel().select(dropIndex);
+					event.consume();
+				}
+			});
+
+			return row ;
+		});
 
 		return tv;
 	}

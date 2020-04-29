@@ -27,9 +27,11 @@ public class AcquisitionSetting
 
 	// Time points panel
 	Boolean enabledTimePoints;
+	Integer selectedTpTab;
 	String numTimePoints;
 	String intervalTimePoints;
 	Object intervalUnitTimePoints;
+	ArrayList<TimePointItem> timePointItems;
 
 	// Position panel
 	Boolean enabledPositions;
@@ -65,6 +67,16 @@ public class AcquisitionSetting
 		this.enabledTimePoints = enabledTimePoints;
 	}
 
+	public Integer getSelectedTpTab()
+	{
+		return selectedTpTab;
+	}
+
+	public void setSelectedTpTab( Integer selectedTpTab )
+	{
+		this.selectedTpTab = selectedTpTab;
+	}
+
 	public String getNumTimePoints()
 	{
 		return numTimePoints;
@@ -93,6 +105,16 @@ public class AcquisitionSetting
 	public void setIntervalUnitTimePoints( String intervalUnitTimePoints )
 	{
 		this.intervalUnitTimePoints = intervalUnitTimePoints;
+	}
+
+	public ArrayList< TimePointItem > getTimePointItems()
+	{
+		return timePointItems;
+	}
+
+	public void setTimePointItems( ArrayList< TimePointItem > timePointItems )
+	{
+		this.timePointItems = timePointItems;
 	}
 
 	public Boolean getEnabledPositions()
@@ -239,31 +261,35 @@ public class AcquisitionSetting
 	{
 	}
 
-	public AcquisitionSetting( BooleanProperty enabledTimePoints, StringProperty numTimePoints, StringProperty intervalTimePoints, ObjectProperty intervalUnitTimePoints, BooleanProperty enabledPositions, ArrayList< PositionItem > positionItems, BooleanProperty enabledZStacks, ObjectProperty acquisitionOrder, BooleanProperty enabledChannels, int selectedTabIndex, ArrayList< ChannelItem > channelItems, ArrayList< ChannelItem > channelItemsArduino, BooleanProperty enabledSaveImages, StringProperty directory, StringProperty filename, ObjectProperty savingFormat, BooleanProperty saveAsHDF5, ObjectProperty roiRectangle )
+	public AcquisitionSetting( BooleanProperty enabledTimePoints, StringProperty numTimePoints, StringProperty intervalTimePoints, ObjectProperty intervalUnitTimePoints, int selectedTpTab, ArrayList< TimePointItem > timePointItems, BooleanProperty enabledPositions, ArrayList< PositionItem > positionItems, BooleanProperty enabledZStacks, ObjectProperty acquisitionOrder, BooleanProperty enabledChannels, int selectedTabIndex, ArrayList< ChannelItem > channelItems, ArrayList< ChannelItem > channelItemsArduino, BooleanProperty enabledSaveImages, StringProperty directory, StringProperty filename, ObjectProperty savingFormat, BooleanProperty saveAsHDF5, ObjectProperty roiRectangle )
 	{
-		// Time points panel
+		// 1.1 Time points panel
 		this.enabledTimePoints = enabledTimePoints.get();
 		this.numTimePoints = numTimePoints.get();
 		this.intervalTimePoints = intervalTimePoints.get();
 		this.intervalUnitTimePoints = intervalUnitTimePoints.get();
 
-		// Position panel
+		// 1.2 Smart Imaging option
+		this.selectedTpTab = selectedTpTab;
+		this.timePointItems = timePointItems;
+
+		// 2. Position panel
 		this.enabledPositions = enabledPositions.get();
 		this.positionItems = positionItems;
 
-		// Z-Stack panel
+		// 3. Z-Stack panel
 		this.enabledZStacks = enabledZStacks.get();
 
-		// Acquisition order
+		// 4. Acquisition order
 		this.acquisitionOrder = acquisitionOrder.get();
 
-		// Channels panel
+		// 5. Channels panel
 		this.enabledChannels = enabledChannels.get();
 		this.selectedTab = selectedTabIndex;
 		this.channelItems = channelItems;
 		this.channelItemsArduino = channelItemsArduino;
 
-		// Save Image panel
+		// 6. Save Image panel
 		this.enabledSaveImages = enabledSaveImages.get();
 		this.directory = directory.get();
 		this.filename = filename.get();
