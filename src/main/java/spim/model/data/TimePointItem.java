@@ -48,6 +48,7 @@ public class TimePointItem
 	final private IntegerProperty noTimePoints;
 	final private IntegerProperty interval;
 	final private ObjectProperty<IntervalUnit> intervalUnit;
+	final StringBinding objectBinding;
 
 	public TimePointItem()
 	{
@@ -55,7 +56,7 @@ public class TimePointItem
 		this.interval = new SimpleIntegerProperty();
 		this.intervalUnit = new SimpleObjectProperty<>();
 
-		StringBinding objectBinding = new StringBinding()
+		objectBinding = new StringBinding()
 		{
 			{
 				super.bind( noTimePoints, interval, intervalUnit );
@@ -66,7 +67,7 @@ public class TimePointItem
 				String total = "";
 
 				if(type != null && intervalUnit.get() != null)
-					total = this.hashCode() +TimePointItem.this.toString();
+					total = this.hashCode() + "-" + TimePointItem.this.toString();
 				return total;
 			}
 		};
@@ -75,7 +76,7 @@ public class TimePointItem
 		{
 			@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
 			{
-				updateTimePointItem.set(this.hashCode() + TimePointItem.this.toString());
+				updateTimePointItem.set(newValue);
 			}
 		} );
 	}
@@ -173,6 +174,11 @@ public class TimePointItem
 
 	@Override public String toString()
 	{
+		if(getType().equals( Type.Acq ))
+			return String.format( "%d TP (%d %s/TP)", getNoTimePoints(), getInterval(), getIntervalUnit() );
+		else if(getType().equals( Type.Wait ))
+			return String.format( "Wait (%d %s)", getInterval(), getIntervalUnit() );
+
 		return TimePointItem.toString( getTotalSeconds() );
 	}
 }
