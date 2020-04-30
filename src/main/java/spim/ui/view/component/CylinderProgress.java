@@ -24,8 +24,6 @@ public class CylinderProgress extends Group
 	private CylinderCollection col;
 
 	public CylinderProgress( double size, ObservableList<TimePointItem> list, DoubleProperty current ) {
-
-		// LabelledCylinder cylinder = new LabelledCylinder( "10 TP (10 sec/TP)", size, color );
 		col = new CylinderCollection( list, size );
 		list.addListener( new ListChangeListener< TimePointItem >()
 		{
@@ -74,6 +72,7 @@ public class CylinderProgress extends Group
 		public CylinderCollection( ObservableList<TimePointItem> list, double size ) {
 			this.list = list;
 			this.size = size;
+			setHover( false );
 		}
 
 		public void refresh() {

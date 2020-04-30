@@ -148,6 +148,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	SimpleDoubleProperty zStart;
 	SimpleDoubleProperty zEnd;
 
+	// For Smart Imaging
+	SimpleDoubleProperty currentTP;
+	CylinderProgress smartImagingCylinder;
+
 	BooleanProperty continuous;
 
 	Group zStackGroup;
@@ -179,6 +183,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		this.zStart = new SimpleDoubleProperty( 0 );
 		this.zEnd = new SimpleDoubleProperty( 0 );
+
+		this.currentTP = new SimpleDoubleProperty( 0 );
 
 		// 1. Property Map for summary panel
 		this.propertyMap.put( "times", new SimpleStringProperty( "0" ) );
@@ -241,7 +247,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		// setup the Z-stacks
 		// summary
-		SplitPane positionZStackSplit = new SplitPane(timePositionSplit, zstackAcquisitionOrderPane, createSummaryPane());
+		SplitPane positionZStackSplit = new SplitPane(timePositionSplit, zstackAcquisitionOrderPane, new VBox(20, createSummaryPane(), smartImagingCylinder) );
 		positionZStackSplit.setOrientation( Orientation.HORIZONTAL );
 		positionZStackSplit.setDividerPositions( 0.3, 0.6 );
 
@@ -1352,6 +1358,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		} );
 
 		HBox hbox = new HBox( 5, newTPButton, newWaitButton, deleteButton );
+
+		smartImagingCylinder = new CylinderProgress( 400, timePointItemTableView.getItems(), currentTP );
 
 		dynamicTPTab.setContent( new VBox( hbox, timePointItemTableView ) );
 
