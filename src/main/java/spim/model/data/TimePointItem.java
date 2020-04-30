@@ -162,6 +162,10 @@ public class TimePointItem
 		else return 0;
 	}
 
+	public double getIntervalSeconds() {
+		return intervalUnit.get().getValue() * interval.get();
+	}
+
 	public static String toString(double total) {
 		int h = (int) total / 3600;
 

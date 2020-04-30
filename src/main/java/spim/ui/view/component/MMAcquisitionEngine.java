@@ -3,6 +3,7 @@ package spim.ui.view.component;
 import ij.ImagePlus;
 import ij.process.ImageProcessor;
 import javafx.application.Platform;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.LongProperty;
 import javafx.collections.ObservableList;
 import loci.common.DebugTools;
@@ -46,6 +47,7 @@ import spim.io.OutputHandler;
 import spim.mm.MicroManager;
 import spim.model.data.ChannelItem;
 import spim.model.data.PositionItem;
+import spim.model.data.TimePointItem;
 import spim.ui.view.component.acq.AcqWrapperEngine;
 import spim.ui.view.component.testing.AE2010ImageDecoder;
 
@@ -89,8 +91,30 @@ public class MMAcquisitionEngine
 		// setup OEMTIFFHandler or HDF5OutputHandler
 	}
 
+	/**
+	 * Perform acquisition image plus.
+	 * @param studio the studio
+	 * @param setup the setup
+	 * @param stagePanel the stage panel
+	 * @param roiRectangle the roi rectangle
+	 * @param timeSeqs the time seqs
+	 * @param timeStep the time step
+	 * @param timePointItems the time point items
+	 * @param currentTP the current tp
+	 * @param cylinderSize the cylinder size
+	 * @param smartImagingSelected the smart imaging selected
+	 * @param arduinoSelected the arduino selected
+	 * @param output the output
+	 * @param acqFilenamePrefix the acq filename prefix
+	 * @param positionItems the position items
+	 * @param channelItems the channel items
+	 * @param processedImages the processed images
+	 * @param bSave the b save
+	 * @return the image plus
+	 * @throws Exception the exception
+	 */
 	@SuppressWarnings("Duplicates")
-	public static ImagePlus performAcquisition( Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, double timeStep, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, boolean continuous ) throws Exception
+	public static ImagePlus performAcquisition( Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, double timeStep, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, double cylinderSize, boolean smartImagingSelected, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave ) throws Exception
 	{
 		final Studio frame = studio;
 
@@ -150,11 +174,6 @@ public class MMAcquisitionEngine
 
 		MultiStagePosition[] multiStagePositions = positionItems.stream().map( c -> new MultiStagePosition( c.toString(), c.getX(), c.getY(), c.getZString(), c.getZStart() )).toArray(MultiStagePosition[]::new);
 
-//		Metadata.Builder mb = frame.data().getMetadataBuilder();
-//		mb.
-
-//		SummaryMetadata.Builder smb = frame.data().getSummaryMetadataBuilder();
-
 		PropertyMap.Builder pm = PropertyMaps.builder();
 
 		SummaryMetadata.Builder smb = new DefaultSummaryMetadata.Builder();
@@ -192,23 +211,6 @@ public class MMAcquisitionEngine
 			pm.putString("Camera-2", setup.getCamera2().getLabel() );
 		}
 
-
-		//		pmb.putString("FirstSide", firstSide);
-//		pmb.putString("SlicePeriod_ms", actualSlicePeriodLabel_.getText());
-//		pmb.putDouble("LaserExposure_ms",
-//				(double) PanelUtils.getSpinnerFloatValue(durationLaser_));
-//		pmb.putString("VolumeDuration",
-//				actualVolumeDurationLabel_.getText());
-//		pmb.putString("SPIMmode", spimMode.toString());
-//		// Multi-page TIFF saving code wants this one:
-//		// TODO: support other types than GRAY16  (NS: Why?? Cameras are all 16-bits, so not much reason for anything else
-//		pmb.putString("PixelType", "GRAY16");
-//		pmb.putDouble("z-step_um", getVolumeSliceStepSize());
-//		// Properties for use by MultiViewRegistration plugin
-//		// Format is: x_y_z, set to 1 if we should rotate around this axis.
-//		pmb.putString("MVRotationAxis", "0_1_0");
-//		pmb.putString("MVRotations", viewString);
-
 		if(null != roiRectangle)
 		{
 			for ( String camera : cameras )
@@ -244,349 +246,309 @@ public class MMAcquisitionEngine
 						//what is the purpose of defining parameters and then passing null anyway?
 						acqRows, channelItems.size(), timeSeqs, timeStep, 1, smb.userData(pm.build()).build(), false);
 
-	//			handler = new AsyncOutputHandler(handler, (ij.IJ.maxMemory() - ij.IJ.currentMemory())/(core.getImageWidth()*core.getImageHeight()*core.getBytesPerPixel()*2), false);
-
 				handlers.put( camera, handler );
 			}
 
 		long acqStart = System.currentTimeMillis();
 
-		captureThread = null;
-		done = false;
-		ConcurrentHashMap<String, TaggedImage> map = new ConcurrentHashMap<>();
-
-		if(continuous) {
-			if(cameras.size() == 1)
-				core.startContinuousSequenceAcquisition(0);
-			else
-			{
-//				core.setAutoShutter( false );
-//				core.setShutterOpen( "DShutter", true );
-//				core.waitForSystem();
-				for(String camera : cameras)
-				{
-					MicroManager.setExposure( camera, 100 );
-
-					if(!core.isSequenceRunning(camera))
-						core.prepareSequenceAcquisition( camera );
-				}
-
-				for(String camera : cameras)
-				{
-					if(!core.isSequenceRunning(camera))
-						core.startSequenceAcquisition( camera, Integer.MAX_VALUE, 0, false );
-				}
-			}
-
-			if(null == captureThread) {
-				captureThread = new Thread( new Runnable()
-				{
-					@Override public void run()
-					{
-						while ( !done )
-						{
-							for(int i = 0; i < cameras.size(); i++) {
-								try {
-									if (core.getRemainingImageCount() == 0) {
-										Thread.yield();
-										core.sleep( 20 );
-										continue;
-									}
-									TaggedImage timg = core.getLastTaggedImage( i );
-//									TaggedImage timg = core.popNextTaggedImage( i );
-
-									String camera = ( String ) timg.tags.get( "Camera" );
-									map.put( camera, timg );
-								} catch ( Exception e ) {
-								}
-							}
-						}
-					}
-				} );
-				captureThread.start();
-			}
-
-			while ( map.isEmpty() )
-			{
-				Thread.sleep( 100 );
-			}
-			Thread.sleep( 1000 );
-		}
 		// Scheduled timeline
 		// Dynamic timeline
-		for(int timeSeq = 0; timeSeq < timeSeqs; ++timeSeq) {
-//			Thread continuousThread = null;
+		if(smartImagingSelected) {
+			int timePoints = 0;
+			int  passedTimePoints = 0;
+			double totalTimePoints = timePointItems.stream().mapToDouble( TimePointItem::getTotalSeconds ).sum();
 
-//			final int finalTimeSeq = timeSeq;
-
-			// User defined location
-			// Looping multiple locations
-			int step = 0;
-			for( PositionItem positionItem : positionItems )
-			{
-				final int tp = timeSeq;
-				final int rown = step;
-
-				display.setCustomTitle( acqFilenamePrefix + String.format( " t=%d, p=%d", timeSeq, step ));
-
-//				AntiDriftController ad = null;
-//				if(row.getZContinuous() != true && params.isAntiDriftOn()) {
-//					if((ad = driftCompMap.get(row)) == null) {
-//						ad = params.getAntiDrift(row);
-//						ad.setCallback(new AntiDrift.Callback() {
-//							public void applyOffset( Vector3D offs) {
-//								Vector3D appliedOffsset = new Vector3D(
-//										offs.getX()*-core.getPixelSizeUm(),
-//										offs.getY()*-core.getPixelSizeUm(),
-//										-offs.getZ());
-//
-//								ij.IJ.log(String.format("TP %d view %d: Offset: %s", tp, rown, appliedOffsset.toString()));
-//								row.translate(appliedOffsset);
-//							}
-//						});
-//					}
-//
-//					ad.startNewStack();
-//				}
-
-				// Move the stage
-//				runDevicesAtRow(core, setup, acqRows[step]);
-				if(stagePanel != null)
-					stagePanel.goToPos( positionItem.getX(), positionItem.getY(), positionItem.getR() );
-				core.waitForSystem();
-
-
-				// Setup the lasers
-//				if(params.isIllumFullStack() && setup.getLaser() != null)
-//					setup.getLaser().setPoweredOn(true);
-
-				for( OutputHandler handler : handlers.values() )
-					beginStack( tp, rown, handler );
-
-				// Traverse Z stacks
-				int noSlice = 0;
-				for(double zStart = positionItem.getZStart(); zStart <= positionItem.getZEnd(); zStart += positionItem.getZStep())
+			for(TimePointItem tpItem : timePointItems ) {
+				if(tpItem.getType().equals( TimePointItem.Type.Acq ))
 				{
-					try {
-						// Move Z stacks
-						if(stagePanel != null)
-							stagePanel.goToZ( zStart );
-						core.waitForSystem();
-
-						// Wait for image synchronization
-						core.waitForImageSynchro();
-
-						// If the delay is setup, delay it
-						//					try {
-						//						Thread.sleep(params.getSettleDelay());
-						//					} catch(InterruptedException ie) {
-						//						return cleanAbort(params, liveOn, autoShutter, continuousThread);
-						//					}
-
-						long now = System.currentTimeMillis();
-
-						// Cameras
-						if ( arduinoSelected )
+					timeSeqs = tpItem.getNoTimePoints();
+					for ( int timeSeq = 0; timeSeq < timeSeqs; ++timeSeq )
+					{
+						int step = 0;
+						for ( PositionItem positionItem : positionItems )
 						{
-							// Channel iteration
+							final int tp = timePoints;
+							final int rown = step;
 
-							int c = 0;
-							for ( String camera : cameras )
+							display.setCustomTitle( acqFilenamePrefix + String.format( " t=%d, p=%d", timePoints, step ) );
+
+							// Move the stage
+							if(stagePanel != null)
+								stagePanel.goToPos( positionItem.getX(), positionItem.getY(), positionItem.getR() );
+							core.waitForSystem();
+
+							for( OutputHandler handler : handlers.values() )
+								beginStack( tp, rown, handler );
+
+							// Traverse Z stacks
+							int noSlice = 0;
+							for(double zStart = positionItem.getZStart(); zStart <= positionItem.getZEnd(); zStart += positionItem.getZStep())
 							{
-								if ( !continuous )
-								{
-									core.setCameraDevice( camera );
-									core.waitForDevice( camera );
-								}
+								try {
+									// Move Z stacks
+									if(stagePanel != null)
+										stagePanel.goToZ( zStart );
+									core.waitForSystem();
 
-								for ( ChannelItem channelItem : channelItems )
-								{
-									// Snap an image
-									if ( setup.getArduino1() != null )
-										setup.getArduino1().setSwitchState( channelItem.getLaser() );
+									// Wait for image synchronization
+									core.waitForImageSynchro();
 
+									long now = System.currentTimeMillis();
 
-									TaggedImage ti;
-
-									if ( continuous )
+									// Cameras
+									if ( arduinoSelected )
 									{
-//										Thread.sleep( channelItem.getValue().longValue() );
-										ti = map.get( camera );
+										// Channel iteration
+
+										int c = 0;
+										for ( String camera : cameras )
+										{
+											for ( ChannelItem channelItem : channelItems )
+											{
+												// Snap an image
+												if ( setup.getArduino1() != null )
+													setup.getArduino1().setSwitchState( channelItem.getLaser() );
+
+
+												core.setExposure( camera, channelItem.getValue().doubleValue() );
+												core.waitForDevice( camera );
+												TaggedImage ti = snapImage( core );
+
+												ImageProcessor ip = ImageUtils.makeProcessor( ti );
+												handleSlice( setup, channelItem.getValue().intValue(), c, acqBegan, tp, step, ip, handlers.get( camera ) );
+
+												addImageToAcquisition( frame, store, c, noSlice, zStart,
+														positionItem, now - acqStart, ti );
+
+												Platform.runLater( () -> processedImages.set( processedImages.get() + 1 ) );
+												++c;
+											}
+										}
+
 									}
 									else
 									{
-										core.setExposure( camera, channelItem.getValue().doubleValue() );
-										core.waitForDevice( camera );
-										ti = snapImage( core );
+										// Channel iteration
+										int c = 0;
+										for ( ChannelItem channelItem : channelItems )
+										{
+											core.setCameraDevice( channelItem.getName() );
+											core.setShutterOpen( channelItem.getLaser(), true );
+											core.setExposure( channelItem.getName(), channelItem.getValue().doubleValue() );
+											core.waitForDevice( channelItem.getName() );
+
+											TaggedImage ti = snapImage( core );
+
+											ImageProcessor ip = ImageUtils.makeProcessor( ti );
+
+											// Handle the slice image
+											handleSlice( setup, channelItem.getValue().intValue(), c, acqBegan, tp, step, ip, handlers.get( channelItem.getName() ) );
+
+											addImageToAcquisition( frame, store, c, noSlice, zStart,
+													positionItem, now - acqStart, ti );
+
+											Platform.runLater( () -> processedImages.set( processedImages.get() + 1 ) );
+
+											core.setShutterOpen( channelItem.getLaser(), false );
+											++c;
+										}
 									}
 
-									//								TaggedImage ti = snapImageCam(setup, false);
-
-									ImageProcessor ip = ImageUtils.makeProcessor( ti );
-									handleSlice( setup, channelItem.getValue().intValue(), c, acqBegan, timeSeq, step, ip, handlers.get( camera ) );
-
-									addImageToAcquisition( frame, store, c, noSlice, zStart,
-											positionItem, now - acqStart, ti );
-
-									//						if(ad != null)
-									//							addAntiDriftSlice(ad, ip);
-									//						if(params.isUpdateLive())
-									//							updateLiveImage(frame, ti);
-
-									Platform.runLater( () -> processedImages.set( processedImages.get() + 1 ) );
-									++c;
+								} catch (Exception e) {
+									System.err.println(e);
+									finalize(true, setup, cameras, frame, tp, rown, handlers, store);
+									return null;
 								}
+
+								noSlice++;
 							}
 
-						}
-						else
-						{
-							// Channel iteration
-							int c = 0;
-							for ( ChannelItem channelItem : channelItems )
+							if(setup.getArduino1() != null)
+								setup.getArduino1().setSwitchState( "0" );
+
+							for( OutputHandler handler : handlers.values() )
 							{
-								// Snap an image
-								//TaggedImage ti = snapImage(setup, !params.isIllumFullStack());
-								//							if(!continuous)
-								//							{
-								//								core.setCameraDevice( channelItem.getName() );
-								//								core.setExposure( channelItem.getValue().doubleValue() );
-								//							}
+								finalizeStack( tp, rown, handler );
+							}
 
-								//							core.setExposure( channelItem.getName(), channelItem.getValue().doubleValue() );
-								//							core.waitForDevice( channelItem.getName() );
+							++step;
+						}
+						if(timeSeq + 1 < timeSeqs) {
+							double wait = tpItem.getIntervalSeconds();
 
-								//							core.setShutterOpen( channelItem.getLaser(), true );
-								//							core.waitForDevice( channelItem.getName() );
-								//							Thread.sleep( 100 );
-
-								TaggedImage ti;
-								if ( continuous )
-								{
-									core.setShutterOpen( channelItem.getLaser(), true );
-									core.setExposure( channelItem.getName(), channelItem.getValue().doubleValue() );
-									core.waitForDevice( channelItem.getName() );
-//									Thread.sleep( channelItem.getValue().longValue() );
-
-									//								long last = System.currentTimeMillis();
-									//
-									//								Thread.sleep( channelItem.getValue().intValue() - (now - last));
-									//
-									//								now = last;
-
-									ti = map.get( channelItem.getName() );
+							if(wait > 0D) {
+								System.err.println("Interval delay. (next seq in " + wait + "s)");
+								try {
+									Thread.sleep((long)(wait * 1e3));
+								} catch(InterruptedException ie) {
+									finalize(false, setup, cameras, frame, 0, 0, handlers, store);
+									return null;
 								}
-								else
+							}
+						}
+						++timePoints;
+						++passedTimePoints;
+
+						currentTP.set( cylinderSize / totalTimePoints * passedTimePoints );
+					}
+				}
+				else if(tpItem.getType().equals( TimePointItem.Type.Wait ))
+				{
+					double wait = tpItem.getIntervalSeconds();
+
+					if(wait > 0D) {
+						System.err.println("Interval delay. (next seq in " + wait + "s)");
+
+						for(int i = 0; i < (int) wait; i++)
+						{
+							++passedTimePoints;
+							currentTP.set( cylinderSize / totalTimePoints * passedTimePoints );
+							try
+							{
+								Thread.sleep( ( long ) ( 1e3 ) );
+							}
+							catch ( InterruptedException ie )
+							{
+								finalize( false, setup, cameras, frame, 0, 0, handlers, store );
+								return null;
+							}
+						}
+					}
+				}
+			}
+		} else {
+			for(int timeSeq = 0; timeSeq < timeSeqs; ++timeSeq) {
+				// User defined location
+				// Looping multiple locations
+				int step = 0;
+				for( PositionItem positionItem : positionItems )
+				{
+					final int tp = timeSeq;
+					final int rown = step;
+
+					display.setCustomTitle( acqFilenamePrefix + String.format( " t=%d, p=%d", timeSeq, step ));
+
+					// Move the stage
+					if(stagePanel != null)
+						stagePanel.goToPos( positionItem.getX(), positionItem.getY(), positionItem.getR() );
+					core.waitForSystem();
+
+					for( OutputHandler handler : handlers.values() )
+						beginStack( tp, rown, handler );
+
+					// Traverse Z stacks
+					int noSlice = 0;
+					for(double zStart = positionItem.getZStart(); zStart <= positionItem.getZEnd(); zStart += positionItem.getZStep())
+					{
+						try {
+							// Move Z stacks
+							if(stagePanel != null)
+								stagePanel.goToZ( zStart );
+							core.waitForSystem();
+
+							// Wait for image synchronization
+							core.waitForImageSynchro();
+
+							long now = System.currentTimeMillis();
+
+							// Cameras
+							if ( arduinoSelected )
+							{
+								// Channel iteration
+								int c = 0;
+								for ( String camera : cameras )
+								{
+									for ( ChannelItem channelItem : channelItems )
+									{
+										// Snap an image
+										if ( setup.getArduino1() != null )
+											setup.getArduino1().setSwitchState( channelItem.getLaser() );
+
+
+										core.setExposure( camera, channelItem.getValue().doubleValue() );
+										core.waitForDevice( camera );
+										TaggedImage ti = snapImage( core );
+
+										ImageProcessor ip = ImageUtils.makeProcessor( ti );
+										handleSlice( setup, channelItem.getValue().intValue(), c, acqBegan, timeSeq, step, ip, handlers.get( camera ) );
+
+										addImageToAcquisition( frame, store, c, noSlice, zStart,
+												positionItem, now - acqStart, ti );
+
+										Platform.runLater( () -> processedImages.set( processedImages.get() + 1 ) );
+										++c;
+									}
+								}
+							}
+							else
+							{
+								// Channel iteration
+								int c = 0;
+								for ( ChannelItem channelItem : channelItems )
 								{
 									core.setCameraDevice( channelItem.getName() );
 									core.setShutterOpen( channelItem.getLaser(), true );
 									core.setExposure( channelItem.getName(), channelItem.getValue().doubleValue() );
 									core.waitForDevice( channelItem.getName() );
 
-									//								Thread.sleep( channelItem.getValue().intValue() );
-									ti = snapImage( core );
+									TaggedImage ti = snapImage( core );
+
+									ImageProcessor ip = ImageUtils.makeProcessor( ti );
+
+									// Handle the slice image
+									handleSlice( setup, channelItem.getValue().intValue(), c, acqBegan, timeSeq, step, ip, handlers.get( channelItem.getName() ) );
+
+									addImageToAcquisition( frame, store, c, noSlice, zStart,
+											positionItem, now - acqStart, ti );
+
+									Platform.runLater( () -> processedImages.set( processedImages.get() + 1 ) );
+
+									core.setShutterOpen( channelItem.getLaser(), false );
+									++c;
 								}
-
-								ImageProcessor ip = ImageUtils.makeProcessor( ti );
-
-								// Handle the slice image
-								handleSlice( setup, channelItem.getValue().intValue(), c, acqBegan, timeSeq, step, ip, handlers.get( channelItem.getName() ) );
-
-								addImageToAcquisition( frame, store, c, noSlice, zStart,
-										positionItem, now - acqStart, ti );
-
-								//						if(ad != null)
-								//							addAntiDriftSlice(ad, ip);
-								//						if(params.isUpdateLive())
-								//							updateLiveImage(frame, ti);
-								Platform.runLater( () -> processedImages.set( processedImages.get() + 1 ) );
-
-								core.setShutterOpen( channelItem.getLaser(), false );
-								++c;
 							}
+
+						} catch (Exception e) {
+							System.err.println(e);
+							finalize(true, setup, cameras, frame, tp, rown, handlers, store);
+							return null;
 						}
 
-						//					double stackProg = Math.max(Math.min((zStart - start)/(end - start),1),0);
-
-						//					final Double progress = (params.getRows().length * timeSeq + step + stackProg) / (params.getRows().length * params.getTimeSeqCount());
-						//
-						//					SwingUtilities.invokeLater( new Runnable() {
-						//						public void run() {
-						//							params.getProgressListener().reportProgress(tp, rown, progress);
-						//						}
-						//					});
-					} catch (Exception e) {
-//					if (Thread.interrupted()) {
-						System.err.println(e);
-						finalize(true, setup, cameras, frame, tp, rown, handlers, store);
-						return null;
+						noSlice++;
 					}
 
-					noSlice++;
-				}
+					if(setup.getArduino1() != null)
+						setup.getArduino1().setSwitchState( "0" );
 
-				if(setup.getArduino1() != null)
-					setup.getArduino1().setSwitchState( "0" );
-
-				for( OutputHandler handler : handlers.values() )
-				{
-					finalizeStack( tp, rown, handler );
-				}
-
-//				if(params.isIllumFullStack() && setup.getLaser() != null)
-//					setup.getLaser().setPoweredOn(false);
-
-//				if(ad != null) {
-//					ad.finishStack();
-//
-//					driftCompMap.put(row, ad);
-//				}
-
-//				if(Thread.interrupted())
-//					return cleanAbort(params, liveOn, autoShutter, continuousThread);
-
-//				if(params.isContinuous() && !continuousThread.isAlive()) {
-//					cleanAbort(params, liveOn, autoShutter, continuousThread);
-//					throw new Exception(continuousThread.toString());
-//				}
-
-//				final Double progress = (double) (params.getRows().length * timeSeq + step + 1)
-//						/ (params.getRows().length * params.getTimeSeqCount());
-//
-//				SwingUtilities.invokeLater(new Runnable() {
-//					public void run() {
-//						params.getProgressListener().reportProgress(tp, rown, progress);
-//					}
-//				});
-				++step;
-			}
-
-			// End of looping rows
-
-//			if (params.isContinuous()) {
-//				continuousThread.interrupt();
-//				continuousThread.join();
-//			}
-
-			if(timeSeq + 1 < timeSeqs) {
-				double wait = (timeStep * (timeSeq + 1)) -
-						(System.nanoTime() / 1e9 - acqBegan);
-
-				if(wait > 0D)
-					try {
-						Thread.sleep((long)(wait * 1e3));
-					} catch(InterruptedException ie) {
-//						return cleanAbort(params, liveOn, autoShutter, continuousThread);
-						finalize(false, setup, cameras, frame, 0, 0, handlers, store);
-						return null;
+					for( OutputHandler handler : handlers.values() )
+					{
+						finalizeStack( tp, rown, handler );
 					}
-				else
-					core.logMessage("Behind schedule! (next seq in "
-							+ wait + "s)");
+
+					++step;
+				}
+
+				// End of looping rows
+
+				if(timeSeq + 1 < timeSeqs) {
+					double wait = (timeStep * (timeSeq + 1)) -
+							(System.nanoTime() / 1e9 - acqBegan);
+
+					if(wait > 0D)
+						try {
+							Thread.sleep((long)(wait * 1e3));
+						} catch(InterruptedException ie) {
+							//						return cleanAbort(params, liveOn, autoShutter, continuousThread);
+							finalize(false, setup, cameras, frame, 0, 0, handlers, store);
+							return null;
+						}
+					else
+						core.logMessage("Behind schedule! (next seq in "
+								+ wait + "s)");
+				}
 			}
 		}
 
-//		setStatus( AcquisitionStatus.DONE );
 		finalize(false, setup, cameras, frame, 0, 0, handlers, store);
 
 		return null;

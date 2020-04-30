@@ -151,8 +151,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	// For Smart Imaging
 	SimpleDoubleProperty currentTP;
 	CylinderProgress smartImagingCylinder;
-
-	BooleanProperty continuous;
+	double cylinderSize = 400;
 
 	Group zStackGroup;
 	GridPane zStackGridPane;
@@ -374,10 +373,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		hb.setSpacing(5);
 		hb.setAlignment( Pos.CENTER_LEFT );
 
-
-		CheckBox continuousCheckBox = new CheckBox( "Continuous" );
-		continuous = continuousCheckBox.selectedProperty();
-
 		Button acquireButton = new Button( "Acquire" );
 		acquireButton.setMinSize( 130, 40 );
 		acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
@@ -430,7 +425,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 					pi.setProgress( newValue.doubleValue() / totalImages.getValue() );
 				}
 			} );
-			hb.getChildren().addAll(continuousCheckBox, acquireButton, pi);
+			hb.getChildren().addAll(acquireButton, pi);
 		}
 
 
@@ -756,6 +751,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		double unit = getUnit( intervalUnitTimePoints.getValue().toString() );
 
+		final boolean smartImagingSelected = tpTabPane.getSelectionModel().isSelected( 1 );
+
 		Platform.runLater( () -> processedImages.set( 0 ) );
 
 		acquisitionThread = new Thread(() ->
@@ -764,7 +761,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 			try
 			{
-				engine.performAcquisition( studio, spimSetup, stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages, enabledSaveImages.get(), continuous.get() );
+				engine.performAcquisition( studio, spimSetup, stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, timePointItemTableView.getItems(), currentTP, cylinderSize, smartImagingSelected, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages, enabledSaveImages.get() );
 
 //				new MMAcquisitionRunner().runAcquisition();
 
@@ -1359,7 +1356,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		HBox hbox = new HBox( 5, newTPButton, newWaitButton, deleteButton );
 
-		smartImagingCylinder = new CylinderProgress( 400, timePointItemTableView.getItems(), currentTP );
+		smartImagingCylinder = new CylinderProgress( cylinderSize, timePointItemTableView.getItems(), currentTP );
 
 		dynamicTPTab.setContent( new VBox( hbox, timePointItemTableView ) );
 
