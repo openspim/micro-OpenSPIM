@@ -915,6 +915,8 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 				int size = 1 << studio.core().getImageBitDepth();
 				int bin = setup.getCamera1().getBinning();
 
+				System.out.println("size: " +  size + " bin:" + setup.getCamera1().getBinning());
+
 				width /= bin;
 				height /= bin;
 				buf = new int[width * height];
