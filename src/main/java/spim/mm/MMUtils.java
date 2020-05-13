@@ -270,10 +270,7 @@ public class MMUtils
 				String extension = getFileExtension(pathname.getAbsolutePath(), false);
 				return (extension.equalsIgnoreCase("dll") || extension.equalsIgnoreCase("jnilib"))
 //						&& (pathname.getName().startsWith( "at" ) || pathname.getName().startsWith( "SysInfo" ));
-						&& !pathname.getName().contains("mmgr_dal_") && !pathname.getName().contains("MMCoreJ_wrap")
-						&& !pathname.getName().startsWith("Fx") && !pathname.getName().startsWith("gluegen")
-						&& !pathname.getName().startsWith("jogl_") && !pathname.getName().startsWith("nativewindow")
-						&& !pathname.getName().startsWith("newt") && !pathname.getName().startsWith("opencv");
+						&& !pathname.getName().contains("mmgr_dal_") && !pathname.getName().contains("MMCoreJ_wrap");
 			}
 		}, false, false, true));
 
