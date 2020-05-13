@@ -541,13 +541,13 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 		//		l4.setBlendMode( BlendMode.ADD );
 
 		// Grid lines 2 x 2
-		l1 = new Line( 0, height / 2, width, height / 2 );
-		l1.setStyle( "-fx-stroke: white" );
-		l1.setBlendMode( BlendMode.SRC_ATOP );
-
-		l2 = new Line( width / 2, 0, width / 2, height );
-		l2.setStyle( "-fx-stroke: white" );
-		l2.setBlendMode( BlendMode.SRC_ATOP );
+//		l1 = new Line( 0, height / 2, width, height / 2 );
+//		l1.setStyle( "-fx-stroke: white" );
+//		l1.setBlendMode( BlendMode.SRC_ATOP );
+//
+//		l2 = new Line( width / 2, 0, width / 2, height );
+//		l2.setStyle( "-fx-stroke: white" );
+//		l2.setBlendMode( BlendMode.SRC_ATOP );
 
 		Spinner<Integer> spinner = new Spinner<>( 1, 50, 1, 1 );
 
@@ -868,6 +868,14 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 		clipBox = new Group();
 
 		clipBox.getChildren().add(imageStackPane);
+
+		l1 = new Line( 0, height / 2, width, height / 2 );
+		l1.setStyle( "-fx-stroke: white" );
+		l1.setBlendMode( BlendMode.SRC_ATOP );
+
+		l2 = new Line( width / 2, 0, width / 2, height );
+		l2.setStyle( "-fx-stroke: white" );
+		l2.setBlendMode( BlendMode.SRC_ATOP );
 
 		clipBox.getChildren().add(l1);
 		clipBox.getChildren().add(l2);
