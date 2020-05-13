@@ -891,6 +891,7 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 		width = studio == null? 512 : (int) studio.core().getImageWidth();
 		height = studio == null? 512 : (int) studio.core().getImageHeight();
 
+		rgbBuffer = new int[width * height];
 		buf = new int[width * height];
 
 		imageStackPane.getChildren().clear();
@@ -914,8 +915,6 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 
 				int size = 1 << studio.core().getImageBitDepth();
 				int bin = setup.getCamera1().getBinning();
-
-				System.out.println("size: " +  size + " bin:" + setup.getCamera1().getBinning());
 
 				width /= bin;
 				height /= bin;
