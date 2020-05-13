@@ -143,7 +143,7 @@ public class MMUtils
 		else
 		{
 			// load DLL - no need
-//			loadDllFrom(new File( microManagerFolder ));
+			loadDllFrom(new File( microManagerFolder ));
 			// find configuration file
 			File[] cfg = new File( microManagerFolder ).listFiles( new FilenameFilter()
 			{
@@ -269,7 +269,8 @@ public class MMUtils
 			{
 				String extension = getFileExtension(pathname.getAbsolutePath(), false);
 				return (extension.equalsIgnoreCase("dll") || extension.equalsIgnoreCase("jnilib"))
-						&& !pathname.getName().contains("mmgr_dal_") && !pathname.getName().contains("MMCoreJ_wrap");
+						&& (pathname.getName().startsWith( "at" ) || pathname.getName().startsWith( "SysInfo" ));
+//						&& !pathname.getName().contains("mmgr_dal_") && !pathname.getName().contains("MMCoreJ_wrap");
 			}
 		}, true, false, true));
 
