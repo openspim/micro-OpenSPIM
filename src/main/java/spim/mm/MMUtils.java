@@ -269,8 +269,8 @@ public class MMUtils
 			{
 				String extension = getFileExtension(pathname.getAbsolutePath(), false);
 				return (extension.equalsIgnoreCase("dll") || extension.equalsIgnoreCase("jnilib"))
-//						&& (pathname.getName().startsWith( "at" ) || pathname.getName().startsWith( "SysInfo" ));
-						&& !pathname.getName().contains("mmgr_dal_") && !pathname.getName().contains("MMCoreJ_wrap");
+						&& (pathname.getName().startsWith( "at" ) || pathname.getName().startsWith( "PiUsb" ));
+//						&& !pathname.getName().contains("mmgr_dal_") && !pathname.getName().contains("MMCoreJ_wrap");
 			}
 		}, false, false, true));
 
