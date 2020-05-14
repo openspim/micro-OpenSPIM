@@ -594,7 +594,9 @@ public class MMAcquisitionEngine
 			}
 		}
 
-		finalize(false, setup, cameras, frame, 0, 0, handlers, store);
+		finalize(true, setup, cameras, frame, 0, 0, handlers, store);
+
+		core.setCameraDevice( currentCamera );
 
 		return null;
 	}
