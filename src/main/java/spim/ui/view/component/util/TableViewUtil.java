@@ -271,7 +271,7 @@ public class TableViewUtil
 		return tv;
 	}
 
-	public static TableView< ChannelItem > createChannelItemDataView( SPIMSetup setup )
+	public static TableView< ChannelItem > createChannelItemDataView( SPIMSetup setup, String currentCamera )
 	{
 		ObservableList<String> cameras = FXCollections.observableArrayList();
 		ObservableList<String> lasers = FXCollections.observableArrayList();
@@ -289,6 +289,9 @@ public class TableViewUtil
 			{
 				cameras.add( setup.getCamera2().getLabel() );
 			}
+
+			if ( currentCamera != null && !cameras.contains( currentCamera ) )
+				cameras.add(currentCamera);
 
 			if ( setup.getLaser() != null )
 			{

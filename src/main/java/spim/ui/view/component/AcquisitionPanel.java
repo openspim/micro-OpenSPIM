@@ -54,6 +54,7 @@ import javafx.scene.transform.Shear;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import mmcorej.DeviceType;
 import org.micromanager.Studio;
 
 import spim.hardware.SPIMSetup;
@@ -73,6 +74,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static spim.ui.view.component.util.TableViewUtil.createTimePointItemDataView;
@@ -266,7 +268,17 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		}
 
 		// Channel list
-		channelItemTableView = TableViewUtil.createChannelItemDataView(setup);
+		if(setup != null) {
+			Optional<String> multi = Arrays.stream( studio.core().getLoadedDevicesOfType( DeviceType.CameraDevice ).toArray() ).filter( c -> c.startsWith( "Multi" ) ).findFirst();
+
+			if(multi.isPresent())
+				channelItemTableView = TableViewUtil.createChannelItemDataView( setup, multi.get());
+			else
+				channelItemTableView = TableViewUtil.createChannelItemDataView( setup, null);
+		}
+		else
+			channelItemTableView = TableViewUtil.createChannelItemDataView( setup, null);
+
 		laserTab = new Tab( "Software Controlled" );
 		Node viewContent = null;
 		if(setup != null) {
@@ -593,7 +605,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 					e.printStackTrace();
 				}
 
-				channelItemTableView = TableViewUtil.createChannelItemDataView(setup);
+				Optional<String> multi = Arrays.stream( studio.core().getLoadedDevicesOfType( DeviceType.CameraDevice ).toArray() ).filter( c -> c.startsWith( "Multi" ) ).findFirst();
+
+				if(multi.isPresent())
+					channelItemTableView = TableViewUtil.createChannelItemDataView(setup, multi.get());
+				else channelItemTableView = TableViewUtil.createChannelItemDataView(setup, null);
 				Node viewContent = createChannelItemTable( channelItemTableView, setup.getCamera1().getLabel(), setup.getLaser().getLabel(), exposure );
 				laserTab.setContent( viewContent );
 			}
@@ -609,7 +625,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				maxZStack = 100;
 				int exposure = 20;
 
-				channelItemTableView = TableViewUtil.createChannelItemDataView(setup);
+				channelItemTableView = TableViewUtil.createChannelItemDataView(setup, null);
 				Node viewContent = createChannelItemTable( channelItemTableView, "Camera-1", "Laser-1", exposure );
 				laserTab.setContent( viewContent );
 			}
