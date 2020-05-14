@@ -159,8 +159,10 @@ public class MMAcquisitionEngine
 		int ch = 0;
 		if(arduinoSelected) {
 			cameras.add(currentCamera);
-			if(currentCamera.startsWith( "Multi" )) ch += 2;
-			else ch += 1;
+			for(ChannelItem chItem: channelItems) {
+				if(currentCamera.startsWith( "Multi" )) ch += 2;
+				else ch += 1;
+			}
 		} else {
 			for(ChannelItem chItem: channelItems) {
 				if(!cameras.contains( chItem.getName() )) {
