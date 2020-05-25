@@ -144,6 +144,31 @@ public class Stage extends Device {
 	}
 
 	/**
+	 * Get the real minimum possible position in um.
+	 *
+	 * @return real min position in um
+	 */
+	public double getRealMinPosition() {
+		if(hasProperty("Min"))
+			return getPropertyDouble("Min");
+		else
+			return 0.0;
+	}
+
+	/**
+	 * Get the real maximum possible position in um.
+	 *
+	 * @return real max position in um
+	 */
+	public double getRealMaxPosition()
+	{
+		if(hasProperty("Max"))
+			return getPropertyDouble("Max");
+		else
+			return 9000.0; // *** this is why you should implement your own stages.
+	}
+
+	/**
 	 * Run the motor to its home location.
 	 */
 	public void home()
@@ -153,5 +178,18 @@ public class Stage extends Device {
 
 	public DeviceType getMMType() {
 		return DeviceType.StageDevice;
+	}
+
+	/**
+	 * Sets step size.
+	 * @param stepSize the step size
+	 * @throws UnsupportedOperationException the unsupported operation exception
+	 */
+	public void setStepSize(double stepSize) throws UnsupportedOperationException {
+		if(hasProperty("StepSize"))
+		{
+			setProperty( "StepSize", stepSize );
+		} else
+			throw new UnsupportedOperationException();
 	}
 }

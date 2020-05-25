@@ -61,6 +61,13 @@ public class StageUnit extends Region
 	public void setStageDevice(spim.hardware.Stage stageDevice) {
 		this.stageDevice = stageDevice;
 
+		if(isR && stageDevice != null) {
+			double max = stageDevice.getRealMaxPosition();
+			double stepSize = max / 360.0;
+			System.out.println("StepSize: " + stepSize);
+			stageDevice.setStepSize( stepSize );
+		}
+
 		final double min = ( isR ? 0.0 : ( null == stageDevice ? 0.0 : stageDevice.getMinPosition() ) );
 		final double max = ( isR ? 360.0 : ( null == stageDevice ? 9000.0 : stageDevice.getMaxPosition() ) );
 		final double tick = isR ? 60.0 : 1000;
