@@ -13,6 +13,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.Tooltip;
@@ -26,6 +27,7 @@ import spim.ui.view.component.iconswitch.IconSwitch;
 import spim.ui.view.component.slider.StageSlider;
 
 import java.util.HashMap;
+import java.util.Optional;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -64,10 +66,13 @@ public class StageUnit extends Region
 		if(isR && stageDevice != null) {
 			double max = stageDevice.getRealMaxPosition();
 			double stepSize = max / 360.0;
-			System.out.println("StepSize: " + stepSize);
 			stageDevice.setStepSize( stepSize );
 		}
 
+		resetDevice();
+	}
+
+	public void resetDevice() {
 		final double min = ( isR ? 0.0 : ( null == stageDevice ? 0.0 : stageDevice.getMinPosition() ) );
 		final double max = ( isR ? 360.0 : ( null == stageDevice ? 9000.0 : stageDevice.getMaxPosition() ) );
 		final double tick = isR ? 60.0 : 1000;
@@ -76,6 +81,10 @@ public class StageUnit extends Region
 
 		targetSlider.updateMinMaxTick( min, max, tick );
 		deviceSlider.updateMinMaxTick( min, max, tick );
+	}
+
+	public spim.hardware.Stage getStageDevice() {
+		return this.stageDevice;
 	}
 
 	public StageUnit( String labelString, boolean isR, spim.hardware.Stage stageDevice )
@@ -176,7 +185,7 @@ public class StageUnit extends Region
 			if(null != this.stageDevice) this.stageDevice.setPosition( pos );
 		} );
 
-		final Button resetButton = new Button( "Reset" );
+		Button resetButton = new Button( "Reset" );
 		resetButton.setAlignment( Pos.BASELINE_LEFT );
 		resetButton.setPrefWidth( 70 );
 		resetButton.setOnAction( event -> {
@@ -184,6 +193,19 @@ public class StageUnit extends Region
 			targetSlider.getSlider().setValue( currentValue );
 			booleanStateMap.get( BooleanState.Ready ).setValue( false );
 		} );
+
+		if(isR) {
+			resetButton = new Button( "Calibrate" );
+			resetButton.setAlignment( Pos.BASELINE_LEFT );
+			resetButton.setPrefWidth( 70 );
+			resetButton.setOnAction( event -> {
+				RotatorCalibrationDialog dlg = new RotatorCalibrationDialog( getStageDevice() );
+
+				dlg.showAndWait()
+					.filter(response -> response == ButtonType.OK)
+					.ifPresent(response -> stageDevice.setStepSize( dlg.getReturnResult() ));
+			} );
+		}
 
 		GridPane gridPane = new GridPane();
 		gridPane.setAlignment( Pos.CENTER );
