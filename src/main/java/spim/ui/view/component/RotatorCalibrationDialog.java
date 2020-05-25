@@ -45,7 +45,7 @@ public class RotatorCalibrationDialog extends Alert
 		//		dialogPane.getButtonTypes().addAll(okButtonType, cancelButtonType);
 		dialogPane.getButtonTypes().addAll(cancelButtonType);
 
-		final StageUnit unit = new StageUnit( "Rotator ", false, null );
+		final StageUnit unit = new StageUnit( "Rotator ", false, true, stage );
 
 		Label stepSizeLabel = new Label( "Calculated StepSize:" );
 		TextField stepSize = new TextField(  );

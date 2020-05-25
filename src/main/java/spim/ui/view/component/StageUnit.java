@@ -89,14 +89,19 @@ public class StageUnit extends Region
 
 	public StageUnit( String labelString, boolean isR, spim.hardware.Stage stageDevice )
 	{
+		this(labelString, isR, false, stageDevice);
+	}
+
+	public StageUnit( String labelString, boolean isR, boolean isCalibrationMode, spim.hardware.Stage stageDevice )
+	{
 		final Label stageLabel = new Label( labelString );
 
 		this.isR = isR;
 		this.stageDevice = stageDevice;
 
 		// Initial properties
-		final double min = ( isR ? 0.0 : ( null == stageDevice ? 0.0 : stageDevice.getMinPosition() ) );
-		final double max = ( isR ? 360.0 : ( null == stageDevice ? 9000.0 : stageDevice.getMaxPosition() ) );
+		final double min = ( isR ? 0.0 : ( null == stageDevice ? 0.0 : (isCalibrationMode) ? stageDevice.getRealMinPosition() : stageDevice.getMinPosition() ) );
+		final double max = ( isR ? 360.0 : ( null == stageDevice ? 9000.0 : (isCalibrationMode)? stageDevice.getRealMaxPosition() : stageDevice.getMaxPosition() ) );
 		final double tick = isR ? 60.0 : 1000;
 
 		currentValue = ( null == stageDevice ? 0.0 : ( isR ? stageDevice.getPosition() + 180.0 : stageDevice.getPosition() ) );
