@@ -63,12 +63,6 @@ public class StageUnit extends Region
 	public void setStageDevice(spim.hardware.Stage stageDevice) {
 		this.stageDevice = stageDevice;
 
-		if(isR && stageDevice != null) {
-			double max = stageDevice.getRealMaxPosition();
-			double stepSize = max / 360.0;
-			stageDevice.setStepSize( stepSize );
-		}
-
 		resetDevice();
 	}
 
@@ -208,7 +202,12 @@ public class StageUnit extends Region
 
 				dlg.showAndWait()
 					.filter(response -> response == ButtonType.OK)
-					.ifPresent(response -> stageDevice.setStepSize( dlg.getReturnResult() ));
+					.ifPresent(response -> {
+						if(null != stageDevice) {
+							stageDevice.setStepSize( dlg.getReturnResult() );
+							resetDevice();
+						}
+					});
 			} );
 		}
 
