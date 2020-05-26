@@ -40,6 +40,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
@@ -154,6 +155,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	SimpleDoubleProperty currentTP;
 	CylinderProgress smartImagingCylinder;
 	double cylinderSize = 400;
+
+	BooleanProperty continuous;
 
 	Group zStackGroup;
 	GridPane zStackGridPane;
@@ -385,6 +388,17 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		hb.setSpacing(5);
 		hb.setAlignment( Pos.CENTER_LEFT );
 
+		CheckBox continuousCheckBox = new CheckBox( "Continuous" );
+		continuousCheckBox.setTooltip( new Tooltip( "Continous acquisition ignores custom channel settings and captures current camera." ) );
+		continuous = continuousCheckBox.selectedProperty();
+		continuous.addListener( new ChangeListener< Boolean >()
+		{
+			@Override public void changed( ObservableValue< ? extends Boolean > observable, Boolean oldValue, Boolean newValue )
+			{
+				enabledChannels.setValue( !newValue );
+			}
+		} );
+
 		Button acquireButton = new Button( "Acquire" );
 		acquireButton.setMinSize( 130, 40 );
 		acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
@@ -437,7 +451,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 					pi.setProgress( newValue.doubleValue() / totalImages.getValue() );
 				}
 			} );
-			hb.getChildren().addAll(acquireButton, pi);
+			hb.getChildren().addAll(continuousCheckBox, acquireButton, pi);
 		}
 
 
@@ -777,7 +791,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 			try
 			{
-				engine.performAcquisition( studio, spimSetup, stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, timePointItemTableView.getItems(), currentTP, cylinderSize, smartImagingSelected, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages, enabledSaveImages.get() );
+				engine.performAcquisition( studio, spimSetup, stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, timePointItemTableView.getItems(), currentTP, cylinderSize, smartImagingSelected, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages, enabledSaveImages.get(), continuous.get() );
 
 //				new MMAcquisitionRunner().runAcquisition();
 
