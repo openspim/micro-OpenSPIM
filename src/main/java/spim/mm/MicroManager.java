@@ -1,5 +1,6 @@
 package spim.mm;
 
+import com.google.common.eventbus.Subscribe;
 import ij.CommandListener;
 import ij.Executer;
 import ij.IJ;
@@ -20,11 +21,12 @@ import mmcorej.org.json.JSONObject;
 import org.micromanager.Studio;
 import org.micromanager.UserProfile;
 import org.micromanager.acquisition.SequenceSettings;
-import org.micromanager.acquisition.internal.AcquisitionEngine;
 import org.micromanager.acquisition.internal.AcquisitionWrapperEngine;
 import org.micromanager.acquisition.internal.IAcquisitionEngine2010;
 import org.micromanager.display.internal.displaywindow.imagej.MMVirtualStack;
 
+import org.micromanager.events.AcquisitionEndedEvent;
+import org.micromanager.events.AcquisitionStartedEvent;
 import org.micromanager.internal.MMStudio;
 import org.micromanager.internal.MMVersion;
 import org.micromanager.internal.MainFrame;
@@ -69,13 +71,6 @@ public class MicroManager implements PlugIn, CommandListener
 	 * Metadata associated to last retrieved image.
 	 */
 	private static final Map<Integer, JSONObject> metadatas = new HashMap<Integer, JSONObject>(4);
-
-//	static final List<AcquisitionListener> acqListeners = new ArrayList<AcquisitionListener>();
-	static final List<LiveListener> liveListeners = new ArrayList<LiveListener>();
-//
-//	static AcquisitionResult acquisitionManager = null;
-
-	static Thread liveManager = null;
 
 	volatile static ObjectProperty<Studio> mmStudioProperty = null;
 	volatile static MMStudio mmstudio = null;
@@ -217,9 +212,6 @@ public class MicroManager implements PlugIn, CommandListener
 						{
 							throw new Exception( "Error while initializing circular buffer of Micro Manager", e );
 						}
-
-						//						liveManager = new LiveListenerThread();
-						//						liveManager.start();
 					}
 				}
 				catch ( Throwable t )
@@ -313,8 +305,7 @@ public class MicroManager implements PlugIn, CommandListener
 	}
 
 	/**
-	 * For internal use only (this method should never be called directly).
-	 * Use {@link MicromanagerPlugin#init()} instead.
+	 * For initialization
 	 */
 	public static synchronized void init(Stage stage, ObjectProperty< Studio > mmStudioProperty )
 	{
@@ -377,16 +368,6 @@ public class MicroManager implements PlugIn, CommandListener
 					return;
 				}
 
-//				ThreadUtil.invokeNow(new Runnable()
-//				{
-//					@Override
-//					public void run()
-//					{
-//						// In AWT Thread because it creates a JComponent
-//						getAcquisitionEngine().addImageProcessor(new ImageAnalyser());
-//					}
-//				});
-
 			}
 			catch (Throwable e)
 			{
@@ -438,123 +419,6 @@ public class MicroManager implements PlugIn, CommandListener
 	public static Version getMMVersion()
 	{
 		return new Version(MMVersion.VERSION_STRING.substring( 0, 5 ));
-	}
-
-//	/**
-//	 * @return the acquisition listener list.
-//	 */
-//	public static List<AcquisitionListener> getAcquisitionListeners()
-//	{
-//		final List<AcquisitionListener> result;
-//
-//		// create safe copy
-//		synchronized (acqListeners)
-//		{
-//			result = new ArrayList<AcquisitionListener>(acqListeners);
-//		}
-//
-//		return result;
-//	};
-
-//	/**
-//	 * Every {@link MicroscopePlugin} shares the same core, so you will receive every acquisition
-//	 * even if it was not asked by you.<br/>
-//	 * You should register your listener only when you need image and remove it when your done.
-//	 *
-//	 * @param listener
-//	 *        Your listener
-//	 */
-//	public static void addAcquisitionListener(AcquisitionListener listener)
-//	{
-//		synchronized (acqListeners)
-//		{
-//			if (!acqListeners.contains(listener))
-//				acqListeners.add(listener);
-//		}
-//	}
-//
-//	public static void removeAcquisitionListener(AcquisitionListener listener)
-//	{
-//		synchronized (acqListeners)
-//		{
-//			acqListeners.remove(listener);
-//		}
-//	}
-
-	/**
-	 * @return the live listener list.
-	 */
-	public static List<LiveListener> getLiveListeners()
-	{
-		final List<LiveListener> result;
-
-		// create safe copy
-		synchronized (liveListeners)
-		{
-			result = new ArrayList<LiveListener>(liveListeners);
-		}
-
-		return result;
-	}
-
-	/**
-	 * Every {@link MicroscopePlugin} shares the same core, so the same live,<br/>
-	 * when your plugin start, a live may have been already started and your {@link LiveListener}
-	 * <br/>
-	 * could receive images at the moment you call this method. <br />
-	 * You should register your listener only when you need image and remove it when your done.
-	 */
-	public static void addLiveListener(LiveListener listener)
-	{
-		synchronized (liveListeners)
-		{
-			if (!liveListeners.contains(listener))
-				liveListeners.add(listener);
-		}
-	}
-
-	public static void removeLiveListener(LiveListener listener)
-	{
-		synchronized (liveListeners)
-		{
-			liveListeners.remove(listener);
-		}
-	}
-
-//	/**
-//	 * @deprecated Use {@link #addAcquisitionListener(AcquisitionListener)} instead.
-//	 */
-//	@Deprecated
-//	public static void registerListener(AcquisitionListener listener)
-//	{
-//		addAcquisitionListener(listener);
-//	}
-//
-//	/**
-//	 * @deprecated Use {@link #removeAcquisitionListener(AcquisitionListener)} instead.
-//	 */
-//	@Deprecated
-//	public static void removeListener(AcquisitionListener listener)
-//	{
-//		removeAcquisitionListener(listener);
-//	}
-
-	/**
-	 * @deprecated Use {@link #addLiveListener(LiveListener)} instead.
-	 */
-	@Deprecated
-	public static void registerListener(LiveListener listener)
-	{
-		addLiveListener(listener);
-	}
-
-	/**
-	 * @deprecated Use {@link #removeLiveListener(LiveListener)} instead.
-	 */
-	@Deprecated
-	public static void removeListener(LiveListener listener)
-	{
-		removeLiveListener(listener);
 	}
 
 	/**
@@ -774,14 +638,14 @@ public class MicroManager implements PlugIn, CommandListener
 
 	/**
 	 * Returns the metadata object associated to the last image retrieved with
-	 * {@link #getLastImage()} or
-	 * {@link #snapImage()}.</br>
+	 * {@link #getLastTaggedImage()} or
+	 * {@link #snapTaggedImage()}.</br>
 	 * Returns <code>null</code> if there is no metadata associated to the specified channel.
 	 *
 	 * @param channel
 	 *        channel index for multi channel camera
-	 * @see #getLastImage()
-	 * @see #snapImage()
+	 * @see #getLastTaggedImage()
+	 * @see #snapTaggedImage()
 	 * @see #getMetadata()
 	 * @see MDUtils
 	 */
@@ -792,12 +656,11 @@ public class MicroManager implements PlugIn, CommandListener
 
 	/**
 	 * Returns the metadata object associated to the last image retrieved with
-	 * {@link #getLastImage()} or
-	 * {@link #snapImage()}.</br>
+	 * {@link #getLastTaggedImage()}  or
+	 * {@link #snapTaggedImage()}.</br>
 	 * Returns <code>null</code> if there is no image has been retrieved yet.
 	 *
-	 * @see #getLastImage()
-	 * @see #snapImage()
+	 * @see #snapTaggedImage()
 	 * @see #getMetadata(int)
 	 * @see MDUtils
 	 */
@@ -814,8 +677,6 @@ public class MicroManager implements PlugIn, CommandListener
 	 * empty</br>
 	 * </br>
 	 * You can listen new image event from acquisition or live mode by using these methods:</br>
-	 * {@link #addLiveListener(LiveListener)}</br>
-	 * {@link #addAcquisitionListener(AcquisitionListener)}</br>
 	 *
 	 * @throws Exception
 	 */
@@ -863,85 +724,6 @@ public class MicroManager implements PlugIn, CommandListener
 	}
 
 	/**
-	 * This method waits for the next image captured from the micro manager continuous acquisition
-	 * and returns the result as a list of {@link TaggedImage}. The list contains as many image than
-	 * camera channel (see {@link #getCameraChannelCount()}).</br>
-	 * Returns an empty list if the continuous acquisition is not running.</br>
-	 * </br>
-	 * You can listen new image event from acquisition or live mode by using these methods:</br>
-	 * {@link #addLiveListener(LiveListener)}</br>
-	 * {@link #addAcquisitionListener(AcquisitionListener)}</br>
-	 */
-	public static List<TaggedImage> getNextTaggedImage() throws Exception
-	{
-		final CMMCore core = MicroManager.getCore();
-
-		if (core == null || !core.isSequenceRunning())
-			return new ArrayList<TaggedImage>();
-
-		final boolean done[] = new boolean[] {false};
-		final LiveListener listener = new LiveListener()
-		{
-			@Override
-			public void liveStopped()
-			{
-				done[0] = true;
-			}
-
-			@Override
-			public void liveStarted()
-			{
-				// nothing here
-			}
-
-			@Override
-			public void liveImgReceived(List<TaggedImage> images)
-			{
-				done[0] = true;
-			}
-		};
-
-		// listen live events
-		addLiveListener(listener);
-		try
-		{
-			// wait (exposure * 2) or 2 sec max
-			long maxWait = System.currentTimeMillis();
-			maxWait = Math.max(maxWait + 2000L, maxWait + (((long) core.getExposure()) * 2));
-
-			// wait to get a new image from continuous acquisition
-			while (System.currentTimeMillis() < maxWait)
-			{
-				// image received --> stop waiting
-				if (done[0])
-					break;
-				// sleep a bit
-				Thread.sleep(1L);
-			}
-		}
-		finally
-		{
-			// can remove live events listener
-			removeLiveListener(listener);
-		}
-
-		// return last image
-		return getLastTaggedImage();
-	}
-
-//	/**
-//	 * Capture and return an image (or <code>null</code> if an error occurred).<br>
-//	 * If an acquisition is currently in process (live mode or standard acquisition) the method
-//	 * will wait for and return the next image from the image acquisition buffer.<br>
-//	 * In other case it just snaps a new image from the camera device and returns it.<br>
-//	 * You can retrieve the associated metadata by using {@link #getMetadata(int)} method.
-//	 */
-//	public static IcyBufferedImage snapImage() throws Exception
-//	{
-//		return MMUtils.convertToIcyImage(snapTaggedImage());
-//	}
-
-	/**
 	 * Capture and return an image (or an empty list if an error occurred).<br>
 	 * If an acquisition is currently in process (live mode or standard acquisition) the method will
 	 * will wait for and return the next image from the image acquisition buffer.<br>
@@ -955,10 +737,6 @@ public class MicroManager implements PlugIn, CommandListener
 		final CMMCore core = MicroManager.getCore();
 		if (core == null)
 			return new ArrayList<TaggedImage>();
-
-		// continuous acquisition --> retrieve next image acquired
-		if (core.isSequenceRunning())
-			return getNextTaggedImage();
 
 		final int numChannel = (int) core.getNumberOfCameraChannels();
 		final List<TaggedImage> result = new ArrayList<TaggedImage>();
@@ -997,83 +775,6 @@ public class MicroManager implements PlugIn, CommandListener
 		}
 
 		return result;
-	}
-
-	/**
-	 * Use this method to know if an acquisition is currently in process.
-	 *
-	 * @see #startAcquisition(int, double)
-	 * @see #stopAcquisition()
-	 */
-	public static boolean isAcquisitionRunning()
-	{
-		final AcquisitionEngine eng = getAcquisitionEngine();
-		if (eng == null)
-			return false;
-
-		return eng.isAcquisitionRunning();
-	}
-
-	/**
-	 * Use this method to start an acquisition on the current camera device and retrieve images with
-	 * {@link AcquisitionListener}.</br>
-	 * This command does not block the calling thread for the duration of the acquisition.</br>
-	 * Note that you have to stop the live mode (see {@link #stopLiveMode()}) before calling this
-	 * method.
-	 *
-	 * @param numImages
-	 *        Number of images requested from the camera
-	 * @param intervalMs
-	 *        The interval between images
-	 * @throws Exception
-	 *         if live is running or if a sequence acquisition have been started and is not finished
-	 *         yet.
-	 * @see #isAcquisitionRunning()
-	 * @see #getAcquisitionResult()
-	 * @see #stopAcquisition()
-	 */
-	public static void startAcquisition(int numImages, double intervalMs) throws Exception
-	{
-		lock();
-		try
-		{
-			/*
-			 * stopOnOverflow is manually set to false as we don't care if the circular buffer
-			 * is rewritten, because we capture each frame at the moment they have been put on the
-			 * buffer and we don't need them anymore.
-			 */
-			getCore().startSequenceAcquisition(numImages, intervalMs, false);
-		}
-		finally
-		{
-			unlock();
-		}
-	}
-
-	/**
-	 * Use this method to interruption the current acquisition.
-	 *
-	 * @see #isAcquisitionRunning()
-	 * @see #startAcquisition(int, double)
-	 */
-	public static void stopAcquisition()
-	{
-		final AcquisitionEngine eng = getAcquisitionEngine();
-		if (eng == null)
-			return;
-
-		if (eng.isAcquisitionRunning())
-		{
-			lock();
-			try
-			{
-				eng.stop(true);
-			}
-			finally
-			{
-				unlock();
-			}
-		}
 	}
 
 	/**
@@ -1142,7 +843,7 @@ public class MicroManager implements PlugIn, CommandListener
 			try
 			{
 				// stop acquisition if needed
-				stopAcquisition();
+//				stopAcquisition();
 
 				// save continuous acquisition state
 				final boolean liveRunning = isLiveRunning();
@@ -1211,7 +912,7 @@ public class MicroManager implements PlugIn, CommandListener
 				try
 				{
 					// stop acquisition if needed
-					stopAcquisition();
+//					stopAcquisition();
 
 					// save continuous acquisition state
 					final boolean liveRunning = isLiveRunning();
@@ -1271,8 +972,8 @@ public class MicroManager implements PlugIn, CommandListener
 		if (mmstudio != null)
 			mmstudio.live().setLiveMode( false );
 
-		for (LiveListener l : getLiveListeners())
-			l.liveStopped();
+//		for (LiveListener l : getLiveListeners())
+//			l.liveStopped();
 	}
 
 	public static void startLiveMode() {
@@ -1281,8 +982,8 @@ public class MicroManager implements PlugIn, CommandListener
 		if (mmstudio != null)
 			mmstudio.live().setLiveMode( true );
 
-		for (LiveListener l : getLiveListeners())
-			l.liveStarted();
+//		for (LiveListener l : getLiveListeners())
+//			l.liveStarted();
 	}
 
 	/**
@@ -1308,7 +1009,7 @@ public class MicroManager implements PlugIn, CommandListener
 				try
 				{
 					// stop acquisition if needed
-					stopAcquisition();
+//					stopAcquisition();
 
 					// save continuous acquisition state
 					final boolean liveRunning = isLiveRunning();
@@ -1558,7 +1259,7 @@ public class MicroManager implements PlugIn, CommandListener
 			try
 			{
 				// stop acquisition if needed
-				stopAcquisition();
+//				stopAcquisition();
 
 				// save continuous acquisition state
 				final boolean liveRunning = isLiveRunning();
@@ -1612,7 +1313,7 @@ public class MicroManager implements PlugIn, CommandListener
 			try
 			{
 				// stop acquisition if needed
-				stopAcquisition();
+//				stopAcquisition();
 
 				// save continuous acquisition state
 				final boolean liveRunning = isLiveRunning();
@@ -1641,57 +1342,6 @@ public class MicroManager implements PlugIn, CommandListener
 	}
 
 	/**
-	 * Returns the "enable storage of last acquisition" state.
-	 *
-	 * @see #setStoreLastAcquisition(boolean)
-	 * @see #getAcquisitionResult()
-	 */
-	public static boolean getStoreLastAcquisition()
-	{
-		if (isInitialized())
-			return instance.getStoreLastAcquisition();
-
-		return false;
-	}
-
-	/**
-	 * Enable storage of last acquisition so it can be retrieved with
-	 * {@link #getAcquisitionResult()}.<br>
-	 * Set to <code>true</code> by default.
-	 *
-	 * @see #getAcquisitionResult()
-	 */
-	public static void setStoreLastAcquisition(boolean value)
-	{
-		if (isInitialized())
-			instance.setStoreLastAcquisition(value);
-	}
-
-	/**
-	 * Enable immediate display of image acquisition.
-	 *
-	 * @see #startAcquisition(int, double)
-	 */
-	public static boolean getDisplayAcquisitionSequence()
-	{
-		if (isInitialized())
-			return instance.getDisplayAcquisitionSequence();
-
-		return false;
-	}
-
-	/**
-	 * Enable immediate display of image acquisition.
-	 *
-	 * @see #startAcquisition(int, double)
-	 */
-	public static void setDisplayAcquisitionSequence(boolean value)
-	{
-		if (isInitialized())
-			instance.setDisplayAcquisitionSequence(value);
-	}
-
-	/**
 	 * Use this method to enable logging (disabled by default).<br>
 	 * Log file are in Icy folder and are named this way : CoreLog20140515.txt ; 20140515 is the
 	 * date of debugging (2014/05/15)<br/>
@@ -1711,8 +1361,6 @@ public class MicroManager implements PlugIn, CommandListener
 
 	/**
 	 * Returns <code>true</code> if Micro-Manager is initialized / loaded.<br>
-	 *
-	 * @see MicromanagerPlugin#init()
 	 */
 	public static boolean isInitialized()
 	{
@@ -1727,112 +1375,26 @@ public class MicroManager implements PlugIn, CommandListener
 		// Remove all the MMStudio references from the GUI
 		mmStudioProperty.set( null );
 
-
-		if (liveListeners != null)
-			liveListeners.clear();
-//		if (acqListeners != null)
-//			acqListeners.clear();
-//		StageMover.clearListener();
 		if (metadatas != null)
 			metadatas.clear();
 
-		// stop live listener
-		if (liveManager != null)
-		{
-			liveManager.interrupt();
-
-			try
-			{
-				// wait until thread ended
-				liveManager.join();
-			}
-			catch (InterruptedException e)
-			{
-				// ignore
-			}
-
-			liveManager = null;
-		}
-
 		instance = null;
 		mmstudio = null;
-//		acquisitionManager = null;
 	}
 
-//	// custom TaggedImageAnalyzer so we have events for new image
-//	private static class ImageAnalyser extends TaggedImageAnalyzer
-//	{
-//		ImageAnalyser()
-//		{
-//			super();
-//		}
-//
-//		@Override
-//		protected void analyze(TaggedImage image)
-//		{
-//			final List<AcquisitionListener> listeners = getAcquisitionListeners();
-//
-//			try
-//			{
-//				// no more image or last one ?
-//				if ((image == null) || TaggedImageQueue.isPoison(image))
-//				{
-//					if (acquisitionManager != null)
-//						acquisitionManager.done();
-//
-//					// send acquisition ended event
-//					for (AcquisitionListener l : listeners)
-//						l.acquisitionFinished(getAcquisitionResult());
-//
-//					// done
-//					return;
-//				}
-//
-//				final JSONObject tags = image.tags;
-//
-//				boolean firstImage = (MDUtils.getPositionIndex(tags) == 0) && (MDUtils.getFrameIndex(tags) == 0)
-//						&& (MDUtils.getChannelIndex(tags) == 0) && (MDUtils.getSliceIndex(tags) == 0);
-//				boolean newAcquisition = (acquisitionManager == null) || acquisitionManager.isDone();
-//
-//				// first acquisition image or new acquisition --> create the new acquisition
-//				if (firstImage || newAcquisition)
-//				{
-//					// end previous acquisition
-//					if (!newAcquisition)
-//					{
-//						acquisitionManager.done();
-//
-//						// send acquisition ended event
-//						for (AcquisitionListener l : listeners)
-//							l.acquisitionFinished(getAcquisitionResult());
-//					}
-//
-//					final SequenceSettings settings = getAcquisitionSettings();
-//					final JSONObject metadata = getAcquisitionMetaData();
-//
-//					// create the acquisition manager
-//					acquisitionManager = new AcquisitionResult(settings, metadata);
-//
-//					// send acquisition started event
-//					for (AcquisitionListener l : listeners)
-//						l.acquisitionStarted(settings, metadata);
-//				}
-//
-//				// store image in acquisition manager only if storage is enabled
-//				if (getStoreLastAcquisition())
-//					acquisitionManager.imageReceived(image);
-//
-//				// send image received event
-//				for (AcquisitionListener l : listeners)
-//					l.acqImgReveived(image);
-//			}
-//			catch (Exception e)
-//			{
-//				e.printStackTrace();
-//			}
-//		}
-//	}
-//
+	@Subscribe
+	public void onAcquisitionStart( AcquisitionStartedEvent ae) {
+		System.out.println("Acquisition started");
+//		store_ = ae.getDatastore();
+	}
+
+
+	@Subscribe
+	public void onAcquisitionEnd( AcquisitionEndedEvent ae) {
+		System.out.println("Acquisition stopped");
+//		store_ = null;
+	}
+
 //	private static class LiveListenerThread extends Thread
 //	{
 //		public LiveListenerThread()
