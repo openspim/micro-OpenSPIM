@@ -25,7 +25,7 @@ public class MultiAcquisition
 	private CMMCore core;
 	private List<String> cameras;
 
-	public MultiAcquisition( CMMCore core, List<String> cameras )
+	MultiAcquisition( CMMCore core, List<String> cameras )
 	{
 		this.core = core;
 		this.cameras = cameras;
@@ -38,7 +38,7 @@ public class MultiAcquisition
 		this.cameras = cameras;
 	}
 
-	public HashMap<String, TaggedImage> getImages(double exposure) {
+	HashMap<String, TaggedImage> getImages(double exposure) {
 		exposureMs_ = exposure;
 		onImagesCalled();
 		HashMap<String, TaggedImage> hashMap = new HashMap<>(  );
@@ -50,7 +50,11 @@ public class MultiAcquisition
 		return hashMap;
 	}
 
-	public void onImagesCalled() {
+	void setStaticImage(String camera, TaggedImage ti) {
+		map.put( camera, ti );
+	}
+
+	private void onImagesCalled() {
 		synchronized(displayUpdateTimes_) {
 			displayUpdateTimes_.add(System.currentTimeMillis());
 			while (displayUpdateTimes_.size() > MAX_DISPLAY_HISTORY) {
@@ -60,6 +64,25 @@ public class MultiAcquisition
 		}
 	}
 
+	void startAcq(String camera) throws Exception
+	{
+		if(!core.isSequenceRunning(camera)) {
+			core.startSequenceAcquisition( camera, Integer.MAX_VALUE, 0, false );
+		}
+	}
+
+	void stopAcq(String camera) throws Exception
+	{
+		if(core.isSequenceRunning(camera)) {
+			core.stopSequenceAcquisition( camera );
+		}
+	}
+
+	boolean isAcqRunning(String camera) throws Exception
+	{
+		return core.isSequenceRunning(camera);
+	}
+
 	public void start() throws Exception
 	{
 		done = false;
@@ -67,32 +90,15 @@ public class MultiAcquisition
 		autoShutter = core.getAutoShutter();
 		shutterOpen = core.getShutterOpen();
 
-		if (autoShutter) {
-			core.setAutoShutter(false);
-			if (!shutterOpen) {
-				core.setShutterOpen(true);
-			}
-		}
+//		if (autoShutter) {
+//			core.setAutoShutter(false);
+//			if (!shutterOpen) {
+//				core.setShutterOpen(true);
+//			}
+//		}
 
 		synchronized(displayUpdateTimes_) {
 			displayUpdateTimes_.clear();
-		}
-
-		if(cameras.size() == 1)
-			core.startContinuousSequenceAcquisition(0);
-		else
-		{
-			for(String camera : cameras)
-			{
-				if(!core.isSequenceRunning(camera))
-					core.prepareSequenceAcquisition( camera );
-			}
-
-			for(String camera : cameras)
-			{
-				if(!core.isSequenceRunning(camera))
-					core.startSequenceAcquisition( camera, Integer.MAX_VALUE, 0, false );
-			}
 		}
 
 		if(null == captureThread) {
@@ -100,9 +106,10 @@ public class MultiAcquisition
 			{
 				@Override public void run()
 				{
-					while ( !done )
+					while ( !done && null != core )
 					{
 						waitForNextDisplay();
+						if(cameras == null) break;
 						for(int i = 0; i < cameras.size(); i++) {
 							try {
 								TaggedImage timg = core.getLastTaggedImage( i );
@@ -133,17 +140,22 @@ public class MultiAcquisition
 		done = true;
 
 		if(captureThread != null)
+		{
+			captureThread.interrupt();
 			captureThread.join();
+		}
 
 		captureThread = null;
 
-		core.setShutterOpen(shutterOpen);
-		core.setAutoShutter(autoShutter);
+		if(null != core) {
+			core.setShutterOpen(shutterOpen);
+			core.setAutoShutter(autoShutter);
 
-		for(String camera : cameras)
-		{
-			if(core.isSequenceRunning(camera))
-				core.stopSequenceAcquisition( camera );
+			for(String camera : cameras)
+			{
+				if(core.isSequenceRunning(camera))
+					core.stopSequenceAcquisition( camera );
+			}
 		}
 	}
 
@@ -172,6 +184,6 @@ public class MultiAcquisition
 		try {
 			Thread.sleep(waitTime);
 		}
-		catch (InterruptedException e) {}
+		catch (InterruptedException ignored ) {}
 	}
 }

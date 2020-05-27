@@ -5,7 +5,9 @@ import halcyon.model.node.HalcyonNode;
 import halcyon.model.node.HalcyonNodeType;
 import halcyon.view.TreePanel;
 import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -29,6 +31,7 @@ import java.util.ArrayList;
 public class HalcyonMain extends HalcyonFrame
 {
 	ObjectProperty<Studio> mmStudioProperty = new SimpleObjectProperty<>();
+	BooleanProperty terminated = new SimpleBooleanProperty();
 
 	public HalcyonMain() {
 		super("OpenSPIM v2.0",
@@ -201,6 +204,7 @@ public class HalcyonMain extends HalcyonFrame
 						}
 					} );
 				} else {
+					terminated.set(true);
 					Platform.runLater( new Runnable()
 				    {
 					   @Override public void run()
@@ -217,6 +221,7 @@ public class HalcyonMain extends HalcyonFrame
 						   arduinoPanel.setSetup( null, studio );
 						   acquisitionPanel.setStagePanel( null );
 						   acquisitionPanel.setSetup( null, studio );
+						   terminated.set(false);
 					   }
 				    });
 				}

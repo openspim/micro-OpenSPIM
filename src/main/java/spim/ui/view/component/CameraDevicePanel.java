@@ -11,6 +11,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.geometry.HPos;
@@ -18,6 +19,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.control.ContentDisplay;
@@ -253,54 +255,7 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 
 		init(width, height);
 
-		executor = Executors.newScheduledThreadPool( 5 );
-		executor.scheduleAtFixedRate( () -> {
-
-			if( cameraOnSwitch.isSelected() )
-			{
-				if(null != studio) {
-					HashMap<String, TaggedImage> map = acquisition.getImages(exposure);
-//					HashMap<String, ImageProcessor > map = acquisition.getDefaultImages();
-					for( String key : map.keySet() ) {
-						TaggedImage img = map.get(key);
-						JSONObject tags = img.tags;
-
-						try
-						{
-							int bytesPerPixel = MDUtils.getBytesPerPixel(tags);
-//							int bytesPerPixel = img.getBitDepth() / 8;
-
-							System.out.println(bytesPerPixel + ":" + MDUtils.getNumberOfComponents( tags ));
-							System.out.println(img.pix.getClass().getCanonicalName());
-//							System.out.println(new Date());
-
-							if( bytesPerPixel == 2 || bytesPerPixel == 8 ) {
-								// case of 16bit and 64bit RGB
-								short[] buffer = (short[]) img.pix;
-								handleBuffer( buffer, bandMap.get(key).image.getPixelWriter(), bandMap.get(key).colors, bytesPerPixel, bandMap.get(key).getBandColor(), bandMap.get(key).getOpacity() );
-							}
-							else {
-								// case of 8bit and 32bit RGB
-								byte[] buffer = (byte[]) img.pix;
-								handleBuffer( buffer, bandMap.get(key).image.getPixelWriter(), bandMap.get(key).colors, bytesPerPixel, bandMap.get(key).getBandColor(), bandMap.get(key).getOpacity() );
-							}
-						}
-						catch ( Exception e )
-						{
-							e.printStackTrace();
-						}
-					}
-				}
-				else {
-					if(isBandTableDirty) {
-						handleBuffer(rgbBuffer, "");
-						isBandTableDirty = false;
-					}
-				}
-			}
-
-		}, 500, 100, TimeUnit.MILLISECONDS );
-
+		startMonitor();
 	}
 
 	private void resetRgbBuffer( String rgb, PixelWriter writer )
@@ -896,8 +851,8 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 	{
 		this.studio = studio;
 
-		width = studio == null? 512 : (int) studio.core().getImageWidth();
-		height = studio == null? 512 : (int) studio.core().getImageHeight();
+		width = setup == null? 512 : (int) studio.core().getImageWidth();
+		height = setup == null? 512 : (int) studio.core().getImageHeight();
 
 		rgbBuffer = new int[width * height];
 		buf = new int[width * height];
@@ -907,7 +862,7 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 
 		bandsVbox.getChildren().clear();
 
-		if(studio != null) {
+		if(setup != null) {
 			System.out.println("Number of channels: " + studio.core().getNumberOfCameraChannels());
 
 			List<String> cameras = new ArrayList<>();
@@ -977,7 +932,9 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 					{
 						try
 						{
-							if(studio.core() != null && !studio.core().isSequenceRunning())
+							startMonitor();
+
+							if(studio.core() != null)
 								acquisition.start();
 						}
 						catch ( Exception e )
@@ -989,7 +946,9 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 					{
 						try
 						{
-							if(studio.core() != null && studio.core().isSequenceRunning())
+							stopMonitor();
+
+							if(studio.core() != null)
 								acquisition.stop();
 						}
 						catch ( Exception e )
@@ -1002,6 +961,18 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 		}
 		else
 		{
+			acquisition.setSetup( null, null );
+
+			stopMonitor();
+			try
+			{
+				acquisition.stop();
+			}
+			catch ( Exception e )
+			{
+				e.printStackTrace();
+			}
+
 			isShownFirst = false;
 			bandMap.put( "R", new Band( new WritableImage( width, height ), new int[ 256 ], "R" ) );
 			bandMap.put( "G", new Band( new WritableImage( width, height ), new int[ 256 ], "G" ) );
@@ -1022,7 +993,10 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 		buildClipBox();
 
 		buildButtonBox();
+	}
 
+	@SuppressWarnings("Duplicates")
+	void stopMonitor() {
 		if(executor != null) {
 			executor.shutdown();
 			try {
@@ -1033,6 +1007,11 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 				executor.shutdownNow();
 			}
 		}
+		executor = null;
+	}
+
+	void startMonitor() {
+		stopMonitor();
 
 		executor = Executors.newScheduledThreadPool( 5 );
 		executor.scheduleAtFixedRate( () -> {
@@ -1049,11 +1028,11 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 						try
 						{
 							int bytesPerPixel = MDUtils.getBytesPerPixel(tags);
-//							int bytesPerPixel = img.getBitDepth() / 8;
+							//							int bytesPerPixel = img.getBitDepth() / 8;
 
-//							System.out.println(bytesPerPixel + ":" + MDUtils.getNumberOfComponents( tags ));
-//							System.out.println(img.pix.getClass().getCanonicalName());
-//							System.out.println(new Date());
+							//							System.out.println(bytesPerPixel + ":" + MDUtils.getNumberOfComponents( tags ));
+							//							System.out.println(img.pix.getClass().getCanonicalName());
+							//							System.out.println(new Date());
 
 							if( bytesPerPixel == 2 || bytesPerPixel == 8 ) {
 								// case of 16bit and 64bit RGB
@@ -1106,6 +1085,73 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 
 			if(key.equals( "hB" )) continue;
 
+			Button acq = new Button( "Start Acq." );
+			acq.setStyle("-fx-base: #9ed3ff;");
+			acq.setOnAction( new EventHandler< ActionEvent >()
+			{
+				@Override public void handle( ActionEvent event )
+				{
+					if(null != studio)
+					{
+						if(!cameraOnSwitch.isSelected()) {
+							new Alert( Alert.AlertType.ERROR, "Please, turn on the switch first.").show();
+							return;
+						}
+						try
+						{
+							if(!acquisition.isAcqRunning( key )) {
+								acquisition.startAcq( key );
+								acq.setText( "Stop Acq." );
+								acq.setStyle("-fx-base: #ffabb7;");
+							} else {
+								acquisition.stopAcq( key );
+								acq.setText( "Start Acq." );
+								acq.setStyle("-fx-base: #9ed3ff;");
+							}
+						} catch ( Exception e ) {
+							e.printStackTrace();
+						}
+					}
+				}
+			} );
+
+			Button snap = new Button( "Snap" );
+			snap.setOnAction( new EventHandler< ActionEvent >()
+			{
+				@Override public void handle( ActionEvent event )
+				{
+					if(null != studio)
+					{
+						if(!cameraOnSwitch.isSelected()) {
+							new Alert( Alert.AlertType.ERROR, "Please, turn on the switch first.").show();
+							return;
+						}
+						try
+						{
+							String currentCamera = studio.core().getCameraDevice();
+							if(!key.equals( currentCamera )) {
+								studio.core().setCameraDevice( key );
+								studio.core().waitForDevice( key );
+							}
+							studio.core().snapImage();
+							TaggedImage ti = studio.core().getTaggedImage( 0 );
+							acquisition.setStaticImage(key, ti);
+
+							if(!key.equals( currentCamera )) {
+								studio.core().setCameraDevice( currentCamera );
+								studio.core().waitForDevice( currentCamera );
+							}
+						}
+						catch ( Exception e )
+						{
+							e.printStackTrace();
+						}
+					}
+				}
+			} );
+
+			HBox buttons = new HBox( 10, acq, snap );
+
 			final RangeSlider slider = new RangeSlider(0, bandMap.get(key).colors.length - 1, 0, bandMap.get(key).colors.length - 1);
 			slider.setShowTickLabels(true);
 			slider.setMajorTickUnit( bandMap.get(key).colors.length / 5.0 );
@@ -1154,7 +1200,7 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 				HBox expBox = new HBox( 5, new Label( "Exposure:" ), exp );
 				expBox.setAlignment( Pos.BASELINE_LEFT );
 
-				checkboxPane = new CheckboxPane( key, new VBox( 8, slider, expBox ) );
+				checkboxPane = new CheckboxPane( key, new VBox( 8, buttons, slider, expBox ) );
 			} else {
 				checkboxPane = new CheckboxPane( key, slider );
 			}
