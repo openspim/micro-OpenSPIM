@@ -426,6 +426,7 @@ public class MMAcquisitionEngine
 							} catch (Exception e) {
 								System.err.println(e);
 								finalize(true, setup, currentCamera, cameras, frame, tp, rown, handlers, store);
+								return;
 							}
 
 							noSlice++;
@@ -441,20 +442,27 @@ public class MMAcquisitionEngine
 
 						++step;
 					}
-					if(timeSeq + 1 < timeSeqs) {
-						double wait = tpItem.getIntervalSeconds();
+					double wait = tpItem.getIntervalSeconds();
 
-						if(wait > 0D) {
-							System.err.println("Interval delay. (next seq in " + wait + "s)");
-							try {
-								Thread.sleep((long)(wait * 1e3));
-							} catch(InterruptedException ie) {
-								finalize(false, setup, currentCamera, cameras, frame, 0, 0, handlers, store);
+					if(wait > 0D) {
+						System.err.println("Interval delay. (next seq in " + wait + "s)");
+
+						for(int i = 0; i < (int) wait; i++)
+						{
+							++passedTimePoints;
+							currentTP.set( cylinderSize / totalTimePoints * passedTimePoints );
+							try
+							{
+								Thread.sleep( ( long ) ( 1e3 ) );
+							}
+							catch ( InterruptedException ie )
+							{
+								finalize( false, setup, currentCamera, cameras, frame, 0, 0, handlers, store );
+								return;
 							}
 						}
 					}
 					++timePoints;
-					++passedTimePoints;
 
 					currentTP.set( cylinderSize / totalTimePoints * passedTimePoints );
 				}
@@ -464,7 +472,7 @@ public class MMAcquisitionEngine
 				double wait = tpItem.getIntervalSeconds();
 
 				if(wait > 0D) {
-					System.err.println("Interval delay. (next seq in " + wait + "s)");
+					System.err.println("Wait delay. (next seq in " + wait + "s)");
 
 					for(int i = 0; i < (int) wait; i++)
 					{
@@ -477,6 +485,7 @@ public class MMAcquisitionEngine
 						catch ( InterruptedException ie )
 						{
 							finalize( false, setup, currentCamera, cameras, frame, 0, 0, handlers, store );
+							return;
 						}
 					}
 				}
@@ -578,6 +587,7 @@ public class MMAcquisitionEngine
 					} catch (Exception e) {
 						System.err.println(e);
 						finalize(true, setup, currentCamera, cameras, frame, tp, rown, handlers, store);
+						return;
 					}
 
 					noSlice++;
@@ -605,6 +615,7 @@ public class MMAcquisitionEngine
 						Thread.sleep((long)(wait * 1e3));
 					} catch(InterruptedException ie) {
 						finalize(false, setup, currentCamera, cameras, frame, 0, 0, handlers, store);
+						return;
 					}
 				else
 					core.logMessage("Behind schedule! (next seq in " + wait + "s)");
@@ -779,6 +790,7 @@ public class MMAcquisitionEngine
 							} catch (Exception e) {
 								System.err.println(e);
 								finalize(true, setup, currentCamera, cameras, frame, tp, rown, handlers, store);
+								return;
 							}
 
 							noSlice++;
@@ -794,22 +806,27 @@ public class MMAcquisitionEngine
 
 						++step;
 					}
-					if(timeSeq + 1 < timeSeqs) {
-						double wait = tpItem.getIntervalSeconds();
+					double wait = tpItem.getIntervalSeconds();
 
-						if(wait > 0D) {
-							System.err.println("Interval delay. (next seq in " + wait + "s)");
-							try {
-								Thread.sleep((long)(wait * 1e3));
-							} catch(InterruptedException ie) {
-								finalize(false, setup, currentCamera, cameras, frame, 0, 0, handlers, store);
+					if(wait > 0D) {
+						System.err.println("Interval delay. (next seq in " + wait + "s)");
+
+						for(int i = 0; i < (int) wait; i++)
+						{
+							++passedTimePoints;
+							currentTP.set( cylinderSize / totalTimePoints * passedTimePoints );
+							try
+							{
+								Thread.sleep( ( long ) ( 1e3 ) );
+							}
+							catch ( InterruptedException ie )
+							{
+								finalize( false, setup, currentCamera, cameras, frame, 0, 0, handlers, store );
+								return;
 							}
 						}
 					}
 					++timePoints;
-					++passedTimePoints;
-
-					currentTP.set( cylinderSize / totalTimePoints * passedTimePoints );
 				}
 			}
 			else if(tpItem.getType().equals( TimePointItem.Type.Wait ))
@@ -817,7 +834,7 @@ public class MMAcquisitionEngine
 				double wait = tpItem.getIntervalSeconds();
 
 				if(wait > 0D) {
-					System.err.println("Interval delay. (next seq in " + wait + "s)");
+					System.err.println("Wait delay. (next seq in " + wait + "s)");
 
 					for(int i = 0; i < (int) wait; i++)
 					{
@@ -830,6 +847,7 @@ public class MMAcquisitionEngine
 						catch ( InterruptedException ie )
 						{
 							finalize( false, setup, currentCamera, cameras, frame, 0, 0, handlers, store );
+							return;
 						}
 					}
 				}
@@ -916,6 +934,7 @@ public class MMAcquisitionEngine
 					} catch (Exception e) {
 						System.err.println(e);
 						finalize(true, setup, currentCamera, cameras, frame, tp, rown, handlers, store);
+						return;
 					}
 
 					noSlice++;
@@ -943,6 +962,7 @@ public class MMAcquisitionEngine
 						Thread.sleep((long)(wait * 1e3));
 					} catch(InterruptedException ie) {
 						finalize(false, setup, currentCamera, cameras, frame, 0, 0, handlers, store);
+						return;
 					}
 				else
 					core.logMessage("Behind schedule! (next seq in "
@@ -958,11 +978,17 @@ public class MMAcquisitionEngine
 		ImageProcessor ip = ImageUtils.makeProcessor( ti );
 
 		// Handle a slice to save in the handler
-		handleSlice( setup, exp, ch, acqBegan, tp, step, ip, handler);
+		if(handler != null)
+		{
+			handleSlice( setup, exp, ch, acqBegan, tp, step, ip, handler );
+			// Add an image to the store for display
+			addImageToAcquisition( frame, store, ch, noSlice, zStart,
+					positionItem, ms, ti );
+		} else {
+			addImageToDisplay( frame, store, step, tp, ch, noSlice, zStart,
+					positionItem, ms, ti );
+		}
 
-		// Add an image to the store for display
-		addImageToAcquisition( frame, store, ch, noSlice, zStart,
-				positionItem, ms, ti );
 
 		// Increase the number of processed image
 		processedImages.set( processedImages.get() + 1 );
@@ -1034,7 +1060,8 @@ public class MMAcquisitionEngine
 		if (finalizeStack) {
 			for(String camera : cameras)
 			{
-				finalizeStack( tp, rown, handlers.get( camera ) );
+				if(null != handlers.get( camera ))
+					finalizeStack( tp, rown, handlers.get( camera ) );
 			}
 		}
 
@@ -1074,6 +1101,63 @@ public class MMAcquisitionEngine
 		Coords.Builder cb = Coordinates.builder();
 
 		Coords coord = cb.p(0).t(0).c(channel).z(slice).build();
+		Image img = studio.data().convertTaggedImage(taggedImg);
+		Metadata md = img.getMetadata();
+		Metadata.Builder mdb = md.copyBuilderPreservingUUID();
+		PropertyMap ud = md.getUserData();
+		ud = ud.copyBuilder().putDouble("Z-Step-um", position.getZStep()).build();
+		String posName = position.toString();
+		mdb = mdb.xPositionUm(position.getX()).yPositionUm(position.getY()).zPositionUm( zPos );
+
+		md = mdb.positionName(posName).userData(ud).build();
+		img = img.copyWith(coord, md);
+
+		store.putImage(img);
+
+      /*
+      // create required coordinate tags
+      try {
+         MDUtils.setFrameIndex(tags, frame);
+         tags.put(MMTags.Image.FRAME, frame);
+         MDUtils.setChannelIndex(tags, channel);
+         MDUtils.setChannelName(tags, channelNames_[channel]);
+         MDUtils.setSliceIndex(tags, slice);
+         MDUtils.setPositionIndex(tags, position);
+         MDUtils.setElapsedTimeMs(tags, ms);
+         MDUtils.setImageTime(tags, MDUtils.getCurrentTime());
+         MDUtils.setZStepUm(tags, PanelUtils.getSpinnerFloatValue(stepSize_));
+
+         if (!tags.has(MMTags.Summary.SLICES_FIRST) && !tags.has(MMTags.Summary.TIME_FIRST)) {
+            // add default setting
+            tags.put(MMTags.Summary.SLICES_FIRST, true);
+            tags.put(MMTags.Summary.TIME_FIRST, false);
+         }
+         if (acq.getPositions() > 1) {
+            // if no position name is defined we need to insert a default one
+            if (tags.has(MMTags.Image.POS_NAME)) {
+               tags.put(MMTags.Image.POS_NAME, "Pos" + position);
+            }
+         }
+         // update frames if necessary
+         if (acq.getFrames() <= frame) {
+            acq.setProperty(MMTags.Summary.FRAMES, Integer.toString(frame + 1));
+         }
+      } catch (JSONException e) {
+         throw new Exception(e);
+      }
+      bq.put(taggedImg);
+              */
+	}
+
+	@SuppressWarnings("Duplicates")
+	private static void addImageToDisplay( Studio studio, RewritableDatastore store, int pos, int tp, int channel,
+			int slice, double zPos, PositionItem position, long ms, TaggedImage taggedImg ) throws
+			JSONException, DatastoreFrozenException,
+			DatastoreRewriteException, Exception
+	{
+		Coords.Builder cb = Coordinates.builder();
+
+		Coords coord = cb.p(pos).t(tp).c(channel).z(slice).build();
 		Image img = studio.data().convertTaggedImage(taggedImg);
 		Metadata md = img.getMetadata();
 		Metadata.Builder mdb = md.copyBuilderPreservingUUID();
