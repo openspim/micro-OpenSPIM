@@ -1,5 +1,6 @@
 package spim.ui.view.component;
 
+import javafx.application.Platform;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -46,6 +47,19 @@ public class CylinderProgress extends Group
 		progress.translateXProperty().bind( current.multiply( 0.5 ).subtract( size * 0.5 ) );
 		progress.setRadius( 20 );
 		progress.setRotate( 90 );
+		progress.heightProperty().addListener( new ChangeListener< Number >()
+		{
+			@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
+			{
+				Platform.runLater( new Runnable()
+				{
+					@Override public void run()
+					{
+						col.refresh();
+					}
+				} );
+			}
+		} );
 
 		PhongMaterial progressMat = new PhongMaterial();
 		progressMat.setDiffuseColor( Color.CORNFLOWERBLUE );
@@ -72,7 +86,6 @@ public class CylinderProgress extends Group
 		public CylinderCollection( ObservableList<TimePointItem> list, double size ) {
 			this.list = list;
 			this.size = size;
-			setHover( false );
 		}
 
 		public void refresh() {
