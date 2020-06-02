@@ -60,6 +60,8 @@ public class RotatorCalibrationDialog extends Alert
 			}
 		} );
 
+		unit.targetValueProperty().addListener( ( observable, oldValue, newValue ) -> stage.setPosition( newValue.doubleValue() ) );
+
 		HBox stepBox = new HBox( 10, stepSizeLabel, stepSize );
 		stepBox.setAlignment( Pos.CENTER_LEFT );
 

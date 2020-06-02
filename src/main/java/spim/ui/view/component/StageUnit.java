@@ -28,7 +28,6 @@ import spim.ui.view.component.iconswitch.IconSwitch;
 import spim.ui.view.component.slider.StageSlider;
 
 import java.util.HashMap;
-import java.util.Optional;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -96,7 +95,7 @@ public class StageUnit extends Region
 
 		// Initial properties
 		final double min = ( isR ? 0.0 : ( null == stageDevice ? 0.0 : (isCalibrationMode) ? 0 : stageDevice.getMinPosition() ) );
-		final double max = ( isR ? 360.0 : ( null == stageDevice ? 9000.0 : (isCalibrationMode)? stageDevice.getRealMaxPosition() : stageDevice.getMaxPosition() ) );
+		final double max = ( isR ? 360.0 : ( null == stageDevice ? 9000.0 : (isCalibrationMode) ? stageDevice.getRealMaxPosition() : stageDevice.getMaxPosition() ) );
 		final double tick = isR ? 60.0 : 1000;
 
 		currentValue = ( null == stageDevice ? 0.0 : ( isR ? stageDevice.getPosition() + 180.0 : stageDevice.getPosition() ) );
