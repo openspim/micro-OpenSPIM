@@ -12,6 +12,7 @@ import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
@@ -198,17 +199,19 @@ public class StageUnit extends Region
 			resetButton.setAlignment( Pos.BASELINE_LEFT );
 			resetButton.setPrefWidth( 70 );
 			resetButton.setOnAction( event -> {
-				System.err.println("Current Step Size: " + getStageDevice().getStepSize());
-				RotatorCalibrationDialog dlg = new RotatorCalibrationDialog( getStageDevice() );
+				if(getStageDevice() != null) {
+					System.err.println("Current Step Size: " + getStageDevice().getStepSize());
+					RotatorCalibrationDialog dlg = new RotatorCalibrationDialog( getStageDevice() );
 
-				dlg.showAndWait()
-					.filter(response -> response == ButtonType.OK)
-					.ifPresent(response -> {
-						if(null != stageDevice) {
-							stageDevice.setStepSize( dlg.getReturnResult() );
-							resetDevice();
-						}
-					});
+					dlg.showAndWait()
+							.filter(response -> response == ButtonType.OK)
+							.ifPresent(response -> {
+								getStageDevice().setStepSize( dlg.getReturnResult() );
+								resetDevice();
+							});
+				} else {
+					new Alert( Alert.AlertType.ERROR, "StageDevice is not ready.");
+				}
 			} );
 		}
 
