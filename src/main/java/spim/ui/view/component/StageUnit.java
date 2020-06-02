@@ -94,7 +94,7 @@ public class StageUnit extends Region
 		this.stageDevice = stageDevice;
 
 		// Initial properties
-		final double min = ( isR ? 0.0 : ( null == stageDevice ? 0.0 : (isCalibrationMode) ? stageDevice.getRealMinPosition() : stageDevice.getMinPosition() ) );
+		final double min = ( isR ? 0.0 : ( null == stageDevice ? 0.0 : (isCalibrationMode) ? 0 : stageDevice.getMinPosition() ) );
 		final double max = ( isR ? 360.0 : ( null == stageDevice ? 9000.0 : (isCalibrationMode)? stageDevice.getRealMaxPosition() : stageDevice.getMaxPosition() ) );
 		final double tick = isR ? 60.0 : 1000;
 
@@ -198,6 +198,7 @@ public class StageUnit extends Region
 			resetButton.setAlignment( Pos.BASELINE_LEFT );
 			resetButton.setPrefWidth( 70 );
 			resetButton.setOnAction( event -> {
+				System.err.println("Current Step Size: " + stageDevice.getStepSize());
 				RotatorCalibrationDialog dlg = new RotatorCalibrationDialog( getStageDevice() );
 
 				dlg.showAndWait()
