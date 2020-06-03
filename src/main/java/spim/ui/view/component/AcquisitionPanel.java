@@ -1518,7 +1518,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 					.fill(Color.RED.deriveColor(0.0, 1.0, (1 - 0.1*shade), 0.5))
 					.translateX(0)
 					//							.translateY(-0.75 * size)
-					.translateY( - 0.75 * size )
+					.translateY( currentZ.get() - 0.75 * size )
 					.transforms( new Shear( -2, 0 ) )
 					.build();
 
