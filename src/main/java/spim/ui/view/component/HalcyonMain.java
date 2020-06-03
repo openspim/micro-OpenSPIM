@@ -4,6 +4,7 @@ import halcyon.HalcyonFrame;
 import halcyon.model.node.HalcyonNode;
 import halcyon.model.node.HalcyonNodeType;
 import halcyon.view.TreePanel;
+import halcyon.view.console.StdOutputCaptureConsole;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
@@ -138,6 +139,9 @@ public class HalcyonMain extends HalcyonFrame
 //				new Stage3DPanel() );
 //
 //		addNode( control2 );
+		StdOutputCaptureConsole console = new StdOutputCaptureConsole();
+		console.setPrefSize(300, 200);
+		addConsole( console );
 
 		// Custom DemoToolbar provided here
 		ToolbarPanel lToolbar = new ToolbarPanel( studio, acquisitionPanel.roiRectangleProperty(), mmStudioProperty );

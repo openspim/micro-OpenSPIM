@@ -48,30 +48,6 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 		setContents( gridpane );
 
-		SimpleBooleanProperty liveOn = new SimpleBooleanProperty( false );
-		Button liveViewButton = new Button( "LiveView Start");
-		liveViewButton.setMinSize( 100, 40 );
-		liveViewButton.setStyle("-fx-font: 12 arial; -fx-base: #49e7db;");
-		liveViewButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				liveOn.set( !liveOn.get() );
-				if(liveOn.get())
-				{
-					liveViewButton.setText( "LiveView Stop" );
-					if(studio != null)
-						studio.live().setLiveMode( true );
-				} else {
-					liveViewButton.setText( "LiveView Start" );
-					if(studio != null)
-						studio.live().setLiveMode( false );
-				}
-			}
-		} );
-
-		gridpane.addRow( 1, liveViewButton );
-
 		java.awt.Rectangle roi = null;
 		try
 		{
@@ -138,13 +114,13 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			}
 		} );
 
-		gridpane.addRow( 2, new HBox(  ) );
+		gridpane.addRow( 1, new HBox(  ) );
 
 		TitledPane titledPane = new TitledPane( "Region of Interest", new VBox( 3, roiXYLabel, roiWLabel, roiHLabel ) );
 		titledPane.setCollapsible( false );
 
-		gridpane.addRow( 3, titledPane );
-		gridpane.addRow( 4, new HBox( 3, setRoiButton, clearRoiButton) );
+		gridpane.addRow( 2, titledPane );
+		gridpane.addRow( 3, new HBox( 3, setRoiButton, clearRoiButton) );
 
 		Button ijButton = new Button( "Open IJ" );
 		ijButton.setOnAction( new EventHandler< ActionEvent >()
@@ -181,7 +157,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			}
 		} );
 
-		gridpane.addRow( 5, new HBox(3, ijButton, mmButton) );
+		gridpane.addRow( 4, new HBox(3, ijButton, mmButton) );
 
 
 		Button resetMMPathBtn = new Button( "Rest MM Path" );
@@ -193,7 +169,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			}
 		} );
 
-		gridpane.addRow( 6, new HBox(3, resetMMPathBtn) );
+		gridpane.addRow( 5, new HBox(3, resetMMPathBtn) );
 
 		//		btn = new Button("Test Std Err");
 //		btn.setOnAction(e -> {

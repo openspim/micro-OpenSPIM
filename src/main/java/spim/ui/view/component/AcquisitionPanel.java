@@ -10,6 +10,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -234,26 +235,103 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		positionItemTableView = TableViewUtil.createPositionItemDataView(this);
 
+		// Buttons
+		SimpleBooleanProperty liveOn = new SimpleBooleanProperty( false );
+		Button liveViewButton = new Button( "LiveView Start");
+		liveViewButton.setMinSize( 100, 40 );
+		liveViewButton.setStyle("-fx-font: 12 arial; -fx-base: #49e7db;");
+		liveViewButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				liveOn.set( !liveOn.get() );
+				if(liveOn.get())
+				{
+					liveViewButton.setText( "LiveView Stop" );
+					if(studio != null)
+						studio.live().setLiveMode( true );
+				} else {
+					liveViewButton.setText( "LiveView Start" );
+					if(studio != null)
+						studio.live().setLiveMode( false );
+				}
+			}
+		} );
+
+		final ProgressIndicator pi = new ProgressIndicator(0);
+		pi.setMinSize( 50,50 );
+		pi.setMaxSize( 50,50 );
+
+		final HBox acquireHBox = new HBox();
+		acquireHBox.setSpacing(5);
+		acquireHBox.setAlignment( Pos.CENTER_LEFT );
+
+		CheckBox continuousCheckBox = new CheckBox( "Continuous" );
+		continuousCheckBox.setTooltip( new Tooltip( "Continous acquisition ignores custom channel settings and captures current camera." ) );
+		continuous = continuousCheckBox.selectedProperty();
+		continuous.addListener( new ChangeListener< Boolean >()
+		{
+			@Override public void changed( ObservableValue< ? extends Boolean > observable, Boolean oldValue, Boolean newValue )
+			{
+				enabledChannels.setValue( !newValue );
+			}
+		} );
+
+		Button acquireButton = new Button( "Acquire" );
+		acquireButton.setMinSize( 110, 40 );
+		acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
+		acquireButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(studio != null)
+				{
+					System.out.println("Height: " + studio.core().getImageHeight());
+					System.out.println("Width: " + studio.core().getImageWidth());
+					System.out.println("Depth: " + studio.core().getImageBitDepth());
+					System.out.println("BufferSize: " + studio.core().getImageBufferSize());
+				}
+
+				if(acquisitionThread == null) {
+					startAcquisition(acquireButton);
+					acquireButton.setText( "Stop acquisition" );
+					acquireButton.setStyle("-fx-font: 15 arial; -fx-base: #e77d8c;");
+				}
+				else {
+					stopAcquisition();
+					acquireButton.setText( "Acquire" );
+					acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
+				}
+			}
+		} );
+
+		processedImages.addListener( new ChangeListener< Number >()
+		{
+			@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
+			{
+				pi.setProgress( newValue.doubleValue() / totalImages.getValue() );
+			}
+		} );
+		acquireHBox.getChildren().addAll(liveViewButton, acquireButton, continuousCheckBox, pi);
+
+		BorderPane.setMargin(acquireHBox, new Insets(12,12,12,12));
+
 		// listbox for Position list
 		SplitPane timePositionSplit = new SplitPane(
+				acquireHBox,
 				createTimePointsPane(),
 				createPositionListPane(positionItemTableView) );
 		timePositionSplit.setOrientation( Orientation.VERTICAL );
-		timePositionSplit.setDividerPositions( 0.5 );
+		timePositionSplit.setDividerPositions( 0.2, 0.6 );
 
 		// acquisition order
-		SplitPane zstackAcquisitionOrderPane = new SplitPane(
-				createZStackPane(stagePanel),
-				createAcquisitionOrderPane()
-		);
-		zstackAcquisitionOrderPane.setOrientation( Orientation.VERTICAL );
-		zstackAcquisitionOrderPane.setDividerPositions( 0.7 );
+		VBox zstackAcquisitionOrderPane = new VBox( 80, createAcquisitionOrderPane(), createZStackPane(stagePanel) );
 
 		// setup the Z-stacks
 		// summary
-		SplitPane positionZStackSplit = new SplitPane(timePositionSplit, zstackAcquisitionOrderPane, new VBox(20, createSummaryPane(), smartImagingCylinder) );
+		SplitPane positionZStackSplit = new SplitPane(timePositionSplit, zstackAcquisitionOrderPane);
 		positionZStackSplit.setOrientation( Orientation.HORIZONTAL );
-		positionZStackSplit.setDividerPositions( 0.3, 0.6 );
+		positionZStackSplit.setDividerPositions( 0.6 );
 
 
 		// Two tabs for "Laser Shutter" / "Arduino Shutter"
@@ -309,151 +387,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		CheckboxPane channelPane = new CheckboxPane( "Channels", channelTabPane );
 		enabledChannels = channelPane.selectedProperty();
 
-		// Laser shutter(software) / Arduino Shutter(hardware)
-		// Save image options
-		SplitPane channelListSaveImage = new SplitPane(
-				channelPane,
-				createSaveImagesPane()
-		);
-//		channelListSaveImage.setDividerPositions( 0.6 );
-
-		SplitPane content = new SplitPane( positionZStackSplit, channelListSaveImage );
-		content.setOrientation( Orientation.VERTICAL );
-
-
-		// Compute acquisition order logic
-		BooleanBinding bb = new BooleanBinding()
-		{
-			{
-				super.bind(enabledChannels, enabledPositions, enabledZStacks, enabledTimePoints);
-			}
-			@Override protected boolean computeValue()
-			{
-				acquisitionOrderItems.clear();
-
-				ArrayList<String> tp = new ArrayList<>(  );
-				if (enabledTimePoints.get() && enabledPositions.get() ) {
-					tp.addAll( Arrays.asList( "Time > Position", "Position > Time" ) );
-				} else if (enabledTimePoints.get()) {
-					tp.add( "Time");
-				} else if (enabledPositions.get()) {
-					tp.add( "Position");
-				}
-
-				if (enabledZStacks.get() && enabledChannels.get()) {
-					if(tp.size() > 0)
-						for(String former: tp) {
-							for(String latter : Arrays.asList( "Slice > Channel", "Channel > Slice" ) ) {
-								acquisitionOrderItems.add( former + " > " + latter );
-							}
-						}
-					else
-						acquisitionOrderItems.addAll( "Slice > Channel", "Channel > Slice" );
-				} else if (enabledZStacks.get()) {
-					if(tp.size() > 0)
-						for(String former: tp) {
-							acquisitionOrderItems.add( former + " > Slice" );
-						}
-					else
-						acquisitionOrderItems.add( "Slice" );
-				} else if (enabledChannels.get()) {
-					if(tp.size() > 0)
-						for(String former: tp) {
-							acquisitionOrderItems.add( former + " > Channel" );
-						}
-					else
-						acquisitionOrderItems.add( "Channel" );
-				}
-
-				if( !enabledTimePoints.get() ) propertyMap.get("times").set("");
-				else propertyMap.get("times").setValue( numTimePoints.getValue() );
-
-				if( !enabledPositions.get() ) propertyMap.get("positions").set("");
-				else computeTotalPositionImages();
-
-				if( !enabledChannels.get() ) propertyMap.get("channels").set("");
-				else computeTotalChannels();
-
-				return !enabledChannels.get() && !enabledPositions.get() && !enabledZStacks.get() && !enabledTimePoints.get();
-			}
-		};
-
-		disabledAcquisitionOrder.bind( bb );
-
-		final ProgressIndicator pi = new ProgressIndicator(0);
-		pi.setMinSize( 50,50 );
-		pi.setMaxSize( 50,50 );
-
-		final HBox hb = new HBox();
-		hb.setSpacing(5);
-		hb.setAlignment( Pos.CENTER_LEFT );
-
-		CheckBox continuousCheckBox = new CheckBox( "Continuous" );
-		continuousCheckBox.setTooltip( new Tooltip( "Continous acquisition ignores custom channel settings and captures current camera." ) );
-		continuous = continuousCheckBox.selectedProperty();
-		continuous.addListener( new ChangeListener< Boolean >()
-		{
-			@Override public void changed( ObservableValue< ? extends Boolean > observable, Boolean oldValue, Boolean newValue )
-			{
-				enabledChannels.setValue( !newValue );
-			}
-		} );
-
-		Button acquireButton = new Button( "Acquire" );
-		acquireButton.setMinSize( 130, 40 );
-		acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
-		acquireButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				if(studio != null)
-				{
-					System.out.println("Height: " + studio.core().getImageHeight());
-					System.out.println("Width: " + studio.core().getImageWidth());
-					System.out.println("Depth: " + studio.core().getImageBitDepth());
-					System.out.println("BufferSize: " + studio.core().getImageBufferSize());
-				}
-
-				if(acquisitionThread == null) {
-					startAcquisition(acquireButton);
-					acquireButton.setText( "Stop acquisition" );
-					acquireButton.setStyle("-fx-font: 15 arial; -fx-base: #e77d8c;");
-				}
-				else {
-					stopAcquisition();
-					acquireButton.setText( "Acquire" );
-					acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
-				}
-			}
-		} );
-
-//		if(spimSetup == null) {
-//			final Slider slider = new Slider();
-//			slider.setMin(-1);
-//			slider.setMax(50);
-//
-//			slider.valueProperty().addListener(new ChangeListener<Number>() {
-//				public void changed( ObservableValue<? extends Number> ov,
-//						Number old_val, Number new_val) {
-//					pb.setProgress(new_val.doubleValue()/50);
-//					pi.setProgress(new_val.doubleValue()/50);
-//				}
-//			});
-//			hb.getChildren().addAll(liveViewButton, acquireButton, stopButton, slider, pb, pi);
-//		}
-//		else
-		{
-
-			processedImages.addListener( new ChangeListener< Number >()
-			{
-				@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
-				{
-					pi.setProgress( newValue.doubleValue() / totalImages.getValue() );
-				}
-			} );
-			hb.getChildren().addAll(continuousCheckBox, acquireButton, pi);
-		}
-
+		// Acquisition Setting Buttons
+		final HBox acqSettings = new HBox();
+		acqSettings.setSpacing(5);
+		acqSettings.setAlignment( Pos.CENTER_LEFT );
 
 		Button saveButton = new Button( "Save acquisition setting" );
 		saveButton.setMinSize( 150, 40 );
@@ -541,11 +478,88 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		hb.getChildren().addAll( saveButton, loadButton );
+		acqSettings.getChildren().addAll( saveButton, loadButton );
+		BorderPane.setMargin(acqSettings, new Insets(12,12,12,12));
+
+		// Laser shutter(software) / Arduino Shutter(hardware)
+		// Save image options
+		SplitPane channelListSaveImage = new SplitPane(
+				channelPane,
+				createSaveImagesPane(acqSettings)
+		);
+//		channelListSaveImage.setDividerPositions( 0.6 );
+
+		SplitPane content = new SplitPane( positionZStackSplit, channelListSaveImage );
+		content.setOrientation( Orientation.VERTICAL );
+		content.setDividerPositions( 0.7 );
+
+
+		// Compute acquisition order logic
+		BooleanBinding bb = new BooleanBinding()
+		{
+			{
+				super.bind(enabledChannels, enabledPositions, enabledZStacks, enabledTimePoints);
+			}
+			@Override protected boolean computeValue()
+			{
+				acquisitionOrderItems.clear();
+
+				ArrayList<String> tp = new ArrayList<>(  );
+				if (enabledTimePoints.get() && enabledPositions.get() ) {
+					tp.addAll( Arrays.asList( "Time > Position", "Position > Time" ) );
+				} else if (enabledTimePoints.get()) {
+					tp.add( "Time");
+				} else if (enabledPositions.get()) {
+					tp.add( "Position");
+				}
+
+				if (enabledZStacks.get() && enabledChannels.get()) {
+					if(tp.size() > 0)
+						for(String former: tp) {
+							for(String latter : Arrays.asList( "Slice > Channel", "Channel > Slice" ) ) {
+								acquisitionOrderItems.add( former + " > " + latter );
+							}
+						}
+					else
+						acquisitionOrderItems.addAll( "Slice > Channel", "Channel > Slice" );
+				} else if (enabledZStacks.get()) {
+					if(tp.size() > 0)
+						for(String former: tp) {
+							acquisitionOrderItems.add( former + " > Slice" );
+						}
+					else
+						acquisitionOrderItems.add( "Slice" );
+				} else if (enabledChannels.get()) {
+					if(tp.size() > 0)
+						for(String former: tp) {
+							acquisitionOrderItems.add( former + " > Channel" );
+						}
+					else
+						acquisitionOrderItems.add( "Channel" );
+				}
+
+				if( !enabledTimePoints.get() ) propertyMap.get("times").set("");
+				else propertyMap.get("times").setValue( numTimePoints.getValue() );
+
+				if( !enabledPositions.get() ) propertyMap.get("positions").set("");
+				else computeTotalPositionImages();
+
+				if( !enabledChannels.get() ) propertyMap.get("channels").set("");
+				else computeTotalChannels();
+
+				return !enabledChannels.get() && !enabledPositions.get() && !enabledZStacks.get() && !enabledTimePoints.get();
+			}
+		};
+
+		disabledAcquisitionOrder.bind( bb );
 
 		setCenter( content );
-		BorderPane.setMargin(hb, new Insets(12,12,12,12));
-		setBottom( hb );
+
+		VBox smartImagingBox = new VBox( 10, new Label( "Smart Imaging" ), smartImagingCylinder );
+		smartImagingBox.setAlignment( Pos.CENTER_LEFT );
+		HBox bottom = new HBox(20, createSummaryPane(), smartImagingBox );
+		bottom.setAlignment( Pos.CENTER_LEFT );
+		setBottom( bottom );
 
 		addEventHandler( ControlEvent.STAGE, new EventHandler< ControlEvent >()
 		{
@@ -648,18 +662,18 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 	public void setStagePanel(StagePanel stagePanel) {
 
+		double cubeHeight = 200;
+
 		if(stagePanel != null) {
 			zStackGridPane.getChildren().remove( zSlider );
 			this.stagePanel = stagePanel;
 
 			zStackGroup.getChildren().remove( cube );
-			cube = new StackCube(50, 100, Color.CORNFLOWERBLUE, 1, zStart, zEnd, stagePanel.getZValueProperty() );
+			cube = new StackCube(50, cubeHeight, Color.CORNFLOWERBLUE, 1, zStart, zEnd, stagePanel.getZValueProperty() );
 		} else {
 			this.stagePanel = null;
-			zSlider = new Slider(0, 100, 0);
 
-			zSlider.setOrientation( Orientation.VERTICAL );
-			cube = new StackCube(50, 100, Color.CORNFLOWERBLUE, 1, zStart, zEnd, zSlider.valueProperty() );
+			cube = new StackCube(50, cubeHeight, Color.CORNFLOWERBLUE, 1, zStart, zEnd, zSlider.valueProperty() );
 
 			zStackGridPane.add( zSlider, 3, 0, 1, 2 );
 		}
@@ -902,7 +916,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		propertyMap.get("positions").setValue( totalImages + "" );
 	}
 
-	private CheckboxPane createSaveImagesPane() {
+	private Node createSaveImagesPane(Node buttonPane) {
 		GridPane gridpane = new GridPane();
 
 		gridpane.setVgap( 5 );
@@ -947,7 +961,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		CheckboxPane pane = new CheckboxPane( "Save Images", gridpane, 12 );
 		enabledSaveImages = pane.selectedProperty();
-		return pane;
+
+		VBox vbox = new VBox( 12, pane, buttonPane );
+		return vbox;
 	}
 
 	private TableView< ChannelItem > createChannelItemTable( TableView< ChannelItem > channelItemTableView, String camera, String laser, int exp ) {
@@ -1021,43 +1037,42 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		GridPane gridpane = new GridPane();
 
 		gridpane.setVgap( 5 );
-		gridpane.setHgap( 5 );
+		gridpane.setHgap( 20 );
 
+		// First row
 		Label label = new Label();
 		label.textProperty().bind( propertyMap.get("times") );
 		label.textProperty().addListener( observable -> computeTotal() );
-		gridpane.addRow( 0, new Label("No. of time points: "), label );
 
+		Label label2 = new Label();
+		label2.textProperty().bind( propertyMap.get("totalImages") );
+		gridpane.addRow( 0, new Label("No. of time points: "), label, new Label("Total images: "), label2 );
+
+		// Second row
 		label = new Label();
 		label.textProperty().bind( propertyMap.get("positions") );
 		label.textProperty().addListener( observable -> computeTotal() );
-		gridpane.addRow( 1, new Label("Images in positions: "), label );
 
+		label2 = new Label();
+		label2.textProperty().bind( propertyMap.get("totalSize") );
+		gridpane.addRow( 1, new Label("Images in positions: "), label, new Label("Total size: "), label2 );
+
+		// Third row
 		label = new Label();
 		label.textProperty().bind( propertyMap.get("cams") );
 		label.textProperty().addListener( observable -> computeTotal() );
-		gridpane.addRow( 2, new Label("No. of cameras: "), label);
+
+		label2 = new Label();
+		label2.textProperty().bind( propertyMap.get("duration") );
+		gridpane.addRow( 2, new Label("No. of cameras: "), label, new Label("Duration: "), label2 );
 
 		label = new Label();
 		label.textProperty().bind( propertyMap.get("channels") );
 		label.textProperty().addListener( observable -> computeTotal() );
-		gridpane.addRow( 3, new Label("No. of channels: "), label );
 
-		label = new Label();
-		label.textProperty().bind( propertyMap.get("totalImages") );
-		gridpane.addRow( 4, new Label("Total images: "), label );
-
-		label = new Label();
-		label.textProperty().bind( propertyMap.get("totalSize") );
-		gridpane.addRow( 5, new Label("Total size: "), label );
-
-		label = new Label();
-		label.textProperty().bind( propertyMap.get("duration") );
-		gridpane.addRow( 6, new Label("Duration: "), label );
-
-		label = new Label();
-		label.textProperty().bind( propertyMap.get("order") );
-		gridpane.addRow( 7, new Label("Order: "), label );
+		label2 = new Label();
+		label2.textProperty().bind( propertyMap.get("order") );
+		gridpane.addRow( 3, new Label("No. of channels: "), label, new Label("Order: "), label2 );
 
 		return new LabeledPane( "Summary", gridpane );
 	}
@@ -1116,22 +1131,22 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 	private CheckboxPane createZStackPane( StagePanel stagePanel ) {
 
-
+		double cubeHeight = 200;
 
 		if(stagePanel == null)
 		{
-			zSlider = new Slider(0, 100, 0);
+			zSlider = new Slider(0, cubeHeight, 0);
 			zSlider.setOrientation( Orientation.VERTICAL );
-			cube = new StackCube(50, 100, Color.CORNFLOWERBLUE, 1, zStart, zEnd, zSlider.valueProperty() );
+			cube = new StackCube(50, cubeHeight, Color.CORNFLOWERBLUE, 1, zStart, zEnd, zSlider.valueProperty() );
 		}
 		else
-			cube = new StackCube(50, 100, Color.CORNFLOWERBLUE, 1, zStart, zEnd, stagePanel.getZValueProperty() );
+			cube = new StackCube(50, cubeHeight, Color.CORNFLOWERBLUE, 1, zStart, zEnd, stagePanel.getZValueProperty() );
 
 //		cube.setRotate( 180 );
 		cube.setTranslateX( -60 );
 
 		zStackGridPane = new GridPane();
-		zStackGridPane.setVgap( 8 );
+		zStackGridPane.setVgap( 50 );
 		zStackGridPane.setHgap( 5 );
 
 		Button startButton = createZStackButton( "Z-start" );
@@ -1142,7 +1157,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			{
 				if(!newValue.isEmpty()) {
 					double z = Double.parseDouble( newValue );
-					zStart.set( z / maxZStack * 100 );
+					zStart.set( z / maxZStack * cubeHeight );
 				}
 			}
 		} );
@@ -1177,7 +1192,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			{
 				if(!newValue.isEmpty()) {
 					double z = Double.parseDouble( newValue );
-					zEnd.set( z / maxZStack * 100 );
+					zEnd.set( z / maxZStack * cubeHeight );
 				}
 			}
 		} );
@@ -1203,8 +1218,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 					zStepField.setText( newValue.getZStep() + "");
 					zEndField.setText( (int)newValue.getZEnd() + "");
 
-					zStart.set( newValue.getZStart() / maxZStack * 100 );
-					zEnd.set( newValue.getZEnd() / maxZStack * 100 );
+					zStart.set( newValue.getZStart() / maxZStack * cubeHeight );
+					zEnd.set( newValue.getZEnd() / maxZStack * cubeHeight );
 				}
 			}
 		} );
