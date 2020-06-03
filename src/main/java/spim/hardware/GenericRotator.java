@@ -39,11 +39,11 @@ public class GenericRotator extends Stage {
 
 	@Override
 	public double getMinPosition() {
-		return -180.0D;
+		return 0.0D;
 	}
 
 	@Override
 	public double getMaxPosition() {
-		return +180.0D;
+		return 360.0D;
 	}
 }

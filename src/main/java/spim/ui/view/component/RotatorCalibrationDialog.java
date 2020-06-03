@@ -54,13 +54,17 @@ public class RotatorCalibrationDialog extends Alert
 			@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
 			{
 				if(newValue.doubleValue() > 0) {
-					returnResult = Math.round(newValue.doubleValue() / 360.0 * 100d) / 100d;
+					// theta * Math.PI / 180.0D
+					returnResult = Math.round(360.0 / newValue.doubleValue() * 100d) / 100d;
 					stepSize.setText( String.format("%.2f", returnResult) );
 				}
 			}
 		} );
 
-		unit.targetValueProperty().addListener( ( observable, oldValue, newValue ) -> stage.setPosition( newValue.doubleValue() ) );
+		unit.targetValueProperty().addListener( ( observable, oldValue, newValue ) -> {
+			unit.get( StageUnit.BooleanState.Ready ).setValue( false );
+			stage.setPosition( newValue.doubleValue() );
+		} );
 
 		HBox stepBox = new HBox( 10, stepSizeLabel, stepSize );
 		stepBox.setAlignment( Pos.CENTER_LEFT );
@@ -106,6 +110,7 @@ public class RotatorCalibrationDialog extends Alert
 		{
 			@Override public void handle( DialogEvent event )
 			{
+				stage.setPosition( 0d );
 				shutdownExecutor();
 			}
 		} );
