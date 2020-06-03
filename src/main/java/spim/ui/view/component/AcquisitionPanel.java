@@ -152,6 +152,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	SimpleDoubleProperty zStart;
 	SimpleDoubleProperty zEnd;
 	SimpleDoubleProperty zCurrent;
+	ChangeListener< Number > currentChangeListener;
 
 	// For Smart Imaging
 	SimpleDoubleProperty currentTP;
@@ -670,17 +671,17 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			zStackGridPane.getChildren().remove( zSlider );
 			this.stagePanel = stagePanel;
 
-			stagePanel.getZValueProperty().addListener( new ChangeListener< Number >()
-			{
-				@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
-				{
-					zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight );
-				}
-			} );
+			currentChangeListener = ( observable, oldValue, newValue ) -> zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight );
+
+			stagePanel.getZValueProperty().addListener( currentChangeListener);
 
 			zStackGroup.getChildren().remove( cube );
 
 		} else {
+			if(this.stagePanel != null && currentChangeListener != null) {
+				this.stagePanel.getZValueProperty().removeListener( currentChangeListener );
+			}
+
 			this.stagePanel = null;
 
 			zStackGridPane.add( zSlider, 3, 0, 1, 2 );
