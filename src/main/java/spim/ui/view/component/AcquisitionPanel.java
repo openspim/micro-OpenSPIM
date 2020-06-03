@@ -555,7 +555,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 					PositionItem pos = (PositionItem) event.getParam()[0];
 
 					if(spimSetup != null) {
-//						double r = spimSetup.getThetaStage().getPosition() + 180.0;
+//						double r = spimSetup.getThetaStage().getPosition();
 //						double x = spimSetup.getXStage().getPosition();
 //						double y = spimSetup.getYStage().getPosition();
 //						double z = spimSetup.getZStage().getPosition();
@@ -833,7 +833,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		EventHandler newEventHandler = ( EventHandler< ActionEvent > ) event -> {
 			if(spimSetup != null ) {
-				double r = spimSetup.getThetaStage().getPosition() + 180.0;
+				double r = spimSetup.getThetaStage().getPosition();
 				double x = spimSetup.getXStage().getPosition();
 				double y = spimSetup.getYStage().getPosition();
 				double z = spimSetup.getZStage().getPosition();
@@ -1218,7 +1218,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			@Override public void handle( ActionEvent event )
 			{
 				if(spimSetup != null ) {
-					double r = spimSetup.getThetaStage().getPosition() + 180.0;
+					double r = spimSetup.getThetaStage().getPosition();
 					double x = spimSetup.getXStage().getPosition();
 					double y = spimSetup.getYStage().getPosition();
 					double z = spimSetup.getZStage().getPosition();

@@ -1267,11 +1267,7 @@ public class MMAcquisitionEngine
 
 			if (dev instanceof Stage ) // TODO: should this be different?
 			{
-				if( devType == SPIMSetup.SPIMDevice.STAGE_THETA ) {
-					( ( Stage ) dev ).setPosition( values.getStartPosition() - 180 );
-				}
-				else
-					( ( Stage ) dev ).setPosition( values.getStartPosition() );
+				( ( Stage ) dev ).setPosition( values.getStartPosition() );
 			}
 			else
 				throw new Exception("Unknown device type for \"" + dev

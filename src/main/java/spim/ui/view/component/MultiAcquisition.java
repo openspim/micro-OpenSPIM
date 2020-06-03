@@ -119,7 +119,7 @@ public class MultiAcquisition
 							}
 						}
 
-						if(!core.isSequenceRunning() && core.getRemainingImageCount() > 0) {
+						if(core.getRemainingImageCount() > 0) {
 							try
 							{
 								core.popNextImage();

@@ -63,15 +63,15 @@ public class StageUnit extends Region
 	public void setStageDevice(spim.hardware.Stage stageDevice) {
 		this.stageDevice = stageDevice;
 
-		resetDevice();
+		resetDevice( null == stageDevice ? 0.0 : stageDevice.getPosition() );
 	}
 
-	public void resetDevice() {
+	public void resetDevice(double pos) {
 		final double min = ( isR ? 0.0 : ( null == stageDevice ? 0.0 : stageDevice.getMinPosition() ) );
 		final double max = ( isR ? 360.0 : ( null == stageDevice ? 9000.0 : stageDevice.getMaxPosition() ) );
 		final double tick = isR ? 60.0 : 1000;
 
-		currentValue = ( null == stageDevice ? 0.0 : ( isR ? stageDevice.getPosition() + 180.0 : stageDevice.getPosition() ) );
+		currentValue = pos;
 
 		targetSlider.updateMinMaxTick( min, max, tick );
 		deviceSlider.updateMinMaxTick( min, max, tick );
@@ -98,7 +98,7 @@ public class StageUnit extends Region
 		final double max = ( isR ? 360.0 : ( null == stageDevice ? 9000.0 : (isCalibrationMode) ? stageDevice.getRealMaxPosition() : stageDevice.getMaxPosition() ) );
 		final double tick = isR ? 60.0 : 1000;
 
-		currentValue = ( null == stageDevice ? 0.0 : ( isR ? stageDevice.getPosition() + 180.0 : stageDevice.getPosition() ) );
+		currentValue = ( null == stageDevice ? 0.0 : stageDevice.getPosition() );
 
 		// Model
 		targetValueProperty = new SimpleDoubleProperty(  );
@@ -141,7 +141,7 @@ public class StageUnit extends Region
 				targetValueProperty.setValue( currentValue );
 				targetSlider.getSlider().setValue( currentValue );
 			} else {
-				currentValue = ( null == this.stageDevice ? 0.0 : ( isR ? this.stageDevice.getPosition() + 180.0 : this.stageDevice.getPosition() ) );
+				currentValue = ( null == this.stageDevice ? 0.0 : this.stageDevice.getPosition() );
 			}
 		} );
 
@@ -200,13 +200,14 @@ public class StageUnit extends Region
 			resetButton.setOnAction( event -> {
 				if(getStageDevice() != null) {
 					System.err.println("Current Step Size: " + getStageDevice().getStepSize());
+					getStageDevice().setStepSize( 1.0f );
 					RotatorCalibrationDialog dlg = new RotatorCalibrationDialog( getStageDevice() );
 
 					dlg.showAndWait()
 							.filter(response -> response == ButtonType.OK)
 							.ifPresent(response -> {
 								getStageDevice().setStepSize( dlg.getReturnResult() );
-								resetDevice();
+								resetDevice(0);
 							});
 				} else {
 					new Alert( Alert.AlertType.ERROR, "StageDevice is not ready.");
