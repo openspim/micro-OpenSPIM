@@ -234,11 +234,13 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 	public DoubleProperty getZValueProperty() {
 		SimpleDoubleProperty property = new SimpleDoubleProperty();
 
+		double max = spimSetup.getZStage().getMaxPosition();
+
 		stageMap.get( StageUnit.Stage.Z ).deviceValueProperty().addListener( new ChangeListener< Number >()
 		{
 			@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
 			{
-				property.set( newValue.doubleValue() );
+				property.set( newValue.doubleValue() / max * 200 );
 			}
 		} );
 

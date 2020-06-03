@@ -675,9 +675,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 			this.stagePanel = stagePanel;
 
-			currentChangeListener = ( observable, oldValue, newValue ) -> {
-				zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight );
-			};
+			currentChangeListener = ( observable, oldValue, newValue ) -> zCurrent.set( newValue.doubleValue() );
 
 			stagePanel.getZValueProperty().addListener( currentChangeListener);
 
@@ -1162,7 +1160,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				this.stagePanel.getZValueProperty().removeListener( currentChangeListener );
 			}
 
-			currentChangeListener = ( observable, oldValue, newValue ) -> zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight );
+			currentChangeListener = ( observable, oldValue, newValue ) -> zCurrent.set( newValue.doubleValue() );
 
 			stagePanel.getZValueProperty().addListener( currentChangeListener );
 		}
