@@ -669,9 +669,16 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		if(stagePanel != null) {
 			zStackGridPane.getChildren().remove( zSlider );
+			if(this.stagePanel != null && currentChangeListener != null) {
+				this.stagePanel.getZValueProperty().removeListener( currentChangeListener );
+			}
+
 			this.stagePanel = stagePanel;
 
-			currentChangeListener = ( observable, oldValue, newValue ) -> zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight );
+			currentChangeListener = ( observable, oldValue, newValue ) -> {
+				zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight );
+				System.out.println(newValue.doubleValue() / maxZStack * cubeHeight);
+			};
 
 			stagePanel.getZValueProperty().addListener( currentChangeListener);
 
@@ -1147,23 +1154,18 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			zSlider = new Slider(0, 100, 0);
 			zSlider.setOrientation( Orientation.VERTICAL );
-			zSlider.valueProperty().addListener( new ChangeListener< Number >()
-			{
-				@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
-				{
-					zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight );
-				}
-			} );
+
+			zSlider.valueProperty().addListener( ( observable, oldValue, newValue ) -> zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight ) );
 		}
 		else
 		{
-			stagePanel.getZValueProperty().addListener( new ChangeListener< Number >()
-			{
-				@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
-				{
-					zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight );
-				}
-			} );
+			if(this.stagePanel != null && currentChangeListener != null) {
+				this.stagePanel.getZValueProperty().removeListener( currentChangeListener );
+			}
+
+			currentChangeListener = ( observable, oldValue, newValue ) -> zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight );
+
+			stagePanel.getZValueProperty().addListener( currentChangeListener );
 		}
 		cube = new StackCube(50, cubeHeight, Color.CORNFLOWERBLUE, 1, zStart, zEnd, zCurrent );
 
@@ -1542,7 +1544,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 					.width(size).height(0.25*size)
 					.fill(Color.RED.deriveColor(0.0, 1.0, (1 - 0.1*shade), 0.5))
 					.translateX(0)
-					.translateY( currentZ.get() - 0.75 * size )
+					.translateY( - 0.75 * size )
 					.transforms( new Shear( -2, 0 ) )
 					.build();
 
