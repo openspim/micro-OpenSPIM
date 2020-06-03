@@ -677,7 +677,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 			currentChangeListener = ( observable, oldValue, newValue ) -> {
 				zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight );
-				System.out.println(newValue.doubleValue() / maxZStack * cubeHeight);
 			};
 
 			stagePanel.getZValueProperty().addListener( currentChangeListener);
