@@ -669,23 +669,16 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		if(stagePanel != null) {
 			zStackGridPane.getChildren().remove( zSlider );
-			if(this.stagePanel != null && currentChangeListener != null) {
-				this.stagePanel.getZValueProperty().removeListener( currentChangeListener );
-			}
 
 			this.stagePanel = stagePanel;
 
-			currentChangeListener = ( observable, oldValue, newValue ) -> zCurrent.set( newValue.doubleValue() );
+			currentChangeListener = ( observable, oldValue, newValue ) -> zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight );
 
 			stagePanel.getZValueProperty().addListener( currentChangeListener);
 
 			zStackGroup.getChildren().remove( cube );
 
 		} else {
-			if(this.stagePanel != null && currentChangeListener != null) {
-				this.stagePanel.getZValueProperty().removeListener( currentChangeListener );
-			}
-
 			this.stagePanel = null;
 
 			zStackGridPane.add( zSlider, 3, 0, 1, 2 );
@@ -1152,15 +1145,13 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			zSlider = new Slider(0, 100, 0);
 			zSlider.setOrientation( Orientation.VERTICAL );
 
-			zSlider.valueProperty().addListener( ( observable, oldValue, newValue ) -> zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight ) );
+			currentChangeListener = ( observable, oldValue, newValue ) -> zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight );
+
+			zSlider.valueProperty().addListener( currentChangeListener );
 		}
 		else
 		{
-			if(this.stagePanel != null && currentChangeListener != null) {
-				this.stagePanel.getZValueProperty().removeListener( currentChangeListener );
-			}
-
-			currentChangeListener = ( observable, oldValue, newValue ) -> zCurrent.set( newValue.doubleValue() );
+			currentChangeListener = ( observable, oldValue, newValue ) -> zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight );
 
 			stagePanel.getZValueProperty().addListener( currentChangeListener );
 		}

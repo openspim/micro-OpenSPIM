@@ -203,8 +203,8 @@ public class HalcyonMain extends HalcyonFrame
 							lToolbar.setSetup( spimSetup, studio );
 							javaEditor.setSetup(spimSetup, studio);
 							arduinoPanel.setSetup(spimSetup, studio);
-							acquisitionPanel.setStagePanel( stagePanel );
 							acquisitionPanel.setSetup( spimSetup, studio );
+							acquisitionPanel.setStagePanel( stagePanel );
 						}
 					} );
 				} else {
@@ -223,8 +223,8 @@ public class HalcyonMain extends HalcyonFrame
 						   lToolbar.setSetup( null, studio );
 						   javaEditor.setSetup( null, studio );
 						   arduinoPanel.setSetup( null, studio );
-						   acquisitionPanel.setStagePanel( null );
 						   acquisitionPanel.setSetup( null, studio );
+						   acquisitionPanel.setStagePanel( null );
 						   terminated.set(false);
 					   }
 				    });

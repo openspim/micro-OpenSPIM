@@ -55,6 +55,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 
 	private HashMap< StageUnit.Stage, StageUnit > stageMap = null;
 	private HashMap< StageUnit.Stage, ChangeListener > changeListenerMap = null;
+	private ChangeListener< Number > currentZChangeListener = null;
 
 	private StageUnit stageUnitR;
 	private StageUnit stageUnitX;
@@ -83,6 +84,9 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		this.spimSetup = setup;
 
 		initExecutor();
+
+		if(currentZChangeListener != null)
+			stageMap.get( StageUnit.Stage.Z ).deviceValueProperty().addListener( currentZChangeListener );
 
 		// rebound the control
 		for ( StageUnit.Stage stage : stageMap.keySet() )
@@ -234,15 +238,9 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 	public DoubleProperty getZValueProperty() {
 		SimpleDoubleProperty property = new SimpleDoubleProperty();
 
-		double max = spimSetup.getZStage().getMaxPosition();
+		currentZChangeListener = ( observable, oldValue, newValue ) -> property.set( newValue.doubleValue() );
 
-		stageMap.get( StageUnit.Stage.Z ).deviceValueProperty().addListener( new ChangeListener< Number >()
-		{
-			@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
-			{
-				property.set( newValue.doubleValue() / max * 200 );
-			}
-		} );
+		stageMap.get( StageUnit.Stage.Z ).deviceValueProperty().addListener( currentZChangeListener );
 
 		return property;
 	}
