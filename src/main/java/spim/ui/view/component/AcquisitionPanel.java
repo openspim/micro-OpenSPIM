@@ -146,11 +146,12 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	StagePanel stagePanel;
 
 	Thread acquisitionThread = null;
-	double maxZStack = 5000;
+	double maxZStack = 100;
 
 	// For StackCube sizing
 	SimpleDoubleProperty zStart;
 	SimpleDoubleProperty zEnd;
+	SimpleDoubleProperty zCurrent;
 
 	// For Smart Imaging
 	SimpleDoubleProperty currentTP;
@@ -188,6 +189,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		this.zStart = new SimpleDoubleProperty( 0 );
 		this.zEnd = new SimpleDoubleProperty( 0 );
+		this.zCurrent = new SimpleDoubleProperty( 0 );
 
 		this.currentTP = new SimpleDoubleProperty( 0 );
 
@@ -668,15 +670,22 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			zStackGridPane.getChildren().remove( zSlider );
 			this.stagePanel = stagePanel;
 
+			stagePanel.getZValueProperty().addListener( new ChangeListener< Number >()
+			{
+				@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
+				{
+					zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight );
+				}
+			} );
+
 			zStackGroup.getChildren().remove( cube );
-			cube = new StackCube(50, cubeHeight, Color.CORNFLOWERBLUE, 1, zStart, zEnd, stagePanel.getZValueProperty() );
+
 		} else {
 			this.stagePanel = null;
 
-			cube = new StackCube(50, cubeHeight, Color.CORNFLOWERBLUE, 1, zStart, zEnd, zSlider.valueProperty() );
-
 			zStackGridPane.add( zSlider, 3, 0, 1, 2 );
 		}
+		cube = new StackCube(50, cubeHeight, Color.CORNFLOWERBLUE, 1, zStart, zEnd, zCurrent );
 
 		zStackGroup.getChildren().add( 0, cube );
 		cube.setTranslateX( -60 );
@@ -1135,12 +1144,27 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		if(stagePanel == null)
 		{
-			zSlider = new Slider(0, cubeHeight, 0);
+			zSlider = new Slider(0, 100, 0);
 			zSlider.setOrientation( Orientation.VERTICAL );
-			cube = new StackCube(50, cubeHeight, Color.CORNFLOWERBLUE, 1, zStart, zEnd, zSlider.valueProperty() );
+			zSlider.valueProperty().addListener( new ChangeListener< Number >()
+			{
+				@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
+				{
+					zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight );
+				}
+			} );
 		}
 		else
-			cube = new StackCube(50, cubeHeight, Color.CORNFLOWERBLUE, 1, zStart, zEnd, stagePanel.getZValueProperty() );
+		{
+			stagePanel.getZValueProperty().addListener( new ChangeListener< Number >()
+			{
+				@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
+				{
+					zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight );
+				}
+			} );
+		}
+		cube = new StackCube(50, cubeHeight, Color.CORNFLOWERBLUE, 1, zStart, zEnd, zCurrent );
 
 //		cube.setRotate( 180 );
 		cube.setTranslateX( -60 );
@@ -1517,7 +1541,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 					.width(size).height(0.25*size)
 					.fill(Color.RED.deriveColor(0.0, 1.0, (1 - 0.1*shade), 0.5))
 					.translateX(0)
-					//							.translateY(-0.75 * size)
 					.translateY( currentZ.get() - 0.75 * size )
 					.transforms( new Shear( -2, 0 ) )
 					.build();
