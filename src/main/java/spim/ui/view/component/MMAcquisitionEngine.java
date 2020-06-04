@@ -170,8 +170,6 @@ public class MMAcquisitionEngine
 			}
 		}
 
-		System.out.println( ch );
-
 		String[] channelNames = new String[ch];
 
 		ch = 0;
@@ -207,6 +205,10 @@ public class MMAcquisitionEngine
 		}
 		catch ( Exception ignored ) {
 		}
+
+		System.out.println( Arrays.toString( channelNames ) );
+		System.out.println( smb );
+		System.out.println( Arrays.toString( multiStagePositions ) );
 
 		smb = smb.channelNames(channelNames).
 				zStepUm( core.getPixelSizeUm() ).
