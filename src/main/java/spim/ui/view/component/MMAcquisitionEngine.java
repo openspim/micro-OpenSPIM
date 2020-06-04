@@ -178,14 +178,22 @@ public class MMAcquisitionEngine
 			for(String c : multis)
 				channelNames[ ch++ ] = c;
 		} else {
-			for(ChannelItem chItem : channelItems)
-			{
-				String cam = chItem.getName();
-				if(!cam.startsWith( "Multi" ))
-					channelNames[ ch++ ] = cam + "-" + chItem.getName();
-				else {
-					for(String c : multis)
-						channelNames[ ch++ ] = "Multi-" + c + "-" + chItem.getName();
+			if(arduinoSelected) {
+				for(ChannelItem chItem: channelItems) {
+					for(String name: multis) {
+						channelNames[ ch++ ] = name + "-" + chItem.getName();
+					}
+				}
+			} else {
+				for(ChannelItem chItem : channelItems)
+				{
+					String cam = chItem.getName();
+					if(!cam.startsWith( "Multi" ))
+						channelNames[ ch++ ] = cam;
+					else {
+						for(String c : multis)
+							channelNames[ ch++ ] = "Multi-" + c + "-" + chItem.getName();
+					}
 				}
 			}
 		}
