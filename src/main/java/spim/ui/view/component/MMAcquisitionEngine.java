@@ -48,6 +48,7 @@ import java.awt.Rectangle;
 import java.io.File;
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -168,6 +169,8 @@ public class MMAcquisitionEngine
 				}
 			}
 		}
+
+		System.out.println( ch );
 
 		String[] channelNames = new String[ch];
 
@@ -360,7 +363,6 @@ public class MMAcquisitionEngine
 
 						// Traverse Z stacks
 						int noSlice = 0;
-						System.out.println(String.format( "%f:%f:%f", positionItem.getZStart(), positionItem.getZEnd(), positionItem.getZStep() ));
 						for(double zStart = positionItem.getZStart(); zStart <= positionItem.getZEnd(); zStart += positionItem.getZStep())
 						{
 							try {
@@ -524,7 +526,6 @@ public class MMAcquisitionEngine
 
 				// Traverse Z stacks
 				int noSlice = 0;
-				System.out.println(String.format( "%f:%f:%f", positionItem.getZStart(), positionItem.getZEnd(), positionItem.getZStep() ));
 				for(double zStart = positionItem.getZStart(); zStart <= positionItem.getZEnd(); zStart += positionItem.getZStep())
 				{
 					try {

@@ -858,7 +858,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				double x = spimSetup.getXStage().getPosition();
 				double y = spimSetup.getYStage().getPosition();
 				double z = spimSetup.getZStage().getPosition();
-				positionItemTableView.getItems().add( new PositionItem( x, y, r, z, 10, 1.5 ) );
+				positionItemTableView.getItems().add( new PositionItem( x, y, r, z, z, 6 ) );
 			}
 			else {
 				positionItemTableView.getItems().add( new PositionItem( 10, 20, 30, 20, 50, 10 ) );
