@@ -53,12 +53,12 @@ public class GenericXYStage {
 			try {
 				if (iAmX) {
 					if (destY < 0) destY = core.getYPosition(label);
-					core.setXYPosition( label, pos, GenericXYStage.this.destY );
 					GenericXYStage.this.destX = pos;
+					core.setXYPosition( label, pos, GenericXYStage.this.destY );
 				} else {
 					if (destX < 0) destX = core.getXPosition(label);
-					core.setXYPosition( label, GenericXYStage.this.destX, pos );
 					GenericXYStage.this.destY = pos;
+					core.setXYPosition( label, GenericXYStage.this.destX, pos );
 				}
 			} catch (Exception e) {
 				ReportingUtils.logError(e, "Couldn't set " + (iAmX ? "X" : "Y") + " position on " + label);
