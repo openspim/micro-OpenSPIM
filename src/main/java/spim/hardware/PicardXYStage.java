@@ -58,6 +58,23 @@ public class PicardXYStage extends GenericXYStage {
 			}
 		}
 
+		@Override
+		public void setPosition(double pos) {
+			try {
+				if (iAmX) {
+					if (destY < 0) destY = core.getYPosition(label);
+					PicardXYStage.this.destX = pos;
+					core.setXYPosition( label, pos, PicardXYStage.this.destY );
+				} else {
+					if (destX < 0) destX = core.getXPosition(label);
+					PicardXYStage.this.destY = pos;
+					core.setXYPosition( label, PicardXYStage.this.destX, pos );
+				}
+			} catch (Exception e) {
+				ReportingUtils.logError(e, "Couldn't set " + (iAmX ? "X" : "Y") + " position on " + label);
+			}
+		}
+
 	}
 
 	public static Device getStage(CMMCore core, String label, boolean X) {
