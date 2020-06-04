@@ -57,7 +57,6 @@ public class GenericXYStage {
 					GenericXYStage.this.destX = pos;
 				} else {
 					if (destX < 0) destX = core.getXPosition(label);
-					core.waitForDevice( label );
 					core.setXYPosition( label, GenericXYStage.this.destX, pos );
 					GenericXYStage.this.destY = pos;
 				}
