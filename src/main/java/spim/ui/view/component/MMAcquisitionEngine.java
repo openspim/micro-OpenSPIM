@@ -524,6 +524,7 @@ public class MMAcquisitionEngine
 
 				// Traverse Z stacks
 				int noSlice = 0;
+				System.out.println(String.format( "%f:%f:%f", positionItem.getZStart(), positionItem.getZEnd(), positionItem.getZStep() ));
 				for(double zStart = positionItem.getZStart(); zStart <= positionItem.getZEnd(); zStart += positionItem.getZStep())
 				{
 					try {
