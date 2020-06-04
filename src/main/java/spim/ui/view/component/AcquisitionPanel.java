@@ -251,12 +251,12 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				if(liveOn.get())
 				{
 					liveViewButton.setText( "LiveView Stop" );
-					if(studio != null)
-						studio.live().setLiveMode( true );
+					if(AcquisitionPanel.this.studio != null)
+						AcquisitionPanel.this.studio.live().setLiveMode( true );
 				} else {
 					liveViewButton.setText( "LiveView Start" );
-					if(studio != null)
-						studio.live().setLiveMode( false );
+					if(AcquisitionPanel.this.studio != null)
+						AcquisitionPanel.this.studio.live().setLiveMode( false );
 				}
 			}
 		} );
