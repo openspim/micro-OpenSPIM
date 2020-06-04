@@ -10,6 +10,8 @@ import spim.hardware.Device.Factory;
 
 public class PicardXYStage extends GenericXYStage {
 	static {
+		instance = new PicardXYStage();
+
 		Factory factX = new Factory() {
 			@Override
 			public Device manufacture(CMMCore core, String label) {
@@ -27,6 +29,9 @@ public class PicardXYStage extends GenericXYStage {
 		Device.installFactory(factX, "Picard XY Stage", SPIMSetup.SPIMDevice.STAGE_X);
 		Device.installFactory(factY, "Picard XY Stage", SPIMSetup.SPIMDevice.STAGE_Y);
 	}
+
+	// Singleton pattern
+	static PicardXYStage instance;
 
 	public PicardXYStage() {
 		super();
@@ -57,29 +62,9 @@ public class PicardXYStage extends GenericXYStage {
 				ReportingUtils.logError(e, "Could not home X/Y stage.");
 			}
 		}
-
-		@Override
-		public void setPosition(double pos) {
-			try {
-				if (iAmX) {
-					if (destY < 0) destY = core.getYPosition(label);
-					PicardXYStage.this.destX = pos;
-					core.setXYPosition( label, pos, PicardXYStage.this.destY );
-				} else {
-					if (destX < 0) destX = core.getXPosition(label);
-					PicardXYStage.this.destY = pos;
-					core.setXYPosition( label, PicardXYStage.this.destX, pos );
-				}
-			} catch (Exception e) {
-				ReportingUtils.logError(e, "Couldn't set " + (iAmX ? "X" : "Y") + " position on " + label);
-			}
-		}
-
 	}
 
 	public static Device getStage(CMMCore core, String label, boolean X) {
-		PicardXYStage instance = new PicardXYStage();
-
 		if (X && instance.stageX == null)
 			instance.stageX = instance.new PicardSubStage(core, label, true);
 		else if (!X && instance.stageY == null)
