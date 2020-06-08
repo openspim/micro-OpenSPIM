@@ -12,6 +12,8 @@ import javafx.event.EventHandler;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TitledPane;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -47,6 +49,10 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		gridpane.setHgap( 5 );
 
 		setContents( gridpane );
+
+		Image logoImg = new javafx.scene.image.Image( getClass().getResourceAsStream( "logo.png" ),
+				160, 100, true, true );
+		ImageView iv = new ImageView(logoImg);
 
 		java.awt.Rectangle roi = null;
 		try
@@ -114,7 +120,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			}
 		} );
 
-		gridpane.addRow( 1, new HBox(  ) );
+		gridpane.addRow( 1, new HBox( iv ) );
 
 		TitledPane titledPane = new TitledPane( "Region of Interest", new VBox( 3, roiXYLabel, roiWLabel, roiHLabel ) );
 		titledPane.setCollapsible( false );
