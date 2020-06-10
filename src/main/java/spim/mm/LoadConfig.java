@@ -63,7 +63,8 @@ public class LoadConfig extends Application
 
 		ButtonType okButtonType = new ButtonType("Ok", ButtonBar.ButtonData.OK_DONE);
 		ButtonType cancelButtonType = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
-		dialogPane.getButtonTypes().addAll(okButtonType, cancelButtonType);
+		ButtonType resetButtonType = new ButtonType("Reset MM path", ButtonBar.ButtonData.FINISH);
+		dialogPane.getButtonTypes().addAll(okButtonType, cancelButtonType, resetButtonType);
 		//		dialogPane.lookupButton(cancelButtonType).setVisible(false);
 
 
@@ -157,6 +158,9 @@ public class LoadConfig extends Application
 
 		if(result.isPresent() && result.get().getButtonData() == ButtonType.OK.getButtonData()) {
 			returnResult = true;
+		} else if(result.isPresent() && result.get().getButtonData() == ButtonType.FINISH.getButtonData()) {
+			MMUtils.resetLibrayPath();
+			returnResult = false;
 		} else {
 			returnResult = false;
 		}

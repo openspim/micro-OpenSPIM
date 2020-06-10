@@ -142,7 +142,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			}
 		} );
 
-		Button mmButton = new Button( "Open MM2");
+		Button mmButton = new Button( "START");
 		mmButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -165,19 +165,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 		gridpane.addRow( 4, new HBox(3, ijButton, mmButton) );
 
-
-		Button resetMMPathBtn = new Button( "Rest MM Path" );
-		resetMMPathBtn.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				MMUtils.resetLibrayPath();
-			}
-		} );
-
-		gridpane.addRow( 5, new HBox(3, resetMMPathBtn) );
-
-		//		btn = new Button("Test Std Err");
+//		btn = new Button("Test Std Err");
 //		btn.setOnAction(e -> {
 //
 //			for (int i = 0; i < 2000; i++)

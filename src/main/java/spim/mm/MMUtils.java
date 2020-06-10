@@ -167,6 +167,7 @@ public class MMUtils
 
 	public static void resetLibrayPath()
 	{
+		loaded = false;
 		prefs.put(MM_PATH_ID, "");
 		System.setProperty("mmcorej.library.path", "");
 	}
