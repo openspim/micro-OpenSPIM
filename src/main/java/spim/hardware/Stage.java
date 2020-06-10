@@ -12,6 +12,8 @@ import spim.hardware.SPIMSetup.SPIMDevice;
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 
+import static spim.mm.MicroManager.setConfigChanged;
+
 public class Stage extends Device {
 	static {
 		Device.installFactory(new Factory() {
@@ -189,6 +191,7 @@ public class Stage extends Device {
 		if(hasProperty("StepSize"))
 		{
 			setProperty( "StepSize", stepSize );
+			setConfigChanged();
 		} else
 			throw new UnsupportedOperationException();
 	}

@@ -399,6 +399,11 @@ public class MicroManager implements PlugIn, CommandListener
 		return config.getReturnResult();
 	}
 
+	public static void setConfigChanged() {
+		if(mmstudio != null)
+			mmstudio.setConfigChanged( true );
+	}
+
 	/**
 	 * Retrieve the MicroManager main frame instance.
 	 */
