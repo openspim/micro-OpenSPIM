@@ -68,6 +68,13 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 	StageUnit lastUsedStageUnit;
 	double lastUsedLocation;
 
+	public void setAcquisitionPanel( AcquisitionPanel acquisitionPanel )
+	{
+		this.acquisitionPanel = acquisitionPanel;
+	}
+
+	private AcquisitionPanel acquisitionPanel;
+
 	public StagePanel()
 	{
 		init();
@@ -281,7 +288,18 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		switchAll.setThumbColor( Color.web( "#ff4922" ) );
 		switchAll.setMaxSize( 60, 30 );
 
-		stageUnitR = createStageControl( "Stage R (\u00b5-degree)",
+		Button newButton = new Button( "Add Pos." );
+		newButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(StagePanel.this.acquisitionPanel != null) {
+					StagePanel.this.acquisitionPanel.addNewPosition();
+				}
+			}
+		} );
+
+		stageUnitR = createStageControl( "Stage R",
 				StageUnit.Stage.R );
 
 		stageUnitR.targetValueProperty().addListener( ( observable, oldValue, newValue ) -> {
@@ -396,8 +414,11 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
+		// TODO: Angle indicator
+		Label angleIndicator = new Label( "Indicate angles:" );
 
-		HBox topHbox = new HBox( 10, new Label( "All On/Off: " ), switchAll, saveCurrentLocation, loadLocation );
+
+		HBox topHbox = new HBox( 10, new Label( "All On/Off: " ), switchAll, saveCurrentLocation, loadLocation, newButton );
 		topHbox.setAlignment( Pos.CENTER_LEFT );
 
 		Button undoBtn = new Button( "Go back to the last used position" );
@@ -412,7 +433,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		VBox controls = new VBox( 10, topHbox, stageUnitR, stageUnitX, stageUnitY, stageUnitZ, undoBtn );
+		VBox controls = new VBox( 10, topHbox, angleIndicator, stageUnitR, stageUnitX, stageUnitY, stageUnitZ, undoBtn );
 		controls.setPadding( new Insets( 10 ) );
 		return controls;
 	}
