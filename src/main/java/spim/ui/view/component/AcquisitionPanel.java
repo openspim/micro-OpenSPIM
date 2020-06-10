@@ -909,7 +909,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		positionItemTableView.setContextMenu( new ContextMenu( newItem, deleteItem ) );
+		positionItemTableView.setContextMenu( new ContextMenu( deleteItem ) );
 
 		positionItemTableView.getItems().addListener( new InvalidationListener()
 		{
@@ -1271,7 +1271,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		if(stagePanel == null && zSlider != null)
 			zStackGridPane.add( zSlider, 3, 0, 1, 2 );
 
-		Button newButton = new Button( "New Pos" );
+		Button newButton = new Button( "Add Pos." );
 		newButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
