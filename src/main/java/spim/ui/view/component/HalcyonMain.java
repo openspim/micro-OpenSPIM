@@ -84,8 +84,13 @@ public class HalcyonMain extends HalcyonFrame
 
 		ArrayList< HalcyonNodeType > nodeTypeList =
 				new ArrayList<>();
-		for ( HalcyonNodeType lHalcyonNodeType : SpimHalcyonNodeType.values())
-			nodeTypeList.add(lHalcyonNodeType);
+
+		nodeTypeList.add(SpimHalcyonNodeType.SHUTTER);
+		nodeTypeList.add(SpimHalcyonNodeType.CAMERA);
+		nodeTypeList.add(SpimHalcyonNodeType.LASER);
+		nodeTypeList.add(SpimHalcyonNodeType.EDITOR);
+		nodeTypeList.add(SpimHalcyonNodeType.STAGE);
+		nodeTypeList.add(SpimHalcyonNodeType.CONTROL);
 
 		TreePanel lTreePanel = new TreePanel("OpenSPIM Configurations",
 				"OpenSPIM",
@@ -107,14 +112,14 @@ public class HalcyonMain extends HalcyonFrame
 				SpimHalcyonNodeType.CAMERA, cameraDevicePanel );
 
 		StagePanel stagePanel = new StagePanel(null);
-		final HalcyonNode lStage1 = HalcyonNode.wrap("Stage-1",
+		final HalcyonNode lStage = HalcyonNode.wrap("Stage",
 				SpimHalcyonNodeType.STAGE,
 				stagePanel );
 
 		addNode(lLaser1);
 		addNode(lLaser2);
 		addNode(lCamera);
-		addNode(lStage1);
+		addNode(lStage);
 
 		JavaEditor javaEditor = new JavaEditor( primaryStage, spimSetup, studio );
 		final HalcyonNode editor1 = HalcyonNode.wrap( "Java",
