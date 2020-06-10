@@ -68,6 +68,13 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 	StageUnit lastUsedStageUnit;
 	double lastUsedLocation;
 
+	public void setAcquisitionPanel( AcquisitionPanel acquisitionPanel )
+	{
+		this.acquisitionPanel = acquisitionPanel;
+	}
+
+	private AcquisitionPanel acquisitionPanel;
+
 	public StagePanel()
 	{
 		init();
@@ -281,6 +288,17 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		switchAll.setThumbColor( Color.web( "#ff4922" ) );
 		switchAll.setMaxSize( 60, 30 );
 
+		Button newButton = new Button( "Add Pos." );
+		newButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(StagePanel.this.acquisitionPanel != null) {
+					StagePanel.this.acquisitionPanel.addNewPosition();
+				}
+			}
+		} );
+
 		stageUnitR = createStageControl( "Stage R (\u00b5-degree)",
 				StageUnit.Stage.R );
 
@@ -412,7 +430,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		VBox controls = new VBox( 10, topHbox, stageUnitR, stageUnitX, stageUnitY, stageUnitZ, undoBtn );
+		VBox controls = new VBox( 10, topHbox, newButton, stageUnitR, stageUnitX, stageUnitY, stageUnitZ, undoBtn );
 		controls.setPadding( new Insets( 10 ) );
 		return controls;
 	}

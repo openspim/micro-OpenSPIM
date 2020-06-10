@@ -133,6 +133,7 @@ public class HalcyonMain extends HalcyonFrame
 		addNode( arduino );
 
 		AcquisitionPanel acquisitionPanel = new AcquisitionPanel( primaryStage, spimSetup, studio, null, arduinoPanel.getPinItemTableView() );
+		stagePanel.setAcquisitionPanel( acquisitionPanel );
 		final HalcyonNode control1 = HalcyonNode.wrap( "Acquisition",
 				SpimHalcyonNodeType.CONTROL,
 				acquisitionPanel );

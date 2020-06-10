@@ -684,6 +684,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			zStackGridPane.getChildren().remove( zSlider );
 
 			this.stagePanel = stagePanel;
+			this.stagePanel.setAcquisitionPanel( this );
 
 			currentChangeListener = ( observable, oldValue, newValue ) -> zCurrent.set( newValue.doubleValue() / maxZStack * cubeHeight );
 
@@ -692,6 +693,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			zStackGroup.getChildren().remove( cube );
 
 		} else {
+			this.stagePanel.setAcquisitionPanel( null );
 			this.stagePanel = null;
 
 			zStackGridPane.add( zSlider, 3, 0, 1, 2 );
@@ -1276,17 +1278,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			@Override public void handle( ActionEvent event )
 			{
-				if(spimSetup != null ) {
-					double r = spimSetup.getThetaStage().getPosition();
-					double x = spimSetup.getXStage().getPosition();
-					double y = spimSetup.getYStage().getPosition();
-					double z = spimSetup.getZStage().getPosition();
-					positionItemTableView.getItems().add( new PositionItem( x, y, r, Integer.parseInt( zStartField.getText() ),
-							Integer.parseInt( zEndField.getText() ), Double.parseDouble( zStepField.getText() ) ) );
-				}
-				else {
-					positionItemTableView.getItems().add( new PositionItem( 10, 20, 30, 20, 50, 10 ) );
-				}
+				addNewPosition( Integer.parseInt( zStartField.getText() ),
+						Integer.parseInt( zEndField.getText() ), Double.parseDouble( zStepField.getText() ) );
 			}
 		} );
 
@@ -1314,6 +1307,28 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		CheckboxPane pane = new CheckboxPane( "Z-stacks", zStackGroup );
 		enabledZStacks = pane.selectedProperty();
 		return pane;
+	}
+
+	private void addNewPosition( int zStart, int zEnd, double zStep ) {
+		if(spimSetup != null ) {
+			double r = spimSetup.getThetaStage().getPosition();
+			double x = spimSetup.getXStage().getPosition();
+			double y = spimSetup.getYStage().getPosition();
+			positionItemTableView.getItems().add( new PositionItem( x, y, r, zStart, zEnd, zStep ) );
+		}
+		else {
+			positionItemTableView.getItems().add( new PositionItem( 10, 20, 30, zStart, zEnd, zStep ) );
+		}
+	}
+
+	public void addNewPosition() {
+		if(spimSetup != null ) {
+			double z = spimSetup.getZStage().getPosition();
+			addNewPosition( (int) z, (int) z, 10.0 );
+		}
+		else {
+			addNewPosition( 20, 50, 10.0 );
+		}
 	}
 
 	private void setupMouseClickedHandler( Button startButton, TextField zStartField, Button endButton, TextField zEndField )
