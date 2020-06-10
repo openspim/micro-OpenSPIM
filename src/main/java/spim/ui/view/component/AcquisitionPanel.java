@@ -400,7 +400,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		CheckboxPane channelPane = new CheckboxPane( "Channels", channelTabPane );
+		CheckboxPane channelPane = new CheckboxPane( "Select Channels/Pins", channelTabPane );
 		enabledChannels = channelPane.selectedProperty();
 
 		// Acquisition Setting Buttons
