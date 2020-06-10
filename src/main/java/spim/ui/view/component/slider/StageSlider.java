@@ -83,6 +83,7 @@ public class StageSlider extends HBox
 		{
 			final CircleIndicator pi = new CircleIndicator( 0 );
 			pi.setPrefWidth( 80 );
+			pi.setPrefHeight( 65 );
 			mSlider.valueProperty().addListener(
 					( ObservableValue< ? extends Number > ov, Number old_val, Number new_val ) ->
 							pi.setProgress( new_val.doubleValue() ) );
