@@ -911,7 +911,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		return pane;
 	}
 
-	private void computeTotalPositionImages() {
+	public void computeTotalPositionImages() {
 		long totalImages = 0;
 		for(PositionItem item : positionItemTableView.getItems())
 		{

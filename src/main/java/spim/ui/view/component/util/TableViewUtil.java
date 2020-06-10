@@ -154,10 +154,7 @@ public class TableViewUtil
 			}
 
 			// invoke selected item changed!
-			int i = tv.getSelectionModel().getSelectedIndex();
-			tv.getSelectionModel().clearSelection();
-			tv.getSelectionModel().select( i );
-			tv.refresh();
+			cascadeUpdatedValues( acquisitionPanel, tv );
 		} );
 		column.setEditable( true );
 		tv.getColumns().add(column);
@@ -168,7 +165,10 @@ public class TableViewUtil
 				new ReadOnlyDoubleWrapper( param.getValue().getZStep() )
 		);
 		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
-		numberColumn.setOnEditCommit( event -> event.getRowValue().setZStep( event.getNewValue().doubleValue() ) );
+		numberColumn.setOnEditCommit( event -> {
+			event.getRowValue().setZStep( event.getNewValue().doubleValue() );
+			cascadeUpdatedValues( acquisitionPanel, tv );
+		});
 		numberColumn.setEditable( true );
 		tv.getColumns().add(numberColumn);
 
@@ -218,57 +218,82 @@ public class TableViewUtil
 		tv.getColumns().add(btnColumn);
 
 		// Drag and drop
-		tv.setRowFactory(ev -> {
-			TableRow<PositionItem> row = new TableRow<>();
-
-			row.setOnDragDetected(event -> {
-				if (! row.isEmpty()) {
-					Integer index = row.getIndex();
-					Dragboard db = row.startDragAndDrop( TransferMode.MOVE);
-					db.setDragView(row.snapshot(null, null));
-					ClipboardContent cc = new ClipboardContent();
-					cc.put(SERIALIZED_MIME_TYPE, index);
-					db.setContent(cc);
-					event.consume();
-				}
-			});
-
-			row.setOnDragOver(event -> {
-				Dragboard db = event.getDragboard();
-				if (db.hasContent(SERIALIZED_MIME_TYPE)) {
-					if (row.getIndex() != ((Integer)db.getContent(SERIALIZED_MIME_TYPE)).intValue()) {
-						event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
-						event.consume();
-					}
-				}
-			});
-
-			row.setOnDragDropped(event -> {
-				Dragboard db = event.getDragboard();
-				if (db.hasContent(SERIALIZED_MIME_TYPE)) {
-					int draggedIndex = (Integer) db.getContent(SERIALIZED_MIME_TYPE);
-					PositionItem draggedPerson = tv.getItems().remove(draggedIndex);
-
-					int dropIndex ;
-
-					if (row.isEmpty()) {
-						dropIndex = tv.getItems().size() ;
-					} else {
-						dropIndex = row.getIndex();
-					}
-
-					tv.getItems().add(dropIndex, draggedPerson);
-
-					event.setDropCompleted(true);
-					tv.getSelectionModel().select(dropIndex);
-					event.consume();
-				}
-			});
-
-			return row ;
-		});
+		tv.setRowFactory(createDragNDropRowFactory(tv));
 
 		return tv;
+	}
+
+	private static <T> Callback< TableView<T>, TableRow<T>> createDragNDropRowFactory(TableView<T> tv)
+	{
+		return new Callback< TableView<T>, TableRow<T> >()
+		{
+			@Override public TableRow< T > call( TableView< T > ev )
+			{
+				TableRow< T > row = new TableRow<>();
+
+				row.setOnDragDetected( event -> {
+					if ( !row.isEmpty() )
+					{
+						Integer index = row.getIndex();
+						Dragboard db = row.startDragAndDrop( TransferMode.MOVE );
+						db.setDragView( row.snapshot( null, null ) );
+						ClipboardContent cc = new ClipboardContent();
+						cc.put( SERIALIZED_MIME_TYPE, index );
+						db.setContent( cc );
+						event.consume();
+					}
+				} );
+
+				row.setOnDragOver( event -> {
+					Dragboard db = event.getDragboard();
+					if ( db.hasContent( SERIALIZED_MIME_TYPE ) )
+					{
+						if ( row.getIndex() != ( ( Integer ) db.getContent( SERIALIZED_MIME_TYPE ) ).intValue() )
+						{
+							event.acceptTransferModes( TransferMode.COPY_OR_MOVE );
+							event.consume();
+						}
+					}
+				} );
+
+				row.setOnDragDropped( event -> {
+					Dragboard db = event.getDragboard();
+					if ( db.hasContent( SERIALIZED_MIME_TYPE ) )
+					{
+						int draggedIndex = ( Integer ) db.getContent( SERIALIZED_MIME_TYPE );
+						T draggedPerson = tv.getItems().remove( draggedIndex );
+
+						int dropIndex;
+
+						if ( row.isEmpty() )
+						{
+							dropIndex = tv.getItems().size();
+						}
+						else
+						{
+							dropIndex = row.getIndex();
+						}
+
+						tv.getItems().add( dropIndex, draggedPerson );
+
+						event.setDropCompleted( true );
+						tv.getSelectionModel().select( dropIndex );
+						event.consume();
+					}
+				} );
+
+				return row;
+			}
+		};
+	}
+
+	private static void cascadeUpdatedValues( AcquisitionPanel acquisitionPanel, TableView< PositionItem > tv )
+	{
+		int i = tv.getSelectionModel().getSelectedIndex();
+		tv.getSelectionModel().clearSelection();
+		tv.getSelectionModel().select( i );
+		acquisitionPanel.computeTotalPositionImages();
+		tv.refresh();
 	}
 
 	public static TableView< ChannelItem > createChannelItemDataView( SPIMSetup setup, String currentCamera )
@@ -351,55 +376,7 @@ public class TableViewUtil
 		tv.getColumns().add(numberColumn);
 
 		// Drag and drop
-		tv.setRowFactory(ev -> {
-			TableRow<ChannelItem> row = new TableRow<>();
-
-			row.setOnDragDetected(event -> {
-				if (! row.isEmpty()) {
-					Integer index = row.getIndex();
-					Dragboard db = row.startDragAndDrop( TransferMode.MOVE);
-					db.setDragView(row.snapshot(null, null));
-					ClipboardContent cc = new ClipboardContent();
-					cc.put(SERIALIZED_MIME_TYPE, index);
-					db.setContent(cc);
-					event.consume();
-				}
-			});
-
-			row.setOnDragOver(event -> {
-				Dragboard db = event.getDragboard();
-				if (db.hasContent(SERIALIZED_MIME_TYPE)) {
-					if (row.getIndex() != ((Integer)db.getContent(SERIALIZED_MIME_TYPE)).intValue()) {
-						event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
-						event.consume();
-					}
-				}
-			});
-
-			row.setOnDragDropped(event -> {
-				Dragboard db = event.getDragboard();
-				if (db.hasContent(SERIALIZED_MIME_TYPE)) {
-					int draggedIndex = (Integer) db.getContent(SERIALIZED_MIME_TYPE);
-					ChannelItem draggedItem = tv.getItems().remove(draggedIndex);
-
-					int dropIndex ;
-
-					if (row.isEmpty()) {
-						dropIndex = tv.getItems().size() ;
-					} else {
-						dropIndex = row.getIndex();
-					}
-
-					tv.getItems().add(dropIndex, draggedItem);
-
-					event.setDropCompleted(true);
-					tv.getSelectionModel().select(dropIndex);
-					event.consume();
-				}
-			});
-
-			return row ;
-		});
+		tv.setRowFactory(createDragNDropRowFactory(tv));
 
 		return tv;
 	}
@@ -617,55 +594,7 @@ public class TableViewUtil
 //		tv.getColumns().add(numberColumn);
 
 		// Drag and drop
-		tv.setRowFactory(ev -> {
-			TableRow<TimePointItem> row = new TableRow<TimePointItem>();
-
-			row.setOnDragDetected(event -> {
-				if (! row.isEmpty()) {
-					Integer index = row.getIndex();
-					Dragboard db = row.startDragAndDrop( TransferMode.MOVE);
-					db.setDragView(row.snapshot(null, null));
-					ClipboardContent cc = new ClipboardContent();
-					cc.put(SERIALIZED_MIME_TYPE, index);
-					db.setContent(cc);
-					event.consume();
-				}
-			});
-
-			row.setOnDragOver(event -> {
-				Dragboard db = event.getDragboard();
-				if (db.hasContent(SERIALIZED_MIME_TYPE)) {
-					if (row.getIndex() != ((Integer)db.getContent(SERIALIZED_MIME_TYPE)).intValue()) {
-						event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
-						event.consume();
-					}
-				}
-			});
-
-			row.setOnDragDropped(event -> {
-				Dragboard db = event.getDragboard();
-				if (db.hasContent(SERIALIZED_MIME_TYPE)) {
-					int draggedIndex = (Integer) db.getContent(SERIALIZED_MIME_TYPE);
-					TimePointItem draggedItem = tv.getItems().remove(draggedIndex);
-
-					int dropIndex ;
-
-					if (row.isEmpty()) {
-						dropIndex = tv.getItems().size() ;
-					} else {
-						dropIndex = row.getIndex();
-					}
-
-					tv.getItems().add(dropIndex, draggedItem);
-
-					event.setDropCompleted(true);
-					tv.getSelectionModel().select(dropIndex);
-					event.consume();
-				}
-			});
-
-			return row ;
-		});
+		tv.setRowFactory(createDragNDropRowFactory(tv));
 
 		return tv;
 	}
