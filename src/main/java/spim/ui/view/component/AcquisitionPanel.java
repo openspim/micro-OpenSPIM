@@ -1028,7 +1028,23 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	private TableView< ChannelItem > createChannelItemArduinoTable( TableView< ChannelItem > channelItemTableView, TableView< PinItem > pinItemTableView, int exposure ) {
 		channelItemTableView.setEditable( true );
 
-		InvalidationListener invalidationListener = observable -> computeTotalChannels();
+		InvalidationListener invalidationListener = observable -> {
+			computeTotalChannels();
+			if(spimSetup != null && spimSetup.getArduino1() != null) {
+				for (ChannelItem item : channelItemTableView.getItems()) {
+					if(item.selectedProperty().equals( observable ) && item.getSelected() ) {
+						System.out.println("Arduino switch : " + item.getLaser() + " activated.");
+						spimSetup.getArduino1().setSwitchState( item.getLaser() );
+					}
+				}
+			} else {
+				for (ChannelItem item : channelItemTableView.getItems()) {
+					if(item.selectedProperty().equals( observable ) && item.getSelected() ) {
+						System.out.println("Arduino switch : " + item.getLaser() + " activated. (Demo)");
+					}
+				}
+			}
+		};
 
 		for (PinItem item : pinItemTableView.getItems()) {
 			if(item.getState() > 0 && item.getState() < 63)
