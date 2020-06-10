@@ -1378,7 +1378,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 	private CheckboxPane createTimePointsPane()
 	{
-		Tab fixedTPTab = new Tab( "Normal" );
+		Tab fixedTPTab = new Tab( "Periodic" );
 		fixedTPTab.setClosable( false );
 
 		Tab dynamicTPTab = new Tab( "Smart Imaging" );
