@@ -28,6 +28,7 @@ import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
@@ -240,21 +241,28 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		// Buttons
 		SimpleBooleanProperty liveOn = new SimpleBooleanProperty( false );
-		Button liveViewButton = new Button( "LiveView Start");
+		Button liveViewButton = new Button( "LiveView");
 		liveViewButton.setMinSize( 100, 40 );
-		liveViewButton.setStyle("-fx-font: 12 arial; -fx-base: #49e7db;");
+		liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
 		liveViewButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
 			{
+				if(AcquisitionPanel.this.studio == null) {
+					new Alert( Alert.AlertType.WARNING, "MM2 config is not loaded.").show();
+					return;
+				}
+
 				liveOn.set( !liveOn.get() );
 				if(liveOn.get())
 				{
-					liveViewButton.setText( "LiveView Stop" );
+					liveViewButton.setText( "LiveView" );
+					liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #69e760;");
 					if(AcquisitionPanel.this.studio != null)
 						AcquisitionPanel.this.studio.live().setLiveMode( true );
 				} else {
-					liveViewButton.setText( "LiveView Start" );
+					liveViewButton.setText( "LiveView" );
+					liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
 					if(AcquisitionPanel.this.studio != null)
 						AcquisitionPanel.this.studio.live().setLiveMode( false );
 				}
@@ -287,6 +295,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			@Override public void handle( ActionEvent event )
 			{
+				if(AcquisitionPanel.this.studio == null) {
+					new Alert( Alert.AlertType.WARNING, "MM2 config is not loaded.").show();
+					return;
+				}
+
 				if(studio != null)
 				{
 					System.out.println("Height: " + studio.core().getImageHeight());

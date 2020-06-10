@@ -66,7 +66,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		}
 
 		if(null == roi)
-			roi = new Rectangle( 0, 0, 512, 512 );
+			roi = new Rectangle( 0, 0, 0, 0 );
 
 		Label roiXYLabel = new Label(String.format( "X=%d, Y=%d", roi.x, roi.y ) );
 		Label roiWLabel = new Label(String.format( "Width=%d", roi.width ));
