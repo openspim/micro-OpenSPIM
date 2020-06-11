@@ -4,11 +4,12 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.gui.Roi;
 import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TitledPane;
@@ -33,12 +34,12 @@ import java.awt.Rectangle;
  */
 public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 {
-	Studio studio;
+	final ObjectProperty<Studio> studioProperty;
 
 	public ToolbarPanel( Studio mmStudio, ObjectProperty roiRectangle, ObjectProperty< Studio > mmStudioObjectProperty )
 	{
 		super(new VBox());
-		this.studio = mmStudio;
+		this.studioProperty = new SimpleObjectProperty<>( mmStudio );
 		getDockTitleBar().setVisible(false);
 
 		setTitle("OpenSPIM");
@@ -57,8 +58,8 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		java.awt.Rectangle roi = null;
 		try
 		{
-			if(studio != null && studio.core() != null)
-				roi = studio.core().getROI();
+			if( getStudio() != null && getStudio().core() != null)
+				roi = getStudio().core().getROI();
 		}
 		catch ( Exception e )
 		{
@@ -90,8 +91,8 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		{
 			@Override public void handle( ActionEvent event )
 			{
-				if(studio != null && studio.live() != null && studio.live().getDisplay() != null && studio.live().getDisplay().getImagePlus() != null && studio.live().getDisplay().getImagePlus().getRoi() != null) {
-					Roi ipRoi = studio.live().getDisplay().getImagePlus().getRoi();
+				if( getStudio() != null && getStudio().live() != null && getStudio().live().getDisplay() != null && getStudio().live().getDisplay().getImagePlus() != null && getStudio().live().getDisplay().getImagePlus().getRoi() != null) {
+					Roi ipRoi = getStudio().live().getDisplay().getImagePlus().getRoi();
 					roiRectangle.setValue( ipRoi.getBounds() );
 				}
 			}
@@ -104,12 +105,12 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			{
 				try
 				{
-					if(studio != null && studio.core() != null)
+					if( getStudio() != null && getStudio().core() != null)
 					{
-						studio.core().clearROI();
-						roiRectangle.setValue( studio.core().getROI() );
-						if(studio.live() != null && studio.live().getDisplay() != null && studio.live().getDisplay().getImagePlus() != null && studio.live().getDisplay().getImagePlus().getRoi() != null) {
-							studio.live().getDisplay().getImagePlus().deleteRoi();
+						getStudio().core().clearROI();
+						roiRectangle.setValue( getStudio().core().getROI() );
+						if( getStudio().live() != null && getStudio().live().getDisplay() != null && getStudio().live().getDisplay().getImagePlus() != null && getStudio().live().getDisplay().getImagePlus().getRoi() != null) {
+							getStudio().live().getDisplay().getImagePlus().deleteRoi();
 						}
 					}
 				}
@@ -120,7 +121,24 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			}
 		} );
 
-		gridpane.addRow( 1, new HBox( iv ) );
+
+		Label liveDemoLabel = new Label( "LIVE DEMO" );
+		liveDemoLabel.setStyle( "-fx-font: 18 arial; -fx-background-color: #0faff0" );
+
+		VBox topHbox = new VBox(10);
+		topHbox.setAlignment( Pos.CENTER );
+		topHbox.getChildren().addAll( iv, liveDemoLabel );
+
+		studioProperty.addListener( new ChangeListener< Studio >()
+		{
+			@Override public void changed( ObservableValue< ? extends Studio > observable, Studio oldValue, Studio newValue )
+			{
+				if(newValue != null) topHbox.getChildren().remove( liveDemoLabel );
+				else topHbox.getChildren().add( liveDemoLabel );
+			}
+		} );
+
+		gridpane.addRow( 1, topHbox );
 
 		TitledPane titledPane = new TitledPane( "Region of Interest", new VBox( 3, roiXYLabel, roiWLabel, roiHLabel ) );
 		titledPane.setCollapsible( false );
@@ -183,7 +201,11 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 //		box.getChildren().add(btn);
 	}
 
+	Studio getStudio() {
+		return this.studioProperty.get();
+	}
+
 	@Override public void setSetup( SPIMSetup setup, Studio studio ) {
-		this.studio = studio;
+		this.studioProperty.set(studio);
 	}
 }
