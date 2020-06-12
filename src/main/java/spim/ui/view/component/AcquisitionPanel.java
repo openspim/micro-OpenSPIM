@@ -1033,18 +1033,30 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		InvalidationListener invalidationListener = observable -> {
 			computeTotalChannels();
 			if(spimSetup != null && spimSetup.getArduino1() != null) {
+				int sum = 0;
 				for (ChannelItem item : channelItemTableView.getItems()) {
-					if(item.selectedProperty().equals( observable ) && item.getSelected() ) {
-						System.out.println("Arduino switch : " + item.getLaser() + " activated.");
-						spimSetup.getArduino1().setSwitchState( item.getLaser() );
+					if(item.getSelected()) {
+						sum += Integer.parseInt( item.getLaser() );
+
+						if(item.selectedProperty().equals( observable )) {
+							System.out.println("[Arduino] activated switch : " + item.getLaser());
+						}
 					}
 				}
+				System.out.println("[Arduino] switch status : " + sum);
+				spimSetup.getArduino1().setSwitchState( Integer.toString( sum ) );
 			} else {
+				int sum = 0;
 				for (ChannelItem item : channelItemTableView.getItems()) {
-					if(item.selectedProperty().equals( observable ) && item.getSelected() ) {
-						System.out.println("Arduino switch : " + item.getLaser() + " activated. (Demo)");
+					if(item.getSelected()) {
+						sum += Integer.parseInt( item.getLaser() );
+
+						if(item.selectedProperty().equals( observable )) {
+							System.out.println("[Arduino-Demo] activated switch : " + item.getLaser());
+						}
 					}
 				}
+				System.out.println("[Arduino-Demo] switch status : " + sum);
 			}
 		};
 
