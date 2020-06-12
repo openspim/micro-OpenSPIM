@@ -4,7 +4,6 @@ import halcyon.HalcyonFrame;
 import halcyon.model.node.HalcyonNode;
 import halcyon.model.node.HalcyonNodeType;
 import halcyon.view.TreePanel;
-import halcyon.view.console.StdOutputCaptureConsole;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
@@ -21,6 +20,7 @@ import org.micromanager.Studio;
 
 import spim.hardware.SPIMSetup;
 import spim.hardware.VersaLase;
+import spim.ui.view.component.console.StdOutCaptureConsole;
 
 import java.util.ArrayList;
 
@@ -90,6 +90,7 @@ public class HalcyonMain extends HalcyonFrame
 		nodeTypeList.add(SpimHalcyonNodeType.LASER);
 		nodeTypeList.add(SpimHalcyonNodeType.EDITOR);
 		nodeTypeList.add(SpimHalcyonNodeType.STAGE);
+		nodeTypeList.add(SpimHalcyonNodeType.CONSOLE);
 		nodeTypeList.add(SpimHalcyonNodeType.CONTROL);
 
 		TreePanel lTreePanel = new TreePanel("OpenSPIM Configurations",
@@ -145,9 +146,9 @@ public class HalcyonMain extends HalcyonFrame
 //				new Stage3DPanel() );
 //
 //		addNode( control2 );
-		StdOutputCaptureConsole console = new StdOutputCaptureConsole();
-		console.setPrefSize(300, 200);
-		addConsole( console );
+		StdOutCaptureConsole console = new StdOutCaptureConsole();
+		final HalcyonNode consoleNode = HalcyonNode.wrap( "Console", SpimHalcyonNodeType.CONSOLE, console );
+		addNode( consoleNode );
 
 		// Custom DemoToolbar provided here
 		ToolbarPanel lToolbar = new ToolbarPanel( studio, acquisitionPanel.roiRectangleProperty(), mmStudioProperty );
