@@ -991,30 +991,40 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		return vbox;
 	}
 
-	private TableView< ChannelItem > createChannelItemTable( TableView< ChannelItem > channelItemTableView, String camera, String laser, int exp ) {
+	private Node createChannelItemTable( TableView< ChannelItem > channelItemTableView, String camera, String laser, int exp ) {
 		channelItemTableView.setEditable( true );
 
 		InvalidationListener invalidationListener = observable -> computeTotalChannels();
 
-		MenuItem newItem = new MenuItem( "New" );
-		newItem.setOnAction( new EventHandler< ActionEvent >()
+		EventHandler<ActionEvent> newChannelHandler = new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
 			{
 				// TODO: Get the current position from the stage control and make the new position
 				channelItemTableView.getItems().add( new ChannelItem( camera, laser, exp, invalidationListener ) );
 			}
-		} );
+		};
 
-		MenuItem deleteItem = new MenuItem( "Delete" );
-		deleteItem.setOnAction( new EventHandler< ActionEvent >()
+		EventHandler<ActionEvent> deleteChannelHandler =  new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
 			{
 				if(channelItemTableView.getSelectionModel().getSelectedIndex() > -1)
 					channelItemTableView.getItems().remove( channelItemTableView.getSelectionModel().getSelectedIndex() );
 			}
-		} );
+		};
+
+		Button newChannelButton = new Button( "Add a channel" );
+		newChannelButton.setOnAction( newChannelHandler );
+
+		Button deleteChannelButton = new Button( "Delete" );
+		deleteChannelButton.setOnAction( deleteChannelHandler );
+
+		MenuItem newItem = new MenuItem( "New" );
+		newItem.setOnAction( event -> newChannelButton.fire() );
+
+		MenuItem deleteItem = new MenuItem( "Delete" );
+		deleteItem.setOnAction( event -> deleteChannelButton.fire() );
 
 		// add context menu here
 		channelItemTableView.setContextMenu( new ContextMenu( newItem, deleteItem ) );
@@ -1027,7 +1037,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		return channelItemTableView;
+
+		HBox hbox = new HBox( 10, newChannelButton, deleteChannelButton );
+
+		return new VBox( hbox, channelItemTableView);
 	}
 
 	private TableView< ChannelItem > createChannelItemArduinoTable( TableView< ChannelItem > channelItemTableView, TableView< PinItem > pinItemTableView, int exposure ) {
