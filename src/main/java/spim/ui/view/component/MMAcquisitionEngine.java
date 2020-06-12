@@ -32,7 +32,6 @@ import org.micromanager.events.AcquisitionStartedEvent;
 import org.micromanager.internal.MMStudio;
 import org.micromanager.internal.utils.UserProfileManager;
 import org.micromanager.internal.utils.imageanalysis.ImageUtils;
-import org.micromanager.internal.utils.ReportingUtils;
 import spim.acquisition.Row;
 import spim.hardware.Device;
 import spim.hardware.SPIMSetup;
@@ -48,7 +47,6 @@ import java.awt.Rectangle;
 import java.io.File;
 import java.net.InetAddress;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -398,11 +396,12 @@ public class MMAcquisitionEngine
 
 											double exp = channelItem.getValue().doubleValue();
 											core.setExposure( camera, exp );
+											core.snapImage();
 											core.waitForDevice( camera );
 
 											for ( int currentCh = 0; currentCh < core.getNumberOfCameraChannels(); currentCh++ )
 											{
-												c = addSlice( snapImage( core, currentCh ), setup, ( int ) exp, c, acqBegan, tp, step, handlers.get( camera ),
+												c = addSlice( getTaggedImage( core, currentCh ), setup, ( int ) exp, c, acqBegan, tp, step, handlers.get( camera ),
 														frame, store, noSlice, zStart, positionItem, now - acqStart, processedImages );
 											}
 										}
@@ -418,16 +417,16 @@ public class MMAcquisitionEngine
 										core.setCameraDevice( channelItem.getName() );
 										core.setShutterOpen( channelItem.getLaser(), true );
 										core.setExposure( channelItem.getName(), exp );
+										core.snapImage();
 										core.waitForDevice( channelItem.getName() );
 
 										for ( int currentCh = 0; currentCh < core.getNumberOfCameraChannels(); currentCh++ )
 										{
-											c = addSlice( snapImage( core, currentCh ), setup, ( int ) exp, c, acqBegan, tp, step,
+											c = addSlice( getTaggedImage( core, currentCh ), setup, ( int ) exp, c, acqBegan, tp, step,
 													handlers.get( channelItem.getName() ),
 													frame, store, noSlice, zStart, positionItem, now - acqStart, processedImages);
 
 											core.setShutterOpen( channelItem.getLaser(), false );
-											++c;
 										}
 									}
 								}
@@ -561,10 +560,12 @@ public class MMAcquisitionEngine
 
 									double exp = channelItem.getValue().doubleValue();
 									core.setExposure( camera, exp );
+									core.snapImage();
 									core.waitForDevice( camera );
+
 									for ( int currentCh = 0; currentCh < core.getNumberOfCameraChannels(); currentCh++ )
 									{
-										c = addSlice( snapImage( core, currentCh ), setup, ( int ) exp, c, acqBegan, tp, step, handlers.get( camera ),
+										c = addSlice( getTaggedImage( core, currentCh ), setup, ( int ) exp, c, acqBegan, tp, step, handlers.get( camera ),
 												frame, store, noSlice, zStart, positionItem, now - acqStart, processedImages );
 									}
 								}
@@ -581,11 +582,12 @@ public class MMAcquisitionEngine
 								core.setCameraDevice( channelItem.getName() );
 								core.setShutterOpen( channelItem.getLaser(), true );
 								core.setExposure( channelItem.getName(), exp );
+								core.snapImage();
 								core.waitForDevice( channelItem.getName() );
 
 								for ( int currentCh = 0; currentCh < core.getNumberOfCameraChannels(); currentCh++ )
 								{
-									c = addSlice( snapImage( core, currentCh ), setup, ( int ) exp, c, acqBegan, tp, step, handlers.get( channelItem.getName() ),
+									c = addSlice( getTaggedImage( core, currentCh ), setup, ( int ) exp, c, acqBegan, tp, step, handlers.get( channelItem.getName() ),
 											frame, store, noSlice, zStart, positionItem, now - acqStart, processedImages );
 
 									core.setShutterOpen( channelItem.getLaser(), false );
@@ -1242,31 +1244,17 @@ public class MMAcquisitionEngine
 		return ti;
 	}
 
-	/**
-	 * To avoid the null returned from the system for snapImage
-	 * @param core
-	 * @return
-	 * @throws InterruptedException
-	 */
-	private static TaggedImage snapImage( CMMCore core, int ch ) throws InterruptedException
+	private static TaggedImage getTaggedImage( CMMCore core, int ch )
 	{
-		TaggedImage ti = null;
-
-		while(ti == null)
+		try
 		{
-			try
-			{
-				core.snapImage();
-				ti = core.getTaggedImage( ch );
-			}
-			catch ( Exception e )
-			{
-				ReportingUtils.logError( e );
-			}
-			Thread.sleep( 10 );
+			return core.getTaggedImage( ch );
 		}
-
-		return ti;
+		catch ( Exception e )
+		{
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 	private static void runDevicesAtRow(CMMCore core, SPIMSetup setup, Row row) throws Exception {
