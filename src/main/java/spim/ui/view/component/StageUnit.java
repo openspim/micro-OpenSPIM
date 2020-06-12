@@ -210,7 +210,13 @@ public class StageUnit extends Region
 								resetDevice(0);
 							});
 				} else {
-					new Alert( Alert.AlertType.ERROR, "StageDevice is not ready.");
+					RotatorCalibrationDialog dlg = new RotatorCalibrationDialog( null );
+
+					dlg.showAndWait()
+							.filter(response -> response == ButtonType.OK)
+							.ifPresent(response -> {
+								System.err.println("[Stage-Demo] Step Size: " + dlg.getReturnResult());
+							});
 				}
 			} );
 		}

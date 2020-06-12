@@ -63,7 +63,8 @@ public class RotatorCalibrationDialog extends Alert
 
 		unit.targetValueProperty().addListener( ( observable, oldValue, newValue ) -> {
 			unit.get( StageUnit.BooleanState.Ready ).setValue( false );
-			stage.setPosition( newValue.doubleValue() );
+			if(stage != null)
+				stage.setPosition( newValue.doubleValue() );
 		} );
 
 		HBox stepBox = new HBox( 10, stepSizeLabel, stepSize );
@@ -110,7 +111,8 @@ public class RotatorCalibrationDialog extends Alert
 		{
 			@Override public void handle( DialogEvent event )
 			{
-				stage.setPosition( 0d );
+				if(stage != null)
+					stage.setPosition( 0d );
 				shutdownExecutor();
 			}
 		} );
