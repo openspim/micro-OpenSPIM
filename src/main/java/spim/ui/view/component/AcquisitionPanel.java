@@ -149,11 +149,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	Thread acquisitionThread = null;
 	double maxZStack = 100;
 
-	// For StackCube sizing
+	// For StackCube sizing, zStart and zEnd are converted to the actual cube size
 	SimpleDoubleProperty zStart;
 	SimpleDoubleProperty zEnd;
 	SimpleDoubleProperty zCurrent;
 	ChangeListener< Number > currentChangeListener;
+
+	// Holder for zStep and zEnd
+	double zStackStart, zStackStepSize, zStackEnd;
 
 	// For Smart Imaging
 	SimpleDoubleProperty currentTP;
@@ -1214,15 +1217,15 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
 			{
 				if(!newValue.isEmpty()) {
-					double z = Double.parseDouble( newValue );
-					zStart.set( z / maxZStack * cubeHeight );
+					zStackStart = Double.parseDouble( newValue );
+					zStart.set( zStackStart / maxZStack * cubeHeight );
 				}
 			}
 		} );
 
 		zStartField.setOnAction( event -> {
 			if(currentPosition.get() != null) {
-				currentPosition.get().setZStart( Double.parseDouble( zStartField.getText() ) );
+				currentPosition.get().setZStart( zStackStart );
 				computeTotalPositionImages();
 				positionItemTableView.refresh();
 			}
@@ -1232,10 +1235,19 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		TextField zStepField = createNumberTextField();
 		zStepField.setText( "1.5" );
+		zStepField.textProperty().addListener( new ChangeListener< String >()
+		{
+			@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
+			{
+				if(!newValue.isEmpty()) {
+					zStackStepSize = Double.parseDouble( newValue );
+				}
+			}
+		} );
 		zStepField.setOnAction( event -> {
 			if(currentPosition.get() != null)
 			{
-				currentPosition.get().setZStep( Double.parseDouble( zStepField.getText() ) );
+				currentPosition.get().setZStep( zStackStepSize );
 				computeTotalPositionImages();
 				positionItemTableView.refresh();
 			}
@@ -1249,15 +1261,15 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
 			{
 				if(!newValue.isEmpty()) {
-					double z = Double.parseDouble( newValue );
-					zEnd.set( z / maxZStack * cubeHeight );
+					zStackEnd = Double.parseDouble( newValue );
+					zEnd.set( zStackEnd / maxZStack * cubeHeight );
 				}
 			}
 		} );
 
 		zEndField.setOnAction( event -> {
 			if(currentPosition.get() != null) {
-				currentPosition.get().setZEnd( Double.parseDouble( zEndField.getText() ) );
+				currentPosition.get().setZEnd( zStackEnd );
 				computeTotalPositionImages();
 				positionItemTableView.refresh();
 			}
@@ -1334,13 +1346,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	}
 
 	public void addNewPosition() {
-		if(spimSetup != null ) {
-			double z = spimSetup.getZStage().getPosition();
-			addNewPosition( (int) z, (int) z, 10.0 );
-		}
-		else {
-			addNewPosition( 20, 50, 10.0 );
-		}
+		addNewPosition( (int) zStackStart, (int) zStackEnd, zStackStepSize );
 	}
 
 	private void setupMouseClickedHandler( Button startButton, TextField zStartField, Button endButton, TextField zEndField )
