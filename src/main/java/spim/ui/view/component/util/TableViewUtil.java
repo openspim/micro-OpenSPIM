@@ -1,5 +1,7 @@
 package spim.ui.view.component.util;
 
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
+import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
 import javafx.beans.property.ReadOnlyDoubleWrapper;
 import javafx.beans.property.ReadOnlyIntegerWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -13,6 +15,7 @@ import javafx.geometry.Pos;
 
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
@@ -183,21 +186,52 @@ public class TableViewUtil
 		tv.getColumns().add(numberColumn);
 
 		TableColumn<PositionItem, Void> btnColumn = new TableColumn<>("");
-		btnColumn.setPrefWidth(100);
+		btnColumn.setPrefWidth(130);
 		Callback<TableColumn<PositionItem, Void>, TableCell<PositionItem, Void>> cellFactory = new Callback<TableColumn<PositionItem, Void>, TableCell<PositionItem, Void>>() {
 			@Override
 			public TableCell<PositionItem, Void> call(final TableColumn<PositionItem, Void> param) {
 				final TableCell<PositionItem, Void> cell = new TableCell<PositionItem, Void>() {
 
-					private final Button btn = new Button("Go To");
+					private final Button goTo = new Button("Go To");
+					private final Button up = new Button();
+					private final Button down = new Button();
 
 					{
-						btn.setOnAction(( ActionEvent event) -> {
+						goTo.setOnAction(( ActionEvent event) -> {
 							PositionItem data = getTableView().getItems().get( getIndex() );
 //							System.out.println( ControlEvent.STAGE_MOVE + " fired. Data: " + data);
 							Event.fireEvent( acquisitionPanel, new ControlEvent( ControlEvent.STAGE_MOVE, data ) );
 						});
+
+						FontAwesomeIconView icon = new FontAwesomeIconView( FontAwesomeIcon.ANGLE_UP );
+						up.setContentDisplay( ContentDisplay.GRAPHIC_ONLY );
+						up.setGraphic(icon);
+						up.setOnAction( event -> {
+							int idx = getIndex();
+//							System.out.println(idx);
+							PositionItem data = getTableView().getItems().get( idx );
+							getTableView().getItems().remove( idx );
+							if(idx == 0) getTableView().getItems().add( 0, data );
+							else getTableView().getItems().add( idx - 1, data );
+							getTableView().getSelectionModel().select( data );
+							getTableView().requestFocus();
+						} );
+
+						icon = new FontAwesomeIconView( FontAwesomeIcon.ANGLE_DOWN );
+						down.setContentDisplay( ContentDisplay.GRAPHIC_ONLY );
+						down.setGraphic(icon);
+						down.setOnAction( event -> {
+							int idx = getIndex();
+//							System.out.println(idx);
+							PositionItem data = getTableView().getItems().get( idx );
+							getTableView().getItems().remove( idx );
+							if(idx == getTableView().getItems().size()) getTableView().getItems().add( data );
+							else if(idx < getTableView().getItems().size()) getTableView().getItems().add( idx + 1, data );
+							getTableView().getSelectionModel().select( data );
+							getTableView().requestFocus();
+						} );
 					}
+
 
 					@Override
 					public void updateItem(Void item, boolean empty) {
@@ -205,7 +239,7 @@ public class TableViewUtil
 						if (empty) {
 							setGraphic(null);
 						} else {
-							setGraphic(btn);
+							setGraphic(new HBox( 5, goTo, up, down ));
 						}
 					}
 				};
