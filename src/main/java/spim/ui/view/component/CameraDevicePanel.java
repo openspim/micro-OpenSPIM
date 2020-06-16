@@ -77,7 +77,6 @@ import spim.ui.view.component.util.TableViewUtil;
 
 import java.nio.IntBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TreeMap;
@@ -108,7 +107,6 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 	private int width, height;
 	private double exposure = 33;
 	private volatile boolean isShownFirst = true;
-	private BooleanProperty visibleGuideLine = new SimpleBooleanProperty( true );
 	private volatile boolean isBandTableDirty = false;
 	ScheduledExecutorService executor;
 	Studio studio;
@@ -119,6 +117,7 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 	Group clipGroup, clipBox;
 	ObservableList<DeviceItem> properties;
 	FilteredList<DeviceItem> filteredProperties;
+	private String firstCamera = "", secondCamera = "", thirdCamera = "";
 
 	public CameraDevicePanel( SPIMSetup setup, Studio gui ) {
 		studio = gui;
@@ -128,20 +127,6 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 		height = gui == null? 512 : (int) gui.core().getImageHeight();
 
 		buf = new int[width * height];
-
-		// data -> GUI
-		// CurrentPower update (data -> GUI)
-
-		//		if(null == gui)
-		//		{
-		//			final Affine reflectTransform = new Affine();
-		//
-		//			reflectTransform.setMxx(-1);
-		//			reflectTransform.setTx(displayG.getBoundsInLocal().getWidth());
-		//			reflectTransform.appendTranslation( 200, 100 );
-		//
-		//			displayG.getTransforms().add(reflectTransform);
-		//		}
 
 		cameraOnSwitch = new IconSwitch();
 
@@ -169,7 +154,7 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 
 			if(setup.getCamera1() != null)
 			{
-				String firstCamera = setup.getCamera1().getLabel();
+				firstCamera = setup.getCamera1().getLabel();
 				cameras.add( firstCamera );
 
 				int size = 1 << gui.core().getImageBitDepth();
@@ -200,7 +185,7 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 
 				if(setup.getCamera2() != null)
 				{
-					String secondCamera = setup.getCamera2().getLabel();
+					secondCamera = setup.getCamera2().getLabel();
 					bandMap.get( firstCamera ).setBandColor( "R" );
 					cameras.add( secondCamera );
 					System.out.println( setup.getCamera2().getDeviceName() );
@@ -491,32 +476,6 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 
 		addBandControls();
 
-		// Grid lines 3 x 3
-		//		Line l1 = new Line( 0, height / 3, width, height / 3 );
-		//		l1.setStyle( "-fx-stroke: white" );
-		//		l1.setBlendMode( BlendMode.ADD );
-		//
-		//		Line l2 = new Line( 0, height / 3 * 2, width, height / 3 * 2 );
-		//		l2.setStyle( "-fx-stroke: white" );
-		//		l2.setBlendMode( BlendMode.ADD );
-		//
-		//		Line l3 = new Line( width / 3, 0, width / 3, height );
-		//		l3.setStyle( "-fx-stroke: white" );
-		//		l3.setBlendMode( BlendMode.ADD );
-		//
-		//		Line l4 = new Line( width / 3 * 2, 0, width / 3 * 2, height );
-		//		l4.setStyle( "-fx-stroke: white" );
-		//		l4.setBlendMode( BlendMode.ADD );
-
-		// Grid lines 2 x 2
-//		l1 = new Line( 0, height / 2, width, height / 2 );
-//		l1.setStyle( "-fx-stroke: white" );
-//		l1.setBlendMode( BlendMode.SRC_ATOP );
-//
-//		l2 = new Line( width / 2, 0, width / 2, height );
-//		l2.setStyle( "-fx-stroke: white" );
-//		l2.setBlendMode( BlendMode.SRC_ATOP );
-
 		Spinner<Integer> spinner = new Spinner<>( 1, 50, 1, 1 );
 
 		final ColorPicker colorPicker = new ColorPicker();
@@ -555,13 +514,10 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 			}
 		} );
 
-
 		// Clipping rectangle
-		final Rectangle outputClip = new Rectangle(width, height);
 		imageStackPane = new StackPane();
 		imageStackPane.getChildren().addAll( bandMap.values().stream().map( c -> c.imageView).collect( Collectors.toList() ) );
 		imageStackPane.setPrefSize( width, height );
-//		sp.setClip( outputClip );
 
 		VBox toolBox = new VBox( 20 );
 
@@ -930,7 +886,7 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 
 			if(setup.getCamera1() != null)
 			{
-				String firstCamera = setup.getCamera1().getLabel();
+				firstCamera = setup.getCamera1().getLabel();
 				cameras.add( firstCamera );
 
 				int size = 1 << studio.core().getImageBitDepth();
@@ -961,7 +917,7 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 
 				if(setup.getCamera2() != null)
 				{
-					String secondCamera = setup.getCamera2().getLabel();
+					secondCamera = setup.getCamera2().getLabel();
 					bandMap.get( firstCamera ).setBandColor( "R" );
 					cameras.add( secondCamera );
 					System.out.println( setup.getCamera2().getDeviceName() );
@@ -1142,25 +1098,36 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 		}, 500, 100, TimeUnit.MILLISECONDS );
 	}
 
-	void addBandControls() {
+	private void addBandControls() {
 		for(String key : bandMap.keySet()) {
 			ImageView iv = bandMap.get(key).imageView;
 			iv.setSmooth( false );
 			iv.setPreserveRatio( false );
-			switch ( key ) {
-				case "DCam":
-				case "Andor sCMOS Camera-1":
-				case "R": iv.setBlendMode( BlendMode.RED );
-					break;
-				case "DCam1":
-				case "Andor sCMOS Camera-2":
-				case "G": iv.setBlendMode( BlendMode.GREEN );
-					break;
-				case "hB":
-				case "B": iv.setBlendMode( BlendMode.BLUE );
-					break;
-				default: iv.setBlendMode( BlendMode.MULTIPLY );
-					break;
+			if(key.equals( firstCamera )) {
+				iv.setBlendMode( BlendMode.RED );
+			} else if(key.equals( secondCamera )) {
+				iv.setBlendMode( BlendMode.GREEN );
+			} else if(key.equals( thirdCamera )) {
+				iv.setBlendMode( BlendMode.BLUE );
+			}
+			else
+			{
+				switch ( key )
+				{
+					case "R":
+						iv.setBlendMode( BlendMode.RED );
+						break;
+					case "G":
+						iv.setBlendMode( BlendMode.GREEN );
+						break;
+					case "hB":
+					case "B":
+						iv.setBlendMode( BlendMode.BLUE );
+						break;
+					default:
+						iv.setBlendMode( BlendMode.MULTIPLY );
+						break;
+				}
 			}
 
 			if(key.equals( "hB" )) continue;
