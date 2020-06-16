@@ -151,7 +151,7 @@ public class HalcyonMain extends HalcyonFrame
 		addNode( consoleNode );
 
 		// Custom DemoToolbar provided here
-		ToolbarPanel lToolbar = new ToolbarPanel( studio, acquisitionPanel.roiRectangleProperty(), mmStudioProperty );
+		ToolbarPanel lToolbar = new ToolbarPanel( studio, mmStudioProperty );
 		lToolbar.setPrefSize(300, 200);
 		addToolbar(lToolbar);
 

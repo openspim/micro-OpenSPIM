@@ -36,7 +36,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 {
 	final ObjectProperty<Studio> studioProperty;
 
-	public ToolbarPanel( Studio mmStudio, ObjectProperty roiRectangle, ObjectProperty< Studio > mmStudioObjectProperty )
+	public ToolbarPanel( Studio mmStudio, ObjectProperty< Studio > mmStudioObjectProperty )
 	{
 		super(new VBox());
 		this.studioProperty = new SimpleObjectProperty<>( mmStudio );
@@ -54,73 +54,6 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		Image logoImg = new javafx.scene.image.Image( getClass().getResourceAsStream( "logo.png" ),
 				160, 100, true, true );
 		ImageView iv = new ImageView(logoImg);
-
-		java.awt.Rectangle roi = null;
-		try
-		{
-			if( getStudio() != null && getStudio().core() != null)
-				roi = getStudio().core().getROI();
-		}
-		catch ( Exception e )
-		{
-			e.printStackTrace();
-		}
-
-		if(null == roi)
-			roi = new Rectangle( 0, 0, 0, 0 );
-
-		Label roiXYLabel = new Label(String.format( "X=%d, Y=%d", roi.x, roi.y ) );
-		Label roiWLabel = new Label(String.format( "Width=%d", roi.width ));
-		Label roiHLabel = new Label(String.format( "Height=%d", roi.height ));
-
-		roiRectangle.addListener( new ChangeListener()
-		{
-			@Override public void changed( ObservableValue observable, Object oldValue, Object newValue )
-			{
-				if(null != newValue) {
-					java.awt.Rectangle roi = ( java.awt.Rectangle ) newValue;
-					roiXYLabel.setText( String.format( "X=%d, Y=%d", roi.x, roi.y ) );
-					roiWLabel.setText( String.format( "Width=%d", roi.width ) );
-					roiHLabel.setText( String.format( "Height=%d", roi.height ) );
-				}
-			}
-		} );
-
-		Button setRoiButton = new Button( "Set ROI" );
-		setRoiButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				if( getStudio() != null && getStudio().live() != null && getStudio().live().getDisplay() != null && getStudio().live().getDisplay().getImagePlus() != null && getStudio().live().getDisplay().getImagePlus().getRoi() != null) {
-					Roi ipRoi = getStudio().live().getDisplay().getImagePlus().getRoi();
-					roiRectangle.setValue( ipRoi.getBounds() );
-				}
-			}
-		} );
-
-		Button clearRoiButton = new Button("Clear");
-		clearRoiButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				try
-				{
-					if( getStudio() != null && getStudio().core() != null)
-					{
-						getStudio().core().clearROI();
-						roiRectangle.setValue( getStudio().core().getROI() );
-						if( getStudio().live() != null && getStudio().live().getDisplay() != null && getStudio().live().getDisplay().getImagePlus() != null && getStudio().live().getDisplay().getImagePlus().getRoi() != null) {
-							getStudio().live().getDisplay().getImagePlus().deleteRoi();
-						}
-					}
-				}
-				catch ( Exception e )
-				{
-					e.printStackTrace();
-				}
-			}
-		} );
-
 
 		Label liveDemoLabel = new Label( "LIVE DEMO" );
 		liveDemoLabel.setStyle( "-fx-font: 18 arial; -fx-background-color: #0faff0" );
@@ -140,13 +73,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 		gridpane.addRow( 1, topHbox );
 
-		TitledPane titledPane = new TitledPane( "Region of Interest", new VBox( 3, roiXYLabel, roiWLabel, roiHLabel ) );
-		titledPane.setCollapsible( false );
-
-		gridpane.addRow( 2, titledPane );
-		gridpane.addRow( 3, new HBox( 3, setRoiButton, clearRoiButton) );
-
-		Button ijButton = new Button( "Open IJ" );
+		Button ijButton = new Button( "Open Fiji" );
 		ijButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -181,7 +108,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			}
 		} );
 
-		gridpane.addRow( 4, new HBox(3, ijButton, mmButton) );
+		gridpane.addRow( 2, new HBox(3, ijButton, mmButton) );
 
 //		btn = new Button("Test Std Err");
 //		btn.setOnAction(e -> {
@@ -199,10 +126,6 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 //		btn = new Button("488");
 //		btn.setStyle("-fx-background-color: #0FAFF0");
 //		box.getChildren().add(btn);
-	}
-
-	Studio getStudio() {
-		return this.studioProperty.get();
 	}
 
 	@Override public void setSetup( SPIMSetup setup, Studio studio ) {

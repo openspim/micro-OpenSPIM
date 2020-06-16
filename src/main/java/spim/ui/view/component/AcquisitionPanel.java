@@ -42,11 +42,13 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TitledPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -281,7 +283,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		acquireHBox.setAlignment( Pos.CENTER_LEFT );
 
 		CheckBox continuousCheckBox = new CheckBox( "Continuous" );
-		continuousCheckBox.setTooltip( new Tooltip( "Continous acquisition ignores custom channel settings and captures current camera." ) );
+		continuousCheckBox.setTooltip( new Tooltip( "Continuous acquisition ignores custom channel settings and captures current camera." ) );
 		continuous = continuousCheckBox.selectedProperty();
 		continuous.addListener( new ChangeListener< Boolean >()
 		{
@@ -333,6 +335,82 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		} );
 		acquireHBox.getChildren().addAll(liveViewButton, acquireButton, continuousCheckBox, pi);
 
+		// Region Of Interest
+		java.awt.Rectangle roi = null;
+		try
+		{
+			if( getStudio() != null && getStudio().core() != null)
+				roi = getStudio().core().getROI();
+		}
+		catch ( Exception e )
+		{
+			e.printStackTrace();
+		}
+
+		if(null == roi)
+			roi = new java.awt.Rectangle( 0, 0, 0, 0 );
+
+		Label roiXYLabel = new Label(String.format( "X=%d, Y=%d", roi.x, roi.y ) );
+		Label roiWLabel = new Label(String.format( "Width=%d", roi.width ));
+		Label roiHLabel = new Label(String.format( "Height=%d", roi.height ));
+
+		roiRectangle.addListener( new ChangeListener()
+		{
+			@Override public void changed( ObservableValue observable, Object oldValue, Object newValue )
+			{
+				if(null != newValue) {
+					java.awt.Rectangle roi = ( java.awt.Rectangle ) newValue;
+					roiXYLabel.setText( String.format( "X=%d, Y=%d", roi.x, roi.y ) );
+					roiWLabel.setText( String.format( "Width=%d", roi.width ) );
+					roiHLabel.setText( String.format( "Height=%d", roi.height ) );
+				}
+			}
+		} );
+
+		Button setRoiButton = new Button( "Set ROI" );
+		setRoiButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if( getStudio() != null && getStudio().live() != null && getStudio().live().getDisplay() != null && getStudio().live().getDisplay().getImagePlus() != null && getStudio().live().getDisplay().getImagePlus().getRoi() != null) {
+					Roi ipRoi = getStudio().live().getDisplay().getImagePlus().getRoi();
+					roiRectangle.setValue( ipRoi.getBounds() );
+				}
+			}
+		} );
+
+		Button clearRoiButton = new Button("Clear");
+		clearRoiButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				try
+				{
+					if( getStudio() != null && getStudio().core() != null)
+					{
+						getStudio().core().clearROI();
+						roiRectangle.setValue( getStudio().core().getROI() );
+						if( getStudio().live() != null && getStudio().live().getDisplay() != null && getStudio().live().getDisplay().getImagePlus() != null && getStudio().live().getDisplay().getImagePlus().getRoi() != null) {
+							getStudio().live().getDisplay().getImagePlus().deleteRoi();
+						}
+					}
+				}
+				catch ( Exception e )
+				{
+					e.printStackTrace();
+				}
+			}
+		} );
+
+		VBox roiInfo = new VBox(3);
+		roiInfo.setStyle("-fx-border-color: gray");
+		roiInfo.getChildren().addAll( roiXYLabel, roiWLabel, roiHLabel );
+		roiInfo.setPadding( new Insets(3, 3, 3, 3) );
+
+		TitledPane roiPane = new TitledPane( "ROI Setting", new HBox( 3, roiInfo, new VBox( 3, setRoiButton, clearRoiButton ) ) );
+		roiPane.setExpanded( false );
+
+		acquireHBox.getChildren().add( roiPane );
 		BorderPane.setMargin(acquireHBox, new Insets(12,12,12,12));
 
 		// listbox for Position list
@@ -616,6 +694,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				}
 			}
 		} );
+	}
+
+	Studio getStudio() {
+		return this.studio;
 	}
 
 	@Override public void setSetup( SPIMSetup setup, Studio studio )
