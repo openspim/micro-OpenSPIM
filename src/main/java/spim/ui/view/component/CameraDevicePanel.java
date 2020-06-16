@@ -11,6 +11,9 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
@@ -27,7 +30,9 @@ import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Spinner;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TitledPane;
 import javafx.scene.control.Toggle;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
@@ -53,6 +58,9 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.transform.Affine;
 import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Translate;
+import mmcorej.CMMCore;
+import mmcorej.DeviceType;
+import mmcorej.StrVector;
 import mmcorej.TaggedImage;
 import mmcorej.org.json.JSONObject;
 import org.controlsfx.control.RangeSlider;
@@ -61,12 +69,15 @@ import org.micromanager.Studio;
 import org.micromanager.internal.utils.MDUtils;
 import spim.hardware.Camera;
 import spim.hardware.SPIMSetup;
+import spim.model.data.DeviceItem;
 import spim.ui.view.component.pane.CheckboxPane;
 import spim.ui.view.component.slider.StageSlider;
 import spim.ui.view.component.slider.customslider.Slider;
+import spim.ui.view.component.util.TableViewUtil;
 
 import java.nio.IntBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TreeMap;
@@ -106,6 +117,8 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 	Line l1, l2;
 	HBox buttonBox;
 	Group clipGroup, clipBox;
+	ObservableList<DeviceItem> properties;
+	FilteredList<DeviceItem> filteredProperties;
 
 	public CameraDevicePanel( SPIMSetup setup, Studio gui ) {
 		studio = gui;
@@ -578,7 +591,49 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 		clipGroup = new Group();
 		buildClipBox();
 
-		box.getChildren().addAll( toolBox, clipGroup );
+		// Camera information
+		properties = FXCollections.observableArrayList();
+		filteredProperties = new FilteredList<>( properties, p -> true );
+		TableView< DeviceItem > tv = TableViewUtil.createDeviceItemTableView();
+		tv.setItems( filteredProperties );
+
+		Button refreshBtn = new Button( "Refresh" );
+		refreshBtn.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(studio != null)
+					populateProperties(studio.core());
+			}
+		} );
+
+		TextField filterField = new TextField();
+		filterField.textProperty().addListener((observable, oldValue, newValue) -> {
+			filteredProperties.setPredicate(deviceItem -> {
+				// If filter text is empty, display all persons.
+				if (newValue == null || newValue.isEmpty()) {
+					return true;
+				}
+
+				// Compare first name and last name of every person with filter text.
+				String lowerCaseFilter = newValue.toLowerCase();
+
+				if (deviceItem.getName().toLowerCase().contains(lowerCaseFilter)) {
+					return true; // Filter matches name.
+				} else if (deviceItem.getValue().toLowerCase().contains(lowerCaseFilter)) {
+					return true; // Filter matches value.
+				}
+				return false; // Does not match.
+			});
+		});
+
+		HBox filterBox = new HBox(10, refreshBtn, new Label("Filter:"), filterField);
+		filterBox.setAlignment( Pos.CENTER_LEFT );
+
+		TitledPane cameraInfo = new TitledPane("Camera Properties", new VBox( 10, filterBox, tv ) );
+		cameraInfo.setAnimated( false );
+		cameraInfo.setExpanded( false );
+		box.getChildren().addAll( toolBox, new VBox(10, clipGroup, cameraInfo ) );
 		setContent( box );
 
 		sceneProperty().addListener( new ChangeListener< Scene >()
@@ -867,6 +922,8 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 
 			List<String> cameras = new ArrayList<>();
 
+			populateProperties(studio.core());
+
 			//			cameras.add( "Andor sCMOS Camera-1" );
 			//			cameras.add( "Andor sCMOS Camera-2" );
 
@@ -961,6 +1018,7 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 		}
 		else
 		{
+			properties.clear();
 			acquisition.setSetup( null, null );
 
 			stopMonitor();
@@ -993,6 +1051,28 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 		buildClipBox();
 
 		buildButtonBox();
+	}
+
+	private void populateProperties( CMMCore core )
+	{
+		if(properties != null) {
+			properties.clear();
+			StrVector vector = core.getLoadedDevicesOfType( DeviceType.CameraDevice );
+			for(String cam : vector.toArray()) {
+				try
+				{
+					StrVector props = core.getDevicePropertyNames( cam );
+					for(String prop : props.toArray()) {
+						String name = cam + '-' + prop;
+						properties.add( new DeviceItem( name, core.getProperty( cam, prop ) ) );
+					}
+				}
+				catch ( Exception e )
+				{
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 
 	@SuppressWarnings("Duplicates")

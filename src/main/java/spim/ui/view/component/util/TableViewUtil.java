@@ -36,6 +36,7 @@ import javafx.util.Callback;
 import javafx.util.converter.NumberStringConverter;
 import spim.hardware.SPIMSetup;
 import spim.model.data.ChannelItem;
+import spim.model.data.DeviceItem;
 import spim.model.data.PinItem;
 import spim.model.data.PositionItem;
 import spim.model.data.TimePointItem;
@@ -255,79 +256,6 @@ public class TableViewUtil
 		tv.setRowFactory(createDragNDropRowFactory(tv));
 
 		return tv;
-	}
-
-	private static <T> Callback< TableView<T>, TableRow<T>> createDragNDropRowFactory(TableView<T> tv)
-	{
-		return new Callback< TableView<T>, TableRow<T> >()
-		{
-			@Override public TableRow< T > call( TableView< T > ev )
-			{
-				TableRow< T > row = new TableRow<>();
-
-				row.setOnDragDetected( event -> {
-					if ( !row.isEmpty() )
-					{
-						Integer index = row.getIndex();
-						Dragboard db = row.startDragAndDrop( TransferMode.MOVE );
-						db.setDragView( row.snapshot( null, null ) );
-						ClipboardContent cc = new ClipboardContent();
-						cc.put( SERIALIZED_MIME_TYPE, index );
-						db.setContent( cc );
-						event.consume();
-					}
-				} );
-
-				row.setOnDragOver( event -> {
-					Dragboard db = event.getDragboard();
-					if ( db.hasContent( SERIALIZED_MIME_TYPE ) )
-					{
-						if ( row.getIndex() != ( ( Integer ) db.getContent( SERIALIZED_MIME_TYPE ) ).intValue() )
-						{
-							event.acceptTransferModes( TransferMode.COPY_OR_MOVE );
-							event.consume();
-						}
-					}
-				} );
-
-				row.setOnDragDropped( event -> {
-					Dragboard db = event.getDragboard();
-					if ( db.hasContent( SERIALIZED_MIME_TYPE ) )
-					{
-						int draggedIndex = ( Integer ) db.getContent( SERIALIZED_MIME_TYPE );
-						T draggedPerson = tv.getItems().remove( draggedIndex );
-
-						int dropIndex;
-
-						if ( row.isEmpty() )
-						{
-							dropIndex = tv.getItems().size();
-						}
-						else
-						{
-							dropIndex = row.getIndex();
-						}
-
-						tv.getItems().add( dropIndex, draggedPerson );
-
-						event.setDropCompleted( true );
-						tv.getSelectionModel().select( dropIndex );
-						event.consume();
-					}
-				} );
-
-				return row;
-			}
-		};
-	}
-
-	private static void cascadeUpdatedValues( AcquisitionPanel acquisitionPanel, TableView< PositionItem > tv )
-	{
-		int i = tv.getSelectionModel().getSelectedIndex();
-		tv.getSelectionModel().clearSelection();
-		tv.getSelectionModel().select( i );
-		acquisitionPanel.computeTotalPositionImages();
-		tv.refresh();
 	}
 
 	public static TableView< ChannelItem > createChannelItemDataView( SPIMSetup setup, String currentCamera )
@@ -631,5 +559,124 @@ public class TableViewUtil
 		tv.setRowFactory(createDragNDropRowFactory(tv));
 
 		return tv;
+	}
+
+	public static TableView< DeviceItem > createDeviceItemTableView() {
+		TableView<DeviceItem> tv = new TableView<>(  );
+
+		TableColumn<DeviceItem, String> column = new TableColumn<>("Property");
+		column.setPrefWidth(300);
+		column.setCellValueFactory( (param) ->
+				new ReadOnlyStringWrapper( param.getValue().getName() )
+		);
+		tv.getColumns().add(column);
+
+		column = new TableColumn<>("Value");
+		column.setPrefWidth(200);
+		column.setCellValueFactory( (param) ->
+				new ReadOnlyStringWrapper( param.getValue().getValue() )
+		);
+		tv.getColumns().add(column);
+
+		for (TableColumn<DeviceItem, ?> col : tv.getColumns()) {
+			addTooltipToColumnCells(col);
+		}
+
+		return tv;
+	}
+
+
+	/////////////////////////////////////////////////
+	// There are Private Utility functions from here
+	/////////////////////////////////////////////////
+	private static <T> Callback< TableView<T>, TableRow<T>> createDragNDropRowFactory(TableView<T> tv)
+	{
+		return new Callback< TableView<T>, TableRow<T> >()
+		{
+			@Override public TableRow< T > call( TableView< T > ev )
+			{
+				TableRow< T > row = new TableRow<>();
+
+				row.setOnDragDetected( event -> {
+					if ( !row.isEmpty() )
+					{
+						Integer index = row.getIndex();
+						Dragboard db = row.startDragAndDrop( TransferMode.MOVE );
+						db.setDragView( row.snapshot( null, null ) );
+						ClipboardContent cc = new ClipboardContent();
+						cc.put( SERIALIZED_MIME_TYPE, index );
+						db.setContent( cc );
+						event.consume();
+					}
+				} );
+
+				row.setOnDragOver( event -> {
+					Dragboard db = event.getDragboard();
+					if ( db.hasContent( SERIALIZED_MIME_TYPE ) )
+					{
+						if ( row.getIndex() != ( ( Integer ) db.getContent( SERIALIZED_MIME_TYPE ) ).intValue() )
+						{
+							event.acceptTransferModes( TransferMode.COPY_OR_MOVE );
+							event.consume();
+						}
+					}
+				} );
+
+				row.setOnDragDropped( event -> {
+					Dragboard db = event.getDragboard();
+					if ( db.hasContent( SERIALIZED_MIME_TYPE ) )
+					{
+						int draggedIndex = ( Integer ) db.getContent( SERIALIZED_MIME_TYPE );
+						T draggedPerson = tv.getItems().remove( draggedIndex );
+
+						int dropIndex;
+
+						if ( row.isEmpty() )
+						{
+							dropIndex = tv.getItems().size();
+						}
+						else
+						{
+							dropIndex = row.getIndex();
+						}
+
+						tv.getItems().add( dropIndex, draggedPerson );
+
+						event.setDropCompleted( true );
+						tv.getSelectionModel().select( dropIndex );
+						event.consume();
+					}
+				} );
+
+				return row;
+			}
+		};
+	}
+
+	private static void cascadeUpdatedValues( AcquisitionPanel acquisitionPanel, TableView< PositionItem > tv )
+	{
+		int i = tv.getSelectionModel().getSelectedIndex();
+		tv.getSelectionModel().clearSelection();
+		tv.getSelectionModel().select( i );
+		acquisitionPanel.computeTotalPositionImages();
+		tv.refresh();
+	}
+
+	private static <DT, T> void addTooltipToColumnCells(TableColumn<DT,T> column) {
+
+		Callback<TableColumn<DT, T>, TableCell<DT,T>> existingCellFactory
+				= column.getCellFactory();
+
+		column.setCellFactory(c -> {
+			TableCell<DT, T> cell = existingCellFactory.call(c);
+
+			Tooltip tooltip = new Tooltip();
+			// can use arbitrary binding here to make text depend on cell
+			// in any way you need:
+			tooltip.textProperty().bind(cell.itemProperty().asString());
+
+			cell.setTooltip(tooltip);
+			return cell ;
+		});
 	}
 }
