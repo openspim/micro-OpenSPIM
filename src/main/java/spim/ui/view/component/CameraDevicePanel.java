@@ -77,8 +77,10 @@ import spim.ui.view.component.util.TableViewUtil;
 
 import java.nio.IntBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -118,6 +120,7 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 	ObservableList<DeviceItem> properties;
 	FilteredList<DeviceItem> filteredProperties;
 	private String firstCamera = "", secondCamera = "", thirdCamera = "";
+	private boolean isMulticameraPresent = false;
 
 	public CameraDevicePanel( SPIMSetup setup, Studio gui ) {
 		studio = gui;
@@ -876,13 +879,15 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 		if(setup != null) {
 			System.out.println("Number of channels: " + studio.core().getNumberOfCameraChannels());
 
+			Optional<String> multi = Arrays.stream( studio.core().getLoadedDevicesOfType( DeviceType.CameraDevice ).toArray() ).filter( c -> c.startsWith( "Multi" ) ).findFirst();
+
+			if(multi.isPresent()) {
+				isMulticameraPresent = true;
+			}
+
 			List<String> cameras = new ArrayList<>();
 
 			populateProperties(studio.core());
-
-			//			cameras.add( "Andor sCMOS Camera-1" );
-			//			cameras.add( "Andor sCMOS Camera-2" );
-
 
 			if(setup.getCamera1() != null)
 			{
@@ -997,6 +1002,8 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 			updateBandTable("B", 0, 255);
 
 			handleBuffer(rgbBuffer, "");
+
+			isMulticameraPresent = false;
 		}
 
 		imageStackPane.getChildren().addAll( bandMap.values().stream().map( c -> c.imageView).collect( Collectors.toList() ) );
@@ -1176,17 +1183,32 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 						try
 						{
 							String currentCamera = studio.core().getCameraDevice();
-							if(!key.equals( currentCamera )) {
-								studio.core().setCameraDevice( key );
-								studio.core().waitForDevice( key );
+							if(currentCamera.startsWith( "Multi" )) {
+								studio.core().snapImage();
+								for(int i = 0; i < studio.core().getNumberOfCameraChannels(); i++) {
+									TaggedImage ti = studio.core().getTaggedImage( i );
+									String camera = ( String ) ti.tags.get( "Camera" );
+									if(camera.equals( key )) {
+										acquisition.setStaticImage( key, ti );
+									}
+								}
 							}
-							studio.core().snapImage();
-							TaggedImage ti = studio.core().getTaggedImage( 0 );
-							acquisition.setStaticImage(key, ti);
+							else
+							{
+								if ( !key.equals( currentCamera ) )
+								{
+									studio.core().setCameraDevice( key );
+									studio.core().waitForDevice( key );
+								}
+								studio.core().snapImage();
+								TaggedImage ti = studio.core().getTaggedImage( 0 );
+								acquisition.setStaticImage( key, ti );
 
-							if(!key.equals( currentCamera )) {
-								studio.core().setCameraDevice( currentCamera );
-								studio.core().waitForDevice( currentCamera );
+								if ( !key.equals( currentCamera ) )
+								{
+									studio.core().setCameraDevice( currentCamera );
+									studio.core().waitForDevice( currentCamera );
+								}
 							}
 						}
 						catch ( Exception e )

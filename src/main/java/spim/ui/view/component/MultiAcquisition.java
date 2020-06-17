@@ -5,6 +5,7 @@ import mmcorej.TaggedImage;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -17,13 +18,15 @@ public class MultiAcquisition
 {
 	private static final int MAX_DISPLAY_HISTORY = 20;
 	private Thread captureThread;
-	private volatile boolean done = false, shutterOpen, autoShutter, camera;
+	private volatile boolean done = false, shutterOpen, autoShutter;
 	private ConcurrentHashMap<String, TaggedImage> map = new ConcurrentHashMap<>();
 	private final ArrayList<Long> displayUpdateTimes_;
 	private double exposureMs_;
 
 	private CMMCore core;
 	private List<String> cameras;
+
+	private HashSet<String> runningChannels = new HashSet<>(  );
 
 	MultiAcquisition( CMMCore core, List<String> cameras )
 	{
@@ -66,21 +69,50 @@ public class MultiAcquisition
 
 	void startAcq(String camera) throws Exception
 	{
-		if(!core.isSequenceRunning(camera)) {
-			core.startSequenceAcquisition( camera, Integer.MAX_VALUE, 0, false );
+		if(core.getCameraDevice().startsWith( "Multi" )) {
+			if(runningChannels.size() == 0)
+			{
+				core.startSequenceAcquisition( core.getCameraDevice(), Integer.MAX_VALUE, 0, false );
+			}
+
+			runningChannels.add( camera );
+		}
+		else
+		{
+			if ( !core.isSequenceRunning( camera ) )
+			{
+				core.startSequenceAcquisition( camera, Integer.MAX_VALUE, 0, false );
+			}
 		}
 	}
 
 	void stopAcq(String camera) throws Exception
 	{
-		if(core.isSequenceRunning(camera)) {
-			core.stopSequenceAcquisition( camera );
+		if(core.getCameraDevice().startsWith( "Multi" )) {
+			runningChannels.remove( camera );
+
+			if(runningChannels.size() == 0)
+			{
+				core.stopSequenceAcquisition( core.getCameraDevice() );
+			}
+		}
+		else
+		{
+			if ( core.isSequenceRunning( camera ) )
+			{
+				core.stopSequenceAcquisition( camera );
+			}
 		}
 	}
 
 	boolean isAcqRunning(String camera) throws Exception
 	{
-		return core.isSequenceRunning(camera);
+		if(core.getCameraDevice().startsWith( "Multi" )) {
+			return runningChannels.contains( camera );
+		} else
+		{
+			return core.isSequenceRunning( camera );
+		}
 	}
 
 	public void start() throws Exception
@@ -110,12 +142,34 @@ public class MultiAcquisition
 					{
 						waitForNextDisplay();
 						if(cameras == null) break;
-						for(int i = 0; i < cameras.size(); i++) {
-							try {
-								TaggedImage timg = core.getLastTaggedImage( i );
-								String camera = ( String ) timg.tags.get( "Camera" );
-								map.put( camera, timg );
-							} catch ( Exception e ) {
+
+						if(core.getCameraDevice().startsWith( "Multi" )) {
+							for ( int i = 0; i < core.getNumberOfCameraChannels(); i++ )
+							{
+								try
+								{
+									TaggedImage timg = core.getLastTaggedImage( i );
+									String camera = ( String ) timg.tags.get( "Camera" );
+									if(runningChannels.contains( camera ))
+										map.put( camera, timg );
+								}
+								catch ( Exception e )
+								{
+								}
+							}
+						} else
+						{
+							for ( int i = 0; i < cameras.size(); i++ )
+							{
+								try
+								{
+									TaggedImage timg = core.getLastTaggedImage( i );
+									String camera = ( String ) timg.tags.get( "Camera" );
+									map.put( camera, timg );
+								}
+								catch ( Exception e )
+								{
+								}
 							}
 						}
 
