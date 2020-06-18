@@ -242,6 +242,7 @@
                             <!-- for details of that JNLP-bundler, please have a look at the source -->
                             <!-- https://github.com/Debian/openjfx/blob/e32fd960e20c58c9b7db27e426b4bca6d52add2f/modules/fxpackager/src/main/java/com/oracle/tools/packager/jnlp/JNLPBundler.java#L84 -->
                             <jnlp.outfile>OpenSPIM</jnlp.outfile>
+                            <icon>${project.basedir}/src/main/deploy/package/windows/OpenSPIM.ico</icon>
                         </bundleArguments>
                         <keyStore>${env.KEY_STORE}</keyStore>
                         <keyStoreAlias>${env.KEY_STORE_ALIAS}</keyStoreAlias>
