@@ -26,9 +26,11 @@ public class SliderSkin extends
   /** Track if slider is vertical/horizontal and cause re layout */
   // private boolean horizontal;
   private NumberAxis tickLine = null;
+  private NumberAxis upTickLine = null;
   private double trackToTickGap = 2;
 
   private boolean showTickMarks;
+  private boolean showUpTickMarks;
   private double thumbWidth;
   private double thumbHeight;
 
@@ -60,6 +62,12 @@ public class SliderSkin extends
                            "SHOW_TICK_MARKS");
     registerChangeListener(slider.showTickLabelsProperty(),
                            "SHOW_TICK_LABELS");
+	registerChangeListener(slider.showUpTickMarksProperty(),
+			  			   "SHOW_UP_TICK_MARKS");
+	registerChangeListener(slider.showUpTickLabelsProperty(),
+			      		   "SHOW_UP_TICK_LABELS");
+	  registerChangeListener(slider.upTickUpperValueProperty(),
+			  "UP_TICK_UPPER_VALUE");
     registerChangeListener(slider.majorTickUnitProperty(),
                            "MAJOR_TICK_UNIT");
     registerChangeListener(slider.minorTickCountProperty(),
@@ -94,8 +102,11 @@ public class SliderSkin extends
 
     getChildren().clear();
     getChildren().addAll(track, thumb);
+
+	showUpTickMarks = (getSkinnable().isShowUpTickMarks() || getSkinnable().isShowUpTickLabels());
     setShowTickMarks(getSkinnable().isShowTickMarks(),
                      getSkinnable().isShowTickLabels());
+
     track.setOnMousePressed(me -> {
       if (!thumb.isPressed())
       {
@@ -179,6 +190,7 @@ public class SliderSkin extends
   {
     showTickMarks = (ticksVisible || labelsVisible);
     Slider slider = getSkinnable();
+
     if (showTickMarks)
     {
       if (tickLine == null)
@@ -205,8 +217,47 @@ public class SliderSkin extends
         {
           tickLine.setTickLabelFormatter(stringConverterWrapper);
         }
+
         getChildren().clear();
-        getChildren().addAll(tickLine, track, thumb);
+
+		  if(showUpTickMarks) {
+			  upTickLine = new NumberAxis();
+			  upTickLine.setAnimated(false);
+
+			  upTickLine.setAutoRanging(false);
+			  upTickLine.setSide(slider.getOrientation() == Orientation.VERTICAL ? Side.LEFT
+					  : (slider.getOrientation() == null) ? Side.LEFT
+					  : Side.TOP);
+
+
+			  int upper = slider.getUpTickUpperValue();
+			  upTickLine.setUpperBound(upper);
+			  upTickLine.setLowerBound(1);
+			  upTickLine.setTickUnit(1);
+			  upTickLine.setTickMarkVisible(ticksVisible);
+			  upTickLine.setTickLabelsVisible(true);
+			  upTickLine.setMinorTickVisible(false);
+			  upTickLine.setTickLabelFormatter(new StringConverter<Number>()
+			  {
+				  @Override public Number fromString(String string)
+				  {
+					  return Integer.parseInt( string );
+				  }
+				  @Override public String toString(Number object)
+				  {
+					  int value = object.intValue();
+					  if (value == upper)
+						  return "";
+					  else
+					  	return value + "";
+				  }
+			  });
+
+			  getChildren().addAll( upTickLine, tickLine, track, thumb );
+		  } else
+		  {
+			  getChildren().addAll( tickLine, track, thumb );
+		  }
       }
       else
       {
@@ -225,6 +276,45 @@ public class SliderSkin extends
     getSkinnable().requestLayout();
   }
 
+  private void updateUpTick(boolean ticksVisible)
+  {
+	  Slider slider = getSkinnable();
+	  if ( showUpTickMarks )
+	  {
+		  upTickLine = new NumberAxis();
+		  upTickLine.setAnimated( false );
+
+		  upTickLine.setAutoRanging( false );
+		  upTickLine.setSide( slider.getOrientation() == Orientation.VERTICAL ? Side.LEFT
+				  : ( slider.getOrientation() == null ) ? Side.LEFT
+				  : Side.TOP );
+
+		  int upper = slider.getUpTickUpperValue();
+		  upTickLine.setUpperBound( upper );
+		  upTickLine.setLowerBound( 1 );
+		  upTickLine.setTickUnit( 1 );
+		  upTickLine.setTickMarkVisible( ticksVisible );
+		  upTickLine.setTickLabelsVisible( true );
+		  upTickLine.setMinorTickVisible( false );
+		  upTickLine.setTickLabelFormatter( new StringConverter< Number >()
+		  {
+			  @Override public Number fromString( String string )
+			  {
+				  return Integer.parseInt( string );
+			  }
+
+			  @Override public String toString( Number object )
+			  {
+				  int value = object.intValue();
+				  if ( value == upper )
+					  return "";
+				  else
+					  return value + "";
+			  }
+		  } );
+	  }
+  }
+
   @Override
   protected void handleControlPropertyChanged(String p)
   {
@@ -238,6 +328,12 @@ public class SliderSkin extends
                                                                          : (slider.getOrientation() == null) ? Side.RIGHT
                                                                                                              : Side.BOTTOM);
       }
+	  if (showUpTickMarks && upTickLine != null)
+	  {
+	  	upTickLine.setSide(slider.getOrientation() == Orientation.VERTICAL ? Side.LEFT
+	  			: (slider.getOrientation() == null) ? Side.LEFT
+	  			: Side.TOP);
+	  }
       getSkinnable().requestLayout();
     }
     else if ("VALUE".equals(p))
@@ -263,11 +359,33 @@ public class SliderSkin extends
       getSkinnable().requestLayout();
     }
     else if ("SHOW_TICK_MARKS".equals(p)
-             || "SHOW_TICK_LABELS".equals(p))
+             || "SHOW_TICK_LABELS".equals(p)
+			|| "SHOW_UP_TICK_MARKS".equals(p)
+			|| "SHOW_UP_TICK_LABELS".equals(p))
     {
       setShowTickMarks(slider.isShowTickMarks(),
                        slider.isShowTickLabels());
     }
+    else if ("UP_TICK_UPPER_VALUE".equals( p )) {
+		int upper = slider.getUpTickUpperValue();
+		upTickLine.setUpperBound( upper );
+		upTickLine.setTickLabelFormatter( new StringConverter< Number >()
+		{
+			@Override public Number fromString( String string )
+			{
+				return Integer.parseInt( string );
+			}
+
+			@Override public String toString( Number object )
+			{
+				int value = object.intValue();
+				if ( value == upper )
+					return "";
+				else
+					return value + "";
+			}
+		} );
+	}
     else if ("MAJOR_TICK_UNIT".equals(p))
     {
       if (tickLine != null)
@@ -423,6 +541,23 @@ public class SliderSkin extends
         tickLine.setLayoutY(trackTop + trackHeight + trackToTickGap);
         tickLine.resize(trackLength, tickLineHeight);
         tickLine.requestAxisLayout();
+
+		  if (showUpTickMarks)
+		  {
+			  upTickLine.setLayoutX(trackStart);
+			  upTickLine.setLayoutY(trackTop - 10);
+			  upTickLine.resize(trackLength, tickLineHeight);
+			  upTickLine.requestAxisLayout();
+		  }
+		  else
+		  {
+			  if (upTickLine != null)
+			  {
+				  upTickLine.resize(0, 0);
+				  upTickLine.requestAxisLayout();
+			  }
+			  upTickLine = null;
+		  }
       }
       else
       {
@@ -470,6 +605,23 @@ public class SliderSkin extends
         tickLine.setLayoutY(trackStart);
         tickLine.resize(tickLineWidth, trackLength);
         tickLine.requestAxisLayout();
+
+		  if (showUpTickMarks)
+		  {
+			  upTickLine.setLayoutX(trackLeft);
+			  upTickLine.setLayoutY(trackStart - 5);
+			  upTickLine.resize(tickLineWidth, trackLength);
+			  upTickLine.requestAxisLayout();
+		  }
+		  else
+		  {
+			  if (upTickLine != null)
+			  {
+				  upTickLine.resize(0, 0);
+				  upTickLine.requestAxisLayout();
+			  }
+			  upTickLine = null;
+		  }
       }
       else
       {

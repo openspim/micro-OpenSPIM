@@ -3,7 +3,10 @@ package spim.ui.view.component.slider.demo;
 import javafx.application.Application;
 import javafx.beans.property.Property;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 import spim.ui.view.component.slider.StageSlider;
@@ -52,6 +55,23 @@ public class StageSliderDemo extends Application
 		} );
 
 		root.add( slider, 0, 2 );
+
+		Property< Number > property3 = new SimpleDoubleProperty( 0.0f );
+		slider = new StageSlider( "Third", property3, false, true, 0.0, 360.0, 3.0 );
+
+		root.add( slider, 0, 3 );
+
+		Button btn = new Button( "Test" );
+		StageSlider finalSlider = slider;
+		btn.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				finalSlider.getSlider().setUpTickUpperValue( 10 );
+			}
+		} );
+
+		root.add( btn, 1, 3 );
 
 		stage.show();
 	}

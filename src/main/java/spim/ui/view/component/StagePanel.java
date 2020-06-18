@@ -19,6 +19,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuButton;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.Spinner;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -414,9 +415,19 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		// TODO: Angle indicator
-		Label angleIndicator = new Label( "Indicate angles:" );
+		// Angle indicator
+		final Spinner<Integer> spinner = new Spinner<Integer>(1, 100, 3);
+		spinner.setPrefSize( 60, 10 );
+		spinner.valueProperty().addListener( new ChangeListener< Integer >()
+		{
+			@Override public void changed( ObservableValue< ? extends Integer > observable, Integer oldValue, Integer newValue )
+			{
+				stageUnitR.getTargetSlider().getSlider().setUpTickUpperValue( newValue );
+			}
+		} );
 
+		HBox angleIndiBox = new HBox( new Label( "Indicate angles: " ), spinner );
+		angleIndiBox.setAlignment( Pos.CENTER_LEFT );
 
 		HBox topHbox = new HBox( 10, new Label( "All On/Off: " ), switchAll, saveCurrentLocation, loadLocation, newButton );
 		topHbox.setAlignment( Pos.CENTER_LEFT );
@@ -433,7 +444,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		VBox controls = new VBox( 10, topHbox, angleIndicator, stageUnitR, stageUnitX, stageUnitY, stageUnitZ, undoBtn );
+		VBox controls = new VBox( 10, topHbox, angleIndiBox, stageUnitR, stageUnitX, stageUnitY, stageUnitZ, undoBtn );
 		controls.setPadding( new Insets( 10 ) );
 		return controls;
 	}

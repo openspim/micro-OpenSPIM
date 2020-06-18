@@ -5,6 +5,7 @@ package spim.ui.view.component.slider.customslider;
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
  */
 
+import javafx.beans.property.SimpleIntegerProperty;
 import spim.ui.view.component.slider.customslider.skin.SliderSkin;
 import com.sun.javafx.css.converters.BooleanConverter;
 import com.sun.javafx.css.converters.EnumConverter;
@@ -265,6 +266,21 @@ public class Slider extends Control
     return value;
   }
 
+  private IntegerProperty upTickUpperValue = new SimpleIntegerProperty( 3 );
+
+  public final void setUpTickUpperValue(int value) {
+	upTickUpperValueProperty().set(value);
+  }
+
+  public final int getUpTickUpperValue() {
+  	return upTickUpperValue.getValue();
+  }
+
+  public final IntegerProperty upTickUpperValueProperty()
+  {
+  	return upTickUpperValue;
+  }
+
   /**
    * When true, indicates the current value of this Slider is changing. It
    * provides notification that the value is changing. Once the value is
@@ -447,6 +463,97 @@ public class Slider extends Control
     }
     return showTickMarks;
   }
+
+	/**
+	 * Indicates that the labels for upper tick marks should be shown. Typically a
+	 * {@link Skin} implementation will only show labels if
+	 * {@link #showTickMarksProperty() showUpTickMarks} is also true.
+	 */
+	private BooleanProperty showUpTickLabels;
+
+	public final void setShowUpTickLabels(boolean value)
+	{
+		showUpTickLabelsProperty().set(value);
+	}
+
+	public final boolean isShowUpTickLabels()
+	{
+		return showUpTickLabels == null ? false : showUpTickLabels.get();
+	}
+
+	public final BooleanProperty showUpTickLabelsProperty()
+	{
+		if (showUpTickLabels == null)
+		{
+			showUpTickLabels = new StyleableBooleanProperty(false)
+			{
+
+				@Override
+				public CssMetaData<Slider, Boolean> getCssMetaData()
+				{
+					return StyleableProperties.SHOW_UP_TICK_LABELS;
+				}
+
+				@Override
+				public Object getBean()
+				{
+					return Slider.this;
+				}
+
+				@Override
+				public String getName()
+				{
+					return "showUpTickLabels";
+				}
+			};
+		}
+		return showUpTickLabels;
+	}
+
+	/**
+	 * Specifies whether the {@link Skin} implementation
+	 * should show upper tick marks.
+	 */
+	private BooleanProperty showUpTickMarks;
+
+	public final void setShowUpTickMarks(boolean value)
+	{
+		showUpTickMarksProperty().set(value);
+	}
+
+	public final boolean isShowUpTickMarks()
+	{
+		return showUpTickMarks == null ? false : showUpTickMarks.get();
+	}
+
+	public final BooleanProperty showUpTickMarksProperty()
+	{
+		if (showUpTickMarks == null)
+		{
+			showUpTickMarks = new StyleableBooleanProperty(false)
+			{
+
+				@Override
+				public CssMetaData<Slider, Boolean> getCssMetaData()
+				{
+					return StyleableProperties.SHOW_UP_TICK_MARKS;
+				}
+
+				@Override
+				public Object getBean()
+				{
+					return Slider.this;
+				}
+
+				@Override
+				public String getName()
+				{
+					return "showUpTickMarks";
+				}
+			};
+		}
+		return showUpTickMarks;
+	}
 
   /**
    * The unit distance between major tick marks. For example, if the
@@ -844,6 +951,46 @@ public class Slider extends Control
 				  }
 			  };
 
+	  private static final CssMetaData< Slider, Boolean > SHOW_UP_TICK_LABELS =
+			  new CssMetaData< Slider, Boolean >( "-fx-show-up-tick-labels",
+					  BooleanConverter.getInstance(),
+					  Boolean.FALSE )
+			  {
+
+				  @Override
+				  public boolean isSettable( Slider n )
+				  {
+					  return n.showUpTickLabels == null
+							  || !n.showUpTickLabels.isBound();
+				  }
+
+				  @Override
+				  public StyleableProperty< Boolean > getStyleableProperty( Slider n )
+				  {
+					  return ( StyleableProperty< Boolean > ) n.showUpTickLabelsProperty();
+				  }
+			  };
+
+	  private static final CssMetaData< Slider, Boolean > SHOW_UP_TICK_MARKS =
+			  new CssMetaData< Slider, Boolean >( "-fx-show-up-tick-marks",
+					  BooleanConverter.getInstance(),
+					  Boolean.FALSE )
+			  {
+
+				  @Override
+				  public boolean isSettable( Slider n )
+				  {
+					  return n.showUpTickMarks == null
+							  || !n.showUpTickMarks.isBound();
+				  }
+
+				  @Override
+				  public StyleableProperty< Boolean > getStyleableProperty( Slider n )
+				  {
+					  return ( StyleableProperty< Boolean > ) n.showUpTickMarksProperty();
+				  }
+			  };
+
 	  private static final CssMetaData< Slider, Boolean > SNAP_TO_TICKS =
 			  new CssMetaData< Slider, Boolean >( "-fx-snap-to-ticks",
 					  BooleanConverter.getInstance(),
@@ -944,6 +1091,8 @@ public class Slider extends Control
       styleables.add(BLOCK_INCREMENT);
       styleables.add(SHOW_TICK_LABELS);
       styleables.add(SHOW_TICK_MARKS);
+	  styleables.add(SHOW_UP_TICK_LABELS);
+	  styleables.add(SHOW_UP_TICK_MARKS);
       styleables.add(SNAP_TO_TICKS);
       styleables.add(MAJOR_TICK_UNIT);
       styleables.add(MINOR_TICK_COUNT);

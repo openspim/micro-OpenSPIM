@@ -89,6 +89,9 @@ public class StageSlider extends HBox
 							pi.setProgress( new_val.doubleValue() ) );
 
 			getChildren().addAll( mLabel, mSlider, pi );
+		} else if ( !readOnly && isR ) {
+			mSlider.setShowUpTickMarks( true );
+			getChildren().addAll( mLabel, mSlider, mTextField );
 		}
 		else
 		{

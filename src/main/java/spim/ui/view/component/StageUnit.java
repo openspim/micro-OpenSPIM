@@ -12,7 +12,6 @@ import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
@@ -354,6 +353,11 @@ public class StageUnit extends Region
 	public StageSlider getDeviceSlider()
 	{
 		return deviceSlider;
+	}
+
+	public StageSlider getTargetSlider()
+	{
+		return targetSlider;
 	}
 
 	public BooleanProperty getEnabledProperty() {
