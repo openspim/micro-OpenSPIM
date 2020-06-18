@@ -1118,7 +1118,7 @@ public class MMAcquisitionEngine
 		PropertyMap ud = md.getUserData();
 		ud = ud.copyBuilder().putDouble("Z-Step-um", position.getZStep()).build();
 		String posName = position.toString();
-		mdb = mdb.xPositionUm(position.getX()).yPositionUm(position.getY()).zPositionUm( zPos );
+		mdb = mdb.xPositionUm(position.getX()).yPositionUm(position.getY()).zPositionUm( zPos ).elapsedTimeMs( (double) ms );
 
 		md = mdb.positionName(posName).userData(ud).build();
 		img = img.copyWith(coord, md);
@@ -1175,7 +1175,7 @@ public class MMAcquisitionEngine
 		PropertyMap ud = md.getUserData();
 		ud = ud.copyBuilder().putDouble("Z-Step-um", position.getZStep()).build();
 		String posName = position.toString();
-		mdb = mdb.xPositionUm(position.getX()).yPositionUm(position.getY()).zPositionUm( zPos );
+		mdb = mdb.xPositionUm(position.getX()).yPositionUm(position.getY()).zPositionUm( zPos ).elapsedTimeMs( (double) ms );
 
 		md = mdb.positionName(posName).userData(ud).build();
 		img = img.copyWith(coord, md);
