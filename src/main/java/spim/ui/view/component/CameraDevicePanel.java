@@ -191,7 +191,6 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 					secondCamera = setup.getCamera2().getLabel();
 					bandMap.get( firstCamera ).setBandColor( "R" );
 					cameras.add( secondCamera );
-					System.out.println( setup.getCamera2().getDeviceName() );
 
 					bandMap.put( secondCamera, new Band( new WritableImage( width, height), new int[ size ], "G" ) );
 					bandMap.get( secondCamera ).setCamera( setup.getCamera2() );
@@ -925,7 +924,8 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 					secondCamera = setup.getCamera2().getLabel();
 					bandMap.get( firstCamera ).setBandColor( "R" );
 					cameras.add( secondCamera );
-					System.out.println( setup.getCamera2().getDeviceName() );
+					System.out.println( setup.getCamera1().getDeviceName() );
+					System.out.println( setup.getCamera2().getLabel() );
 					bandMap.put( secondCamera, new Band( new WritableImage( width, height), new int[ size ], "G" ) );
 					bandMap.get( secondCamera ).setCamera( setup.getCamera2() );
 					updateBandTable(secondCamera, 0, size);

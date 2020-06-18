@@ -48,7 +48,6 @@ import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -58,10 +57,10 @@ import javafx.scene.shape.RectangleBuilder;
 import javafx.scene.transform.Shear;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
-import javafx.stage.Stage;
 import mmcorej.DeviceType;
 import org.micromanager.Studio;
 
+import org.micromanager.internal.MMStudio;
 import spim.hardware.SPIMSetup;
 import spim.model.data.AcquisitionSetting;
 import spim.model.data.ChannelItem;
@@ -173,7 +172,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	Slider zSlider = null;
 	Tab laserTab;
 
-	public AcquisitionPanel( Stage stage, SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView< PinItem > pinItemTableView ) {
+	public AcquisitionPanel( SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView< PinItem > pinItemTableView ) {
 		this.spimSetup = setup;
 		this.studio = studio;
 		this.propertyMap = new HashMap<>();
@@ -489,8 +488,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		acqSettings.setSpacing(5);
 		acqSettings.setAlignment( Pos.CENTER_LEFT );
 
-		Button saveButton = new Button( "Save acquisition setting" );
-		saveButton.setMinSize( 150, 40 );
+		Button saveButton = new Button( "SAVE" );
+		saveButton.setMinSize( 100, 40 );
 		saveButton.setStyle("-fx-font: 12 arial; -fx-base: #69e760;");
 		saveButton.setOnAction( new EventHandler< ActionEvent >()
 		{
@@ -510,8 +509,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		Button loadButton = new Button( "Load acquisition setting" );
-		loadButton.setMinSize( 150, 40 );
+		Button loadButton = new Button( "LOAD" );
+		loadButton.setMinSize( 100, 40 );
 		loadButton.setStyle("-fx-font: 12 arial; -fx-base: #e7e45d;");
 		loadButton.setOnAction( new EventHandler< ActionEvent >()
 		{
@@ -575,14 +574,28 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		acqSettings.getChildren().addAll( saveButton, loadButton );
+		Button clearButton = new Button( "CLEAR" );
+		clearButton.setMinSize( 100, 40 );
+		clearButton.setStyle("-fx-font: 12 arial; -fx-base: #ffbec4;");
+		clearButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				clearAcquisitionSetting();
+			}
+		} );
+
+		acqSettings.getChildren().addAll( saveButton, loadButton, clearButton );
 		BorderPane.setMargin(acqSettings, new Insets(12,12,12,12));
+
+		final TitledPane acqSettingPane = new TitledPane( "Acquisition Setting", acqSettings );
+		acqSettingPane.setCollapsible( false );
 
 		// Laser shutter(software) / Arduino Shutter(hardware)
 		// Save image options
 		SplitPane channelListSaveImage = new SplitPane(
 				channelPane,
-				createSaveImagesPane(acqSettings)
+				createSaveImagesPane(acqSettingPane)
 		);
 //		channelListSaveImage.setDividerPositions( 0.6 );
 
@@ -700,8 +713,32 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		return this.studio;
 	}
 
+	private static String getUserDataDirectory()
+	{
+		String path = System.getProperty( "user.home" ) + File.separator
+				+ ".openSpimAcq"
+				+ File.separator;
+		dirExist( path );
+		return path;
+	}
+
+	private static void dirExist( String dir )
+	{
+		if ( !new File( dir ).exists() )
+		{
+			new File( dir ).mkdirs();
+		}
+	}
+
 	@Override public void setSetup( SPIMSetup setup, Studio studio )
 	{
+		// Automatic Acquisition Setting saving
+		if(this.studio != null) {
+			String acqSettingFile = (( MMStudio ) this.studio).getSysConfigFile() + ".xml";
+			acqSettingFile = acqSettingFile.replace( File.separator, "_" );
+			AcquisitionSetting.save( new File(getUserDataDirectory() + acqSettingFile), getAcquisitionSetting() );
+		}
+
 		this.spimSetup = setup;
 		this.studio = studio;
 
@@ -741,6 +778,17 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				else channelItemTableView = TableViewUtil.createChannelItemDataView(setup, null);
 				Node viewContent = createChannelItemTable( channelItemTableView, setup.getCamera1().getLabel(), setup.getLaser().getLabel(), exposure );
 				laserTab.setContent( viewContent );
+			}
+
+			String acqSettingFile = (( MMStudio ) this.studio).getSysConfigFile() + ".xml";
+			acqSettingFile = acqSettingFile.replace( File.separator, "_" );
+			File acqSetting = new File(getUserDataDirectory() + acqSettingFile);
+			if(acqSetting.exists()) {
+				final AcquisitionSetting setting = AcquisitionSetting.load( acqSetting );
+				if(setting != null) {
+					// Update GUI
+					updateUI( setting );
+				}
 			}
 		} else {
 			this.imageWidth = 512;
@@ -848,6 +896,32 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		return new AcquisitionSetting( enabledTimePoints, numTimePoints, intervalTimePoints, intervalUnitTimePoints, tpTabPane.getSelectionModel().selectedIndexProperty().get(), timePointItems,
 				enabledPositions, positionItems, enabledZStacks, acquisitionOrder,
 				enabledChannels, channelTabPane.getSelectionModel().selectedIndexProperty().get(), channelItems, channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveAsHDF5, roiRectangle );
+	}
+
+	private void clearAcquisitionSetting() {
+		timePointItemTableView.getItems().clear();
+		positionItemTableView.getItems().clear();
+		channelItemTableView.getItems().clear();
+		channelItemArduinoTableView.getItems().clear();
+
+		enabledTimePoints.set(true);
+		numTimePoints.set( "1" );
+		intervalTimePoints.set( "1" );
+		intervalUnitTimePoints.set( "ms" );
+		tpTabPane.getSelectionModel().select( 0 );
+
+		enabledPositions.set( true );
+		enabledZStacks.set( true );
+		acquisitionOrder.set( "Time > Position > Slice > Channel" );
+		enabledChannels.set( true );
+		channelTabPane.getSelectionModel().select( 0 );
+
+		enabledSaveImages.set( true );
+		directory.set( "" );
+		filename.set( "Untitled" );
+		savingFormat.set( null );
+		saveAsHDF5.set( false );
+		roiRectangle.set( null );
 	}
 
 	public void stopAcquisition()
@@ -1063,7 +1137,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		gridpane.addRow( 2, new Label( "Saving format:" ), c );
 
 		CheckBox ch = new CheckBox( "Save as HDF5" );
-		gridpane.addRow( 3, ch );
+		// TODO: Use N5 format instead
+//		gridpane.addRow( 3, ch );
 		saveAsHDF5 = ch.selectedProperty();
 
 		CheckboxPane pane = new CheckboxPane( "Save Images", gridpane, 12 );

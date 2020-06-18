@@ -16,6 +16,7 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
+import javafx.stage.WindowEvent;
 import org.micromanager.Studio;
 
 import spim.hardware.SPIMSetup;
@@ -31,8 +32,9 @@ import java.util.ArrayList;
  */
 public class HalcyonMain extends HalcyonFrame
 {
-	ObjectProperty<Studio> mmStudioProperty = new SimpleObjectProperty<>();
-	BooleanProperty terminated = new SimpleBooleanProperty();
+	private ObjectProperty<Studio> mmStudioProperty = new SimpleObjectProperty<>();
+	private BooleanProperty terminated = new SimpleBooleanProperty();
+	AcquisitionPanel acquisitionPanel;
 
 	public HalcyonMain() {
 		super("OpenSPIM v2.0",
@@ -43,7 +45,6 @@ public class HalcyonMain extends HalcyonFrame
 	@Override
 	public void start( Stage primaryStage )
 	{
-		primaryStage.setOnCloseRequest(event -> System.exit(0));
 		Platform.runLater( new Runnable()
 		{
 			@Override public void run()
@@ -133,7 +134,7 @@ public class HalcyonMain extends HalcyonFrame
 		final HalcyonNode arduino = HalcyonNode.wrap( "ArduinoUno", SpimHalcyonNodeType.SHUTTER, arduinoPanel );
 		addNode( arduino );
 
-		AcquisitionPanel acquisitionPanel = new AcquisitionPanel( primaryStage, spimSetup, studio, null, arduinoPanel.getPinItemTableView() );
+		acquisitionPanel = new AcquisitionPanel( spimSetup, studio, null, arduinoPanel.getPinItemTableView() );
 		stagePanel.setAcquisitionPanel( acquisitionPanel );
 		final HalcyonNode control1 = HalcyonNode.wrap( "Acquisition",
 				SpimHalcyonNodeType.CONTROL,
@@ -256,11 +257,12 @@ public class HalcyonMain extends HalcyonFrame
 		return createHalcyonFrame( primaryStage );
 	}
 
-//	@Override
-//	protected void callFrameClosed( WindowEvent closeEvent )
-//	{
-//		hide();
-//	}
+	@Override
+	protected void callFrameClosed( WindowEvent closeEvent )
+	{
+		acquisitionPanel.setSetup( null, null );
+		super.callFrameClosed( closeEvent );
+	}
 
 	public static void main(String[] args) throws Exception
 	{
