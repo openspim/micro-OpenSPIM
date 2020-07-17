@@ -266,10 +266,10 @@ public class Slider extends Control
     return value;
   }
 
-  private IntegerProperty upTickUpperValue = new SimpleIntegerProperty( 3 );
+  private IntegerProperty upTickUpperValue = new SimpleIntegerProperty( 1 );
 
   public final void setUpTickUpperValue(int value) {
-	upTickUpperValueProperty().set(value);
+	upTickUpperValueProperty().set(value + 1);
   }
 
   public final int getUpTickUpperValue() {

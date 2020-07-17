@@ -416,7 +416,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		} );
 
 		// Angle indicator
-		final Spinner<Integer> spinner = new Spinner<Integer>(1, 100, 3);
+		final Spinner<Integer> spinner = new Spinner<Integer>(0, 100, 0);
 		spinner.setPrefSize( 60, 10 );
 		spinner.valueProperty().addListener( new ChangeListener< Integer >()
 		{
