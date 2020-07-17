@@ -30,6 +30,7 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
@@ -313,9 +314,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				}
 
 				if(acquisitionThread == null) {
-					startAcquisition(acquireButton);
-					acquireButton.setText( "Stop acquisition" );
-					acquireButton.setStyle("-fx-font: 15 arial; -fx-base: #e77d8c;");
+					if ( startAcquisition(acquireButton) )
+					{
+						acquireButton.setText( "Stop acquisition" );
+						acquireButton.setStyle( "-fx-font: 15 arial; -fx-base: #e77d8c;" );
+					}
 				}
 				else {
 					stopAcquisition();
@@ -948,14 +951,29 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Platform.runLater( () -> processedImages.set( 0 ) );
 	}
 
-	public void startAcquisition( Button acquireButton )
+	public boolean startAcquisition( Button acquireButton )
 	{
 		System.out.println("Acquire button pressed");
 
 		if ( acquisitionThread != null )
 		{
 			System.err.println("Acquisition thread is running!");
-			return;
+			return false;
+		}
+
+		// Check the folder
+		if ( enabledSaveImages.get() && directory.getValue().isEmpty() )
+		{
+			Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "Saving folder is not specified. \nDo you want specify it now?", ButtonType.YES, ButtonType.NO).showAndWait();
+
+			if( results.isPresent() && results.get() == ButtonType.YES) {
+				DirectoryChooser d = new DirectoryChooser();
+				File f = d.showDialog(null);
+				if (f != null) directory.set( f.getAbsolutePath() );
+				else return false;
+			} else {
+				return false;
+			}
 		}
 
 		MMAcquisitionEngine engine = new MMAcquisitionEngine();
@@ -1008,6 +1026,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		} );
 
 		acquisitionThread.start();
+
+		return true;
 	}
 
 	static double getUnit(String unitString) {
