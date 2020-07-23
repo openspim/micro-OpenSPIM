@@ -972,8 +972,25 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				if (f != null) directory.set( f.getAbsolutePath() );
 				else return false;
 			} else {
+				System.err.println("Acquisition stopped due to no saving directory specified.");
 				return false;
 			}
+		}
+
+		final boolean smartImagingSelected = tpTabPane.getSelectionModel().isSelected( 1 );
+
+		if(smartImagingSelected && timePointItemTableView.getItems().size() < 1) {
+			new Alert( Alert.AlertType.WARNING, "Please, add timepoints for the acquisition.").showAndWait();
+
+			System.err.println("Acquisition stopped due to no timepoints specified in Smart-Imaging panel.");
+			return false;
+		}
+
+		if(positionItemTableView.getItems().size() < 1) {
+			new Alert( Alert.AlertType.WARNING, "Please, add positions for the acquisition.").showAndWait();
+
+			System.err.println("Acquisition stopped due to no positions specified.");
+			return false;
 		}
 
 		MMAcquisitionEngine engine = new MMAcquisitionEngine();
@@ -993,8 +1010,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		double deltaT = Double.parseDouble( intervalTimePoints.getValue() );
 
 		double unit = getUnit( intervalUnitTimePoints.getValue().toString() );
-
-		final boolean smartImagingSelected = tpTabPane.getSelectionModel().isSelected( 1 );
 
 		Platform.runLater( () -> processedImages.set( 0 ) );
 
