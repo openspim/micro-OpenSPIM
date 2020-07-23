@@ -681,6 +681,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				if(event.getEventType().equals( ControlEvent.STAGE_MOVE )) {
 					PositionItem pos = (PositionItem) event.getParam()[0];
 
+					double zStart = pos.getZStart();
+					double zEnd = pos.getZEnd();
+					double zMid = zStart + (zEnd - zStart) / 2;
+
 					if(spimSetup != null) {
 //						double r = spimSetup.getThetaStage().getPosition();
 //						double x = spimSetup.getXStage().getPosition();
@@ -692,8 +696,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 //						pos.setR( r );
 //						pos.setZStart( z );
 //						pos.setZEnd( z + 10 );
-						AcquisitionPanel.this.stagePanel.goToPos( pos.getX(), pos.getY(), pos.getZStart(), pos.getR() );
-						System.out.println("Stage_Move: " + pos);
+						AcquisitionPanel.this.stagePanel.goToPos( pos.getX(), pos.getY(), zMid, pos.getR() );
+						System.out.println(String.format( "Stage_Move: X:%.0f, Y:%.0f, Z:%.0f, R:%.0f",
+								pos.getX(), pos.getY(), zMid, pos.getR() ) );
 					}
 					else {
 //						pos.setX( 200 );
@@ -701,7 +706,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 //						pos.setR( 300 );
 //						pos.setZStart( 60 );
 //						pos.setZEnd( 60 + 10 );
-						System.out.println("Stage_Move: " + pos);
+						System.out.println(String.format( "Stage_Move: X:%.0f, Y:%.0f, Z:%.0f, R:%.0f",
+								pos.getX(), pos.getY(), zMid, pos.getR() ) );
 					}
 					int i = positionItemTableView.getSelectionModel().getSelectedIndex();
 					positionItemTableView.getSelectionModel().clearSelection();
@@ -1457,7 +1463,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				positionItemTableView.refresh();
 			}
 		} );
-		zStackGridPane.addRow( 1, new Label( "Z-step (\u03BCm)" ), zStepField );
+
+		Button midButton = createZStackButton( "Go To middle" );
+
+		zStackGridPane.addRow( 1, midButton, zStepField, new Label( "Z-step (\u03BCm)" ) );
 
 		Button endButton = createZStackButton( "Z-end" );
 		TextField zEndField = createNumberTextField();
@@ -1480,7 +1489,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		setupMouseClickedHandler(startButton, zStartField, endButton, zEndField);
+		setupMouseClickedHandler(startButton, zStartField, endButton, zEndField, midButton);
 
 		zStackGridPane.addRow( 2, endButton, zEndField );
 
@@ -1554,7 +1563,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		addNewPosition( (int) zStackStart, (int) zStackEnd, zStackStepSize );
 	}
 
-	private void setupMouseClickedHandler( Button startButton, TextField zStartField, Button endButton, TextField zEndField )
+	private void setupMouseClickedHandler( Button startButton, TextField zStartField, Button endButton, TextField zEndField, Button midButton )
 	{
 		startButton.setOnAction( new EventHandler< ActionEvent >()
 		{
@@ -1593,6 +1602,25 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 							zStartField.setText( currPos + "" );
 							zEndField.setText( zStart + "" );
 						}
+					}
+				}
+			}
+		} );
+
+		midButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(spimSetup != null && spimSetup.getZStage() != null) {
+					if(!zStartField.getText().isEmpty() && !zStartField.getText().isEmpty())
+					{
+						int zStart = Integer.parseInt( zStartField.getText() );
+						int zEnd = Integer.parseInt( zEndField.getText() );
+
+						if(zStart < zEnd)
+							spimSetup.getZStage().setPosition( zStart + (zEnd - zStart) / 2 );
+						else
+							System.err.println("zStart is bigger than zEnd. Cannot go to the middle point.");
 					}
 				}
 			}
