@@ -297,6 +297,11 @@ public class MMAcquisitionEngine
 					}
 				}
 			}
+		} else {
+			if(continuous) {
+				cameras.clear();
+				cameras.add( currentCamera );
+			}
 		}
 
 		if(continuous) executeContinuousAcquisition(setup, frame, store, display, stagePanel, currentCamera, cameras, acqFilenamePrefix, handlers,
@@ -656,13 +661,25 @@ public class MMAcquisitionEngine
 				{
 					@Override public void run()
 					{
+						while (core.getRemainingImageCount() == 0) {
+							try
+							{
+								Thread.sleep(5);
+							}
+							catch ( InterruptedException e )
+							{
+								e.printStackTrace();
+							}
+						}
+
 						while ( !done )
 						{
 							try
 							{
-								while ( core.getRemainingImageCount() > 0 )
+								if ( core.getRemainingImageCount() > 0 )
 								{
-									TaggedImage timg = core.popNextTaggedImage();
+									// TaggedImage timg = core.popNextTaggedImage();
+									TaggedImage timg = core.getLastTaggedImage();
 									if(timg != POISON)
 									{
 										String camera = ( String ) timg.tags.get( "Camera" );
