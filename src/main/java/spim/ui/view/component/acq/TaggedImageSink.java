@@ -1,9 +1,15 @@
 package spim.ui.view.component.acq;
 
+import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+
+import ij.process.ImageProcessor;
 import mmcorej.TaggedImage;
 import org.micromanager.acquisition.internal.AcquisitionEngine;
 import org.micromanager.acquisition.internal.TaggedImageQueue;
@@ -14,8 +20,9 @@ import org.micromanager.data.internal.DefaultImage;
 import org.micromanager.events.EventManager;
 import org.micromanager.events.internal.DefaultAcquisitionEndedEvent;
 import org.micromanager.internal.utils.ReportingUtils;
-
-import static spim.ui.view.component.testing.TaggedImageDecoder.dumpJSON;
+import org.micromanager.internal.utils.imageanalysis.ImageUtils;
+import spim.hardware.SPIMSetup;
+import spim.io.OutputHandler;
 
 /**
  * This object spawns a new thread that receives images from the acquisition
@@ -37,17 +44,34 @@ public class TaggedImageSink {
 	private final Pipeline pipeline_;
 	private final AcquisitionEngine engine_;
 	private final EventManager studioEvents_;
+	private final int t_;
+	private final int angle_;
+	private final HashMap<String, OutputHandler > handlers_;
+	private final HashMap<String, Integer> camChannels_;
+	private final double x_, y_, theta_;
 
 	public TaggedImageSink(BlockingQueue<TaggedImage> queue,
 			Pipeline pipeline,
 			Datastore store,
 			AcquisitionEngine engine,
-			EventManager studioEvents) {
+			EventManager studioEvents,
+			int t, int angle,
+			HashMap<String, OutputHandler > handlers, double x, double y, double theta ) {
 		imageProducingQueue_ = queue;
 		pipeline_ = pipeline;
 		store_ = store;
 		engine_ = engine;
 		studioEvents_ = studioEvents;
+		t_ = t;
+		angle_ = angle;
+		handlers_ = handlers;
+
+		camChannels_ = new HashMap<>( handlers_.keySet()
+				.stream().collect( Collectors.toMap( Function.identity(), c -> 0 ) ) );
+
+		x_ = x;
+		y_ = y;
+		theta_ = theta;
 	}
 
 	public void start() {
@@ -77,6 +101,32 @@ public class TaggedImageSink {
 								// dumpJSON(tagged, System.out);
 
 //								System.out.println(tagged.tags.toString( 2 ));
+//								System.out.println(imageCount);
+								int slice = tagged.tags.getInt("SliceIndex");
+								double exp = tagged.tags.getInt( "Exposure-ms" );
+								double zPos = tagged.tags.getDouble( "ZPositionUm" );
+								int ch = tagged.tags.getInt( "ChannelIndex" );
+								String cam = tagged.tags.getString( "Core-Camera" );
+
+								if(ch == 0) {
+									// initialize cam channels
+									camChannels_.keySet().forEach( d -> camChannels_.put(d, 0) );
+								}
+
+								if(handlers_.containsKey( cam ))
+								{
+									ch = camChannels_.get(cam);
+
+									handlers_.get( cam ).processSlice( t_, angle_, ( int ) exp, ch, ImageUtils.makeProcessor( tagged ),
+											x_,
+											y_,
+											zPos,
+											theta_,
+											System.currentTimeMillis() - t1 );
+
+									camChannels_.put( cam, ch + 1 );
+								}
+
 								DefaultImage image = new DefaultImage(tagged);
 								try {
 									pipeline_.insertImage(image);
@@ -108,6 +158,16 @@ public class TaggedImageSink {
 			}
 		};
 		savingThread.start();
+	}
+
+	private static void handleSlice( SPIMSetup setup, int exp, int channel, double start, int time, int angle, ImageProcessor ip,
+			OutputHandler handler) throws Exception {
+		if(null != handler)
+			handler.processSlice(time, angle, exp, channel, ip, setup.getXStage().getPosition(),
+					setup.getYStage().getPosition(),
+					setup.getZStage().getPosition(),
+					setup.getAngle(),
+					System.nanoTime() / 1e9 - start);
 	}
 
 	// Never called from EDT

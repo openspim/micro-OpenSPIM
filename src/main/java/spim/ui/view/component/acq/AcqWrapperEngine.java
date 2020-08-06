@@ -4,8 +4,13 @@ import com.google.common.eventbus.Subscribe;
 import java.awt.Color;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
+
 import javax.swing.JOptionPane;
+
+import javafx.beans.property.LongProperty;
 import mmcorej.CMMCore;
 import mmcorej.Configuration;
 import mmcorej.PropertySetting;
@@ -18,13 +23,11 @@ import org.micromanager.Studio;
 import org.micromanager.acquisition.ChannelSpec;
 import org.micromanager.acquisition.SequenceSettings;
 import org.micromanager.acquisition.internal.AcquisitionEngine;
-import org.micromanager.acquisition.internal.DefaultTaggedImageSink;
 import org.micromanager.acquisition.internal.IAcquisitionEngine2010;
-import org.micromanager.acquisition.internal.MMAcquisition;
 import org.micromanager.data.Datastore;
 import org.micromanager.data.Pipeline;
+import org.micromanager.data.RewritableDatastore;
 import org.micromanager.events.AcquisitionEndedEvent;
-import org.micromanager.events.ChannelGroupChangedEvent;
 import org.micromanager.events.internal.DefaultAcquisitionEndedEvent;
 import org.micromanager.events.internal.DefaultAcquisitionStartedEvent;
 import org.micromanager.events.internal.DefaultChannelGroupChangedEvent;
@@ -35,7 +38,10 @@ import org.micromanager.internal.utils.AcqOrderMode;
 import org.micromanager.internal.utils.MMException;
 import org.micromanager.internal.utils.NumberUtils;
 import org.micromanager.internal.utils.ReportingUtils;
-
+import spim.hardware.SPIMSetup;
+import spim.io.OutputHandler;
+import spim.model.data.ChannelItem;
+import spim.model.data.PositionItem;
 
 /**
  * This is the modified version of AcquisitionWrapperEngine.java
@@ -46,9 +52,9 @@ import org.micromanager.internal.utils.ReportingUtils;
  */
 public class AcqWrapperEngine implements AcquisitionEngine
 {
-
+	final private SPIMSetup spimSetup_;
 	private CMMCore core_;
-	protected Studio studio_;
+	private Studio studio_;
 	private PositionList posList_;
 	private String zstage_;
 	private double sliceZStepUm_;
@@ -61,6 +67,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	private boolean keepShutterOpenForStack_;
 	private boolean keepShutterOpenForChannels_;
 	private ArrayList<ChannelSpec> channels_ = new ArrayList<>();
+
 	private String rootName_;
 	private String dirName_;
 	private int numFrames_;
@@ -76,14 +83,132 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	private IAcquisitionEngine2010 acquisitionEngine2010_;
 	private ArrayList<Double> customTimeIntervalsMs_;
 	private boolean useCustomIntervals_;
-	protected JSONObject summaryMetadata_;
+	private JSONObject summaryMetadata_;
 	private ArrayList<AcqSettingsListener> settingsListeners_;
 	private Datastore curStore_;
 	private Pipeline curPipeline_;
+	private String orgChannelGroup;
 
-	public AcqWrapperEngine() {
+	private int t_, angle_;
+	private List<String> cameras_;
+	private HashMap<String, OutputHandler > handlers_;
+	private List< ChannelItem > channelItems_;
+	private boolean arduinoSelected_;
+
+	final String channelGroupName = "OpenSPIM-channels";
+
+	private static final Color[] DEFAULT_COLORS = {new Color(160, 32, 240), Color.red, Color.green, Color.blue, Color.yellow, Color.pink };
+
+	public AcqWrapperEngine( SPIMSetup setup, final Studio frame, RewritableDatastore store,
+			String currentCamera, List<String> cameras, HashMap<String, OutputHandler > handlers,
+			List< ChannelItem > channelItems,
+			boolean arduinoSelected,
+			LongProperty processedImages, final double acqBegan, long acqStart) throws Exception
+	{
+		curStore_ = store;
+
+		cameras_ = cameras;
+		handlers_ = handlers;
+		channelItems_ = channelItems;
+		arduinoSelected_ = arduinoSelected;
+
+		spimSetup_ = setup;
+		studio_ = frame;
+		core_ = frame.core();
+
+		saveFiles_ = false;
 		useCustomIntervals_ = false;
+		useSlices_ = true;
+		useFrames_ = false;
+		useChannels_ = true;
+		useMultiPosition_ = false;
+
+		keepShutterOpenForStack_ = false;
+		keepShutterOpenForChannels_ = false;
+
 		settingsListeners_ = new ArrayList<AcqSettingsListener>();
+		posList_ = new PositionList();
+
+		// Initial setting
+
+		// Channel settings
+		orgChannelGroup = core_.getChannelGroup();
+
+		core_.defineConfigGroup( channelGroupName );
+
+		// Channel iteration
+		ArrayList channels = new ArrayList< ChannelSpec >();
+		int ch = 0;
+		if(arduinoSelected_) {
+			for ( String camera : cameras_ )
+			{
+				for ( ChannelItem channelItem : channelItems_ )
+				{
+					String config = "Ch-" + ch++;
+
+					if ( spimSetup_.getArduino1() != null )
+						spimSetup_.getArduino1().setSwitchState( channelItem.getLaser() );
+
+					core_.defineConfig(channelGroupName, config, spimSetup_.getArduino1().getLabel(), "State", channelItem.getLaser());
+					double exp = channelItem.getValue().doubleValue();
+					ChannelSpec spec = new ChannelSpec.Builder()
+							.channelGroup( channelGroupName )
+							.camera( channelItem.getName() )
+							.color( DEFAULT_COLORS[ch % 6] )
+							.config( config )
+							.doZStack( true )
+							.exposure( exp )
+							.build();
+
+					channels.add( spec );
+				}
+			}
+		} else {
+			for ( ChannelItem channelItem : channelItems_ )
+			{
+				String config = "Ch-" + ch++;
+				core_.defineConfig(channelGroupName, config, "Core", "Shutter", channelItem.getLaser());
+				core_.defineConfig(channelGroupName, config, "Core", "Camera", channelItem.getName());
+				double exp = channelItem.getValue().doubleValue();
+
+				ChannelSpec spec = new ChannelSpec.Builder()
+						.channelGroup( channelGroupName )
+						.camera( channelItem.getName() )
+						.color( DEFAULT_COLORS[ch % 6] )
+						.config( config )
+						.doZStack( true )
+						.exposure( exp )
+						.build();
+
+				channels.add( spec );
+			}
+		}
+		channels_ = channels;
+		setChannelGroup( channelGroupName );
+	}
+
+	public void exit() {
+		try
+		{
+			core_.setChannelGroup( orgChannelGroup );
+			core_.deleteConfigGroup( channelGroupName );
+		}
+		catch ( Exception e )
+		{
+			e.printStackTrace();
+		}
+	}
+
+	public void startAcquire(int t, int angle, PositionItem positionItem) throws MMException
+	{
+		t_ = t;
+		angle_ = angle;
+
+		sliceZBottomUm_ = positionItem.getZStart();
+		sliceZTopUm_ = positionItem.getZEnd();
+		sliceZStepUm_ = positionItem.getZStep();
+
+		acquire();
 	}
 
 	@Override
@@ -120,54 +245,30 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	}
 
 	protected Datastore runAcquisition(SequenceSettings acquisitionSettings) {
-		//Make sure computer can write to selected location and that there is enough space to do so
-		if (saveFiles_) {
-			File root = new File(rootName_);
-			if (!root.canWrite()) {
-				int result = JOptionPane.showConfirmDialog(null,
-						"The specified root directory\n" + root.getAbsolutePath() +
-								"\ndoes not exist. Create it?", "Directory not found.",
-						JOptionPane.YES_NO_OPTION);
-				if (result == JOptionPane.YES_OPTION) {
-					root.mkdirs();
-					if (!root.canWrite()) {
-						ReportingUtils.showError(
-								"Unable to save data to selected location: check that location exists.\nAcquisition canceled.");
-						return null;
-					}
-				} else {
-					ReportingUtils.showMessage("Acquisition canceled.");
-					return null;
-				}
-			} else if (!this.enoughDiskSpace()) {
-				ReportingUtils.showError(
-						"Not enough space on disk to save the requested image set; acquisition canceled.");
-				return null;
-			}
-		}
 		try {
-			PositionList posListToUse = posList_;
-			if (posList_ == null && useMultiPosition_) {
-				posListToUse = studio_.positions().getPositionList();
-			}
 			// Start up the acquisition engine
 			BlockingQueue<TaggedImage> engineOutputQueue = getAcquisitionEngine2010().run(
-					acquisitionSettings, true, posListToUse,
+					acquisitionSettings, true, posList_,
 					studio_.getAutofocusManager().getAutofocusMethod());
 			summaryMetadata_ = getAcquisitionEngine2010().getSummaryMetadata();
 
-			boolean shouldShow = acquisitionSettings.shouldDisplayImages;
-			MMAcquisition acq = new MMAcquisition(studio_, summaryMetadata_, this,
-					shouldShow);
-			curStore_ = acq.getDatastore();
-			curPipeline_ = acq.getPipeline();
+			curStore_.registerForEvents(this);
+			curPipeline_ = studio_.data().copyApplicationPipeline(curStore_, false);
 
 			studio_.events().post(new DefaultAcquisitionStartedEvent(curStore_,
 					this, acquisitionSettings));
 
+//			double x = spimSetup_.getXStage().getPosition();
+//			double y = spimSetup_.getYStage().getPosition();
+//			double theta = spimSetup_.getAngle();
+			double x = 0;
+			double y = 0;
+			double theta = 0;
+
 			// Start pumping images through the pipeline and into the datastore.
 			TaggedImageSink sink = new TaggedImageSink(
-					engineOutputQueue, curPipeline_, curStore_, this, studio_.events());
+					engineOutputQueue, curPipeline_, curStore_, this, studio_.events(),
+					t_, angle_, handlers_, x, y, theta );
 			sink.start(new Runnable() {
 				@Override
 				public void run() {
@@ -332,7 +433,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		}
 		//since we're just getting this from the core, it should be safe to get
 		//regardless of whether we're using any channels. This also makes the
-		//behavior more consisitent with the setting behavior.
+		//behavior more consistent with the setting behavior.
 		acquisitionSettings.channelGroup = getChannelGroup();
 
 		//timeFirst = true means that time points are collected at each position
@@ -348,10 +449,6 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		acquisitionSettings.keepShutterOpenSlices = keepShutterOpenForStack_;
 
 		acquisitionSettings.save = saveFiles_;
-		if (saveFiles_) {
-			acquisitionSettings.root = rootName_;
-			acquisitionSettings.prefix = dirName_;
-		}
 		acquisitionSettings.comment = comment_;
 		acquisitionSettings.usePositionList = this.useMultiPosition_;
 		acquisitionSettings.cameraTimeout = this.cameraTimeout_;

@@ -150,11 +150,11 @@ public class MMAcquisitionRunner
 //			Datastore store_ = new DefaultDatastore(frame);
 //			Pipeline pipeline_ = frame.data().copyApplicationPipeline(store_, false);
 
-			AcqWrapperEngine e = new AcqWrapperEngine();
-			e.setParentGUI( frame );
-			e.setSequenceSettings( mdaSeq );
-			e.setPositionList( posList );
-			curStore_ = e.acquire();
+//			AcqWrapperEngine e = new AcqWrapperEngine();
+//			e.setParentGUI( frame );
+//			e.setSequenceSettings( mdaSeq );
+//			e.setPositionList( posList );
+//			curStore_ = e.acquire();
 
 //			MMAcquisition acq = new MMAcquisition(frame,
 //					summaryMetadata_, e, shouldShow);
