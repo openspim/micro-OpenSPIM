@@ -555,7 +555,14 @@ public class MMAcquisitionEngine
 						engine.startAcquire( timeSeq, step, positionItem );
 
 						while(engine.isAcquisitionRunning()) {
-							Thread.sleep( 10 );
+							try
+							{
+								Thread.sleep( 10 );
+							} catch ( InterruptedException ie )
+							{
+								finalize( false, setup, currentCamera, cameras, frame, 0, 0, handlers, store );
+								engine.exit();
+							}
 						}
 
 						System.out.println("MMAcquisition finished");
@@ -587,6 +594,7 @@ public class MMAcquisitionEngine
 							catch ( InterruptedException ie )
 							{
 								finalize( false, setup, currentCamera, cameras, frame, 0, 0, handlers, store );
+								engine.exit();
 								return;
 							}
 						}
@@ -614,6 +622,7 @@ public class MMAcquisitionEngine
 						catch ( InterruptedException ie )
 						{
 							finalize( false, setup, currentCamera, cameras, frame, 0, 0, handlers, store );
+							engine.exit();
 							return;
 						}
 					}
@@ -790,7 +799,14 @@ public class MMAcquisitionEngine
 				engine.startAcquire( timeSeq, step, positionItem );
 
 				while(engine.isAcquisitionRunning()) {
-					Thread.sleep( 10 );
+					try
+					{
+						Thread.sleep( 10 );
+					} catch ( InterruptedException ie )
+					{
+						finalize( false, setup, currentCamera, cameras, frame, 0, 0, handlers, store );
+						engine.exit();
+					}
 				}
 
 				System.out.println("MMAcquisition finished");
@@ -817,12 +833,14 @@ public class MMAcquisitionEngine
 						Thread.sleep((long)(wait * 1e3));
 					} catch(InterruptedException ie) {
 						finalize(false, setup, currentCamera, cameras, frame, 0, 0, handlers, store);
+						engine.exit();
 						return;
 					}
 				else
 					core.logMessage("Behind schedule! (next seq in " + wait + "s)");
 			}
 		}
+		engine.exit();
 	}
 
 	@SuppressWarnings("Duplicates")
