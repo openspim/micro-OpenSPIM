@@ -183,9 +183,8 @@ public class MMAcquisitionEngine
 							channelNames[ ch++ ] = name + "-" + chItem.getName();
 						}
 					} else {
-						channelNames[ ch++ ] = currentCamera + "-" + chItem.getName();
+						channelNames[ ch++ ] = chItem.getName();
 					}
-
 				}
 			} else {
 				for(ChannelItem chItem : channelItems)
