@@ -153,14 +153,14 @@ public class AcqWrapperEngine implements AcquisitionEngine
 					double exp = channelItem.getValue().doubleValue();
 					ChannelSpec spec = new ChannelSpec.Builder()
 							.channelGroup( channelGroupName )
-							.camera( channelItem.getName() )
+							.camera( camera )
 							.color( DEFAULT_COLORS[ch % 6] )
 							.config( config )
 							.doZStack( true )
 							.exposure( exp )
 							.build();
 
-					channels.add( spec );
+					channels_.add( spec );
 				}
 			}
 		} else {
@@ -180,7 +180,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 						.exposure( exp )
 						.build();
 
-				channels.add( spec );
+				channels_.add( spec );
 			}
 		}
 		channels_ = channels;
