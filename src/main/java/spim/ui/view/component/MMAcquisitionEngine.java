@@ -279,7 +279,7 @@ public class MMAcquisitionEngine
 				{
 					if ( camera.startsWith( "Multi" ) )
 					{
-						int chSize = (int) channelItems.stream().filter( c -> c.getName().equals( camera ) ).count();
+						int chSize = arduinoSelected ? channelItems.size() : (int) channelItems.stream().filter( c -> c.getName().equals( camera ) ).count();
 						OutputHandler handler = new OMETIFFHandler(
 								core, output, acqFilenamePrefix + "_" + camera + "_",
 								//what is the purpose of defining parameters and then passing null anyway?
@@ -289,7 +289,7 @@ public class MMAcquisitionEngine
 					}
 					else
 					{
-						int chSize = (int) channelItems.stream().filter( c -> c.getName().equals( camera ) ).count();
+						int chSize = arduinoSelected ? channelItems.size() : (int) channelItems.stream().filter( c -> c.getName().equals( camera ) ).count();
 						OutputHandler handler = new OMETIFFHandler(
 								core, output, acqFilenamePrefix + "_" + camera + "_",
 								//what is the purpose of defining parameters and then passing null anyway?
