@@ -546,7 +546,12 @@ public class MMAcquisitionEngine
 						// Move the stage
 						if(stagePanel != null)
 							stagePanel.goToPos( positionItem.getX(), positionItem.getY(), positionItem.getR() );
-						core.waitForSystem();
+						try
+						{
+							core.waitForSystem();
+						} catch ( Exception e ) {
+							System.out.println(e.toString());
+						}
 
 						for( OutputHandler handler : handlers.values() )
 							beginStack( tp, rown, handler );
@@ -790,7 +795,13 @@ public class MMAcquisitionEngine
 				// Move the stage
 				if(stagePanel != null)
 					stagePanel.goToPos( positionItem.getX(), positionItem.getY(), positionItem.getR() );
-				core.waitForSystem();
+
+				try
+				{
+					core.waitForSystem();
+				} catch ( Exception e ) {
+					System.out.println(e.toString());
+				}
 
 				for( OutputHandler handler : handlers.values() )
 					beginStack( tp, rown, handler );
@@ -1288,7 +1299,13 @@ public class MMAcquisitionEngine
 
 		core.setCameraDevice( currentCamera );
 
-		core.waitForSystem();
+//		core.waitForDevice( currentCamera );
+		try
+		{
+			core.waitForSystem();
+		} catch ( Exception e ) {
+			System.out.println(e.toString());
+		}
 
 		if (finalizeStack) {
 			for(String camera : cameras)
