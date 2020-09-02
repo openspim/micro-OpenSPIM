@@ -1252,7 +1252,18 @@ public class MMAcquisitionEngine
 	 */
 	private static List<String> getMultiCams( CMMCore core )
 	{
-		ArrayList<String> list = new ArrayList<>(  );
+		ArrayList<String> list = new ArrayList<>();
+
+		try
+		{
+			core.getDeviceName( "Multi Camera" );
+		}
+		catch ( Exception e )
+		{
+			System.out.println("There is no Multi Camera in the system");
+			return list;
+		}
+
 		try
 		{
 			if(core.hasProperty( "Multi Camera", "Name" )) {
