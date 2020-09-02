@@ -153,17 +153,20 @@ public class AcqWrapperEngine implements AcquisitionEngine
 						spimSetup_.getArduino1().setSwitchState( channelItem.getLaser() );
 
 					core_.defineConfig(channelGroupName, config, spimSetup_.getArduino1().getLabel(), "State", channelItem.getLaser());
+					core_.defineConfig(channelGroupName, config, "Core", "Camera", camera);
+
 					double exp = channelItem.getValue().doubleValue();
 					ChannelSpec spec = new ChannelSpec.Builder()
 							.channelGroup( channelGroupName )
-							.camera( isSingleChannel ? camera : channelItem.getName() )
+//							.camera( isSingleChannel ? camera : channelItem.getName() )
+							.camera( camera )
 							.color( DEFAULT_COLORS[ch % 6] )
 							.config( config )
 							.doZStack( true )
 							.exposure( exp )
 							.build();
 
-					channels_.add( spec );
+					channels.add( spec );
 				}
 			}
 		} else {
