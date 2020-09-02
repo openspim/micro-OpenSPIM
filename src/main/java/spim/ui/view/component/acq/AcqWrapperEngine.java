@@ -142,25 +142,48 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		if(arduinoSelected_) {
 			for ( String camera : cameras_ )
 			{
-				for ( ChannelItem channelItem : channelItems_ )
-				{
-					String config = "Ch-" + ch++;
+				if(channelItems_.size() == 1) {
+					for ( ChannelItem channelItem : channelItems_ )
+					{
+						String config = "Ch-" + ch++;
 
-					if ( spimSetup_.getArduino1() != null )
-						spimSetup_.getArduino1().setSwitchState( channelItem.getLaser() );
+						if ( spimSetup_.getArduino1() != null )
+							spimSetup_.getArduino1().setSwitchState( channelItem.getLaser() );
 
-					core_.defineConfig(channelGroupName, config, spimSetup_.getArduino1().getLabel(), "State", channelItem.getLaser());
-					double exp = channelItem.getValue().doubleValue();
-					ChannelSpec spec = new ChannelSpec.Builder()
-							.channelGroup( channelGroupName )
-							.camera( camera )
-							.color( DEFAULT_COLORS[ch % 6] )
-							.config( config )
-							.doZStack( true )
-							.exposure( exp )
-							.build();
+						core_.defineConfig(channelGroupName, config, spimSetup_.getArduino1().getLabel(), "State", channelItem.getLaser());
+						double exp = channelItem.getValue().doubleValue();
+						ChannelSpec spec = new ChannelSpec.Builder()
+								.channelGroup( channelGroupName )
+								.camera( camera )
+								.color( DEFAULT_COLORS[ch % 6] )
+								.config( config )
+								.doZStack( true )
+								.exposure( exp )
+								.build();
 
-					channels_.add( spec );
+						channels_.add( spec );
+					}
+				} else {
+					for ( ChannelItem channelItem : channelItems_ )
+					{
+						String config = "Ch-" + ch++;
+
+						if ( spimSetup_.getArduino1() != null )
+							spimSetup_.getArduino1().setSwitchState( channelItem.getLaser() );
+
+						core_.defineConfig(channelGroupName, config, spimSetup_.getArduino1().getLabel(), "State", channelItem.getLaser());
+						double exp = channelItem.getValue().doubleValue();
+						ChannelSpec spec = new ChannelSpec.Builder()
+								.channelGroup( channelGroupName )
+								.camera( channelItem.getName() )
+								.color( DEFAULT_COLORS[ch % 6] )
+								.config( config )
+								.doZStack( true )
+								.exposure( exp )
+								.build();
+
+						channels_.add( spec );
+					}
 				}
 			}
 		} else {
