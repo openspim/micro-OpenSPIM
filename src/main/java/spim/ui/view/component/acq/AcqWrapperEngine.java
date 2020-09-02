@@ -142,9 +142,6 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		if(arduinoSelected_) {
 			for ( String camera : cameras_ )
 			{
-				// If it's single channel, the acquisition would not use multi-channel setting
-				boolean isSingleChannel = channelItems_.size() == 1;
-
 				for ( ChannelItem channelItem : channelItems_ )
 				{
 					String config = "Ch-" + ch++;
@@ -158,7 +155,6 @@ public class AcqWrapperEngine implements AcquisitionEngine
 					double exp = channelItem.getValue().doubleValue();
 					ChannelSpec spec = new ChannelSpec.Builder()
 							.channelGroup( channelGroupName )
-//							.camera( isSingleChannel ? camera : channelItem.getName() )
 							.camera( camera )
 							.color( DEFAULT_COLORS[ch % 6] )
 							.config( config )
