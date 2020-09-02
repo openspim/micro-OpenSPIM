@@ -183,7 +183,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 						.exposure( exp )
 						.build();
 
-				channels_.add( spec );
+				channels.add( spec );
 			}
 		}
 		channels_ = channels;
