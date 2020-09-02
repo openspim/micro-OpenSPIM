@@ -74,11 +74,14 @@ import spim.ui.view.component.pane.LabeledPane;
 import spim.ui.view.component.util.TableViewUtil;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -983,6 +986,35 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		}
 
+		// Check if the specified file name exists
+		if ( enabledSaveImages.get() )
+		{
+			File folder = new File(directory.getValue());
+
+			boolean found = false;
+
+			for(File file: Objects.requireNonNull( folder.listFiles() ) ) {
+				if(file.getName().startsWith( filename.getValue() )) {
+					found = true;
+					break;
+				}
+			}
+
+			if(found) {
+				Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The given filename exists. \nDo you want delete them?", ButtonType.YES, ButtonType.NO).showAndWait();
+
+				if( results.isPresent() && results.get() == ButtonType.YES) {
+					for(File file: Objects.requireNonNull( folder.listFiles() ) ) {
+						if(file.getName().startsWith( filename.getValue() )) {
+							file.delete();
+						}
+					}
+				} else {
+					System.err.println("Acquisition will start and append to the existing files.");
+				}
+			}
+		}
+
 		final boolean smartImagingSelected = tpTabPane.getSelectionModel().isSelected( 1 );
 
 		if(smartImagingSelected && timePointItemTableView.getItems().size() < 1) {
@@ -1156,6 +1188,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			@Override public void handle( ActionEvent event )
 			{
 				DirectoryChooser d = new DirectoryChooser();
+				Path path = Paths.get(directory.getValue());
+				if(path.getParent() != null)
+					d.setInitialDirectory( new File( path.getParent().toString() ) );
+
 				File f = d.showDialog(null);
 				if (f != null) finalTextField.setText( f.getAbsolutePath() );
 			}
