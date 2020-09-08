@@ -159,6 +159,7 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 				+ "import mmcorej.CMMCore;\n"
 				+ "import spim.hardware.SPIMSetup;\n"
 				+ "import javax.swing.SwingUtilities;\n"
+				+ "import net.haesleinhuepf.clij2.CLIJ2;\n"
 				+ "\n"
 				+ "public class Script {\n"
 				+ "        public static void main(String[] args, SPIMSetup setup, Studio mm)\n"
