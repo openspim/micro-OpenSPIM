@@ -18,6 +18,7 @@ import mmcorej.StrVector;
 import mmcorej.TaggedImage;
 
 import mmcorej.org.json.JSONObject;
+import org.micromanager.MultiStagePosition;
 import org.micromanager.PositionList;
 import org.micromanager.Studio;
 import org.micromanager.acquisition.ChannelSpec;
@@ -116,12 +117,14 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		studio_ = frame;
 		core_ = frame.core();
 
+		absoluteZ_ = true;
+		useAutoFocus_ = false;
 		saveFiles_ = false;
 		useCustomIntervals_ = false;
 		useSlices_ = true;
 		useFrames_ = false;
 		useChannels_ = true;
-		useMultiPosition_ = false;
+		useMultiPosition_ = true;
 
 		keepShutterOpenForStack_ = false;
 		keepShutterOpenForChannels_ = false;
@@ -210,6 +213,9 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		sliceZTopUm_ = positionItem.getZEnd();
 		sliceZStepUm_ = positionItem.getZStep();
 
+		posList_.clearAllPositions();
+		posList_.addPosition( 0, new MultiStagePosition( spimSetup_.getXStage().getLabel(), positionItem.getX(), positionItem.getY(), spimSetup_.getZStage().getLabel(), positionItem.getZStart() ) );
+
 		acquire();
 	}
 
@@ -260,12 +266,9 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			studio_.events().post(new DefaultAcquisitionStartedEvent(curStore_,
 					this, acquisitionSettings));
 
-//			double x = spimSetup_.getXStage().getPosition();
-//			double y = spimSetup_.getYStage().getPosition();
-//			double theta = spimSetup_.getAngle();
-			double x = 0;
-			double y = 0;
-			double theta = 0;
+			double x = spimSetup_.getXStage().getPosition();
+			double y = spimSetup_.getYStage().getPosition();
+			double theta = spimSetup_.getAngle();
 
 			// Start pumping images through the pipeline and into the datastore.
 			TaggedImageSink sink = new TaggedImageSink(
@@ -455,6 +458,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		acquisitionSettings.usePositionList = this.useMultiPosition_;
 		acquisitionSettings.cameraTimeout = this.cameraTimeout_;
 		acquisitionSettings.shouldDisplayImages = shouldDisplayImages_;
+		acquisitionSettings.usePositionList = useMultiPosition_;
 		return acquisitionSettings;
 	}
 
