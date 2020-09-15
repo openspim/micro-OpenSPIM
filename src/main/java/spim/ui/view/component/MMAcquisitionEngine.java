@@ -98,10 +98,11 @@ public class MMAcquisitionEngine
 	 * @param processedImages the processed images
 	 * @param bSave the b save
 	 * @param continuous if the acquisition is continuous or snap-based
+	 * @param savingFormatValue the value set from { "Separate the channel dimension", "Image stack (include multi-channel)" }
 	 * @throws Exception the exception
 	 */
 	@SuppressWarnings("Duplicates")
-	public static void performAcquisition( Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, double timeStep, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, double cylinderSize, boolean smartImagingSelected, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, boolean continuous ) throws Exception
+	public static void performAcquisition( Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, double timeStep, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, double cylinderSize, boolean smartImagingSelected, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, boolean continuous, Object savingFormatValue ) throws Exception
 	{
 		final Studio frame = studio;
 
@@ -269,11 +270,15 @@ public class MMAcquisitionEngine
 
 		if(bSave)
 		{
+			boolean separateChannel = false;
+			if(savingFormatValue != null && savingFormatValue.equals( "Separate the channel dimension" ))
+				separateChannel = true;
+
 			if(continuous) {
 				OutputHandler handler = new OMETIFFHandler(
 						core, output, acqFilenamePrefix + "_" + currentCamera + "_",
 						//what is the purpose of defining parameters and then passing null anyway?
-						acqRows, channelItems.size(), timeSeqs, timeStep, 1, smb.userData( pm.build() ).build(), false );
+						acqRows, channelItems.size(), timeSeqs, timeStep, 1, smb.userData( pm.build() ).build(), false, separateChannel );
 
 				handlers.put( currentCamera, handler );
 				cameras.clear();
@@ -287,7 +292,7 @@ public class MMAcquisitionEngine
 						OutputHandler handler = new OMETIFFHandler(
 								core, output, acqFilenamePrefix + "_" + camera + "_",
 								//what is the purpose of defining parameters and then passing null anyway?
-								acqRows, chSize * multis.size(), timeSeqs, timeStep, 1, smb.userData( pm.build() ).build(), false );
+								acqRows, chSize * multis.size(), timeSeqs, timeStep, 1, smb.userData( pm.build() ).build(), false, separateChannel );
 
 						handlers.put( camera, handler );
 					}
@@ -297,7 +302,7 @@ public class MMAcquisitionEngine
 						OutputHandler handler = new OMETIFFHandler(
 								core, output, acqFilenamePrefix + "_" + camera + "_",
 								//what is the purpose of defining parameters and then passing null anyway?
-								acqRows, chSize, timeSeqs, timeStep, 1, smb.userData( pm.build() ).build(), false );
+								acqRows, chSize, timeSeqs, timeStep, 1, smb.userData( pm.build() ).build(), false, separateChannel );
 
 						handlers.put( camera, handler );
 					}
@@ -545,7 +550,7 @@ public class MMAcquisitionEngine
 						final int tp = timePoints;
 						final int rown = step;
 
-						display.setCustomTitle( acqFilenamePrefix + String.format( " t=%d, p=%d", timePoints, step ) );
+//						display.setCustomTitle( acqFilenamePrefix + String.format( " t=%d, p=%d", timePoints, step ) );
 
 						// Move the stage
 						if(stagePanel != null)
@@ -561,7 +566,7 @@ public class MMAcquisitionEngine
 							beginStack( tp, rown, handler );
 
 						System.out.println("MMAcquisition started");
-						engine.startAcquire( timeSeq, step, positionItem );
+						engine.startAcquire( timePoints, step, positionItem );
 
 						while(engine.isAcquisitionRunning()) {
 							try
@@ -794,7 +799,7 @@ public class MMAcquisitionEngine
 				final int tp = timeSeq;
 				final int rown = step;
 
-				display.setCustomTitle( acqFilenamePrefix + String.format( " t=%d, p=%d", timeSeq, step ));
+				// display.setCustomTitle( acqFilenamePrefix + String.format( " t=%d, p=%d", timeSeq, step ));
 
 				// Move the stage
 				if(stagePanel != null)
@@ -1230,7 +1235,9 @@ public class MMAcquisitionEngine
 		{
 			handleSlice( setup, exp, ch, acqBegan, tp, step, ip, handler );
 			// Add an image to the store for display
-			addImageToAcquisition( frame, store, ch, noSlice, zStart,
+//			addImageToAcquisition( frame, store, ch, noSlice, zStart,
+//					positionItem, ms, ti );
+			addImageToDisplay( frame, store, step, tp, ch, noSlice, zStart,
 					positionItem, ms, ti );
 		} else {
 			addImageToDisplay( frame, store, step, tp, ch, noSlice, zStart,

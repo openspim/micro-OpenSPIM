@@ -80,7 +80,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	private int afSkipInterval_;
 	private boolean absoluteZ_;
 	private int cameraTimeout_ = 20000;
-	private boolean shouldDisplayImages_ = true;
+	private boolean shouldDisplayImages_ = false;
 	private IAcquisitionEngine2010 acquisitionEngine2010_;
 	private ArrayList<Double> customTimeIntervalsMs_;
 	private boolean useCustomIntervals_;

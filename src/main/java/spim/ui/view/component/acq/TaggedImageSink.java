@@ -11,9 +11,14 @@ import javax.swing.SwingUtilities;
 
 import ij.process.ImageProcessor;
 import mmcorej.TaggedImage;
+import org.micromanager.PropertyMap;
 import org.micromanager.acquisition.internal.AcquisitionEngine;
 import org.micromanager.acquisition.internal.TaggedImageQueue;
+import org.micromanager.data.Coordinates;
+import org.micromanager.data.Coords;
 import org.micromanager.data.Datastore;
+import org.micromanager.data.Image;
+import org.micromanager.data.Metadata;
 import org.micromanager.data.Pipeline;
 import org.micromanager.data.PipelineErrorException;
 import org.micromanager.data.internal.DefaultImage;
@@ -105,8 +110,11 @@ public class TaggedImageSink {
 								int slice = tagged.tags.getInt("SliceIndex");
 								double exp = tagged.tags.getInt( "Exposure-ms" );
 								double zPos = tagged.tags.getDouble( "ZPositionUm" );
+								double xPos = tagged.tags.getDouble( "XPositionUm" );
+								double yPos = tagged.tags.getDouble( "YPositionUm" );
 								int ch = tagged.tags.getInt( "ChannelIndex" );
 								String cam = tagged.tags.getString( "Core-Camera" );
+								double zStep = tagged.tags.getJSONObject( "Summary" ).getDouble( "z-step_um" );
 
 								if(ch == 0) {
 									// initialize cam channels
@@ -128,8 +136,22 @@ public class TaggedImageSink {
 								}
 
 								DefaultImage image = new DefaultImage(tagged);
+
+								Coords.Builder cb = Coordinates.builder();
+								Coords coord = cb.p(angle_).t(t_).c(ch).z(slice).build();
+								Image img = image;
+								Metadata md = img.getMetadata();
+								Metadata.Builder mdb = md.copyBuilderPreservingUUID();
+								PropertyMap ud = md.getUserData();
+								ud = ud.copyBuilder().putDouble("Z-Step-um", zStep).build();
+								String posName = angle_ + "";
+								mdb = mdb.xPositionUm(xPos).yPositionUm(yPos).zPositionUm( zPos ).elapsedTimeMs( exp );
+
+								md = mdb.positionName(posName).userData(ud).build();
+								img = img.copyWith(coord, md);
+
 								try {
-									pipeline_.insertImage(image);
+									pipeline_.insertImage(img);
 								}
 								catch (PipelineErrorException e) {
 									// TODO: make showing the dialog optional.

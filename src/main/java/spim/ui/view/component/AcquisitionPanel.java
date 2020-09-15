@@ -1057,7 +1057,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 			try
 			{
-				engine.performAcquisition( studio, spimSetup, stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, timePointItemTableView.getItems(), currentTP, cylinderSize, smartImagingSelected, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages, enabledSaveImages.get(), continuous.get() );
+				engine.performAcquisition( studio, spimSetup, stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, timePointItemTableView.getItems(), currentTP, cylinderSize,
+                    smartImagingSelected, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages,
+                    enabledSaveImages.get(), continuous.get(), savingFormat.getValue() );
 
 //				new MMAcquisitionRunner().runAcquisition();
 
@@ -1206,8 +1208,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		gridpane.addRow( 1, new Label( "File name:" ), textField );
 
 		ComboBox c = new ComboBox<>( FXCollections.observableArrayList(
-				"Separate all dimension",
-				"Separate the first dimension", "Image stack" ) );
+				// "Separate all dimensions", <- not implemented yet
+				"Separate the channel dimension", "Image stack (include multi-channel)" ) );
 
 		savingFormat = c.valueProperty();
 

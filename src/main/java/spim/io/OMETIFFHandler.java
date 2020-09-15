@@ -58,9 +58,11 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	private String currentFile;
 	final private String prefix;
 	final PropertyMap metadataMap;
+	final boolean separateChannel;
+	private int timepoint;
 	
 	public OMETIFFHandler(CMMCore iCore, File outDir, String filenamePrefix, Row[] acqRows, int channels,
-			int iTimeSteps, double iDeltaT, int tileCount, SummaryMetadata metadata, boolean exportToHDF5) {
+			int iTimeSteps, double iDeltaT, int tileCount, SummaryMetadata metadata, boolean exportToHDF5, boolean separateChannel) {
 
 		if(outDir == null || !outDir.exists() || !outDir.isDirectory())
 			throw new IllegalArgumentException("Null path specified: " + outDir.toString());
@@ -80,6 +82,8 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		this.channels = channels;
 		this.prefix = filenamePrefix;
 		this.metadataMap = (( DefaultSummaryMetadata) metadata).toPropertyMap();
+		this.separateChannel = separateChannel;
+
 		
 		try {
 			//meta = new ServiceFactory().getInstance(OMEXMLService.class).createOMEXMLMetadata();
@@ -103,21 +107,47 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 				int positionIndex = image;
 				
 				for (int t = 0; t < timesteps; ++t) {
-					String fileName = makeFilename(filenamePrefix, image, t, positionIndex, (stacks>1));
 
-					for(int z = 0; z < depth; ++z) {
-						for(int c = 0; c < channels; ++c) {
-							int td = channels*depth*t + channels*z + c;
-							meta.setUUIDFileName(fileName, image, td);
-							meta.setUUIDValue("urn:uuid:" + UUID.nameUUIDFromBytes(fileName.getBytes()).toString(), image, td);
+					if(separateChannel) {
+						for ( int c = 0; c < channels; ++c )
+						{
+							String fileName = makeFilename( filenamePrefix, image, t, positionIndex, c, ( stacks > 1 ) );
 
-							meta.setTiffDataPlaneCount(new NonNegativeInteger(1), image, td);
-							meta.setTiffDataFirstT(new NonNegativeInteger(t), image, td);
-							meta.setTiffDataFirstC(new NonNegativeInteger(c), image, td);
-							meta.setTiffDataFirstZ(new NonNegativeInteger(z), image, td);
+							for ( int z = 0; z < depth; ++z )
+							{
+								int td = channels * depth * t + depth * c + z;
+								meta.setUUIDFileName( fileName, image, td );
+								meta.setUUIDValue( "urn:uuid:" + UUID.nameUUIDFromBytes( fileName.getBytes() ).toString(), image, td );
 
-							meta.setChannelID(MetadataTools.createLSID("Channel", c), image, td);
-							meta.setChannelSamplesPerPixel(new PositiveInteger(1), image, td);
+								meta.setTiffDataPlaneCount( new NonNegativeInteger( 1 ), image, td );
+								meta.setTiffDataFirstT( new NonNegativeInteger( t ), image, td );
+								meta.setTiffDataFirstC( new NonNegativeInteger( c ), image, td );
+								meta.setTiffDataFirstZ( new NonNegativeInteger( z ), image, td );
+
+								meta.setChannelID( MetadataTools.createLSID( "Channel", 0 ), image, td );
+								meta.setChannelSamplesPerPixel( new PositiveInteger( 1 ), image, td );
+							}
+						}
+					} else
+					{
+						String fileName = makeFilename( filenamePrefix, image, t, positionIndex, 0, ( stacks > 1 ) );
+
+						for ( int z = 0; z < depth; ++z )
+						{
+							for ( int c = 0; c < channels; ++c )
+							{
+								int td = channels*depth*t + channels*z + c;
+								meta.setUUIDFileName( fileName, image, td );
+								meta.setUUIDValue( "urn:uuid:" + UUID.nameUUIDFromBytes( fileName.getBytes() ).toString(), image, td );
+
+								meta.setTiffDataPlaneCount(new NonNegativeInteger( 1 ), image, td);
+								meta.setTiffDataFirstT(new NonNegativeInteger( t ), image, td);
+								meta.setTiffDataFirstC(new NonNegativeInteger( c ), image, td);
+								meta.setTiffDataFirstZ(new NonNegativeInteger( z ), image, td);
+
+								meta.setChannelID( MetadataTools.createLSID( "Channel", c ), image, td );
+								meta.setChannelSamplesPerPixel( new PositiveInteger( 1 ), image, td );
+							}
 						}
 					}
 				}
@@ -125,7 +155,11 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 				meta.setPixelsSizeX(new PositiveInteger((int)core.getImageWidth()), image);
 				meta.setPixelsSizeY(new PositiveInteger((int)core.getImageHeight()), image);
 				meta.setPixelsSizeZ(new PositiveInteger(depth), image);
-				meta.setPixelsSizeC(new PositiveInteger(channels), image);
+				if(separateChannel)
+					meta.setPixelsSizeC(new PositiveInteger(1), image);
+				else
+					meta.setPixelsSizeC(new PositiveInteger(channels == 0 ? 1 : channels), image);
+
 				meta.setPixelsSizeT(new PositiveInteger(1), image);
 
 				meta.setPixelsPhysicalSizeX(FormatTools.getPhysicalSizeX(core.getPixelSizeUm()), image);
@@ -136,7 +170,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 				meta.setPixelsTimeIncrement(new Time( deltat, UNITS.SECOND ), image);
 			}
 
-			writer = new ImageWriter().getWriter(makeFilename(filenamePrefix, 0, 0, 0, false));
+			writer = new ImageWriter().getWriter(makeFilename(filenamePrefix, 0, 0, 0, 0, false));
 
 			writer.setWriteSequentially(true);
 			writer.setMetadataRetrieve(meta);
@@ -149,13 +183,15 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		}
 	}
 
-	private static String makeFilename(String filenamePrefix, int angleIndex, int timepoint, int posIndex, boolean multiplePos) {
+	private String makeFilename(String filenamePrefix, int angleIndex, int timepoint, int posIndex, int c, boolean multiplePos) {
 		String posString = new String();
 		if (multiplePos)
 			posString=String.format("_Pos%02d", posIndex);
-		else
-			posString="";
-		return String.format(filenamePrefix+"TL%02d"+posString+".tiff", timepoint, angleIndex);
+
+		if (separateChannel)
+			posString+=String.format("_Ch%02d", c);
+
+		return String.format(filenamePrefix+"TL%04d"+posString+".tiff", timepoint, angleIndex);
 	}
 
 	private void openWriter(int angleIndex, int timepoint) throws Exception {
@@ -180,6 +216,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 
 		++imageCounter;
 		openWriter(angle, time);
+		timepoint = time;
 	}
 
 	private int doubleAnnotations = 0;
@@ -206,12 +243,28 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		int image = imageCounter % stacks;
 		int plane = sliceCounter;
 
+		if(separateChannel)
+		{
+			plane = sliceCounter % channels;
+
+			currentFile = new File(outputDirectory, meta.getUUIDFileName(angle, acqRows[angle].getDepth()*timepoint*channels + acqRows[angle].getDepth() * c)).getAbsolutePath();
+			writer.changeOutputFile(currentFile);
+			if(null == writer.getMetadataRetrieve())
+				writer.setMetadataRetrieve(meta);
+			writer.setSeries(angle);
+			meta.setUUID(meta.getUUIDValue(angle, acqRows[angle].getDepth()*timepoint*channels + acqRows[angle].getDepth() * c));
+
+			meta.setPlaneTheC(new NonNegativeInteger(0), image, plane);
+		} else {
+			meta.setPlaneTheC(new NonNegativeInteger(c), image, plane);
+		}
+
 		meta.setPlanePositionX(new Length(X, UNITS.REFERENCEFRAME), image, plane);
 		meta.setPlanePositionY(new Length(Y, UNITS.REFERENCEFRAME), image, plane);
 		meta.setPlanePositionZ(new Length(Z, UNITS.REFERENCEFRAME), image, plane);
-		meta.setPlaneTheC(new NonNegativeInteger(c), image, plane);
-		meta.setPlaneTheZ(new NonNegativeInteger(sliceCounter), image, plane);
-		meta.setPlaneTheT(new NonNegativeInteger(time), image, plane);
+
+		meta.setPlaneTheZ(new NonNegativeInteger(plane), image, plane);
+		meta.setPlaneTheT(new NonNegativeInteger(0), image, plane);
 
 		meta.setPlaneDeltaT(new Time(deltaT, UNITS.SECOND), image, plane);
 		meta.setPlaneExposureTime(new Time(expT, UNITS.MILLISECOND), image, plane);
