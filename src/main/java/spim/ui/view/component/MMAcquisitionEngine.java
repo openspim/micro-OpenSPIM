@@ -99,10 +99,11 @@ public class MMAcquisitionEngine
 	 * @param bSave the b save
 	 * @param continuous if the acquisition is continuous or snap-based
 	 * @param savingFormatValue the value set from { "Separate the channel dimension", "Image stack (include multi-channel)" }
+	 * @param saveMIP Save Maximum Intensity Projection or not
 	 * @throws Exception the exception
 	 */
 	@SuppressWarnings("Duplicates")
-	public static void performAcquisition( Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, double timeStep, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, double cylinderSize, boolean smartImagingSelected, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, boolean continuous, Object savingFormatValue ) throws Exception
+	public static void performAcquisition( Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, double timeStep, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, double cylinderSize, boolean smartImagingSelected, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, boolean continuous, Object savingFormatValue, boolean saveMIP ) throws Exception
 	{
 		final Studio frame = studio;
 
@@ -276,9 +277,9 @@ public class MMAcquisitionEngine
 
 			if(continuous) {
 				OutputHandler handler = new OMETIFFHandler(
-						core, output, acqFilenamePrefix + "_" + currentCamera + "_",
-						//what is the purpose of defining parameters and then passing null anyway?
-						acqRows, channelItems.size(), timeSeqs, timeStep, 1, smb.userData( pm.build() ).build(), false, separateChannel );
+					core, output, acqFilenamePrefix + "_" + currentCamera + "_",
+					//what is the purpose of defining parameters and then passing null anyway?
+					acqRows, channelItems.size(), timeSeqs, timeStep, 1, smb.userData( pm.build() ).build(), false, separateChannel, saveMIP );
 
 				handlers.put( currentCamera, handler );
 				cameras.clear();
@@ -290,9 +291,9 @@ public class MMAcquisitionEngine
 					{
 						int chSize = arduinoSelected ? channelItems.size() : (int) channelItems.stream().filter( c -> c.getName().equals( camera ) ).count();
 						OutputHandler handler = new OMETIFFHandler(
-								core, output, acqFilenamePrefix + "_" + camera + "_",
-								//what is the purpose of defining parameters and then passing null anyway?
-								acqRows, chSize * multis.size(), timeSeqs, timeStep, 1, smb.userData( pm.build() ).build(), false, separateChannel );
+							core, output, acqFilenamePrefix + "_" + camera + "_",
+							//what is the purpose of defining parameters and then passing null anyway?
+							acqRows, chSize * multis.size(), timeSeqs, timeStep, 1, smb.userData( pm.build() ).build(), false, separateChannel, saveMIP );
 
 						handlers.put( camera, handler );
 					}
@@ -300,9 +301,9 @@ public class MMAcquisitionEngine
 					{
 						int chSize = arduinoSelected ? channelItems.size() : (int) channelItems.stream().filter( c -> c.getName().equals( camera ) ).count();
 						OutputHandler handler = new OMETIFFHandler(
-								core, output, acqFilenamePrefix + "_" + camera + "_",
-								//what is the purpose of defining parameters and then passing null anyway?
-								acqRows, chSize, timeSeqs, timeStep, 1, smb.userData( pm.build() ).build(), false, separateChannel );
+							core, output, acqFilenamePrefix + "_" + camera + "_",
+							//what is the purpose of defining parameters and then passing null anyway?
+							acqRows, chSize, timeSeqs, timeStep, 1, smb.userData( pm.build() ).build(), false, separateChannel, saveMIP );
 
 						handlers.put( camera, handler );
 					}

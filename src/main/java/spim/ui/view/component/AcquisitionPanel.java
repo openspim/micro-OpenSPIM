@@ -142,6 +142,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	StringProperty filename;
 	ObjectProperty savingFormat;
 	BooleanProperty saveAsHDF5;
+	BooleanProperty saveMIP;
 	ObjectProperty roiRectangle;
 
 	// properties for progress
@@ -892,6 +893,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		filename.set( setting.getFilename() );
 		savingFormat.set( setting.getSavingFormat() );
 		saveAsHDF5.set( setting.getSaveAsHDF5() );
+		saveMIP.set( setting.getSaveMIP() );
 		roiRectangle.set( setting.getRoiRectangle() );
 		if(studio != null && studio.live() != null && studio.live().getDisplay() != null && studio.live().getDisplay().getImagePlus() != null && studio.live().getDisplay().getImagePlus().getRoi() != null) {
 			Roi ipRoi = studio.live().getDisplay().getImagePlus().getRoi();
@@ -907,7 +909,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		return new AcquisitionSetting( enabledTimePoints, numTimePoints, intervalTimePoints, intervalUnitTimePoints, tpTabPane.getSelectionModel().selectedIndexProperty().get(), timePointItems,
 				enabledPositions, positionItems, enabledZStacks, acquisitionOrder,
-				enabledChannels, channelTabPane.getSelectionModel().selectedIndexProperty().get(), channelItems, channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveAsHDF5, roiRectangle );
+				enabledChannels, channelTabPane.getSelectionModel().selectedIndexProperty().get(), channelItems,
+				channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveAsHDF5, saveMIP, roiRectangle );
 	}
 
 	private void clearAcquisitionSetting() {
@@ -933,6 +936,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		filename.set( "Untitled" );
 		savingFormat.set( null );
 		saveAsHDF5.set( false );
+		saveMIP.set( false );
 		roiRectangle.set( null );
 	}
 
@@ -1058,8 +1062,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			try
 			{
 				engine.performAcquisition( studio, spimSetup, stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, timePointItemTableView.getItems(), currentTP, cylinderSize,
-                    smartImagingSelected, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages,
-                    enabledSaveImages.get(), continuous.get(), savingFormat.getValue() );
+						smartImagingSelected, arduinoSelected, new File(directory.getValue()), filename.getValue(),
+						positionItemTableView.getItems(), channelItemList, processedImages,
+						enabledSaveImages.get(), continuous.get(), savingFormat.getValue(), saveMIP.getValue() );
 
 //				new MMAcquisitionRunner().runAcquisition();
 
@@ -1219,6 +1224,12 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		// TODO: Use N5 format instead
 //		gridpane.addRow( 3, ch );
 		saveAsHDF5 = ch.selectedProperty();
+
+		CheckBox mip = new CheckBox( "Save & show Maximum Intensity Projection in each stack" );
+		gridpane.addRow( 3, mip );
+		gridpane.setColumnSpan( mip, 2 );
+
+		saveMIP = mip.selectedProperty();
 
 		CheckboxPane pane = new CheckboxPane( "Save Images", gridpane, 12 );
 		enabledSaveImages = pane.selectedProperty();

@@ -1,6 +1,10 @@
 package spim.io;
 
+import ij.CompositeImage;
 import ij.ImagePlus;
+import ij.ImageStack;
+import ij.VirtualStack;
+import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
 
 import java.io.File;
@@ -9,6 +13,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.UUID;
 
+import ij.process.ShortProcessor;
+import javafx.application.Platform;
 import loci.common.DataTools;
 import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
@@ -38,6 +44,7 @@ import spim.acquisition.Program;
 import spim.acquisition.Row;
 
 import org.micromanager.internal.utils.ReportingUtils;
+import spim.algorithm.MaxProjections;
 
 public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHandler
 {
@@ -60,9 +67,14 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	final PropertyMap metadataMap;
 	final boolean separateChannel;
 	private int timepoint;
-	
-	public OMETIFFHandler(CMMCore iCore, File outDir, String filenamePrefix, Row[] acqRows, int channels,
-			int iTimeSteps, double iDeltaT, int tileCount, SummaryMetadata metadata, boolean exportToHDF5, boolean separateChannel) {
+	final boolean maxProject;
+	final boolean isMultiPosition;
+	MaxProjections[] maxProjections;
+	VirtualStack imageStack;
+	ImagePlus imageViewer;
+
+	public OMETIFFHandler( CMMCore iCore, File outDir, String filenamePrefix, Row[] acqRows, int channels,
+			int iTimeSteps, double iDeltaT, int tileCount, SummaryMetadata metadata, boolean exportToHDF5, boolean separateChannel, boolean maxProjection) {
 
 		if(outDir == null || !outDir.exists() || !outDir.isDirectory())
 			throw new IllegalArgumentException("Null path specified: " + outDir.toString());
@@ -83,8 +95,22 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		this.prefix = filenamePrefix;
 		this.metadataMap = (( DefaultSummaryMetadata) metadata).toPropertyMap();
 		this.separateChannel = separateChannel;
+		this.maxProject = maxProjection;
+		this.isMultiPosition = ( stacks > 1 );
 
-		
+		if ( maxProject )
+		{
+			if ( separateChannel )
+				maxProjections = new MaxProjections[ channels ];
+			else
+				maxProjections = new MaxProjections[ 1 ];
+
+			for ( int i = 0; i < maxProjections.length; i++ )
+				maxProjections[ i ] = new MaxProjections();
+
+			imageStack = new VirtualStack( ( int ) core.getImageWidth(), ( int ) core.getImageHeight(), null, outDir.getPath() );
+		}
+
 		try {
 			//meta = new ServiceFactory().getInstance(OMEXMLService.class).createOMEXMLMetadata();
 			meta = MetadataTools.createOMEXMLMetadata();
@@ -105,13 +131,13 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 				meta.setPixelsType(core.getImageBitDepth() == 8 ? PixelType.UINT8 : PixelType.UINT16, image);
 
 				int positionIndex = image;
-				
+
 				for (int t = 0; t < timesteps; ++t) {
 
 					if(separateChannel) {
 						for ( int c = 0; c < channels; ++c )
 						{
-							String fileName = makeFilename( filenamePrefix, image, t, positionIndex, c, ( stacks > 1 ) );
+							String fileName = makeFilename( filenamePrefix, image, t, positionIndex, c );
 
 							for ( int z = 0; z < depth; ++z )
 							{
@@ -130,7 +156,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 						}
 					} else
 					{
-						String fileName = makeFilename( filenamePrefix, image, t, positionIndex, 0, ( stacks > 1 ) );
+						String fileName = makeFilename( filenamePrefix, image, t, positionIndex, 0 );
 
 						for ( int z = 0; z < depth; ++z )
 						{
@@ -170,7 +196,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 				meta.setPixelsTimeIncrement(new Time( deltat, UNITS.SECOND ), image);
 			}
 
-			writer = new ImageWriter().getWriter(makeFilename(filenamePrefix, 0, 0, 0, 0, false));
+			writer = new ImageWriter().getWriter(makeFilename(filenamePrefix, 0, 0, 0, 0));
 
 			writer.setWriteSequentially(true);
 			writer.setMetadataRetrieve(meta);
@@ -183,9 +209,9 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		}
 	}
 
-	private String makeFilename(String filenamePrefix, int angleIndex, int timepoint, int posIndex, int c, boolean multiplePos) {
-		String posString = new String();
-		if (multiplePos)
+	private String makeFilename(String filenamePrefix, int angleIndex, int timepoint, int posIndex, int c) {
+		String posString = "";
+		if (isMultiPosition)
 			posString=String.format("_Pos%02d", posIndex);
 
 		if (separateChannel)
@@ -217,6 +243,12 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		++imageCounter;
 		openWriter(angle, time);
 		timepoint = time;
+
+		if ( maxProject )
+		{
+			for ( int i = 0; i < maxProjections.length; i++ )
+				maxProjections[ i ].reset();
+		}
 	}
 
 	private int doubleAnnotations = 0;
@@ -259,6 +291,14 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 			meta.setPlaneTheC(new NonNegativeInteger(c), image, plane);
 		}
 
+		if ( maxProject )
+		{
+			if ( separateChannel )
+				maxProjections[ plane ].addXYSlice( ip );
+			else
+				maxProjections[ 0 ].addXYSlice( ip );
+		}
+
 		meta.setPlanePositionX(new Length(X, UNITS.REFERENCEFRAME), image, plane);
 		meta.setPlanePositionY(new Length(Y, UNITS.REFERENCEFRAME), image, plane);
 		meta.setPlanePositionZ(new Length(Z, UNITS.REFERENCEFRAME), image, plane);
@@ -289,6 +329,66 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		if(writer != null)
 		{
 			writer.close();
+		}
+
+		if ( maxProject )
+		{
+			if ( outputDirectory != null )
+			{
+				File saveDir = new File( outputDirectory, "MIP" );
+
+				if ( !saveDir.exists() && !saveDir.mkdirs() )
+				{
+					ij.IJ.log( "Couldn't create output directory " + saveDir.getAbsolutePath() );
+				}
+				else
+				{
+					for ( int i = 0; i < maxProjections.length; i++ )
+					{
+						String posString = "";
+						if ( isMultiPosition )
+							posString = String.format( "_Pos%02d", angle );
+
+						if ( separateChannel )
+							posString += String.format( "_Ch%02d", i );
+
+						String fileString = String.format( prefix + "TL%04d" + posString + ".tiff", timepoint );
+
+						maxProjections[ i ].write( new File( saveDir, fileString ) );
+
+						//                  imageStack.addSlice( maxProjections[i].getProcessor() );
+						imageStack.addSlice( new File( "MIP", fileString ).getPath() );
+					}
+
+					if ( imageStack.getSize() == maxProjections.length * ( angle + 1 ) * ( time + 1 ) )
+					{
+//						System.out.println(maxProjections.length * ( angle + 1 ) * ( time + 1 ));
+						if ( imageViewer == null )
+						{
+							imageViewer = new CompositeImage( new ImagePlus( "MIP:" + prefix, imageStack ) );
+							imageViewer.setDimensions( maxProjections.length, angle + 1, time + 1 );
+							imageViewer.setOpenAsHyperStack( true );
+							imageViewer.show();
+						}
+						else
+						{
+							int c = imageViewer.getC();
+							int z = imageViewer.getZ();
+							int t = imageViewer.getT();
+
+							imageViewer.setDimensions( maxProjections.length, angle + 1, time + 1 );
+
+							if(maxProjections.length == 1)
+								imageViewer.setStack( imageStack );
+
+							imageViewer.setPositionWithoutUpdate( c, z, t );
+						}
+
+						imageViewer.resetDisplayRange();
+						imageViewer.updateImage();
+					}
+				}
+			}
 		}
 	}
 

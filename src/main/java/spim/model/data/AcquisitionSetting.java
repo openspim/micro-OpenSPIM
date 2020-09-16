@@ -55,6 +55,7 @@ public class AcquisitionSetting
 	String filename;
 	Object savingFormat;
 	Boolean saveAsHDF5;
+	Boolean saveMIP;
 	Object roiRectangle;
 
 	public Boolean getEnabledTimePoints()
@@ -247,6 +248,16 @@ public class AcquisitionSetting
 		this.saveAsHDF5 = saveAsHDF5;
 	}
 
+	public Boolean getSaveMIP()
+	{
+		return saveMIP;
+	}
+
+	public void setSaveMIP( Boolean saveMIP )
+	{
+		this.saveMIP = saveMIP;
+	}
+
 	public Object getRoiRectangle()
 	{
 		return roiRectangle;
@@ -261,7 +272,7 @@ public class AcquisitionSetting
 	{
 	}
 
-	public AcquisitionSetting( BooleanProperty enabledTimePoints, StringProperty numTimePoints, StringProperty intervalTimePoints, ObjectProperty intervalUnitTimePoints, int selectedTpTab, ArrayList< TimePointItem > timePointItems, BooleanProperty enabledPositions, ArrayList< PositionItem > positionItems, BooleanProperty enabledZStacks, ObjectProperty acquisitionOrder, BooleanProperty enabledChannels, int selectedTabIndex, ArrayList< ChannelItem > channelItems, ArrayList< ChannelItem > channelItemsArduino, BooleanProperty enabledSaveImages, StringProperty directory, StringProperty filename, ObjectProperty savingFormat, BooleanProperty saveAsHDF5, ObjectProperty roiRectangle )
+	public AcquisitionSetting( BooleanProperty enabledTimePoints, StringProperty numTimePoints, StringProperty intervalTimePoints, ObjectProperty intervalUnitTimePoints, int selectedTpTab, ArrayList< TimePointItem > timePointItems, BooleanProperty enabledPositions, ArrayList< PositionItem > positionItems, BooleanProperty enabledZStacks, ObjectProperty acquisitionOrder, BooleanProperty enabledChannels, int selectedTabIndex, ArrayList< ChannelItem > channelItems, ArrayList< ChannelItem > channelItemsArduino, BooleanProperty enabledSaveImages, StringProperty directory, StringProperty filename, ObjectProperty savingFormat, BooleanProperty saveAsHDF5, BooleanProperty saveMIP, ObjectProperty roiRectangle )
 	{
 		// 1.1 Time points panel
 		this.enabledTimePoints = enabledTimePoints.get();
@@ -295,6 +306,7 @@ public class AcquisitionSetting
 		this.filename = filename.get();
 		this.savingFormat = savingFormat.get();
 		this.saveAsHDF5 = saveAsHDF5.get();
+		this.saveMIP = saveMIP.get();
 		this.roiRectangle = roiRectangle.get();
 	}
 
