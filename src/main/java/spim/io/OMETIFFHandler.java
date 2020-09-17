@@ -377,10 +377,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 							int t = imageViewer.getT();
 
 							imageViewer.setDimensions( maxProjections.length, angle + 1, time + 1 );
-
-							if(maxProjections.length == 1)
-								imageViewer.setStack( imageStack );
-
+							imageViewer.setStack( imageStack );
 							imageViewer.setPositionWithoutUpdate( c, z, t );
 						}
 
