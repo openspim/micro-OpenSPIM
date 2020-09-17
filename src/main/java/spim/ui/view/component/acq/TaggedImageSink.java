@@ -1,5 +1,6 @@
 package spim.ui.view.component.acq;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -54,6 +55,7 @@ public class TaggedImageSink {
 	private final HashMap<String, OutputHandler > handlers_;
 	private final HashMap<String, Integer> camChannels_;
 	private final double x_, y_, theta_;
+	private final ArrayList<Image>[] mpImages_;
 
 	public TaggedImageSink(BlockingQueue<TaggedImage> queue,
 			Pipeline pipeline,
@@ -61,7 +63,7 @@ public class TaggedImageSink {
 			AcquisitionEngine engine,
 			EventManager studioEvents,
 			int t, int angle,
-			HashMap<String, OutputHandler > handlers, double x, double y, double theta ) {
+			HashMap<String, OutputHandler > handlers, double x, double y, double theta, ArrayList<Image>[] mpImages ) {
 		imageProducingQueue_ = queue;
 		pipeline_ = pipeline;
 		store_ = store;
@@ -70,6 +72,7 @@ public class TaggedImageSink {
 		t_ = t;
 		angle_ = angle;
 		handlers_ = handlers;
+		mpImages_ = mpImages;
 
 		camChannels_ = new HashMap<>( handlers_.keySet()
 				.stream().collect( Collectors.toMap( Function.identity(), c -> 0 ) ) );
@@ -80,12 +83,12 @@ public class TaggedImageSink {
 	}
 
 	public void start() {
-		start(null);
+		start(null, null);
 	}
 
 	// sinkFullCallback is a way to stop production of images when/if the sink
 	// can no longer accept images.
-	public void start(final Runnable sinkFullCallback) {
+	public void start(final Runnable sinkFullCallback, final Runnable processMIP) {
 		Thread savingThread = new Thread("TaggedImage sink thread") {
 
 			@Override
@@ -121,18 +124,20 @@ public class TaggedImageSink {
 									camChannels_.keySet().forEach( d -> camChannels_.put(d, 0) );
 								}
 
+//								System.out.println(ch);
+
 								if(handlers_.containsKey( cam ))
 								{
-									ch = camChannels_.get(cam);
+									int channel = camChannels_.get(cam);
 
-									handlers_.get( cam ).processSlice( t_, angle_, ( int ) exp, ch, ImageUtils.makeProcessor( tagged ),
+									handlers_.get( cam ).processSlice( t_, angle_, ( int ) exp, channel, ImageUtils.makeProcessor( tagged ),
 											x_,
 											y_,
 											zPos,
 											theta_,
 											System.currentTimeMillis() - t1 );
 
-									camChannels_.put( cam, ch + 1 );
+									camChannels_.put( cam, channel + 1 );
 								}
 
 								DefaultImage image = new DefaultImage(tagged);
@@ -152,6 +157,7 @@ public class TaggedImageSink {
 
 								try {
 									pipeline_.insertImage(img);
+									mpImages_[ch].add(img);
 								}
 								catch (PipelineErrorException e) {
 									// TODO: make showing the dialog optional.
@@ -177,6 +183,7 @@ public class TaggedImageSink {
 				}
 				long t2 = System.currentTimeMillis();
 				ReportingUtils.logMessage(imageCount + " images stored in " + (t2 - t1) + " ms.");
+				processMIP.run();
 			}
 		};
 		savingThread.start();

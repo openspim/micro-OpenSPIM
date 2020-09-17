@@ -70,8 +70,6 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	final boolean maxProject;
 	final boolean isMultiPosition;
 	MaxProjections[] maxProjections;
-	VirtualStack imageStack;
-	ImagePlus imageViewer;
 
 	public OMETIFFHandler( CMMCore iCore, File outDir, String filenamePrefix, Row[] acqRows, int channels,
 			int iTimeSteps, double iDeltaT, int tileCount, SummaryMetadata metadata, boolean exportToHDF5, boolean separateChannel, boolean maxProjection) {
@@ -107,8 +105,6 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 
 			for ( int i = 0; i < maxProjections.length; i++ )
 				maxProjections[ i ] = new MaxProjections();
-
-			imageStack = new VirtualStack( ( int ) core.getImageWidth(), ( int ) core.getImageHeight(), null, outDir.getPath() );
 		}
 
 		try {
@@ -355,34 +351,6 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 						String fileString = String.format( prefix + "TL%04d" + posString + ".tiff", timepoint );
 
 						maxProjections[ i ].write( new File( saveDir, fileString ) );
-
-						//                  imageStack.addSlice( maxProjections[i].getProcessor() );
-						imageStack.addSlice( new File( "MIP", fileString ).getPath() );
-					}
-
-					if ( imageStack.getSize() == maxProjections.length * ( angle + 1 ) * ( time + 1 ) )
-					{
-//						System.out.println(maxProjections.length * ( angle + 1 ) * ( time + 1 ));
-						if ( imageViewer == null )
-						{
-							imageViewer = new CompositeImage( new ImagePlus( "MIP:" + prefix, imageStack ) );
-							imageViewer.setDimensions( maxProjections.length, angle + 1, time + 1 );
-							imageViewer.setOpenAsHyperStack( true );
-							imageViewer.show();
-						}
-						else
-						{
-							int c = imageViewer.getC();
-							int z = imageViewer.getZ();
-							int t = imageViewer.getT();
-
-							imageViewer.setDimensions( maxProjections.length, angle + 1, time + 1 );
-							imageViewer.setStack( imageStack );
-							imageViewer.setPositionWithoutUpdate( c, z, t );
-						}
-
-						imageViewer.resetDisplayRange();
-						imageViewer.updateImage();
 					}
 				}
 			}

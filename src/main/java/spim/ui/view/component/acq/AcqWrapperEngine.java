@@ -3,6 +3,7 @@ package spim.ui.view.component.acq;
 import com.google.common.eventbus.Subscribe;
 import java.awt.Color;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,9 +26,8 @@ import org.micromanager.acquisition.ChannelSpec;
 import org.micromanager.acquisition.SequenceSettings;
 import org.micromanager.acquisition.internal.AcquisitionEngine;
 import org.micromanager.acquisition.internal.IAcquisitionEngine2010;
-import org.micromanager.data.Datastore;
-import org.micromanager.data.Pipeline;
-import org.micromanager.data.RewritableDatastore;
+import org.micromanager.data.*;
+import org.micromanager.display.DisplayWindow;
 import org.micromanager.events.AcquisitionEndedEvent;
 import org.micromanager.events.internal.DefaultAcquisitionEndedEvent;
 import org.micromanager.events.internal.DefaultAcquisitionStartedEvent;
@@ -97,6 +97,9 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	private boolean arduinoSelected_;
 
 	final String channelGroupName = "OpenSPIM-channels";
+
+	RewritableDatastore mpStore_;
+	ArrayList<Image>[] mpImages_;
 
 	private static final Color[] DEFAULT_COLORS = {new Color(160, 32, 240), Color.red, Color.green, Color.blue, Color.yellow, Color.pink };
 
@@ -190,6 +193,15 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		}
 		channels_ = channels;
 		setChannelGroup( channelGroupName );
+
+		mpStore_ = frame.data().createRewritableRAMDatastore();
+		DisplayWindow display = frame.displays().createDisplay(mpStore_);
+		display.setCustomTitle( "MIP:" + currentCamera  );
+		frame.displays().manage(mpStore_);
+		mpImages_ = new ArrayList[channels.size()];
+		for(int i = 0; i < mpImages_.length; i++) {
+			mpImages_[i] = new ArrayList<>();
+		}
 	}
 
 	public void exit() {
@@ -273,13 +285,8 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			// Start pumping images through the pipeline and into the datastore.
 			TaggedImageSink sink = new TaggedImageSink(
 					engineOutputQueue, curPipeline_, curStore_, this, studio_.events(),
-					t_, angle_, handlers_, x, y, theta );
-			sink.start(new Runnable() {
-				@Override
-				public void run() {
-					getAcquisitionEngine2010().stop();
-				}
-			});
+					t_, angle_, handlers_, x, y, theta, mpImages_ );
+			sink.start(() -> getAcquisitionEngine2010().stop(), () -> generateMIP());
 
 			return curStore_;
 
@@ -288,6 +295,111 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			studio_.events().post(new DefaultAcquisitionEndedEvent(
 					curStore_, this));
 			return null;
+		}
+	}
+
+	private void generateMIP() {
+		for(ArrayList<Image> stack : mpImages_) {
+			// Could be moved outside processImage() ?
+			Image img = stack.get(0);
+			int bitDepth = img.getMetadata().getBitDepth();
+			int width = img.getWidth();
+			int height = img.getHeight();
+			int bytesPerPixel = img.getBytesPerPixel();
+			int numComponents = img.getNumComponents();
+			Coords coords = img.getCoords();
+			Metadata metadata = img.getMetadata();
+
+			Object resultPixels = null;
+
+			if (bytesPerPixel == 1) {
+
+				// Create new array
+				float[] newPixels = new float[width * height];
+				byte[] newPixelsFinal = new byte[width * height];
+
+				float currentValue;
+				float actualValue;
+
+				// Init the new array
+				for (int i = 0; i < newPixels.length; i++) {
+					newPixels[i] = 0;
+				}
+
+				// Iterate over all frames
+				for (int i = 1; i < stack.size(); i++) {
+
+					// Get current frame pixels
+					img = stack.get(i);
+					byte[] imgPixels = (byte[]) img.getRawPixels();
+
+					// Iterate over all pixels
+					for (int index = 0; index < newPixels.length; index++) {
+						currentValue = (float) (int) (imgPixels[index] & 0xffff);
+						actualValue = (float) newPixels[index];
+						newPixels[index] = (float) Math.max(currentValue, actualValue);
+					}
+				}
+
+				// Convert to short
+				for (int index = 0; index < newPixels.length; index++) {
+					newPixelsFinal[index] = (byte) newPixels[index];
+				}
+
+				resultPixels = newPixelsFinal;
+
+			} else if (bytesPerPixel == 2) {
+
+				// Create new array
+				float[] newPixels = new float[width * height];
+				short[] newPixelsFinal = new short[width * height];
+
+				float currentValue;
+				float actualValue;
+
+				// Init the new array
+				for (int i = 0; i < newPixels.length; i++) {
+					newPixels[i] = 0;
+				}
+
+
+				// Iterate over all frames
+				for (int i = 1; i < stack.size(); i++) {
+
+					// Get current frame pixels
+					img = stack.get(i);
+					short[] imgPixels = (short[]) img.getRawPixels();
+
+					// Iterate over all pixels
+					for (int index = 0; index < newPixels.length; index++) {
+						currentValue = (float) (int) (imgPixels[index] & 0xffff);
+						actualValue = (float) newPixels[index];
+						newPixels[index] = (float) Math.max(currentValue, actualValue);
+					}
+				}
+
+				// Convert to short
+				for (int index = 0; index < newPixels.length; index++) {
+					newPixelsFinal[index] = (short) newPixels[index];
+				}
+
+				resultPixels = newPixelsFinal;
+
+			}
+
+			// Create the processed image
+			Image processedImage_ = studio_.data().createImage(resultPixels, width, height,
+					bytesPerPixel, numComponents, coords, metadata);
+
+			try {
+				mpStore_.putImage(processedImage_);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		for(int i = 0; i < mpImages_.length; i++) {
+			mpImages_[i] = new ArrayList<>();
 		}
 	}
 
