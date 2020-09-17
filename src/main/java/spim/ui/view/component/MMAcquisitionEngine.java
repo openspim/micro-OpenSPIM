@@ -1267,7 +1267,7 @@ public class MMAcquisitionEngine
 	 * @param core the core
 	 * @return the multi cams
 	 */
-	private static List<String> getMultiCams( CMMCore core )
+	public static List<String> getMultiCams( CMMCore core )
 	{
 		ArrayList<String> list = new ArrayList<>();
 

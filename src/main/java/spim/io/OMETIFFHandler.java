@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.List;
 import java.util.UUID;
 
 import loci.common.DataTools;
@@ -39,6 +40,7 @@ import spim.acquisition.Row;
 
 import org.micromanager.internal.utils.ReportingUtils;
 import spim.algorithm.MaxProjections;
+import spim.ui.view.component.MMAcquisitionEngine;
 
 public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHandler
 {
@@ -66,7 +68,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	MaxProjections[] maxProjections;
 
 	public OMETIFFHandler( CMMCore iCore, File outDir, String filenamePrefix, Row[] acqRows, int channels,
-			int iTimeSteps, double iDeltaT, int tileCount, SummaryMetadata metadata, boolean exportToHDF5, boolean separateChannel, boolean maxProjection) {
+			int iTimeSteps, double iDeltaT, int tileCount, SummaryMetadata metadata, boolean exportToHDF5, boolean separateChannel, boolean maxProjection ) {
 
 		if(outDir == null || !outDir.exists() || !outDir.isDirectory())
 			throw new IllegalArgumentException("Null path specified: " + outDir.toString());
@@ -101,6 +103,8 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 				maxProjections[ i ] = new MaxProjections();
 		}
 
+		List<String> multis = MMAcquisitionEngine.getMultiCams(core);
+
 		try {
 			//meta = new ServiceFactory().getInstance(OMEXMLService.class).createOMEXMLMetadata();
 			meta = MetadataTools.createOMEXMLMetadata();
@@ -127,7 +131,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 					if(separateChannel) {
 						for ( int c = 0; c < channels; ++c )
 						{
-							String fileName = makeFilename( filenamePrefix, image, t, positionIndex, c );
+							String fileName = makeFilename( filenamePrefix, image, t, positionIndex, c, multis );
 
 							for ( int z = 0; z < depth; ++z )
 							{
@@ -146,7 +150,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 						}
 					} else
 					{
-						String fileName = makeFilename( filenamePrefix, image, t, positionIndex, 0 );
+						String fileName = makeFilename( filenamePrefix, image, t, positionIndex, 0, null );
 
 						for ( int z = 0; z < depth; ++z )
 						{
@@ -186,7 +190,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 				meta.setPixelsTimeIncrement(new Time( deltat, UNITS.SECOND ), image);
 			}
 
-			writer = new ImageWriter().getWriter(makeFilename(filenamePrefix, 0, 0, 0, 0));
+			writer = new ImageWriter().getWriter(makeFilename(filenamePrefix, 0, 0, 0, 0, null));
 
 			writer.setWriteSequentially(true);
 			writer.setMetadataRetrieve(meta);
@@ -199,13 +203,20 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		}
 	}
 
-	private String makeFilename(String filenamePrefix, int angleIndex, int timepoint, int posIndex, int c) {
+	private String makeFilename(String filenamePrefix, int angleIndex, int timepoint, int posIndex, int c, List<String> multis) {
 		String posString = "";
 		if (isMultiPosition)
 			posString=String.format("_Pos%02d", posIndex);
 
-		if (separateChannel)
-			posString+=String.format("_Ch%02d", c);
+		if (multis != null) {
+			posString += String.format("_View%02d", c / multis.size());
+
+			if (separateChannel)
+				posString += String.format("_Ch%02d", c % multis.size());
+		} else {
+			if (separateChannel)
+				posString += String.format("_Ch%02d", c);
+		}
 
 		return String.format(filenamePrefix+"TL%04d"+posString+".tiff", timepoint, angleIndex);
 	}

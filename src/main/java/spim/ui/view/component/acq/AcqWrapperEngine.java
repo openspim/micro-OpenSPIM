@@ -41,6 +41,7 @@ import spim.hardware.SPIMSetup;
 import spim.io.OutputHandler;
 import spim.model.data.ChannelItem;
 import spim.model.data.PositionItem;
+import spim.ui.view.component.MMAcquisitionEngine;
 
 /**
  * This is the modified version of AcquisitionWrapperEngine.java
@@ -204,12 +205,13 @@ public class AcqWrapperEngine implements AcquisitionEngine
 					Arrays.stream(saveDir.listFiles()).forEach(c -> c.delete());
 					saveDir.delete();
 				}
+				List<String> multis = MMAcquisitionEngine.getMultiCams(core_);
 
 				mpStore_ = frame.data().createMultipageTIFFDatastore(saveDir.getPath(), false, false);
 				DisplayWindow display = frame.displays().createDisplay(mpStore_);
 				display.setCustomTitle( "MIP:" + acqFilenamePrefix );
 				frame.displays().manage(mpStore_);
-				mpImages_ = new TreeMap[channels.size()];
+				mpImages_ = new TreeMap[!arduinoSelected_ && currentCamera.startsWith("Multi") ? multis.size() * channels.size() : channels.size()];
 				for(int i = 0; i < mpImages_.length; i++) {
 					mpImages_[i] = new TreeMap<>();
 				}
