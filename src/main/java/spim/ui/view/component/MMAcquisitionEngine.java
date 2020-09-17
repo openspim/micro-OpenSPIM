@@ -316,16 +316,24 @@ public class MMAcquisitionEngine
 			}
 		}
 
-		if(continuous) executeContinuousAcquisition(setup, frame, store, display, stagePanel, currentCamera, cameras, acqFilenamePrefix, handlers,
+		// For checking Max intensity projection is needed or not
+		if(!bSave) {
+			output = null;
+			saveMIP = false;
+		}
+
+		if(!saveMIP) acqFilenamePrefix = null;
+
+		if(continuous) executeContinuousAcquisition(setup, frame, store, display, stagePanel, currentCamera, cameras, output, acqFilenamePrefix, handlers,
 				timeSeqs, timeStep, timePointItems, positionItems, channelItems, currentTP, cylinderSize, smartImagingSelected, arduinoSelected, processedImages, acqBegan);
-		else executeNormalAcquisition(setup, frame, store, display, stagePanel, currentCamera, cameras, acqFilenamePrefix, handlers,
+		else executeNormalAcquisition(setup, frame, store, display, stagePanel, currentCamera, cameras, output, acqFilenamePrefix, handlers,
 				timeSeqs, timeStep, timePointItems, positionItems, channelItems, currentTP, cylinderSize, smartImagingSelected, arduinoSelected, processedImages, acqBegan);
 
 	}
 
 	@SuppressWarnings("Duplicates")
 	private static void executeNormalAcquisition(SPIMSetup setup, final Studio frame, RewritableDatastore store,
-			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
+			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			int timeSeqs, double timeStep, ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, double cylinderSize, boolean smartImagingSelected, boolean arduinoSelected,
 			LongProperty processedImages, final double acqBegan) throws Exception
@@ -336,12 +344,13 @@ public class MMAcquisitionEngine
 		// Scheduled timeline
 		// Dynamic timeline
 		if(smartImagingSelected) {
-			runNormalSmartImagingMMAcq(setup, frame, store, display, stagePanel, currentCamera, cameras, acqFilenamePrefix, handlers,
+			runNormalSmartImagingMMAcq(setup, frame, store, display, stagePanel, currentCamera, cameras,
+					outFolder, acqFilenamePrefix, handlers,
 					timePointItems, positionItems, channelItems, currentTP, cylinderSize, arduinoSelected, processedImages, acqBegan, acqStart);
 //			runNormalSmartImaging(setup, frame, store, display, stagePanel, currentCamera, cameras, acqFilenamePrefix, handlers,
 //					timePointItems, positionItems, channelItems, currentTP, cylinderSize, arduinoSelected, processedImages, acqBegan, acqStart);
 		} else {
-			runNormalImagingMMAcq(setup, frame, store, display, stagePanel, currentCamera, cameras, acqFilenamePrefix, handlers,
+			runNormalImagingMMAcq(setup, frame, store, display, stagePanel, currentCamera, cameras, outFolder, acqFilenamePrefix, handlers,
 					timeSeqs, timeStep, positionItems, channelItems, arduinoSelected, processedImages, acqBegan, acqStart);
 //			runNormalImaging(setup, frame, store, display, stagePanel, currentCamera, cameras, acqFilenamePrefix, handlers,
 //					timeSeqs, timeStep, positionItems, channelItems, arduinoSelected, processedImages, acqBegan, acqStart);
@@ -524,7 +533,7 @@ public class MMAcquisitionEngine
 
 	@SuppressWarnings("Duplicates")
 	private static void runNormalSmartImagingMMAcq(SPIMSetup setup, final Studio frame, RewritableDatastore store,
-			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
+			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, double cylinderSize, boolean arduinoSelected,
 			LongProperty processedImages, final double acqBegan, long acqStart) throws Exception
@@ -536,7 +545,7 @@ public class MMAcquisitionEngine
 		int  passedTimePoints = 0;
 		double totalTimePoints = timePointItems.stream().mapToDouble( TimePointItem::getTotalSeconds ).sum();
 
-		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, handlers, channelItems, arduinoSelected, processedImages, acqBegan, acqStart );
+		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, handlers, channelItems, arduinoSelected, processedImages, acqBegan, acqStart );
 
 		for(TimePointItem tpItem : timePointItems ) {
 			if(tpItem.getType().equals( TimePointItem.Type.Acq ))
@@ -783,13 +792,13 @@ public class MMAcquisitionEngine
 
 	@SuppressWarnings("Duplicates")
 	private static void runNormalImagingMMAcq(SPIMSetup setup, final Studio frame, RewritableDatastore store,
-			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
+			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			int timeSeqs, double timeStep, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, boolean arduinoSelected,
 			LongProperty processedImages, final double acqBegan, long acqStart) throws Exception
 	{
 		final CMMCore core = frame.core();
 
-		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, handlers, channelItems, arduinoSelected, processedImages, acqBegan, acqStart );
+		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, handlers,  channelItems, arduinoSelected, processedImages, acqBegan, acqStart );
 
 		for(int timeSeq = 0; timeSeq < timeSeqs; ++timeSeq) {
 			// User defined location
@@ -866,7 +875,7 @@ public class MMAcquisitionEngine
 
 	@SuppressWarnings("Duplicates")
 	private static void executeContinuousAcquisition(SPIMSetup setup, final Studio frame, RewritableDatastore store,
-			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
+			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			int timeSeqs, double timeStep, ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, double cylinderSize, boolean smartImagingSelected, boolean arduinoSelected,
 			LongProperty processedImages, final double acqBegan ) throws Exception
@@ -945,11 +954,11 @@ public class MMAcquisitionEngine
 		// Dynamic timeline
 
 		if(smartImagingSelected) {
-			runContinuousSmartImaging(setup, frame, store, display, stagePanel, currentCamera, cameras, acqFilenamePrefix, handlers,
+			runContinuousSmartImaging(setup, frame, store, display, stagePanel, currentCamera, cameras, outFolder, acqFilenamePrefix, handlers,
 					timePointItems, positionItems, channelItems, currentTP, cylinderSize, arduinoSelected,
 					processedImages, acqBegan, acqStart, captureImages);
 		} else {
-			runContinuousImaging(setup, frame, store, display, stagePanel, currentCamera, cameras, acqFilenamePrefix, handlers,
+			runContinuousImaging(setup, frame, store, display, stagePanel, currentCamera, cameras, outFolder, acqFilenamePrefix, handlers,
 					timeSeqs, timeStep, positionItems, channelItems,
 					arduinoSelected, processedImages, acqBegan, acqStart, captureImages);
 		}
@@ -959,7 +968,7 @@ public class MMAcquisitionEngine
 
 	@SuppressWarnings("Duplicates")
 	private static void runContinuousSmartImaging(SPIMSetup setup, final Studio frame, RewritableDatastore store,
-			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
+			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, double cylinderSize, boolean arduinoSelected,
 			LongProperty processedImages, final double acqBegan, long acqStart, ConcurrentHashMap<String, TaggedImage> captureImages) throws Exception
@@ -1111,7 +1120,7 @@ public class MMAcquisitionEngine
 
 	@SuppressWarnings("Duplicates")
 	private static void runContinuousImaging(SPIMSetup setup, final Studio frame, RewritableDatastore store,
-			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
+			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			int timeSeqs, double timeStep, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			boolean arduinoSelected, LongProperty processedImages, final double acqBegan, long acqStart, ConcurrentHashMap<String, TaggedImage> captureImages) throws Exception
 	{

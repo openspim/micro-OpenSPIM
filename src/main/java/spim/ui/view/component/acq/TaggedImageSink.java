@@ -2,6 +2,7 @@ package spim.ui.view.component.acq;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -55,7 +56,7 @@ public class TaggedImageSink {
 	private final HashMap<String, OutputHandler > handlers_;
 	private final HashMap<String, Integer> camChannels_;
 	private final double x_, y_, theta_;
-	private final ArrayList<Image>[] mpImages_;
+	private final TreeMap<Integer, Image>[] mpImages_;
 
 	public TaggedImageSink(BlockingQueue<TaggedImage> queue,
 			Pipeline pipeline,
@@ -63,7 +64,7 @@ public class TaggedImageSink {
 			AcquisitionEngine engine,
 			EventManager studioEvents,
 			int t, int angle,
-			HashMap<String, OutputHandler > handlers, double x, double y, double theta, ArrayList<Image>[] mpImages ) {
+			HashMap<String, OutputHandler > handlers, double x, double y, double theta, TreeMap<Integer, Image>[] mpImages ) {
 		imageProducingQueue_ = queue;
 		pipeline_ = pipeline;
 		store_ = store;
@@ -157,7 +158,7 @@ public class TaggedImageSink {
 
 								try {
 									pipeline_.insertImage(img);
-									mpImages_[ch].add(img);
+									mpImages_[ch].put(slice, img);
 								}
 								catch (PipelineErrorException e) {
 									// TODO: make showing the dialog optional.

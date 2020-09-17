@@ -4,9 +4,7 @@ import com.google.common.eventbus.Subscribe;
 import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 
 import javax.swing.JOptionPane;
@@ -98,13 +96,14 @@ public class AcqWrapperEngine implements AcquisitionEngine
 
 	final String channelGroupName = "OpenSPIM-channels";
 
-	RewritableDatastore mpStore_;
-	ArrayList<Image>[] mpImages_;
+	Datastore mpStore_;
+	TreeMap<Integer, Image>[] mpImages_;
 
 	private static final Color[] DEFAULT_COLORS = {new Color(160, 32, 240), Color.red, Color.green, Color.blue, Color.yellow, Color.pink };
 
 	public AcqWrapperEngine( SPIMSetup setup, final Studio frame, RewritableDatastore store,
-			String currentCamera, List<String> cameras, HashMap<String, OutputHandler > handlers,
+			String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix,
+			HashMap<String, OutputHandler > handlers,
 			List< ChannelItem > channelItems,
 			boolean arduinoSelected,
 			LongProperty processedImages, final double acqBegan, long acqStart) throws Exception
@@ -194,13 +193,27 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		channels_ = channels;
 		setChannelGroup( channelGroupName );
 
-		mpStore_ = frame.data().createRewritableRAMDatastore();
-		DisplayWindow display = frame.displays().createDisplay(mpStore_);
-		display.setCustomTitle( "MIP:" + currentCamera  );
-		frame.displays().manage(mpStore_);
-		mpImages_ = new ArrayList[channels.size()];
-		for(int i = 0; i < mpImages_.length; i++) {
-			mpImages_[i] = new ArrayList<>();
+		if ( outFolder != null ) {
+			File saveDir = new File(outFolder, "MIP-" + acqFilenamePrefix);
+
+			if (!outFolder.exists() && !outFolder.mkdirs()) {
+				ij.IJ.log( "Couldn't create output directory " + outFolder.getAbsolutePath() );
+			}
+			else {
+				if ( saveDir.exists() ) {
+					Arrays.stream(saveDir.listFiles()).forEach(c -> c.delete());
+					saveDir.delete();
+				}
+
+				mpStore_ = frame.data().createMultipageTIFFDatastore(saveDir.getPath(), false, false);
+				DisplayWindow display = frame.displays().createDisplay(mpStore_);
+				display.setCustomTitle( "MIP:" + acqFilenamePrefix );
+				frame.displays().manage(mpStore_);
+				mpImages_ = new TreeMap[channels.size()];
+				for(int i = 0; i < mpImages_.length; i++) {
+					mpImages_[i] = new TreeMap<>();
+				}
+			}
 		}
 	}
 
@@ -209,6 +222,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		{
 			core_.setChannelGroup( orgChannelGroup );
 			core_.deleteConfigGroup( channelGroupName );
+			mpStore_.freeze();
 		}
 		catch ( Exception e )
 		{
@@ -299,7 +313,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	}
 
 	private void generateMIP() {
-		for(ArrayList<Image> stack : mpImages_) {
+		for(TreeMap<Integer, Image> stack : mpImages_) {
 			// Could be moved outside processImage() ?
 			Image img = stack.get(0);
 			int bitDepth = img.getMetadata().getBitDepth();
@@ -327,7 +341,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 				}
 
 				// Iterate over all frames
-				for (int i = 1; i < stack.size(); i++) {
+				for (int i = 0; i < stack.size(); i++) {
 
 					// Get current frame pixels
 					img = stack.get(i);
@@ -364,7 +378,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 
 
 				// Iterate over all frames
-				for (int i = 1; i < stack.size(); i++) {
+				for (int i = 0; i < stack.size(); i++) {
 
 					// Get current frame pixels
 					img = stack.get(i);
@@ -399,7 +413,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		}
 
 		for(int i = 0; i < mpImages_.length; i++) {
-			mpImages_[i] = new ArrayList<>();
+			mpImages_[i] = new TreeMap<>();
 		}
 	}
 
