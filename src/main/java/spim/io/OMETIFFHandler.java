@@ -1,10 +1,6 @@
 package spim.io;
 
-import ij.CompositeImage;
 import ij.ImagePlus;
-import ij.ImageStack;
-import ij.VirtualStack;
-import ij.process.ByteProcessor;
 import ij.process.ImageProcessor;
 
 import java.io.File;
@@ -13,8 +9,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.UUID;
 
-import ij.process.ShortProcessor;
-import javafx.application.Platform;
 import loci.common.DataTools;
 import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
