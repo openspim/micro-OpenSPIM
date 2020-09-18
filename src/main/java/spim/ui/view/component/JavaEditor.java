@@ -61,8 +61,16 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
+		Button pasteBtn = new Button("Paste");
+		pasteBtn.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				onPaste();
+			}
+		});
+
 		setCenter( editorView );
-		setBottom( new HBox( okBtn )  );
+		setBottom( new HBox( 10, pasteBtn, okBtn )  );
 
 		sceneProperty().addListener( new ChangeListener< Scene >()
 		{
