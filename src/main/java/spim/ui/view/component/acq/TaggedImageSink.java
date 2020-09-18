@@ -158,7 +158,8 @@ public class TaggedImageSink {
 
 								try {
 									pipeline_.insertImage(img);
-									mpImages_[ch].put(slice, img);
+									if(null != mpImages_ && mpImages_.length > ch)
+										mpImages_[ch].put(slice, img);
 								}
 								catch (PipelineErrorException e) {
 									// TODO: make showing the dialog optional.

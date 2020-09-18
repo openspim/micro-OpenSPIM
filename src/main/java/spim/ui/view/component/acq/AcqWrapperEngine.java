@@ -205,15 +205,17 @@ public class AcqWrapperEngine implements AcquisitionEngine
 					Arrays.stream(saveDir.listFiles()).forEach(c -> c.delete());
 					saveDir.delete();
 				}
-				List<String> multis = MMAcquisitionEngine.getMultiCams(core_);
+				if (null != acqFilenamePrefix) {
+					List<String> multis = MMAcquisitionEngine.getMultiCams(core_);
 
-				mpStore_ = frame.data().createMultipageTIFFDatastore(saveDir.getPath(), false, false);
-				DisplayWindow display = frame.displays().createDisplay(mpStore_);
-				display.setCustomTitle( "MIP:" + acqFilenamePrefix );
-				frame.displays().manage(mpStore_);
-				mpImages_ = new TreeMap[!arduinoSelected_ && currentCamera.startsWith("Multi") ? multis.size() * channels.size() : channels.size()];
-				for(int i = 0; i < mpImages_.length; i++) {
-					mpImages_[i] = new TreeMap<>();
+					mpStore_ = frame.data().createMultipageTIFFDatastore(saveDir.getPath(), false, false);
+					DisplayWindow display = frame.displays().createDisplay(mpStore_);
+					display.setCustomTitle("MIP:" + acqFilenamePrefix);
+					frame.displays().manage(mpStore_);
+					mpImages_ = new TreeMap[!arduinoSelected_ && currentCamera.startsWith("Multi") ? multis.size() * channels.size() : channels.size()];
+					for (int i = 0; i < mpImages_.length; i++) {
+						mpImages_[i] = new TreeMap<>();
+					}
 				}
 			}
 		}
@@ -224,7 +226,8 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		{
 			core_.setChannelGroup( orgChannelGroup );
 			core_.deleteConfigGroup( channelGroupName );
-			mpStore_.freeze();
+			if(null != mpStore_)
+				mpStore_.freeze();
 		}
 		catch ( Exception e )
 		{
@@ -315,108 +318,111 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	}
 
 	private void generateMIP() {
-		for(TreeMap<Integer, Image> stack : mpImages_) {
-			// Could be moved outside processImage() ?
-			Image img = stack.get(0);
-			int bitDepth = img.getMetadata().getBitDepth();
-			int width = img.getWidth();
-			int height = img.getHeight();
-			int bytesPerPixel = img.getBytesPerPixel();
-			int numComponents = img.getNumComponents();
-			Coords coords = img.getCoords();
-			Metadata metadata = img.getMetadata();
+		if(null != mpImages_)
+			for(TreeMap<Integer, Image> stack : mpImages_) {
+				// Could be moved outside processImage() ?
+				Image img = stack.get(0);
+				int bitDepth = img.getMetadata().getBitDepth();
+				int width = img.getWidth();
+				int height = img.getHeight();
+				int bytesPerPixel = img.getBytesPerPixel();
+				int numComponents = img.getNumComponents();
+				Coords coords = img.getCoords();
+				Metadata metadata = img.getMetadata();
 
-			Object resultPixels = null;
+				Object resultPixels = null;
 
-			if (bytesPerPixel == 1) {
+				if (bytesPerPixel == 1) {
 
-				// Create new array
-				float[] newPixels = new float[width * height];
-				byte[] newPixelsFinal = new byte[width * height];
+					// Create new array
+					float[] newPixels = new float[width * height];
+					byte[] newPixelsFinal = new byte[width * height];
 
-				float currentValue;
-				float actualValue;
+					float currentValue;
+					float actualValue;
 
-				// Init the new array
-				for (int i = 0; i < newPixels.length; i++) {
-					newPixels[i] = 0;
-				}
-
-				// Iterate over all frames
-				for (int i = 0; i < stack.size(); i++) {
-
-					// Get current frame pixels
-					img = stack.get(i);
-					byte[] imgPixels = (byte[]) img.getRawPixels();
-
-					// Iterate over all pixels
-					for (int index = 0; index < newPixels.length; index++) {
-						currentValue = (float) (int) (imgPixels[index] & 0xffff);
-						actualValue = (float) newPixels[index];
-						newPixels[index] = (float) Math.max(currentValue, actualValue);
+					// Init the new array
+					for (int i = 0; i < newPixels.length; i++) {
+						newPixels[i] = 0;
 					}
-				}
 
-				// Convert to short
-				for (int index = 0; index < newPixels.length; index++) {
-					newPixelsFinal[index] = (byte) newPixels[index];
-				}
+					// Iterate over all frames
+					for (int i = 0; i < stack.size(); i++) {
 
-				resultPixels = newPixelsFinal;
+						// Get current frame pixels
+						img = stack.get(i);
+						byte[] imgPixels = (byte[]) img.getRawPixels();
 
-			} else if (bytesPerPixel == 2) {
-
-				// Create new array
-				float[] newPixels = new float[width * height];
-				short[] newPixelsFinal = new short[width * height];
-
-				float currentValue;
-				float actualValue;
-
-				// Init the new array
-				for (int i = 0; i < newPixels.length; i++) {
-					newPixels[i] = 0;
-				}
-
-
-				// Iterate over all frames
-				for (int i = 0; i < stack.size(); i++) {
-
-					// Get current frame pixels
-					img = stack.get(i);
-					short[] imgPixels = (short[]) img.getRawPixels();
-
-					// Iterate over all pixels
-					for (int index = 0; index < newPixels.length; index++) {
-						currentValue = (float) (int) (imgPixels[index] & 0xffff);
-						actualValue = (float) newPixels[index];
-						newPixels[index] = (float) Math.max(currentValue, actualValue);
+						// Iterate over all pixels
+						for (int index = 0; index < newPixels.length; index++) {
+							currentValue = (float) (int) (imgPixels[index] & 0xffff);
+							actualValue = (float) newPixels[index];
+							newPixels[index] = (float) Math.max(currentValue, actualValue);
+						}
 					}
+
+					// Convert to short
+					for (int index = 0; index < newPixels.length; index++) {
+						newPixelsFinal[index] = (byte) newPixels[index];
+					}
+
+					resultPixels = newPixelsFinal;
+
+				} else if (bytesPerPixel == 2) {
+
+					// Create new array
+					float[] newPixels = new float[width * height];
+					short[] newPixelsFinal = new short[width * height];
+
+					float currentValue;
+					float actualValue;
+
+					// Init the new array
+					for (int i = 0; i < newPixels.length; i++) {
+						newPixels[i] = 0;
+					}
+
+
+					// Iterate over all frames
+					for (int i = 0; i < stack.size(); i++) {
+
+						// Get current frame pixels
+						img = stack.get(i);
+						short[] imgPixels = (short[]) img.getRawPixels();
+
+						// Iterate over all pixels
+						for (int index = 0; index < newPixels.length; index++) {
+							currentValue = (float) (int) (imgPixels[index] & 0xffff);
+							actualValue = (float) newPixels[index];
+							newPixels[index] = (float) Math.max(currentValue, actualValue);
+						}
+					}
+
+					// Convert to short
+					for (int index = 0; index < newPixels.length; index++) {
+						newPixelsFinal[index] = (short) newPixels[index];
+					}
+
+					resultPixels = newPixelsFinal;
+
 				}
 
-				// Convert to short
-				for (int index = 0; index < newPixels.length; index++) {
-					newPixelsFinal[index] = (short) newPixels[index];
-				}
+				// Create the processed image
+				Image processedImage_ = studio_.data().createImage(resultPixels, width, height,
+						bytesPerPixel, numComponents, coords, metadata);
 
-				resultPixels = newPixelsFinal;
-
+				if(null != mpStore_)
+					try {
+						mpStore_.putImage(processedImage_);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 			}
 
-			// Create the processed image
-			Image processedImage_ = studio_.data().createImage(resultPixels, width, height,
-					bytesPerPixel, numComponents, coords, metadata);
-
-			try {
-				mpStore_.putImage(processedImage_);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-
-		for(int i = 0; i < mpImages_.length; i++) {
-			mpImages_[i] = new TreeMap<>();
-		}
+			if(null != mpImages_)
+				for(int i = 0; i < mpImages_.length; i++) {
+					mpImages_[i] = new TreeMap<>();
+				}
 	}
 
 	private int getNumChannels() {
