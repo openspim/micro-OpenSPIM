@@ -1,6 +1,7 @@
 package spim.ui.view.component.demo;
 
 import javafx.application.Application;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Group;
@@ -66,8 +67,9 @@ public class SmartImagingProgress extends Application
 			}
 		} );
 
-		int size = 400;
-		Slider slider = new Slider(0, size, 0);
+		SimpleDoubleProperty size = new SimpleDoubleProperty(400);
+
+		Slider slider = new Slider(0, size.get(), 0);
 		CylinderProgress cylinder = new CylinderProgress(size, timePointItemTableView.getItems(), slider.valueProperty() );
 
 		HBox hbox = new HBox( 5, newTPButton, newWaitButton, deleteButton, slider );

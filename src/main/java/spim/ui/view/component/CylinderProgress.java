@@ -9,6 +9,9 @@ import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.control.Label;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Cylinder;
@@ -24,8 +27,8 @@ public class CylinderProgress extends Group
 {
 	private CylinderCollection col;
 
-	public CylinderProgress( double size, ObservableList<TimePointItem> list, DoubleProperty current ) {
-		col = new CylinderCollection( list, size );
+	public CylinderProgress( DoubleProperty sizeProperty, ObservableList<TimePointItem> list, DoubleProperty current ) {
+		col = new CylinderCollection( list, sizeProperty );
 		list.addListener( new ListChangeListener< TimePointItem >()
 		{
 			@Override public void onChanged( Change< ? extends TimePointItem > c )
@@ -44,7 +47,7 @@ public class CylinderProgress extends Group
 
 		Cylinder progress = new Cylinder();
 		progress.heightProperty().bind( current );
-		progress.translateXProperty().bind( current.multiply( 0.5 ).subtract( size * 0.5 ) );
+		progress.translateXProperty().bind( current.multiply( 0.5 ).subtract( sizeProperty.multiply(0.5 ) ) );
 		progress.setRadius( 20 );
 		progress.setRotate( 90 );
 		progress.heightProperty().addListener( new ChangeListener< Number >()
@@ -79,13 +82,26 @@ public class CylinderProgress extends Group
 	}
 
 
+	@Override
+	public double minWidth(double height) {
+		return 500;
+	}
 
 	public class CylinderCollection extends Group {
 		final private ObservableList< TimePointItem > list;
-		final private double size;
-		public CylinderCollection( ObservableList<TimePointItem> list, double size ) {
+		private double size;
+		public CylinderCollection( ObservableList<TimePointItem> list, DoubleProperty sizeProperty ) {
+			super();
 			this.list = list;
-			this.size = size;
+			this.size = sizeProperty.get();
+
+			sizeProperty.addListener(new ChangeListener<Number>() {
+				@Override
+				public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+					CylinderCollection.this.size = newValue.doubleValue();
+					refresh();
+				}
+			});
 		}
 
 		public void refresh() {

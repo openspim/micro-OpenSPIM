@@ -167,7 +167,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	// For Smart Imaging
 	SimpleDoubleProperty currentTP;
 	CylinderProgress smartImagingCylinder;
-	double cylinderSize = 400;
+	SimpleDoubleProperty cylinderSize;
 
 	BooleanProperty continuous;
 
@@ -203,6 +203,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		this.zCurrent = new SimpleDoubleProperty( 0 );
 
 		this.currentTP = new SimpleDoubleProperty( 0 );
+		this.cylinderSize = new SimpleDoubleProperty( 400 );
 
 		// 1. Property Map for summary panel
 		this.propertyMap.put( "times", new SimpleStringProperty( "0" ) );
@@ -422,8 +423,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		// listbox for Position list
 		SplitPane timePositionSplit = new SplitPane(
 				acquireHBox,
-				createTimePointsPane(),
-				createPositionListPane(positionItemTableView) );
+				createPositionListPane(positionItemTableView),
+				createTimePointsPane() );
 		timePositionSplit.setOrientation( Orientation.VERTICAL );
 		timePositionSplit.setDividerPositions( 0.2, 0.6 );
 
@@ -606,10 +607,13 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		);
 //		channelListSaveImage.setDividerPositions( 0.6 );
 
-		SplitPane content = new SplitPane( positionZStackSplit, channelListSaveImage );
-		content.setOrientation( Orientation.VERTICAL );
-		content.setDividerPositions( 0.7 );
+		VBox smartImagingBox = new VBox( 10, new Label( "Smart Imaging" ), smartImagingCylinder );
+		smartImagingBox.setAlignment( Pos.CENTER_LEFT );
+		cylinderSize.bind(smartImagingBox.widthProperty());
 
+		SplitPane content = new SplitPane( positionZStackSplit, smartImagingBox, channelListSaveImage );
+		content.setOrientation( Orientation.VERTICAL );
+		content.setDividerPositions( 0.7, 0.2 );
 
 		// Compute acquisition order logic
 		BooleanBinding bb = new BooleanBinding()
@@ -672,9 +676,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		setCenter( content );
 
-		VBox smartImagingBox = new VBox( 10, new Label( "Smart Imaging" ), smartImagingCylinder );
-		smartImagingBox.setAlignment( Pos.CENTER_LEFT );
-		HBox bottom = new HBox(20, createSummaryPane(), smartImagingBox );
+		HBox bottom = new HBox(20, createSummaryPane() );
 		bottom.setAlignment( Pos.CENTER_LEFT );
 		setBottom( bottom );
 
@@ -1061,7 +1063,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 			try
 			{
-				engine.performAcquisition( studio, spimSetup, stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, timePointItemTableView.getItems(), currentTP, cylinderSize,
+				engine.performAcquisition( studio, spimSetup, stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, timePointItemTableView.getItems(), currentTP, cylinderSize.get(),
 						smartImagingSelected, arduinoSelected, new File(directory.getValue()), filename.getValue(),
 						positionItemTableView.getItems(), channelItemList, processedImages,
 						enabledSaveImages.get(), continuous.get(), savingFormat.getValue(), saveMIP.getValue() );
