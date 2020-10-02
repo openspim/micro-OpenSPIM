@@ -1010,7 +1010,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 
 			if(found) {
-				Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The given filename exists. \nDo you want delete them?", ButtonType.YES, ButtonType.NO).showAndWait();
+				Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The given filename exists. \nDo you want delete them?", ButtonType.YES, ButtonType.CANCEL).showAndWait();
 
 				if( results.isPresent() && results.get() == ButtonType.YES) {
 					for(File file: Objects.requireNonNull( folder.listFiles() ) ) {
@@ -1019,7 +1019,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 						}
 					}
 				} else {
-					System.err.println("Acquisition will start and append to the existing files.");
+					System.err.println("Acquisition stopped by user cancellation.");
+					return false;
 				}
 			}
 		}
