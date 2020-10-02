@@ -45,6 +45,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
 import javafx.scene.control.Tooltip;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
@@ -73,7 +74,9 @@ import spim.ui.view.component.pane.CheckboxPane;
 import spim.ui.view.component.pane.LabeledPane;
 import spim.ui.view.component.util.TableViewUtil;
 
+import java.awt.*;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
@@ -1203,7 +1206,21 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		gridpane.addRow( 0, new Label( "Directory:" ), textField, selectFolder );
+		ImageView img = new ImageView(ResourceUtil.getString("root.icon"));
+		Button openFolder = new Button();
+		openFolder.setGraphic(img);
+		openFolder.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				try {
+					Desktop.getDesktop().open(new File(directory.get()));
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		});
+
+		gridpane.addRow( 0, new Label( "Directory:" ), textField, selectFolder, openFolder );
 
 		textField = new TextField("Untitled");
 		filename = textField.textProperty();
