@@ -1535,7 +1535,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		Button midButton = createZStackButton( "Go To middle" );
+		Button midButton = createZStackButton( "Go to centre" );
 
 		zStackGridPane.addRow( 1, midButton, zStepField, new Label( "Z-step (\u03BCm)" ) );
 
@@ -1683,15 +1683,28 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			@Override public void handle( ActionEvent event )
 			{
 				if(spimSetup != null && spimSetup.getZStage() != null) {
-					if(!zStartField.getText().isEmpty() && !zStartField.getText().isEmpty())
+					if(!zStartField.getText().isEmpty() && !zEndField.getText().isEmpty())
 					{
-						int zStart = Integer.parseInt( zStartField.getText() );
-						int zEnd = Integer.parseInt( zEndField.getText() );
+						double zStart = Double.parseDouble( zStartField.getText() );
+						double zEnd = Double.parseDouble( zEndField.getText() );
 
-						if(zStart < zEnd)
-							spimSetup.getZStage().setPosition( zStart + (zEnd - zStart) / 2 );
-						else
-							System.err.println("zStart is bigger than zEnd. Cannot go to the middle point.");
+						if(zStart < zEnd) {
+							stagePanel.goToZ(zStart + (zEnd - zStart) / 2);
+						} else
+							System.err.println("zStart is bigger than zEnd. Cannot go to the centre point.");
+					}
+				}
+				else {
+					if(!zStartField.getText().isEmpty() && !zEndField.getText().isEmpty())
+					{
+						double zStart = Double.parseDouble( zStartField.getText() );
+						double zEnd = Double.parseDouble( zEndField.getText() );
+
+						if(zStart < zEnd) {
+							System.out.println(String.format( "Stage_Move: Z:%.0f",
+									zStart + (zEnd - zStart) / 2 ) );
+						} else
+							System.err.println("zStart is bigger than zEnd. Cannot go to the centre point.");
 					}
 				}
 			}
