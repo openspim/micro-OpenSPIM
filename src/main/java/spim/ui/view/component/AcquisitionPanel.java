@@ -385,7 +385,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		Button clearRoiButton = new Button("Clear");
+		Button clearRoiButton = new Button("Reset");
 		clearRoiButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -395,7 +395,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 					if( getStudio() != null && getStudio().core() != null)
 					{
 						getStudio().core().clearROI();
-						roiRectangle.setValue( getStudio().core().getROI() );
+						roiRectangle.setValue( null );
 						if( getStudio().live() != null && getStudio().live().getDisplay() != null && getStudio().live().getDisplay().getImagePlus() != null && getStudio().live().getDisplay().getImagePlus().getRoi() != null) {
 							getStudio().live().getDisplay().getImagePlus().deleteRoi();
 						}
