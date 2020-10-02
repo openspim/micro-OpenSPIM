@@ -979,6 +979,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			return false;
 		}
 
+		if ( !stagePanel.isOn() ) {
+			new Alert( Alert.AlertType.WARNING, "The stage is offline. Please, turn on the stage first." ).showAndWait();
+			return false;
+		}
+
 		// Check the folder
 		if ( enabledSaveImages.get() && directory.getValue().isEmpty() )
 		{

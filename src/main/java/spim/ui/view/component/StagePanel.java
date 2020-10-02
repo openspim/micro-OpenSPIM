@@ -76,6 +76,8 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 
 	private AcquisitionPanel acquisitionPanel;
 
+	IconSwitch switchAll;
+
 	public StagePanel()
 	{
 		init();
@@ -280,9 +282,13 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		stageUnitZ.setCurrentPos(z);
 	}
 
+	public boolean isOn() {
+		return switchAll.isSelected();
+	}
+
 	private VBox createControls()
 	{
-		final IconSwitch switchAll = new IconSwitch();
+		switchAll = new IconSwitch();
 		switchAll.setSymbolType( SymbolType.THUNDERSTORM );
 		switchAll.setSymbolColor( Color.web( "#ffffff" ) );
 		switchAll.setSwitchColor( Color.web( "#34495e" ) );
