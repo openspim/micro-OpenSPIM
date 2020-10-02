@@ -61,6 +61,14 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
+		Button copyBtn = new Button("Copy");
+		copyBtn.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				onCopy();
+			}
+		});
+
 		Button pasteBtn = new Button("Paste");
 		pasteBtn.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
@@ -70,7 +78,7 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 		});
 
 		setCenter( editorView );
-		setBottom( new HBox( 10, pasteBtn, okBtn )  );
+		setBottom( new HBox( 10, copyBtn, pasteBtn, okBtn )  );
 
 		sceneProperty().addListener( new ChangeListener< Scene >()
 		{
