@@ -1128,14 +1128,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		};
 
-		Button newButton = new Button("New");
+		Button newButton = new Button("Add current position/angle");
 		newButton.setOnAction( newEventHandler );
 
 		Button deleteButton = new Button("Delete");
 		deleteButton.setOnAction( deleteEventHandler );
-
-		MenuItem newItem = new MenuItem( "New with current Pos" );
-		newItem.setOnAction( event -> newButton.fire() );
 
 		MenuItem deleteItem = new MenuItem( "Delete" );
 		deleteItem.setOnAction( event -> deleteButton.fire() );
