@@ -253,7 +253,10 @@ public class SPIMSetup {
 			{
 				System.out.println( String.format( "%s: %s", dev.text, setup.getDefaultDeviceLabel( dev ) ) );
 				Device device = setup.constructIfValid( dev, setup.getDefaultDeviceLabel( dev ) );
-				if(device != null) System.out.println( "Device: " + device.label );
+				if(device != null) {
+					System.out.println("Device: " + device.label);
+					device.core = core;
+				}
 				setup.deviceMap.put( dev, device );
 			}
 		} catch (Exception e) {
