@@ -62,32 +62,24 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		topHbox.setAlignment( Pos.CENTER );
 		topHbox.getChildren().addAll( iv, liveDemoLabel );
 
-		studioProperty.addListener( new ChangeListener< Studio >()
-		{
-			@Override public void changed( ObservableValue< ? extends Studio > observable, Studio oldValue, Studio newValue )
-			{
-				if(newValue != null) topHbox.getChildren().remove( liveDemoLabel );
-				else topHbox.getChildren().add( liveDemoLabel );
-			}
-		} );
-
 		gridpane.addRow( 1, topHbox );
 
-		Button ijButton = new Button( "Open Fiji" );
-		ijButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				if(null == IJ.getInstance() ) {
-					ij.ImageJ ij = new ImageJ( );
-					ij.show();
-				} else {
-					IJ.getInstance().show();
-				}
-			}
-		} );
+//		Button ijButton = new Button( "Open Fiji" );
+//		ijButton.setOnAction( new EventHandler< ActionEvent >()
+//		{
+//			@Override public void handle( ActionEvent event )
+//			{
+//				if(null == IJ.getInstance() ) {
+//					ij.ImageJ ij = new ImageJ( );
+//					ij.show();
+//				} else {
+//					IJ.getInstance().show();
+//				}
+//			}
+//		} );
 
 		Button mmButton = new Button( "START");
+		mmButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
 		mmButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -108,7 +100,24 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			}
 		} );
 
-		gridpane.addRow( 2, new HBox(3, ijButton, mmButton) );
+		HBox buttonHbox = new HBox(3, mmButton);
+		buttonHbox.setAlignment( Pos.CENTER );
+		studioProperty.addListener( new ChangeListener< Studio >()
+		{
+			@Override public void changed( ObservableValue< ? extends Studio > observable, Studio oldValue, Studio newValue )
+			{
+				if(newValue != null) {
+					topHbox.getChildren().remove( liveDemoLabel );
+					buttonHbox.getChildren().remove( mmButton );
+				}
+				else {
+					topHbox.getChildren().add( liveDemoLabel );
+					buttonHbox.getChildren().add( mmButton );
+				}
+			}
+		} );
+
+		gridpane.addRow( 2, buttonHbox );
 
 //		btn = new Button("Test Std Err");
 //		btn.setOnAction(e -> {
