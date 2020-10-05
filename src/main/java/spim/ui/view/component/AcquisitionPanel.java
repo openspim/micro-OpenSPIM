@@ -1168,7 +1168,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		CheckboxPane pane = new CheckboxPane( "Positions", new VBox( hbox, positionItemTableView ) );
+		CheckboxPane pane = new CheckboxPane( "Positions/Angles", new VBox( hbox, positionItemTableView ) );
 		enabledPositions = pane.selectedProperty();
 		return pane;
 	}
