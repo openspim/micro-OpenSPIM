@@ -117,9 +117,10 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 		// after the everything was loaded
 		editorView.getEngine().load( getClass().getResource("ace/editor.html").toExternalForm());
 
+		final boolean isMac = System.getProperty("os.name").startsWith("Mac");
 		// Copy & Paste Clipboard support
-		final KeyCombination theCombinationCopy = new KeyCodeCombination( KeyCode.C, KeyCombination.CONTROL_DOWN);
-		final KeyCombination theCombinationPaste = new KeyCodeCombination(KeyCode.V, KeyCombination.CONTROL_DOWN);
+		final KeyCombination theCombinationCopy = isMac ? new KeyCodeCombination( KeyCode.C, KeyCombination.SHORTCUT_DOWN) : new KeyCodeCombination( KeyCode.C, KeyCombination.CONTROL_DOWN);
+		final KeyCombination theCombinationPaste = isMac ? new KeyCodeCombination(KeyCode.V, KeyCombination.SHORTCUT_DOWN) : new KeyCodeCombination(KeyCode.V, KeyCombination.CONTROL_DOWN);
 
 		aModalStage.getScene().addEventFilter( KeyEvent.KEY_PRESSED, aEvent -> {
 			if (theCombinationCopy.match(aEvent)) {
