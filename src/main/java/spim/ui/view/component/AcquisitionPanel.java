@@ -10,7 +10,6 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -180,7 +179,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	Slider zSlider = null;
 	Tab laserTab;
 
-	public AcquisitionPanel( SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView< PinItem > pinItemTableView ) {
+	MMAcquisitionEngine engine;
+
+	public AcquisitionPanel( SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView< PinItem > pinItemTableView, ObjectProperty roiRectangleProperty ) {
 		this.spimSetup = setup;
 		this.studio = studio;
 		this.propertyMap = new HashMap<>();
@@ -190,15 +191,20 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		this.processedImages = new SimpleLongProperty();
 
 		this.stagePanel = stagePanel;
-		this.roiRectangle = new SimpleObjectProperty();
+		this.roiRectangle = roiRectangleProperty;
 		this.roiRectangle.addListener( ( observable, oldValue, newValue ) -> {
 			if(null != newValue) {
 				java.awt.Rectangle roi = ( java.awt.Rectangle ) newValue;
 				imageWidth = roi.width;
 				imageHeight = roi.height;
-				bufferSize = imageWidth * imageHeight * imageDepth / 8;
-				computeTotal();
+			} else {
+				if (this.studio.core() != null) {
+					this.imageWidth = this.studio.core().getImageWidth();
+					this.imageHeight = this.studio.core().getImageHeight();
+				}
 			}
+			bufferSize = imageWidth * imageHeight * imageDepth / 8;
+			computeTotal();
 		} );
 
 		this.zStart = new SimpleDoubleProperty( 0 );
@@ -253,35 +259,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		positionItemTableView = TableViewUtil.createPositionItemDataView(this);
 
 		// Buttons
-		SimpleBooleanProperty liveOn = new SimpleBooleanProperty( false );
-		Button liveViewButton = new Button( "LiveView");
-		liveViewButton.setMinSize( 100, 40 );
-		liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
-		liveViewButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				if(AcquisitionPanel.this.studio == null) {
-					new Alert( Alert.AlertType.WARNING, "MM2 config is not loaded.").show();
-					return;
-				}
-
-				liveOn.set( !liveOn.get() );
-				if(liveOn.get())
-				{
-					liveViewButton.setText( "LiveView" );
-					liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #69e760;");
-					if(AcquisitionPanel.this.studio != null)
-						AcquisitionPanel.this.studio.live().setLiveMode( true );
-				} else {
-					liveViewButton.setText( "LiveView" );
-					liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
-					if(AcquisitionPanel.this.studio != null)
-						AcquisitionPanel.this.studio.live().setLiveMode( false );
-				}
-			}
-		} );
-
 		final ProgressIndicator pi = new ProgressIndicator(0);
 		pi.setMinSize( 50,50 );
 		pi.setMaxSize( 50,50 );
@@ -289,6 +266,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		final HBox acquireHBox = new HBox();
 		acquireHBox.setSpacing(5);
 		acquireHBox.setAlignment( Pos.CENTER_LEFT );
+		acquireHBox.setPadding( new Insets(10) );
 
 		CheckBox continuousCheckBox = new CheckBox( "Continuous" );
 		continuousCheckBox.setTooltip( new Tooltip( "Continuous acquisition ignores custom channel settings and captures current camera." ) );
@@ -343,84 +321,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				pi.setProgress( newValue.doubleValue() / totalImages.getValue() );
 			}
 		} );
-		acquireHBox.getChildren().addAll(liveViewButton, acquireButton, continuousCheckBox, pi);
+		acquireHBox.getChildren().addAll(acquireButton, continuousCheckBox, pi);
 
-		// Region Of Interest
-		java.awt.Rectangle roi = null;
-		try
-		{
-			if( getStudio() != null && getStudio().core() != null)
-				roi = getStudio().core().getROI();
-		}
-		catch ( Exception e )
-		{
-			e.printStackTrace();
-		}
-
-		if(null == roi)
-			roi = new java.awt.Rectangle( 0, 0, 0, 0 );
-
-		Label roiXYLabel = new Label(String.format( "X=%d, Y=%d", roi.x, roi.y ) );
-		Label roiWLabel = new Label(String.format( "Width=%d", roi.width ));
-		Label roiHLabel = new Label(String.format( "Height=%d", roi.height ));
-
-		roiRectangle.addListener( new ChangeListener()
-		{
-			@Override public void changed( ObservableValue observable, Object oldValue, Object newValue )
-			{
-				if(null != newValue) {
-					java.awt.Rectangle roi = ( java.awt.Rectangle ) newValue;
-					roiXYLabel.setText( String.format( "X=%d, Y=%d", roi.x, roi.y ) );
-					roiWLabel.setText( String.format( "Width=%d", roi.width ) );
-					roiHLabel.setText( String.format( "Height=%d", roi.height ) );
-				}
-			}
-		} );
-
-		Button setRoiButton = new Button( "Set ROI" );
-		setRoiButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				if( getStudio() != null && getStudio().live() != null && getStudio().live().getDisplay() != null && getStudio().live().getDisplay().getImagePlus() != null && getStudio().live().getDisplay().getImagePlus().getRoi() != null) {
-					Roi ipRoi = getStudio().live().getDisplay().getImagePlus().getRoi();
-					roiRectangle.setValue( ipRoi.getBounds() );
-				}
-			}
-		} );
-
-		Button clearRoiButton = new Button("Reset");
-		clearRoiButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				try
-				{
-					if( getStudio() != null && getStudio().core() != null)
-					{
-						getStudio().core().clearROI();
-						roiRectangle.setValue( null );
-						if( getStudio().live() != null && getStudio().live().getDisplay() != null && getStudio().live().getDisplay().getImagePlus() != null && getStudio().live().getDisplay().getImagePlus().getRoi() != null) {
-							getStudio().live().getDisplay().getImagePlus().deleteRoi();
-						}
-					}
-				}
-				catch ( Exception e )
-				{
-					e.printStackTrace();
-				}
-			}
-		} );
-
-		VBox roiInfo = new VBox(3);
-		roiInfo.setStyle("-fx-border-color: gray");
-		roiInfo.getChildren().addAll( roiXYLabel, roiWLabel, roiHLabel );
-		roiInfo.setPadding( new Insets(3, 3, 3, 3) );
-
-		TitledPane roiPane = new TitledPane( "ROI Setting", new HBox( 3, roiInfo, new VBox( 3, setRoiButton, clearRoiButton ) ) );
-		roiPane.setExpanded( false );
-
-		acquireHBox.getChildren().add( roiPane );
 		BorderPane.setMargin(acquireHBox, new Insets(12,12,12,12));
 
 		// listbox for Position list
@@ -612,6 +514,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		VBox smartImagingBox = new VBox( 10, new Label( "Smart Imaging" ), smartImagingCylinder );
 		smartImagingBox.setAlignment( Pos.CENTER_LEFT );
+		smartImagingBox.setPadding( new Insets(10) );
 		cylinderSize.bind(smartImagingBox.widthProperty());
 
 		SplitPane content = new SplitPane( positionZStackSplit, smartImagingBox, channelListSaveImage );
@@ -955,6 +858,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			return;
 		}
 
+		if (null != engine) engine.stop();
+
 		try
 		{
 			acquisitionThread.interrupt();
@@ -1046,7 +951,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			return false;
 		}
 
-		MMAcquisitionEngine engine = new MMAcquisitionEngine();
+		engine = new MMAcquisitionEngine();
 
 		engine.init();
 
@@ -1083,6 +988,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 
 				acquisitionThread = null;
+				engine = null;
 				Platform.runLater( () -> {
 					acquireButton.setText( "Acquire" );
 					acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
@@ -1980,10 +1886,5 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 					current
 			);
 		}
-	}
-
-	public ObjectProperty roiRectangleProperty()
-	{
-		return roiRectangle;
 	}
 }

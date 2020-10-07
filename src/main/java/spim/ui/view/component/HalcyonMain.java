@@ -134,7 +134,12 @@ public class HalcyonMain extends HalcyonFrame
 		final HalcyonNode arduino = HalcyonNode.wrap( "ArduinoUno", SpimHalcyonNodeType.SHUTTER, arduinoPanel );
 		addNode( arduino );
 
-		acquisitionPanel = new AcquisitionPanel( spimSetup, studio, null, arduinoPanel.getPinItemTableView() );
+		// Custom Toolbar provided here
+		ToolbarPanel lToolbar = new ToolbarPanel( studio, mmStudioProperty );
+		lToolbar.setPrefSize(300, 200);
+		addToolbar(lToolbar);
+
+		acquisitionPanel = new AcquisitionPanel( spimSetup, studio, null, arduinoPanel.getPinItemTableView(), lToolbar.roiRectangleProperty() );
 		stagePanel.setAcquisitionPanel( acquisitionPanel );
 		final HalcyonNode control1 = HalcyonNode.wrap( "Acquisition",
 				SpimHalcyonNodeType.CONTROL,
@@ -150,11 +155,6 @@ public class HalcyonMain extends HalcyonFrame
 		StdOutCaptureConsole console = new StdOutCaptureConsole();
 		final HalcyonNode consoleNode = HalcyonNode.wrap( "Console", SpimHalcyonNodeType.CONSOLE, console );
 		addNode( consoleNode );
-
-		// Custom DemoToolbar provided here
-		ToolbarPanel lToolbar = new ToolbarPanel( studio, mmStudioProperty );
-		lToolbar.setPrefSize(300, 200);
-		addToolbar(lToolbar);
 
 		final VersaLaserDevicePanel[] versaLaserDevicePanel = new VersaLaserDevicePanel[ 1 ];
 		final LaserDevicePanel[] lasers = new LaserDevicePanel[ 2 ];

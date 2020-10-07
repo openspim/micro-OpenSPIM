@@ -19,20 +19,21 @@ public class AndorsCMOS extends Camera {
 	}
 
 	@Override
-	public int getBinning() {
-		try {
-			switch ( getProperty( "Binning" ) ) {
-				case "1x1": return 1;
-				case "2x2": return 2;
-				case "3x3": return 3;
-				case "4x4": return 4;
-				case "8x8": return 8;
+	public void setBinning(String val) {
+		if (val.contains("x")) {
+			super.setBinning(val);
+		} else {
+			String str = "1";
+			switch (val) {
+				case "1" : str = "1x1"; break;
+				case "2" : str = "2x2"; break;
+				case "3" : str = "3x3"; break;
+				case "4" : str = "4x4"; break;
+				case "8" : str = "8x8"; break;
 			}
-		} catch (Exception e) {
-			ReportingUtils.logError(e);
-			return 1;
+			
+			super.setBinning(str);
 		}
-		return Integer.parseInt( getProperty( "Binning" ) );
 	}
 
 	public AndorsCMOS(CMMCore core, String label) {

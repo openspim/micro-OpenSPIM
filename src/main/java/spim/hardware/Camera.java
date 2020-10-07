@@ -1,10 +1,8 @@
 package spim.hardware;
 
+import mmcorej.*;
 import org.micromanager.internal.utils.ReportingUtils;
-
-import mmcorej.CMMCore;
-import mmcorej.DeviceType;
-import mmcorej.TaggedImage;
+import spim.mm.StringUtil;
 
 public class Camera extends Device {
 	static {
@@ -67,12 +65,55 @@ public class Camera extends Device {
 		}
 	}
 
-	public int getBinning() {
+	/**
+	 * @return Return a list of available binning values
+	 * @throws Exception
+	 */
+	public StrVector getAvailableBinningValues() throws Exception {
+
+		return core.getAllowedPropertyValues(getLabel(), MMCoreJ.getG_Keyword_Binning());
+	}
+
+	/**
+	 * Get the binning in integer format
+	 */
+	private static int getBinningAsInt(String value, int def) throws Exception
+	{
+		// binning can be in "1;2;4" or "1x1;2x2;4x4" format...
+		if (!StringUtil.isEmpty(value))
+			// only use the first digit to get the binning as int
+			return StringUtil.parseInt(value.substring(0, 1), 1);
+
+		// default
+		return def;
+	}
+
+	/**
+	 * Get the current camera binning mode
+	 */
+	public int getBinning()
+	{
 		try {
-			return Integer.parseInt( getProperty( "Binning" ) );
+			return getBinningAsInt(getBinningAsString(), 1);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return 1;
+	}
+
+
+	/**
+	 * Get the current camera binning mode (String format)
+	 */
+	public String getBinningAsString() {
+		return getProperty(MMCoreJ.getG_Keyword_Binning());
+	}
+
+	public void setBinning(String val) {
+		try {
+			setProperty( MMCoreJ.getG_Keyword_Binning(), val);
 		} catch (Exception e) {
 			ReportingUtils.logError(e);
-			return 1;
 		}
 	}
 
