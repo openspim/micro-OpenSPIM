@@ -99,6 +99,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 
 	Datastore mpStore_;
 	TreeMap<Integer, Image>[] mpImages_;
+	TaggedImageSink sink;
 
 	private static final Color[] DEFAULT_COLORS = {new Color(160, 32, 240), Color.red, Color.green, Color.blue, Color.yellow, Color.pink };
 
@@ -302,7 +303,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			double theta = spimSetup_.getAngle();
 
 			// Start pumping images through the pipeline and into the datastore.
-			TaggedImageSink sink = new TaggedImageSink(
+			sink = new TaggedImageSink(
 					engineOutputQueue, curPipeline_, curStore_, this, studio_.events(),
 					t_, angle_, handlers_, x, y, theta, mpImages_ );
 			sink.start(() -> getAcquisitionEngine2010().stop(), () -> generateMIP());
@@ -680,6 +681,9 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	@Override
 	public void stop(boolean interrupted) {
 		try {
+			if (null != sink) sink.stop();
+			sink = null;
+
 			if (acquisitionEngine2010_ != null) {
 				acquisitionEngine2010_.stop();
 			}

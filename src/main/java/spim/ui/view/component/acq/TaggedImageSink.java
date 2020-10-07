@@ -57,6 +57,7 @@ public class TaggedImageSink {
 	private final HashMap<String, Integer> camChannels_;
 	private final double x_, y_, theta_;
 	private final TreeMap<Integer, Image>[] mpImages_;
+	Thread savingThread;
 
 	public TaggedImageSink(BlockingQueue<TaggedImage> queue,
 			Pipeline pipeline,
@@ -87,10 +88,23 @@ public class TaggedImageSink {
 		start(null, null);
 	}
 
+	public void stop() {
+		if(savingThread != null) {
+			try {
+				savingThread.interrupt();
+				savingThread.join(2000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+
+		savingThread = null;
+	}
+
 	// sinkFullCallback is a way to stop production of images when/if the sink
 	// can no longer accept images.
 	public void start(final Runnable sinkFullCallback, final Runnable processMIP) {
-		Thread savingThread = new Thread("TaggedImage sink thread") {
+		savingThread = new Thread("TaggedImage sink thread") {
 
 			@Override
 			public void run() {

@@ -64,6 +64,7 @@ public class MMAcquisitionEngine
 {
 	static volatile boolean done;
 	static Thread captureThread;
+	static volatile boolean stopRequest = false;
 
 	static {
 		DebugTools.enableLogging( "OFF" );
@@ -72,6 +73,11 @@ public class MMAcquisitionEngine
 	public void init() {
 		// Setting parameters
 		// AcquisitionEngine2010
+		stopRequest = false;
+	}
+
+	public void stop() {
+		stopRequest = true;
 	}
 
 	public void scheduledAcquisition() {
@@ -547,6 +553,7 @@ public class MMAcquisitionEngine
 
 		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, handlers, channelItems, arduinoSelected, processedImages, acqBegan, acqStart );
 
+		mainLoop:
 		for(TimePointItem tpItem : timePointItems ) {
 			if(tpItem.getType().equals( TimePointItem.Type.Acq ))
 			{
@@ -585,7 +592,7 @@ public class MMAcquisitionEngine
 							} catch ( InterruptedException ie )
 							{
 								finalize( false, setup, currentCamera, cameras, frame, 0, 0, handlers, store );
-								engine.exit();
+								break mainLoop;
 							}
 						}
 
@@ -597,6 +604,11 @@ public class MMAcquisitionEngine
 						for( OutputHandler handler : handlers.values() )
 						{
 							finalizeStack( tp, rown, handler );
+						}
+
+						if(stopRequest) {
+							engine.stop(true);
+							break mainLoop;
 						}
 
 						++step;
@@ -618,8 +630,12 @@ public class MMAcquisitionEngine
 							catch ( InterruptedException ie )
 							{
 								finalize( false, setup, currentCamera, cameras, frame, 0, 0, handlers, store );
-								engine.exit();
-								return;
+								break mainLoop;
+							}
+
+							if(stopRequest) {
+								engine.stop(true);
+								break mainLoop;
 							}
 						}
 					}
@@ -646,8 +662,12 @@ public class MMAcquisitionEngine
 						catch ( InterruptedException ie )
 						{
 							finalize( false, setup, currentCamera, cameras, frame, 0, 0, handlers, store );
-							engine.exit();
-							return;
+							break mainLoop;
+						}
+
+						if(stopRequest) {
+							engine.stop(true);
+							break mainLoop;
 						}
 					}
 				}
@@ -800,6 +820,7 @@ public class MMAcquisitionEngine
 
 		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, handlers,  channelItems, arduinoSelected, processedImages, acqBegan, acqStart );
 
+		mainLoop:
 		for(int timeSeq = 0; timeSeq < timeSeqs; ++timeSeq) {
 			// User defined location
 			// Looping multiple locations
@@ -835,7 +856,7 @@ public class MMAcquisitionEngine
 					} catch ( InterruptedException ie )
 					{
 						finalize( false, setup, currentCamera, cameras, frame, 0, 0, handlers, store );
-						engine.exit();
+						break mainLoop;
 					}
 				}
 
@@ -847,6 +868,11 @@ public class MMAcquisitionEngine
 				for( OutputHandler handler : handlers.values() )
 				{
 					finalizeStack( tp, rown, handler );
+				}
+
+				if(stopRequest) {
+					engine.stop(true);
+					break mainLoop;
 				}
 
 				++step;
@@ -863,11 +889,15 @@ public class MMAcquisitionEngine
 						Thread.sleep((long)(wait * 1e3));
 					} catch(InterruptedException ie) {
 						finalize(false, setup, currentCamera, cameras, frame, 0, 0, handlers, store);
-						engine.exit();
-						return;
+						break mainLoop;
 					}
 				else
 					core.logMessage("Behind schedule! (next seq in " + wait + "s)");
+
+				if(stopRequest) {
+					engine.stop(true);
+					break mainLoop;
+				}
 			}
 		}
 		engine.exit();
