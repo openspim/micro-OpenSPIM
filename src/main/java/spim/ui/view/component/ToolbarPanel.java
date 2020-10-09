@@ -27,10 +27,6 @@ import spim.hardware.SPIMSetup;
 import spim.mm.MMUtils;
 import spim.mm.MicroManager;
 
-import java.util.List;
-
-import static spim.ui.view.component.MMAcquisitionEngine.getMultiCams;
-
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -48,10 +44,12 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			FXCollections.observableArrayList();
 
 	final VBox topHbox;
+	final VBox liveViewHbox;
 	final HBox buttonHbox;
 
 	final Label liveDemoLabel;
 	final Button mmButton;
+	final Button liveViewButton;
 
 	final Label roiXYLabel;
 	final Label roiWLabel;
@@ -131,7 +129,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 
 		SimpleBooleanProperty liveOn = new SimpleBooleanProperty( false );
-		Button liveViewButton = new Button( "LiveView");
+		liveViewButton = new Button( "LiveView");
 		liveViewButton.setMinSize( 100, 40 );
 		liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
 		liveViewButton.setOnAction( new EventHandler< ActionEvent >()
@@ -146,8 +144,8 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 				liveOn.set( !liveOn.get() );
 				if(liveOn.get())
 				{
-					liveViewButton.setText( "LiveView" );
-					liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #69e760;");
+					liveViewButton.setText( "Stop LiveView" );
+					liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #e77d8c;");
 					if(studioProperty.get() != null)
 						studioProperty.get().live().setLiveMode( true );
 				} else {
@@ -159,7 +157,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			}
 		} );
 
-		VBox liveViewHbox = new VBox(3, liveViewButton);
+		liveViewHbox = new VBox(3);
 		liveViewHbox.setAlignment( Pos.CENTER );
 
 		// Region Of Interest
@@ -311,10 +309,12 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		if(null != studio) {
 			topHbox.getChildren().remove( liveDemoLabel );
 			buttonHbox.getChildren().remove( mmButton );
+			liveViewHbox.getChildren().add( 0, liveViewButton );
 			roi = new java.awt.Rectangle(0, 0, (int) studio.core().getImageWidth(), (int) studio.core().getImageHeight());
 		} else {
 			topHbox.getChildren().add( liveDemoLabel );
 			buttonHbox.getChildren().add( mmButton );
+			liveViewHbox.getChildren().remove( liveViewButton );
 			roi = new java.awt.Rectangle( 0, 0, 0, 0 );
 		}
 
