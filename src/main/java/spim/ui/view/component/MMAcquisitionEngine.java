@@ -116,7 +116,8 @@ public class MMAcquisitionEngine
 		if(frame == null) return;
 
 		boolean liveOn = false;
-		RewritableDatastore store = null;
+//		RewritableDatastore store = null;
+		Datastore store = null;
 		DisplayWindow display = null;
 
 		if(frame != null) {
@@ -126,7 +127,8 @@ public class MMAcquisitionEngine
 
 //			store = frame.data().createMultipageTIFFDatastore(output.getAbsolutePath(), false, false);
 
-			store = frame.data().createRewritableRAMDatastore();
+			store = frame.data().createSinglePlaneTIFFSeriesDatastore(output.getAbsolutePath());
+//			store = frame.data().createRewritableRAMDatastore();
 			display = frame.displays().createDisplay(store);
 			display.setCustomTitle( acqFilenamePrefix );
 			frame.displays().manage(store);
@@ -282,12 +284,12 @@ public class MMAcquisitionEngine
 				separateChannel = true;
 
 			if(continuous) {
-				OutputHandler handler = new OMETIFFHandler(
-					core, output, acqFilenamePrefix + "_" + currentCamera + "_",
-					//what is the purpose of defining parameters and then passing null anyway?
-					acqRows, channelItems.size(), timeSeqs, timeStep, 1, smb.userData( pm.build() ).build(), false, separateChannel, saveMIP );
-
-				handlers.put( currentCamera, handler );
+//				OutputHandler handler = new OMETIFFHandler(
+//					core, output, acqFilenamePrefix + "_" + currentCamera + "_",
+//					//what is the purpose of defining parameters and then passing null anyway?
+//					acqRows, channelItems.size(), timeSeqs, timeStep, 1, smb.userData( pm.build() ).build(), false, separateChannel, saveMIP );
+//
+//				handlers.put( currentCamera, handler );
 				cameras.clear();
 				cameras.add( currentCamera );
 			} else {
@@ -296,22 +298,22 @@ public class MMAcquisitionEngine
 					if ( camera.startsWith( "Multi" ) )
 					{
 						int chSize = arduinoSelected ? channelItems.size() : (int) channelItems.stream().filter( c -> c.getName().equals( camera ) ).count();
-						OutputHandler handler = new OMETIFFHandler(
-							core, output, acqFilenamePrefix + "_" + camera + "_",
-							//what is the purpose of defining parameters and then passing null anyway?
-							acqRows, chSize * multis.size(), timeSeqs, timeStep, 1, smb.userData( pm.build() ).build(), false, separateChannel, saveMIP );
-
-						handlers.put( camera, handler );
+//						OutputHandler handler = new OMETIFFHandler(
+//							core, output, acqFilenamePrefix + "_" + camera + "_",
+//							//what is the purpose of defining parameters and then passing null anyway?
+//							acqRows, chSize * multis.size(), timeSeqs, timeStep, 1, smb.userData( pm.build() ).build(), false, separateChannel, saveMIP );
+//
+//						handlers.put( camera, handler );
 					}
 					else
 					{
 						int chSize = arduinoSelected ? channelItems.size() : (int) channelItems.stream().filter( c -> c.getName().equals( camera ) ).count();
-						OutputHandler handler = new OMETIFFHandler(
-							core, output, acqFilenamePrefix + "_" + camera + "_",
-							//what is the purpose of defining parameters and then passing null anyway?
-							acqRows, chSize, timeSeqs, timeStep, 1, smb.userData( pm.build() ).build(), false, separateChannel, saveMIP );
-
-						handlers.put( camera, handler );
+//						OutputHandler handler = new OMETIFFHandler(
+//							core, output, acqFilenamePrefix + "_" + camera + "_",
+//							//what is the purpose of defining parameters and then passing null anyway?
+//							acqRows, chSize, timeSeqs, timeStep, 1, smb.userData( pm.build() ).build(), false, separateChannel, saveMIP );
+//
+//						handlers.put( camera, handler );
 					}
 				}
 			}
@@ -338,7 +340,7 @@ public class MMAcquisitionEngine
 	}
 
 	@SuppressWarnings("Duplicates")
-	private static void executeNormalAcquisition(SPIMSetup setup, final Studio frame, RewritableDatastore store,
+	private static void executeNormalAcquisition(SPIMSetup setup, final Studio frame, Datastore store,
 			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			int timeSeqs, double timeStep, ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, double cylinderSize, boolean smartImagingSelected, boolean arduinoSelected,
@@ -366,7 +368,7 @@ public class MMAcquisitionEngine
 	}
 
 	@SuppressWarnings("Duplicates")
-	private static void runNormalSmartImaging(SPIMSetup setup, final Studio frame, RewritableDatastore store,
+	private static void runNormalSmartImaging(SPIMSetup setup, final Studio frame, Datastore store,
 			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, double cylinderSize, boolean arduinoSelected,
@@ -538,7 +540,7 @@ public class MMAcquisitionEngine
 	}
 
 	@SuppressWarnings("Duplicates")
-	private static void runNormalSmartImagingMMAcq(SPIMSetup setup, final Studio frame, RewritableDatastore store,
+	private static void runNormalSmartImagingMMAcq(SPIMSetup setup, final Studio frame, Datastore store,
 			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, double cylinderSize, boolean arduinoSelected,
@@ -678,7 +680,7 @@ public class MMAcquisitionEngine
 	}
 
 	@SuppressWarnings("Duplicates")
-	private static void runNormalImaging(SPIMSetup setup, final Studio frame, RewritableDatastore store,
+	private static void runNormalImaging(SPIMSetup setup, final Studio frame, Datastore store,
 			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			int timeSeqs, double timeStep, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, boolean arduinoSelected,
 			LongProperty processedImages, final double acqBegan, long acqStart) throws Exception
@@ -811,7 +813,7 @@ public class MMAcquisitionEngine
 	}
 
 	@SuppressWarnings("Duplicates")
-	private static void runNormalImagingMMAcq(SPIMSetup setup, final Studio frame, RewritableDatastore store,
+	private static void runNormalImagingMMAcq(SPIMSetup setup, final Studio frame, Datastore store,
 			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			int timeSeqs, double timeStep, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, boolean arduinoSelected,
 			LongProperty processedImages, final double acqBegan, long acqStart) throws Exception
@@ -904,7 +906,7 @@ public class MMAcquisitionEngine
 	}
 
 	@SuppressWarnings("Duplicates")
-	private static void executeContinuousAcquisition(SPIMSetup setup, final Studio frame, RewritableDatastore store,
+	private static void executeContinuousAcquisition(SPIMSetup setup, final Studio frame, Datastore store,
 			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			int timeSeqs, double timeStep, ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, double cylinderSize, boolean smartImagingSelected, boolean arduinoSelected,
@@ -997,7 +999,7 @@ public class MMAcquisitionEngine
 	}
 
 	@SuppressWarnings("Duplicates")
-	private static void runContinuousSmartImaging(SPIMSetup setup, final Studio frame, RewritableDatastore store,
+	private static void runContinuousSmartImaging(SPIMSetup setup, final Studio frame, Datastore store,
 			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, double cylinderSize, boolean arduinoSelected,
@@ -1149,7 +1151,7 @@ public class MMAcquisitionEngine
 	}
 
 	@SuppressWarnings("Duplicates")
-	private static void runContinuousImaging(SPIMSetup setup, final Studio frame, RewritableDatastore store,
+	private static void runContinuousImaging(SPIMSetup setup, final Studio frame, Datastore store,
 			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			int timeSeqs, double timeStep, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			boolean arduinoSelected, LongProperty processedImages, final double acqBegan, long acqStart, ConcurrentHashMap<String, TaggedImage> captureImages) throws Exception
@@ -1265,7 +1267,7 @@ public class MMAcquisitionEngine
 	}
 
 	private static int addSlice(TaggedImage ti, SPIMSetup setup, int exp, int ch, double acqBegan, int tp, int step, OutputHandler handler,
-			Studio frame, RewritableDatastore store, int noSlice, double zStart, PositionItem positionItem, long ms, LongProperty processedImages) throws Exception
+			Studio frame, Datastore store, int noSlice, double zStart, PositionItem positionItem, long ms, LongProperty processedImages) throws Exception
 	{
 		// Convert TaggedImage to ImageProcessor
 		ImageProcessor ip = ImageUtils.makeProcessor( ti );
@@ -1334,7 +1336,7 @@ public class MMAcquisitionEngine
 		return frame.getAcquisitionEngine2010();
 	}
 
-	private static void finalize(boolean finalizeStack, SPIMSetup setup, final String currentCamera, List<String> cameras, final Studio frame, final int tp, final int rown, HashMap<String, OutputHandler> handlers, RewritableDatastore store) throws Exception
+	private static void finalize(boolean finalizeStack, SPIMSetup setup, final String currentCamera, List<String> cameras, final Studio frame, final int tp, final int rown, HashMap<String, OutputHandler> handlers, Datastore store) throws Exception
 	{
 		final CMMCore core = frame.core();
 
@@ -1403,12 +1405,14 @@ public class MMAcquisitionEngine
 //		ij.IJ.log("finalize");
 	}
 
-	private static void addImageToAcquisition( Studio studio, RewritableDatastore store, int channel,
+	private static void addImageToAcquisition( Studio studio, Datastore store, int channel,
 			int slice, double zPos, PositionItem position, long ms, TaggedImage taggedImg ) throws
 			JSONException, DatastoreFrozenException,
 			DatastoreRewriteException, Exception
 	{
-		if(slice == 0) store.deleteAllImages();
+		if(store instanceof RewritableDatastore) {
+			if (slice == 0) ((RewritableDatastore)store).deleteAllImages();
+		}
 
 		Coords.Builder cb = Coordinates.builder();
 
@@ -1462,7 +1466,7 @@ public class MMAcquisitionEngine
 	}
 
 	@SuppressWarnings("Duplicates")
-	private static void addImageToDisplay( Studio studio, RewritableDatastore store, int pos, int tp, int channel,
+	private static void addImageToDisplay( Studio studio, Datastore store, int pos, int tp, int channel,
 			int slice, double zPos, PositionItem position, long ms, TaggedImage taggedImg ) throws
 			JSONException, DatastoreFrozenException,
 			DatastoreRewriteException, Exception

@@ -59,6 +59,7 @@ import javafx.scene.transform.Shear;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import mmcorej.DeviceType;
+import org.apache.commons.io.FileUtils;
 import org.micromanager.Studio;
 
 import org.micromanager.internal.MMStudio;
@@ -76,6 +77,7 @@ import spim.ui.view.component.util.TableViewUtil;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
@@ -910,23 +912,40 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			File folder = new File(directory.getValue());
 
-			boolean found = false;
+			if(folder != null && null != folder.listFiles()) {
+				boolean found = false;
 
-			for(File file: Objects.requireNonNull( folder.listFiles() ) ) {
-				if(file.getName().startsWith( filename.getValue() )) {
-					found = true;
-					break;
+				for(File file: Objects.requireNonNull( folder.listFiles() ) ) {
+					if(file.getName().startsWith( filename.getValue() )) {
+						found = true;
+						break;
+					}
+				}
+
+				if(found) {
+					Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The given filename exists. \nDo you want delete them?", ButtonType.YES, ButtonType.CANCEL).showAndWait();
+
+					if( results.isPresent() && results.get() == ButtonType.YES) {
+						for(File file: Objects.requireNonNull( folder.listFiles() ) ) {
+							if(file.getName().startsWith( filename.getValue() )) {
+								file.delete();
+							}
+						}
+					} else {
+						System.err.println("Acquisition stopped by user cancellation.");
+						return false;
+					}
 				}
 			}
 
-			if(found) {
-				Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The given filename exists. \nDo you want delete them?", ButtonType.YES, ButtonType.CANCEL).showAndWait();
+			if(folder.exists()) {
+				Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The folder exists. \nDo you want delete it?", ButtonType.YES, ButtonType.CANCEL).showAndWait();
 
 				if( results.isPresent() && results.get() == ButtonType.YES) {
-					for(File file: Objects.requireNonNull( folder.listFiles() ) ) {
-						if(file.getName().startsWith( filename.getValue() )) {
-							file.delete();
-						}
+					try {
+						FileUtils.deleteDirectory(folder);
+					} catch (IOException e) {
+						e.printStackTrace();
 					}
 				} else {
 					System.err.println("Acquisition stopped by user cancellation.");
@@ -1138,7 +1157,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		filename = textField.textProperty();
 
 		propertyMap.put( "filename", textField.textProperty() );
-		gridpane.addRow( 1, new Label( "File name:" ), textField );
+//		gridpane.addRow( 1, new Label( "File name:" ), textField );
 
 		ComboBox c = new ComboBox<>( FXCollections.observableArrayList(
 				// "Separate all dimensions", <- not implemented yet

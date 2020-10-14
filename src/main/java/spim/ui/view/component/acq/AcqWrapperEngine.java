@@ -103,7 +103,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 
 	private static final Color[] DEFAULT_COLORS = {new Color(160, 32, 240), Color.red, Color.green, Color.blue, Color.yellow, Color.pink };
 
-	public AcqWrapperEngine( SPIMSetup setup, final Studio frame, RewritableDatastore store,
+	public AcqWrapperEngine( SPIMSetup setup, final Studio frame, Datastore store,
 			String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix,
 			HashMap<String, OutputHandler > handlers,
 			List< ChannelItem > channelItems,
