@@ -9,9 +9,6 @@ import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.control.Label;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Cylinder;
@@ -46,8 +43,8 @@ public class CylinderProgress extends Group
 		} );
 
 		Cylinder progress = new Cylinder();
-		progress.heightProperty().bind( current );
-		progress.translateXProperty().bind( current.multiply( 0.5 ).subtract( sizeProperty.multiply(0.5 ) ) );
+		progress.heightProperty().bind( current.multiply(sizeProperty) );
+		progress.translateXProperty().bind( current.multiply(sizeProperty).multiply( 0.5 ).subtract( sizeProperty.multiply(0.5 ) ) );
 		progress.setRadius( 20 );
 		progress.setRotate( 90 );
 		progress.heightProperty().addListener( new ChangeListener< Number >()
