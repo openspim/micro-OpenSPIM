@@ -196,10 +196,10 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		setChannelGroup( channelGroupName );
 
 		if ( outFolder != null ) {
-			File saveDir = new File(outFolder, "MIP-" + acqFilenamePrefix);
+			File saveDir = new File(outFolder, acqFilenamePrefix + "-MIP");
 
 			if (!outFolder.exists() && !outFolder.mkdirs()) {
-				ij.IJ.log( "Couldn't create output directory " + outFolder.getAbsolutePath() );
+				System.err.println( "Couldn't create output directory " + outFolder.getAbsolutePath() );
 			}
 			else {
 				if ( saveDir.exists() ) {
@@ -305,7 +305,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			// Start pumping images through the pipeline and into the datastore.
 			sink = new TaggedImageSink(
 					engineOutputQueue, curPipeline_, curStore_, this, studio_.events(),
-					t_, angle_, handlers_, x, y, theta, mpImages_ );
+					t_, angle_, handlers_, cameras_, x, y, theta, mpImages_ );
 			sink.start(() -> getAcquisitionEngine2010().stop(), () -> generateMIP());
 
 			return curStore_;

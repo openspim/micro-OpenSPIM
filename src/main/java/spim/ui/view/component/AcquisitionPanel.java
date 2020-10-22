@@ -104,7 +104,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	final private HashMap< String, StringProperty > propertyMap;
 	final private SimpleObjectProperty<PositionItem> currentPosition;
 
-	private TabPane tpTabPane;
 	private TableView< TimePointItem > timePointItemTableView;
 
 	private SPIMSetup spimSetup;
@@ -117,9 +116,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	// Save/load acquisition setting purpose
 	// Time points panel
 	BooleanProperty enabledTimePoints;
-	StringProperty numTimePoints;
-	StringProperty intervalTimePoints;
-	ObjectProperty intervalUnitTimePoints;
 
 	// Dynamic Time Points panel
 	ArrayList<TimePointItem> timePointItems;
@@ -172,8 +168,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	SimpleDoubleProperty currentTP;
 	CylinderProgress smartImagingCylinder;
 	SimpleDoubleProperty cylinderSize;
-
-	BooleanProperty continuous;
 
 	Group zStackGroup;
 	GridPane zStackGridPane;
@@ -270,17 +264,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		acquireHBox.setAlignment( Pos.CENTER_LEFT );
 		acquireHBox.setPadding( new Insets(10) );
 
-		CheckBox continuousCheckBox = new CheckBox( "Continuous" );
-		continuousCheckBox.setTooltip( new Tooltip( "Continuous acquisition ignores custom channel settings and captures current camera." ) );
-		continuous = continuousCheckBox.selectedProperty();
-		continuous.addListener( new ChangeListener< Boolean >()
-		{
-			@Override public void changed( ObservableValue< ? extends Boolean > observable, Boolean oldValue, Boolean newValue )
-			{
-				enabledChannels.setValue( !newValue );
-			}
-		} );
-
 		Button acquireButton = new Button( "Acquire" );
 		acquireButton.setMinSize( 110, 40 );
 		acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
@@ -323,7 +306,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				pi.setProgress( newValue.doubleValue() / totalImages.getValue() );
 			}
 		} );
-		acquireHBox.getChildren().addAll(acquireButton, continuousCheckBox, pi);
+		acquireHBox.getChildren().addAll(acquireButton, pi);
 
 		BorderPane.setMargin(acquireHBox, new Insets(12,12,12,12));
 
@@ -568,7 +551,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				}
 
 				if( !enabledTimePoints.get() ) propertyMap.get("times").set("");
-				else propertyMap.get("times").setValue( numTimePoints.getValue() );
+				else computeTotalTimePoints();
 
 				if( !enabledPositions.get() ) propertyMap.get("positions").set("");
 				else computeTotalPositionImages();
@@ -763,12 +746,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	private void updateUI ( AcquisitionSetting setting ) {
 		// 1.1 Time points panel
 		enabledTimePoints.set( setting.getEnabledTimePoints() );
-		numTimePoints.set( setting.getNumTimePoints() );
-		intervalTimePoints.set( setting.getIntervalTimePoints() );
-		intervalUnitTimePoints.set( setting.getIntervalUnitTimePoints() );
 
 		// 1.2 Smart Imaging option
-		tpTabPane.getSelectionModel().select(setting.getSelectedTpTab());
 		timePointItems = setting.getTimePointItems();
 		timePointItemTableView.getItems().setAll( timePointItems );
 
@@ -817,7 +796,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		channelItems = new ArrayList<>( channelItemTableView.getItems() );
 		channelItemsArduino = new ArrayList<>( channelItemArduinoTableView.getItems() );
 
-		return new AcquisitionSetting( enabledTimePoints, numTimePoints, intervalTimePoints, intervalUnitTimePoints, tpTabPane.getSelectionModel().selectedIndexProperty().get(), timePointItems,
+		return new AcquisitionSetting( enabledTimePoints, timePointItems,
 				enabledPositions, positionItems, enabledZStacks, acquisitionOrder,
 				enabledChannels, channelTabPane.getSelectionModel().selectedIndexProperty().get(), channelItems,
 				channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveAsHDF5, saveMIP, roiRectangle );
@@ -830,10 +809,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		channelItemArduinoTableView.getItems().clear();
 
 		enabledTimePoints.set(true);
-		numTimePoints.set( "1" );
-		intervalTimePoints.set( "1" );
-		intervalUnitTimePoints.set( "ms" );
-		tpTabPane.getSelectionModel().select( 0 );
 
 		enabledPositions.set( true );
 		enabledZStacks.set( true );
@@ -931,32 +906,24 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 								file.delete();
 							}
 						}
+						File spim = new File(folder, filename.getValue() + "-spim");
+						if(spim.exists()) {
+							for(File file: Objects.requireNonNull( spim.listFiles() ) ) {
+								if(file.getName().startsWith( filename.getValue() )) {
+									file.delete();
+								}
+							}
+						}
+						spim.delete();
 					} else {
 						System.err.println("Acquisition stopped by user cancellation.");
 						return false;
 					}
 				}
 			}
-
-			if(folder.exists()) {
-				Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The folder exists. \nDo you want delete it?", ButtonType.YES, ButtonType.CANCEL).showAndWait();
-
-				if( results.isPresent() && results.get() == ButtonType.YES) {
-					try {
-						FileUtils.deleteDirectory(folder);
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				} else {
-					System.err.println("Acquisition stopped by user cancellation.");
-					return false;
-				}
-			}
 		}
 
-		final boolean smartImagingSelected = tpTabPane.getSelectionModel().isSelected( 1 );
-
-		if(smartImagingSelected && timePointItemTableView.getItems().size() < 1) {
+		if(timePointItemTableView.getItems().size() < 1) {
 			new Alert( Alert.AlertType.WARNING, "Please, add timepoints for the acquisition.").showAndWait();
 
 			System.err.println("Acquisition stopped due to no timepoints specified in Smart-Imaging panel.");
@@ -984,9 +951,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			channelItemList = channelItemTableView.getItems().stream().filter( c -> c.getSelected() ).collect( Collectors.toList() );
 
 		int tp = propertyMap.get("times").getValue().isEmpty() ? 1 : Integer.parseInt( propertyMap.get("times").getValue() );
-		double deltaT = Double.parseDouble( intervalTimePoints.getValue() );
-
-		double unit = getUnit( intervalUnitTimePoints.getValue().toString() );
 
 		Platform.runLater( () -> processedImages.set( 0 ) );
 
@@ -996,10 +960,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 			try
 			{
-				engine.performAcquisition( studio, spimSetup, stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, timePointItemTableView.getItems(), currentTP, cylinderSize.get(),
-						smartImagingSelected, arduinoSelected, new File(directory.getValue()), filename.getValue(),
+				engine.performAcquisition( studio, spimSetup, stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp,
+						timePointItemTableView.getItems(), currentTP, cylinderSize,
+						arduinoSelected, new File(directory.getValue()), filename.getValue(),
 						positionItemTableView.getItems(), channelItemList, processedImages,
-						enabledSaveImages.get(), continuous.get(), savingFormat.getValue(), saveMIP.getValue() );
+						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue() );
 
 //				new MMAcquisitionRunner().runAcquisition();
 
@@ -1157,15 +1122,19 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		filename = textField.textProperty();
 
 		propertyMap.put( "filename", textField.textProperty() );
-//		gridpane.addRow( 1, new Label( "File name:" ), textField );
+		gridpane.addRow( 1, new Label( "File name:" ), textField );
 
 		ComboBox c = new ComboBox<>( FXCollections.observableArrayList(
 				// "Separate all dimensions", <- not implemented yet
-				"Separate the channel dimension", "Image stack (include multi-channel)" ) );
+				"None", "Separate the channel dimension", "Image stack (include multi-channel)" ) );
 
 		savingFormat = c.valueProperty();
 
-		gridpane.addRow( 2, new Label( "Saving format:" ), c );
+		Label desc = new Label( "The default saving format is Single Plane TIFF." );
+		gridpane.addRow( 2, desc);
+		gridpane.setColumnSpan( desc, 2 );
+
+		gridpane.addRow( 3, new Label( "SPIM format:" ), c );
 
 		CheckBox ch = new CheckBox( "Save as HDF5" );
 		// TODO: Use N5 format instead
@@ -1173,7 +1142,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		saveAsHDF5 = ch.selectedProperty();
 
 		CheckBox mip = new CheckBox( "Save & show Maximum Intensity Projection in each stack" );
-		gridpane.addRow( 3, mip );
+		gridpane.addRow( 4, mip );
 		gridpane.setColumnSpan( mip, 2 );
 
 		saveMIP = mip.selectedProperty();
@@ -1638,54 +1607,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 	private CheckboxPane createTimePointsPane()
 	{
-		Tab fixedTPTab = new Tab( "Periodic" );
-		fixedTPTab.setClosable( false );
-
-		Tab dynamicTPTab = new Tab( "Smart Imaging" );
-		dynamicTPTab.setClosable( false );
-
-		// Fixed Time Points Pane
-		GridPane gridpane = new GridPane();
-		gridpane.setPadding( new Insets( 10, 0, 0, 0 ) );
-		gridpane.setVgap( 5 );
-		gridpane.setHgap( 5 );
-
-		// No. of time points
-		Label numTimepoints = new Label("No. of time points:");
-		GridPane.setConstraints(numTimepoints, 1, 0); // column=1 row=0
-
-		TextField numTimepointsField = createNumberTextField();
-		numTimePoints = numTimepointsField.textProperty();
-		numTimePoints.setValue( "1" );
-
-		numTimePoints.addListener( new ChangeListener< String >()
-		{
-			@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
-			{
-				propertyMap.get("times").setValue( newValue );
-			}
-		} );
-
-		GridPane.setConstraints(numTimepointsField, 2, 0); // column=2 row=0
-
-		// Interval
-		Label numInterval = new Label( "Interval" );
-		GridPane.setConstraints(numInterval, 1, 1); // column=1 row=1
-		TextField numIntervalField = createNumberTextField();
-		intervalTimePoints = numIntervalField.textProperty();
-		intervalTimePoints.setValue( "1" );
-
-		GridPane.setConstraints(numIntervalField, 2, 1); // column=2 row=1
-		ComboBox unitComboBox = new ComboBox<>( FXCollections.observableArrayList( "ms", "sec", "min" ) );
-		unitComboBox.getSelectionModel().select( 0 );
-		intervalUnitTimePoints = unitComboBox.valueProperty();
-
-		GridPane.setConstraints(unitComboBox, 3, 1); // column=3 row=1
-
-		gridpane.getChildren().addAll(numTimepoints, numTimepointsField, numInterval, numIntervalField, unitComboBox);
-
-		fixedTPTab.setContent( gridpane );
-
 		// Dynamic timepoints
 		timePointItemTableView = createTimePointItemDataView();
 		timePointItemTableView.setEditable( true );
@@ -1722,10 +1643,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		smartImagingCylinder = new CylinderProgress( cylinderSize, timePointItemTableView.getItems(), currentTP );
 
-		dynamicTPTab.setContent( new VBox( hbox, timePointItemTableView ) );
-
-		tpTabPane = new TabPane( fixedTPTab, dynamicTPTab );
-		CheckboxPane pane = new CheckboxPane( "Time points", tpTabPane );
+		CheckboxPane pane = new CheckboxPane( "Time points", new VBox( hbox, timePointItemTableView ) );
 
 		TimePointItem.updateTimePointItem.addListener( new ChangeListener< String >()
 		{
@@ -1738,7 +1656,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		StringBinding sb = new StringBinding()
 		{
 			{
-				super.bind( numTimePoints, intervalTimePoints, intervalUnitTimePoints, TimePointItem.updateTimePointItem, timePointItemTableView.getItems() );
+				super.bind( TimePointItem.updateTimePointItem, timePointItemTableView.getItems() );
 			}
 			@Override protected String computeValue()
 			{
@@ -1755,27 +1673,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	private String computeTotalTimePoints() {
 		String expectedTime;
 
-		if(tpTabPane.getSelectionModel().isSelected( 0 )) {
-			if( intervalTimePoints.get().isEmpty() || intervalTimePoints.get().isEmpty() )
-				expectedTime = "0h 0m 0.00s";
-			else {
-				double unit = getUnit( intervalUnitTimePoints.getValue().toString() );
+		// Dynamic timeline
+		double total = timePointItemTableView.getItems().stream().mapToDouble( TimePointItem::getTotalSeconds ).sum();
 
-				double total = unit * Double.parseDouble( numTimePoints.getValue() ) * Double.parseDouble( intervalTimePoints.getValue() );
+		int noTimePoints = timePointItemTableView.getItems().stream().mapToInt( TimePointItem::getNoTimePoints ).sum();
 
-				expectedTime = TimePointItem.toString( total );
-			}
-		}
-		else {
-			// Dynamic timeline
-			double total = timePointItemTableView.getItems().stream().mapToDouble( TimePointItem::getTotalSeconds ).sum();
+		propertyMap.get("times").setValue( noTimePoints + "" );
 
-			int noTimePoints = timePointItemTableView.getItems().stream().mapToInt( TimePointItem::getNoTimePoints ).sum();
-
-			propertyMap.get("times").setValue( noTimePoints + "" );
-
-			expectedTime = TimePointItem.toString( total );
-		}
+		expectedTime = TimePointItem.toString( total );
 
 		return expectedTime;
 	}

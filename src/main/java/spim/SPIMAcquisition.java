@@ -1908,7 +1908,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 					{
 						handler = new OMETIFFHandler(
 								mmc, output, acqFilenamePrefix.getText(),
-								acqRows, 1, timeSeqs, timeStep, tileCount, new DefaultSummaryMetadata.Builder().build(), exportToHdf5.isSelected(), false, true);
+								acqRows, 1, timeSeqs, tileCount, new DefaultSummaryMetadata.Builder().build(), exportToHdf5.isSelected(), false, true);
 					}
 
 					if(asyncCheckbox.isSelected())

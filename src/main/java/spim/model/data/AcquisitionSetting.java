@@ -27,10 +27,6 @@ public class AcquisitionSetting
 
 	// Time points panel
 	Boolean enabledTimePoints;
-	Integer selectedTpTab;
-	String numTimePoints;
-	String intervalTimePoints;
-	Object intervalUnitTimePoints;
 	ArrayList<TimePointItem> timePointItems;
 
 	// Position panel
@@ -66,46 +62,6 @@ public class AcquisitionSetting
 	public void setEnabledTimePoints( Boolean enabledTimePoints )
 	{
 		this.enabledTimePoints = enabledTimePoints;
-	}
-
-	public Integer getSelectedTpTab()
-	{
-		return selectedTpTab;
-	}
-
-	public void setSelectedTpTab( Integer selectedTpTab )
-	{
-		this.selectedTpTab = selectedTpTab;
-	}
-
-	public String getNumTimePoints()
-	{
-		return numTimePoints;
-	}
-
-	public void setNumTimePoints( String numTimePoints )
-	{
-		this.numTimePoints = numTimePoints;
-	}
-
-	public String getIntervalTimePoints()
-	{
-		return intervalTimePoints;
-	}
-
-	public void setIntervalTimePoints( String intervalTimePoints )
-	{
-		this.intervalTimePoints = intervalTimePoints;
-	}
-
-	public Object getIntervalUnitTimePoints()
-	{
-		return intervalUnitTimePoints;
-	}
-
-	public void setIntervalUnitTimePoints( String intervalUnitTimePoints )
-	{
-		this.intervalUnitTimePoints = intervalUnitTimePoints;
 	}
 
 	public ArrayList< TimePointItem > getTimePointItems()
@@ -272,16 +228,12 @@ public class AcquisitionSetting
 	{
 	}
 
-	public AcquisitionSetting( BooleanProperty enabledTimePoints, StringProperty numTimePoints, StringProperty intervalTimePoints, ObjectProperty intervalUnitTimePoints, int selectedTpTab, ArrayList< TimePointItem > timePointItems, BooleanProperty enabledPositions, ArrayList< PositionItem > positionItems, BooleanProperty enabledZStacks, ObjectProperty acquisitionOrder, BooleanProperty enabledChannels, int selectedTabIndex, ArrayList< ChannelItem > channelItems, ArrayList< ChannelItem > channelItemsArduino, BooleanProperty enabledSaveImages, StringProperty directory, StringProperty filename, ObjectProperty savingFormat, BooleanProperty saveAsHDF5, BooleanProperty saveMIP, ObjectProperty roiRectangle )
+	public AcquisitionSetting( BooleanProperty enabledTimePoints, ArrayList< TimePointItem > timePointItems, BooleanProperty enabledPositions, ArrayList< PositionItem > positionItems, BooleanProperty enabledZStacks, ObjectProperty acquisitionOrder, BooleanProperty enabledChannels, int selectedTabIndex, ArrayList< ChannelItem > channelItems, ArrayList< ChannelItem > channelItemsArduino, BooleanProperty enabledSaveImages, StringProperty directory, StringProperty filename, ObjectProperty savingFormat, BooleanProperty saveAsHDF5, BooleanProperty saveMIP, ObjectProperty roiRectangle )
 	{
 		// 1.1 Time points panel
 		this.enabledTimePoints = enabledTimePoints.get();
-		this.numTimePoints = numTimePoints.get();
-		this.intervalTimePoints = intervalTimePoints.get();
-		this.intervalUnitTimePoints = intervalUnitTimePoints.get();
 
 		// 1.2 Smart Imaging option
-		this.selectedTpTab = selectedTpTab;
 		this.timePointItems = timePointItems;
 
 		// 2. Position panel

@@ -1,7 +1,7 @@
 package spim.ui.view.component.acq;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.TreeMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -13,6 +13,7 @@ import javax.swing.SwingUtilities;
 
 import ij.process.ImageProcessor;
 import mmcorej.TaggedImage;
+import mmcorej.org.json.JSONObject;
 import org.micromanager.PropertyMap;
 import org.micromanager.acquisition.internal.AcquisitionEngine;
 import org.micromanager.acquisition.internal.TaggedImageQueue;
@@ -54,18 +55,20 @@ public class TaggedImageSink {
 	private final int t_;
 	private final int angle_;
 	private final HashMap<String, OutputHandler > handlers_;
+	private final List<String> cameras_;
 	private final HashMap<String, Integer> camChannels_;
 	private final double x_, y_, theta_;
 	private final TreeMap<Integer, Image>[] mpImages_;
 	Thread savingThread;
 
 	public TaggedImageSink(BlockingQueue<TaggedImage> queue,
-			Pipeline pipeline,
-			Datastore store,
-			AcquisitionEngine engine,
-			EventManager studioEvents,
-			int t, int angle,
-			HashMap<String, OutputHandler > handlers, double x, double y, double theta, TreeMap<Integer, Image>[] mpImages ) {
+						   Pipeline pipeline,
+						   Datastore store,
+						   AcquisitionEngine engine,
+						   EventManager studioEvents,
+						   int t, int angle,
+						   HashMap<String, OutputHandler > handlers,
+						   List<String> cameras, double x, double y, double theta, TreeMap<Integer, Image>[] mpImages ) {
 		imageProducingQueue_ = queue;
 		pipeline_ = pipeline;
 		store_ = store;
@@ -74,6 +77,7 @@ public class TaggedImageSink {
 		t_ = t;
 		angle_ = angle;
 		handlers_ = handlers;
+		cameras_ = cameras;
 		mpImages_ = mpImages;
 
 		camChannels_ = new HashMap<>( handlers_.keySet()
@@ -140,10 +144,14 @@ public class TaggedImageSink {
 								}
 
 //								System.out.println(ch);
+								int channel = ch;
 
 								if(handlers_.containsKey( cam ))
 								{
-									int channel = camChannels_.get(cam);
+									channel = camChannels_.get(cam);
+
+									final JSONObject tags = tagged.tags;
+									tags.getString("PixelType");
 
 									handlers_.get( cam ).processSlice( t_, angle_, ( int ) exp, channel, ImageUtils.makeProcessor( tagged ),
 											x_,
@@ -158,7 +166,7 @@ public class TaggedImageSink {
 								DefaultImage image = new DefaultImage(tagged);
 
 								Coords.Builder cb = Coordinates.builder();
-								Coords coord = cb.p(angle_).t(t_).c(ch).z(slice).build();
+								Coords coord = cb.p(angle_).t(t_).c(channel).z(slice).index("view", cameras_.indexOf(cam)).build();
 								Image img = image;
 								Metadata md = img.getMetadata();
 								Metadata.Builder mdb = md.copyBuilderPreservingUUID();

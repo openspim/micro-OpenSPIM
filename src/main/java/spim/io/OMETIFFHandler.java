@@ -53,7 +53,6 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	private CMMCore core;
 	private int stacks, timesteps, tiles, channels;
 	private Row[] acqRows;
-	private double deltat;
 	private boolean exportToHDF5;
 	private double[] zStepSize;
 	private Thread hdf5ResaveThread;
@@ -68,7 +67,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	MaxProjections[] maxProjections;
 
 	public OMETIFFHandler( CMMCore iCore, File outDir, String filenamePrefix, Row[] acqRows, int channels,
-			int iTimeSteps, double iDeltaT, int tileCount, SummaryMetadata metadata, boolean exportToHDF5, boolean separateChannel, boolean maxProjection ) {
+			int iTimeSteps, int tileCount, SummaryMetadata metadata, boolean exportToHDF5, boolean separateChannel, boolean maxProjection ) {
 
 		if(outDir == null || !outDir.exists() || !outDir.isDirectory())
 			throw new IllegalArgumentException("Null path specified: " + outDir.toString());
@@ -81,7 +80,6 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		zStepSize = new double[stacks];
 		core = iCore;
 		timesteps = iTimeSteps;
-		deltat = iDeltaT;
 		outputDirectory = outDir;
 		this.acqRows = acqRows;
 		tiles = tileCount;
@@ -187,7 +185,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 				meta.setPixelsPhysicalSizeZ(FormatTools.getPhysicalSizeX(Math.max(row.getZStepSize(), 1.0D)), image);
 				zStepSize[image] = Math.max(row.getZStepSize(), 1.0D);
 
-				meta.setPixelsTimeIncrement(new Time( deltat, UNITS.SECOND ), image);
+				meta.setPixelsTimeIncrement(new Time( 1, UNITS.SECOND ), image);
 			}
 
 			writer = new ImageWriter().getWriter(makeFilename(filenamePrefix, 0, 0, 0, 0, null));
