@@ -482,7 +482,13 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			@Override public void handle( ActionEvent event )
 			{
-				clearAcquisitionSetting();
+				Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "Are you sure?", ButtonType.YES, ButtonType.CANCEL).showAndWait();
+
+				if( results.isPresent() && results.get() == ButtonType.YES) {
+					clearAcquisitionSetting();
+				} else {
+					System.err.println("Clear acquisition setting stopped by user cancellation.");
+				}
 			}
 		} );
 
