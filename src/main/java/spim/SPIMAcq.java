@@ -24,8 +24,9 @@ import spim.hardware.SPIMSetup;
  * Organization: MPI-CBG Dresden
  * Date: September 2018
  */
-@Plugin(type = MenuPlugin.class)
-public class SPIMAcq extends Application implements MenuPlugin
+//@Plugin(type = MenuPlugin.class)
+public class SPIMAcq extends Application
+//		implements MenuPlugin
 {
 	private final static String mTitle = "SPIM Acquisition Version 2.0 beta";
 	private CMMCore mmc;
@@ -35,41 +36,41 @@ public class SPIMAcq extends Application implements MenuPlugin
 	protected SPIMSetup setup;
 	HalcyonMain halcyonMain;
 
-	@Override public void setContext( Studio studio )
-	{
-		gui = studio;
-		mmc = studio.core();
-	}
-
-	@Override public String getName()
-	{
-		return "OpenSPIM v2";
-	}
-
-	@Override public String getHelpText()
-	{
-		return "Open Source SPIM acquisition v2.0";
-	}
-
-	@Override public String getVersion()
-	{
-		return "2.0";
-	}
-
-	@Override public String getCopyright()
-	{
-		return "Copyright 2018 HongKee Moon GPLv2 or later";
-	}
-
-	@Override public String getSubMenu()
-	{
-		return "";
-	}
-
-	@Override public void onPluginSelected()
-	{
-		run(null, mmc);
-	}
+//	@Override public void setContext( Studio studio )
+//	{
+//		gui = studio;
+//		mmc = studio.core();
+//	}
+//
+//	@Override public String getName()
+//	{
+//		return "OpenSPIM v2";
+//	}
+//
+//	@Override public String getHelpText()
+//	{
+//		return "Open Source SPIM acquisition v2.0";
+//	}
+//
+//	@Override public String getVersion()
+//	{
+//		return "2.0";
+//	}
+//
+//	@Override public String getCopyright()
+//	{
+//		return "Copyright 2018 HongKee Moon GPLv2 or later";
+//	}
+//
+//	@Override public String getSubMenu()
+//	{
+//		return "";
+//	}
+//
+//	@Override public void onPluginSelected()
+//	{
+//		run(null, mmc);
+//	}
 
 	@Override
 	public void start( Stage primaryStage )
@@ -176,7 +177,7 @@ public class SPIMAcq extends Application implements MenuPlugin
 			ReportingUtils.SetContainingFrame(MMStudio.getFrame());
 		}
 		SPIMAcq plugin = new SPIMAcq();
-		plugin.setContext( app );
-		plugin.getSubMenu();
+//		plugin.setContext( app );
+//		plugin.getSubMenu();
 	}
 }

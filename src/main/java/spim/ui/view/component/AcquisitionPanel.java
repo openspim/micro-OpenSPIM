@@ -309,6 +309,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				pi.setProgress( newValue.doubleValue() / totalImages.getValue() );
 			}
 		} );
+
+
 		acquireHBox.getChildren().addAll(acquireButton, pi);
 
 		BorderPane.setMargin(acquireHBox, new Insets(12,12,12,12));

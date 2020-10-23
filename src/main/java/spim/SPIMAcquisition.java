@@ -1,6 +1,7 @@
 package spim;
 
 import ij.IJ;
+import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.gui.GenericDialog;
@@ -67,6 +68,7 @@ import mmcorej.DeviceType;
 import org.apache.commons.math3.geometry.euclidean.threed.Rotation;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.micromanager.MMPlugin;
+import org.micromanager.MenuPlugin;
 import org.micromanager.Studio;
 import org.micromanager.data.internal.DefaultSummaryMetadata;
 import org.micromanager.internal.MMStudio;
@@ -77,6 +79,7 @@ import org.micromanager.internal.utils.imageanalysis.ImageUtils;
 import org.micromanager.internal.utils.NumberUtils;
 import org.micromanager.internal.utils.ReportingUtils;
 
+import org.scijava.plugin.Plugin;
 import spim.acquisition.AcquisitionStatus;
 import spim.acquisition.Params;
 import spim.acquisition.Program;
@@ -102,7 +105,8 @@ import spim.io.LabelledVirtualStack;
 import spim.io.OMETIFFHandler;
 import spim.ui.view.component.RangedSlider;
 
-public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
+@Plugin(type = MenuPlugin.class)
+public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener, MenuPlugin {
 	private static final String SPIM_RANGES = "SPIM Ranges";
 	private static final String POSITION_LIST = "Position List";
 	private static final String VIDEO_RECORDER = "Video";
@@ -213,6 +217,13 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 	 * Open the module window
 	 */
 	public void show() {
+		if(null == IJ.getInstance() ) {
+			ij.ImageJ ij = new ImageJ( );
+			ij.show();
+		} else {
+			IJ.getInstance().show();
+		}
+
 		prefs = Preferences.userNodeForPackage(getClass());
 
 		setup = SPIMSetup.createDefaultSetup(mmc);
@@ -2001,5 +2012,15 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener {
 			acqProgress.setValue(0);
 			acqProgress.repaint();
 		}
+	}
+
+	@Override public String getSubMenu()
+	{
+		return "";
+	}
+
+	@Override public void onPluginSelected()
+	{
+		show();
 	}
 }
