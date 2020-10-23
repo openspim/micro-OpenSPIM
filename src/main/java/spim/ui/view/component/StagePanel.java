@@ -435,7 +435,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		HBox angleIndiBox = new HBox( new Label( "Indicate angles: " ), spinner );
 		angleIndiBox.setAlignment( Pos.CENTER_LEFT );
 
-		HBox topHbox = new HBox( 10, new Label( "All On/Off: " ), switchAll, saveCurrentLocation, loadLocation, newButton );
+		HBox topHbox = new HBox( 10, new Label( "All On/Off: " ), switchAll, saveCurrentLocation, loadLocation );
 		topHbox.setAlignment( Pos.CENTER_LEFT );
 
 		Button undoBtn = new Button( "Go back to the last used position" );
@@ -450,7 +450,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		VBox controls = new VBox( 10, topHbox, angleIndiBox, stageUnitR, stageUnitX, stageUnitY, stageUnitZ, undoBtn );
+		VBox controls = new VBox( 10, topHbox, angleIndiBox, stageUnitR, stageUnitX, stageUnitY, stageUnitZ, newButton, undoBtn );
 		controls.setPadding( new Insets( 10 ) );
 		return controls;
 	}
