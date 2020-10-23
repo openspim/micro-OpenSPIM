@@ -1,8 +1,10 @@
 package spim.ui.view.component;
 
 import ij.gui.Roi;
+import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -56,12 +58,14 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 	final Label roiHLabel;
 
 	final ComboBox binningComboBox;
+	final SimpleDoubleProperty waitSeconds;
 
 	public ToolbarPanel( Studio mmStudio, ObjectProperty< Studio > mmStudioObjectProperty )
 	{
 		super(new VBox());
 		this.studioProperty = new SimpleObjectProperty<>( mmStudio );
 		this.spimSetupObjectProperty = new SimpleObjectProperty<>();
+		this.waitSeconds =  new SimpleDoubleProperty(-1);
 
 		getDockTitleBar().setVisible(false);
 
@@ -251,6 +255,31 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 		gridpane.addRow( 3, liveViewHbox );
 
+		VBox timerBox = new VBox(3);
+		timerBox.setAlignment( Pos.CENTER );
+
+		final Label timerLabel = new Label();
+		timerLabel.setStyle( "-fx-font: 16 arial;" );
+		final ProgressBar pb = new ProgressBar(-1);
+
+		waitSeconds.addListener(new ChangeListener<Number>() {
+			@Override
+			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+				Platform.runLater(() -> {
+					if (newValue.doubleValue() > -1) {
+						if(timerBox.getChildren().size() == 0) {
+							timerBox.getChildren().addAll(timerLabel, pb);
+						}
+						timerLabel.setText(String.format("Acquisition in:\n\t%.0f sec", newValue.doubleValue()));
+					} else {
+						timerBox.getChildren().clear();
+					}
+				});
+			}
+		});
+
+		gridpane.addRow( 4, timerBox );
+
 //		btn = new Button("Test Std Err");
 //		btn.setOnAction(e -> {
 //
@@ -301,7 +330,11 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		return roiRectangle;
 	}
 
-	@Override public void setSetup( SPIMSetup setup, Studio studio ) {
+	public SimpleDoubleProperty waitSecondsProperty() {
+		return waitSeconds;
+	}
+
+	@Override public void setSetup(SPIMSetup setup, Studio studio ) {
 		this.studioProperty.set(studio);
 		this.spimSetupObjectProperty.set(setup);
 

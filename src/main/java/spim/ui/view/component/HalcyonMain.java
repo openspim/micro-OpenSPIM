@@ -139,7 +139,7 @@ public class HalcyonMain extends HalcyonFrame
 		lToolbar.setPrefSize(300, 200);
 		addToolbar(lToolbar);
 
-		acquisitionPanel = new AcquisitionPanel( spimSetup, studio, null, arduinoPanel.getPinItemTableView(), lToolbar.roiRectangleProperty() );
+		acquisitionPanel = new AcquisitionPanel( spimSetup, studio, null, arduinoPanel.getPinItemTableView(), lToolbar.roiRectangleProperty(), lToolbar.waitSecondsProperty() );
 		stagePanel.setAcquisitionPanel( acquisitionPanel );
 		final HalcyonNode control1 = HalcyonNode.wrap( "Acquisition",
 				SpimHalcyonNodeType.CONTROL,

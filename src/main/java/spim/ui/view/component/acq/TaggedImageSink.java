@@ -13,7 +13,6 @@ import javax.swing.SwingUtilities;
 
 import ij.process.ImageProcessor;
 import mmcorej.TaggedImage;
-import mmcorej.org.json.JSONObject;
 import org.micromanager.PropertyMap;
 import org.micromanager.acquisition.internal.AcquisitionEngine;
 import org.micromanager.acquisition.internal.TaggedImageQueue;
@@ -149,18 +148,6 @@ public class TaggedImageSink {
 								if(handlers_.containsKey( cam ))
 								{
 									channel = camChannels_.get(cam);
-
-									final JSONObject tags = tagged.tags;
-									tags.getString("PixelType");
-
-									handlers_.get( cam ).processSlice( t_, angle_, ( int ) exp, channel, ImageUtils.makeProcessor( tagged ),
-											x_,
-											y_,
-											zPos,
-											theta_,
-											System.currentTimeMillis() - t1 );
-
-									camChannels_.put( cam, channel + 1 );
 								}
 
 								DefaultImage image = new DefaultImage(tagged);
@@ -191,6 +178,19 @@ public class TaggedImageSink {
 											"There was an error in processing images.");
 									pipeline_.clearExceptions();
 								}
+
+								if(handlers_.containsKey( cam ))
+								{
+									handlers_.get( cam ).processSlice( t_, angle_, ( int ) exp, channel, ImageUtils.makeProcessor( tagged ),
+											x_,
+											y_,
+											zPos,
+											theta_,
+											System.currentTimeMillis() - t1 );
+
+									camChannels_.put( cam, channel + 1 );
+								}
+
 							}
 							catch (OutOfMemoryError e) {
 								handleOutOfMemory(e, sinkFullCallback);

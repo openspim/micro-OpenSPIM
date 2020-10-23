@@ -26,7 +26,6 @@ import org.micromanager.data.RewritableDatastore;
 import org.micromanager.data.SummaryMetadata;
 import org.micromanager.data.internal.DefaultDatastore;
 import org.micromanager.data.internal.DefaultSummaryMetadata;
-import org.micromanager.data.internal.StorageSinglePlaneTiffSeries;
 import org.micromanager.display.DisplayWindow;
 import org.micromanager.events.AcquisitionEndedEvent;
 import org.micromanager.events.AcquisitionStartedEvent;
@@ -54,9 +53,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static org.micromanager.acquisition.internal.TaggedImageQueue.POISON;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -96,7 +92,7 @@ public class MMAcquisitionEngine
 	 * @param timeSeqs the time seqs
 	 * @param timePointItems the time point items
 	 * @param currentTP the current tp
-	 * @param cylinderSize the cylinder size
+	 * @param waitSeconds waitSeconds if it's waiting
 	 * @param arduinoSelected the arduino selected
 	 * @param output the output
 	 * @param acqFilenamePrefix the acq filename prefix
@@ -109,7 +105,7 @@ public class MMAcquisitionEngine
 	 * @throws Exception the exception
 	 */
 	@SuppressWarnings("Duplicates")
-	public static void performAcquisition( Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, DoubleProperty cylinderSize, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, Object savingFormatValue, boolean saveMIP ) throws Exception
+	public static void performAcquisition( Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, Object savingFormatValue, boolean saveMIP ) throws Exception
 	{
 		final Studio frame = studio;
 
@@ -320,14 +316,14 @@ public class MMAcquisitionEngine
 		if(!saveMIP) acqFilenamePrefix = null;
 
 		executeNormalAcquisition(setup, frame, store, display, stagePanel, currentCamera, cameras, output, acqFilenamePrefix, handlers,
-				timePointItems, positionItems, channelItems, currentTP, cylinderSize, arduinoSelected, processedImages, acqBegan);
+				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan);
 	}
 
 	@SuppressWarnings("Duplicates")
 	private static void executeNormalAcquisition(SPIMSetup setup, final Studio frame, Datastore store,
 			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
-			DoubleProperty currentTP, DoubleProperty cylinderSize, boolean arduinoSelected,
+			DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
 			LongProperty processedImages, final double acqBegan) throws Exception
 	{
 
@@ -336,7 +332,7 @@ public class MMAcquisitionEngine
 		// Dynamic timeline
 		runNormalSmartImagingMMAcq(setup, frame, store, display, stagePanel, currentCamera, cameras,
 				outFolder, acqFilenamePrefix, handlers,
-				timePointItems, positionItems, channelItems, currentTP, cylinderSize, arduinoSelected, processedImages, acqBegan, acqStart);
+				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan, acqStart);
 
 		finalize(true, setup, currentCamera, cameras, frame, 0, 0, handlers, store);
 	}
@@ -345,7 +341,7 @@ public class MMAcquisitionEngine
 	private static void runNormalSmartImagingMMAcq(SPIMSetup setup, final Studio frame, Datastore store,
 			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
-			DoubleProperty currentTP, DoubleProperty cylinderSize, boolean arduinoSelected,
+			DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
 			LongProperty processedImages, final double acqBegan, long acqStart) throws Exception
 	{
 
@@ -425,6 +421,7 @@ public class MMAcquisitionEngine
 
 						for(int i = 0; i < (int) wait; i++)
 						{
+							waitSeconds.set(wait - i);
 							++passedTimePoints;
 							currentTP.set( 1 / totalTimePoints * passedTimePoints );
 							try
@@ -439,9 +436,11 @@ public class MMAcquisitionEngine
 
 							if(stopRequest) {
 								engine.stop(true);
+								waitSeconds.set(-1);
 								break mainLoop;
 							}
 						}
+						waitSeconds.set(-1);
 					}
 					++timePoints;
 
@@ -457,6 +456,7 @@ public class MMAcquisitionEngine
 
 					for(int i = 0; i < (int) wait; i++)
 					{
+						waitSeconds.set(wait - i);
 						++passedTimePoints;
 						currentTP.set( 1 / totalTimePoints * passedTimePoints );
 						try
@@ -471,9 +471,11 @@ public class MMAcquisitionEngine
 
 						if(stopRequest) {
 							engine.stop(true);
+							waitSeconds.set(-1);
 							break mainLoop;
 						}
 					}
+					waitSeconds.set(-1);
 				}
 			}
 		}

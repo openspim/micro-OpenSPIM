@@ -43,7 +43,7 @@ import javafx.scene.control.TabPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
-import javafx.scene.control.Tooltip;
+
 import javafx.scene.image.ImageView;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
@@ -59,7 +59,7 @@ import javafx.scene.transform.Shear;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import mmcorej.DeviceType;
-import org.apache.commons.io.FileUtils;
+
 import org.micromanager.Studio;
 
 import org.micromanager.internal.MMStudio;
@@ -77,7 +77,6 @@ import spim.ui.view.component.util.TableViewUtil;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
@@ -168,6 +167,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	SimpleDoubleProperty currentTP;
 	CylinderProgress smartImagingCylinder;
 	SimpleDoubleProperty cylinderSize;
+	SimpleDoubleProperty waitSeconds;
 
 	Group zStackGroup;
 	GridPane zStackGridPane;
@@ -177,7 +177,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 	MMAcquisitionEngine engine;
 
-	public AcquisitionPanel( SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView< PinItem > pinItemTableView, ObjectProperty roiRectangleProperty ) {
+	public AcquisitionPanel( SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView< PinItem > pinItemTableView, ObjectProperty roiRectangleProperty, SimpleDoubleProperty waitSeconds ) {
 		this.spimSetup = setup;
 		this.studio = studio;
 		this.propertyMap = new HashMap<>();
@@ -209,6 +209,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		this.currentTP = new SimpleDoubleProperty( 0 );
 		this.cylinderSize = new SimpleDoubleProperty( 400 );
+
+		// Wait timer
+		this.waitSeconds = waitSeconds;
 
 		// 1. Property Map for summary panel
 		this.propertyMap.put( "times", new SimpleStringProperty( "0" ) );
@@ -828,6 +831,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	public void stopAcquisition()
 	{
 		System.out.println("Stop button pressed");
+		waitSeconds.set(-1);
 
 		if ( acquisitionThread == null )
 		{
@@ -961,7 +965,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			try
 			{
 				engine.performAcquisition( studio, spimSetup, stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp,
-						timePointItemTableView.getItems(), currentTP, cylinderSize,
+						timePointItemTableView.getItems(), currentTP, waitSeconds,
 						arduinoSelected, new File(directory.getValue()), filename.getValue(),
 						positionItemTableView.getItems(), channelItemList, processedImages,
 						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue() );
