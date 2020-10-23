@@ -176,6 +176,10 @@ public class TimePointItem
 		return String.format( "%dh %dm %.02fs", h, m, s );
 	}
 
+	public String toIntervalString() {
+		return String.format( "%d %s", getInterval(), getIntervalUnit() );
+	}
+
 	@Override public String toString()
 	{
 		if(getType().equals( Type.Acq ))

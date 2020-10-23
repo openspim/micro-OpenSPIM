@@ -130,11 +130,22 @@ public class CylinderProgress extends Group
 				cylinder.setRotate( 90 );
 				cylinder.setTranslateX( cylOffset + offset * 0.5 );
 
-				Label label = new Label( item.toString() );
-				label.setTranslateX( cylOffset );
+				String n = item.getNoTimePoints() + "";
+
+				Label label = new Label( n );
+				label.setTranslateX( cylOffset + offset * 0.5 - 1.5 * n.length());
 				label.setTranslateY( -10 );
-				label.setAlignment( Pos.CENTER_LEFT );
-				getChildren().addAll( cylinder, label );
+				label.setAlignment( Pos.CENTER );
+
+				String intervalString = item.toIntervalString();
+				Label tp = new Label( intervalString );
+				tp.setTranslateX( cylOffset + offset * 0.5 - 2 * intervalString.length());
+				if (list.indexOf(item) % 2 == 0)
+					tp.setTranslateY(-40);
+				else tp.setTranslateY(20);
+				tp.setAlignment( Pos.CENTER );
+				getChildren().addAll( cylinder, label, tp );
+
 				cylOffset += offset;
 			}
 		}
