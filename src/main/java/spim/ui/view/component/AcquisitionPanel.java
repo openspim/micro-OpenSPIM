@@ -317,14 +317,17 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		// listbox for Position list
 		SplitPane timePositionSplit = new SplitPane(
-				acquireHBox,
 				createPositionListPane(positionItemTableView),
 				createTimePointsPane() );
 		timePositionSplit.setOrientation( Orientation.VERTICAL );
-		timePositionSplit.setDividerPositions( 0.2, 0.6 );
+		timePositionSplit.setDividerPositions( 0.5 );
 
 		// acquisition order
-		VBox zstackAcquisitionOrderPane = new VBox( 80, createAcquisitionOrderPane(), createZStackPane(stagePanel) );
+		createAcquisitionOrderPane();
+		final TitledPane acqPane = new TitledPane( "Acquisition", acquireHBox );
+		acqPane.setCollapsible( false );
+
+		VBox zstackAcquisitionOrderPane = new VBox( 20, createZStackPane(stagePanel), acqPane );
 
 		// setup the Z-stacks
 		// summary
@@ -515,7 +518,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		SplitPane content = new SplitPane( positionZStackSplit, smartImagingBox, channelListSaveImage );
 		content.setOrientation( Orientation.VERTICAL );
-		content.setDividerPositions( 0.7, 0.2 );
+		content.setDividerPositions( 0.5, 0.2 );
 
 		// Compute acquisition order logic
 		BooleanBinding bb = new BooleanBinding()
