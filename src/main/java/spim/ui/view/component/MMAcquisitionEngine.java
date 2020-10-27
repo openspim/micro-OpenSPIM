@@ -315,13 +315,13 @@ public class MMAcquisitionEngine
 
 		if(!saveMIP) acqFilenamePrefix = null;
 
-		executeNormalAcquisition(setup, frame, store, display, stagePanel, currentCamera, cameras, output, acqFilenamePrefix, handlers,
+		executeNormalAcquisition(setup, frame, store, stagePanel, currentCamera, cameras, output, acqFilenamePrefix, handlers,
 				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan);
 	}
 
 	@SuppressWarnings("Duplicates")
 	private static void executeNormalAcquisition(SPIMSetup setup, final Studio frame, Datastore store,
-			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
+			StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
 			LongProperty processedImages, final double acqBegan) throws Exception
@@ -330,7 +330,7 @@ public class MMAcquisitionEngine
 		long acqStart = System.currentTimeMillis();
 
 		// Dynamic timeline
-		runNormalSmartImagingMMAcq(setup, frame, store, display, stagePanel, currentCamera, cameras,
+		runNormalSmartImagingMMAcq(setup, frame, store, stagePanel, currentCamera, cameras,
 				outFolder, acqFilenamePrefix, handlers,
 				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan, acqStart);
 
@@ -339,7 +339,7 @@ public class MMAcquisitionEngine
 
 	@SuppressWarnings("Duplicates")
 	private static void runNormalSmartImagingMMAcq(SPIMSetup setup, final Studio frame, Datastore store,
-			DisplayWindow display, StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
+			StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
 			LongProperty processedImages, final double acqBegan, long acqStart) throws Exception
