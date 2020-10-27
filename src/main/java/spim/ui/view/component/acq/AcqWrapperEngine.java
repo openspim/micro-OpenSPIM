@@ -94,6 +94,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	private HashMap<String, OutputHandler > handlers_;
 	private List< ChannelItem > channelItems_;
 	private boolean arduinoSelected_;
+	private LongProperty processedImages_;
 
 	final String channelGroupName = "OpenSPIM-channels";
 
@@ -116,6 +117,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		handlers_ = handlers;
 		channelItems_ = channelItems;
 		arduinoSelected_ = arduinoSelected;
+		processedImages_ = processedImages;
 
 		spimSetup_ = setup;
 		studio_ = frame;
@@ -305,7 +307,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			// Start pumping images through the pipeline and into the datastore.
 			sink = new TaggedImageSink(
 					engineOutputQueue, curPipeline_, curStore_, this, studio_.events(),
-					t_, angle_, handlers_, cameras_, x, y, theta, mpImages_ );
+					t_, angle_, handlers_, cameras_, x, y, theta, mpImages_, processedImages_ );
 			sink.start(() -> getAcquisitionEngine2010().stop(), () -> generateMIP());
 
 			return curStore_;

@@ -1083,7 +1083,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		for(PositionItem item : positionItemTableView.getItems())
 		{
 			if(item.getZEnd() > item.getZStart()) {
-				totalImages += (item.getZEnd() - item.getZStart()) / item.getZStep();
+				totalImages += (item.getZEnd() - item.getZStart() + item.getZStep()) / item.getZStep();
 			}
 		}
 
@@ -1266,7 +1266,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		int totalChannels;
 
 		if(channelTabPane.getSelectionModel().isSelected( 0 )) {
-			totalChannels = (int) channelItemTableView.getItems().stream().filter( c -> c.getSelected() ).count();
+			int multi = (int) channelItemTableView.getItems().stream().filter( c -> c.getSelected() && c.getName().startsWith("Multi") ).count() * 2;
+
+			totalChannels = (int) channelItemTableView.getItems().stream().filter( c -> c.getSelected() && !c.getName().startsWith("Multi")).count() + multi;
 			propertyMap.get("cams").setValue( 1 + "" );
 		}
 		else {

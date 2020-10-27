@@ -12,6 +12,7 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 import ij.process.ImageProcessor;
+import javafx.beans.property.LongProperty;
 import mmcorej.TaggedImage;
 import org.micromanager.PropertyMap;
 import org.micromanager.acquisition.internal.AcquisitionEngine;
@@ -58,6 +59,7 @@ public class TaggedImageSink {
 	private final HashMap<String, Integer> camChannels_;
 	private final double x_, y_, theta_;
 	private final TreeMap<Integer, Image>[] mpImages_;
+	private final LongProperty processedImages_;
 	Thread savingThread;
 
 	public TaggedImageSink(BlockingQueue<TaggedImage> queue,
@@ -67,7 +69,9 @@ public class TaggedImageSink {
 						   EventManager studioEvents,
 						   int t, int angle,
 						   HashMap<String, OutputHandler > handlers,
-						   List<String> cameras, double x, double y, double theta, TreeMap<Integer, Image>[] mpImages ) {
+						   List<String> cameras, double x, double y, double theta,
+						   TreeMap<Integer, Image>[] mpImages,
+						   LongProperty processedImages) {
 		imageProducingQueue_ = queue;
 		pipeline_ = pipeline;
 		store_ = store;
@@ -78,6 +82,7 @@ public class TaggedImageSink {
 		handlers_ = handlers;
 		cameras_ = cameras;
 		mpImages_ = mpImages;
+		processedImages_ = processedImages;
 
 		camChannels_ = new HashMap<>( handlers_.keySet()
 				.stream().collect( Collectors.toMap( Function.identity(), c -> 0 ) ) );
@@ -191,6 +196,7 @@ public class TaggedImageSink {
 									camChannels_.put( cam, channel + 1 );
 								}
 
+								processedImages_.set(processedImages_.get() + 1);
 							}
 							catch (OutOfMemoryError e) {
 								handleOutOfMemory(e, sinkFullCallback);
@@ -207,6 +213,7 @@ public class TaggedImageSink {
 				}
 				long t2 = System.currentTimeMillis();
 				ReportingUtils.logMessage(imageCount + " images stored in " + (t2 - t1) + " ms.");
+//				System.out.println("Total Images: " + processedImages_.get());
 				processMIP.run();
 			}
 		};
