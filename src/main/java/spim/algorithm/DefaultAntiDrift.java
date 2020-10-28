@@ -38,6 +38,8 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 		if((counter++ % windowSize) == 0)
 		{
 			reset();
+			updateCumulatvieOffset();
+			updatedOffset = Vector3D.ZERO;
 		}
 
 		latest = new Projections();
@@ -56,17 +58,39 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 	{
 		Vector3D suggested = latest.correlateAndAverage(first);
 
-		ij.IJ.log( "Suggested offset: " + suggested.toString() );
+//		ij.IJ.log( "Suggested offset: " + suggested.toString() );
+		System.out.println( "Suggested offset: " + suggested.toString() );
 
 		return suggested;
 	}
 
-	@Override public Vector3D updateOffset( Vector3D offset )
+	private Vector3D updatedOffset = Vector3D.ZERO;
+
+	private Vector3D cumulativeOffset = Vector3D.ZERO;
+
+	@Override public Vector3D updateOffset( Vector3D correction )
 	{
-		Vector3D lastOffset = offset.add(lastCorrection);
+		updatedOffset = new Vector3D(
+				correction.getX() * -1 + updatedOffset.getX(),
+				correction.getY() * -1 + updatedOffset.getY(),
+				correction.getZ() * -1 + updatedOffset.getZ());
 
-		ij.IJ.log( "Last offset: " + lastOffset );
+//		ij.IJ.log( "Updated offset: " + updatedOffset.toString() );
+		System.out.println( "Updated offset: " + updatedOffset.toString() );
 
-		return lastOffset;
+		return updatedOffset;
+	}
+
+	public Vector3D getUpdatedOffset() {
+		return updatedOffset;
+	}
+
+	public Vector3D updateCumulatvieOffset() {
+		cumulativeOffset = cumulativeOffset.add(updatedOffset);
+		return cumulativeOffset;
+	}
+
+	public Vector3D getCumulativeOffset() {
+		return cumulativeOffset;
 	}
 }

@@ -9,6 +9,7 @@ import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
 
 import mmcorej.org.json.JSONException;
+import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.micromanager.MultiStagePosition;
 import org.micromanager.PropertyMap;
 import org.micromanager.PropertyMaps;
@@ -34,6 +35,8 @@ import org.micromanager.internal.MMStudio;
 import org.micromanager.internal.utils.UserProfileManager;
 import org.micromanager.internal.utils.imageanalysis.ImageUtils;
 import spim.acquisition.Row;
+import spim.algorithm.DefaultAntiDrift;
+import spim.controller.AntiDriftController;
 import spim.hardware.Device;
 import spim.hardware.SPIMSetup;
 import spim.hardware.Stage;
@@ -102,10 +105,11 @@ public class MMAcquisitionEngine
 	 * @param bSave the b save
 	 * @param savingFormatValue the value set from { "None", "Separate the channel dimension", "Image stack (include multi-channel)" }
 	 * @param saveMIP Save Maximum Intensity Projection or not
+	 * @param antiDrift Anti-Drift function used or not
 	 * @throws Exception the exception
 	 */
 	@SuppressWarnings("Duplicates")
-	public static void performAcquisition( Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, Object savingFormatValue, boolean saveMIP ) throws Exception
+	public static void performAcquisition( Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, Object savingFormatValue, boolean saveMIP, boolean antiDrift ) throws Exception
 	{
 		final Studio frame = studio;
 
@@ -316,7 +320,7 @@ public class MMAcquisitionEngine
 		if(!saveMIP) acqFilenamePrefix = null;
 
 		executeNormalAcquisition(setup, frame, store, stagePanel, currentCamera, cameras, output, acqFilenamePrefix, handlers,
-				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan);
+				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan, antiDrift);
 	}
 
 	@SuppressWarnings("Duplicates")
@@ -324,7 +328,7 @@ public class MMAcquisitionEngine
 			StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
-			LongProperty processedImages, final double acqBegan) throws Exception
+			LongProperty processedImages, final double acqBegan, final boolean antiDrift) throws Exception
 	{
 
 		long acqStart = System.currentTimeMillis();
@@ -332,7 +336,7 @@ public class MMAcquisitionEngine
 		// Dynamic timeline
 		runNormalSmartImagingMMAcq(setup, frame, store, stagePanel, currentCamera, cameras,
 				outFolder, acqFilenamePrefix, handlers,
-				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan, acqStart);
+				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan, acqStart, antiDrift);
 
 		finalize(true, setup, currentCamera, cameras, frame, 0, 0, handlers, store);
 	}
@@ -342,7 +346,7 @@ public class MMAcquisitionEngine
 			StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
-			LongProperty processedImages, final double acqBegan, long acqStart) throws Exception
+			LongProperty processedImages, final double acqBegan, long acqStart, final boolean antiDrift) throws Exception
 	{
 
 		final CMMCore core = frame.core();
@@ -351,7 +355,15 @@ public class MMAcquisitionEngine
 		int  passedTimePoints = 0;
 		double totalTimePoints = timePointItems.stream().mapToDouble( TimePointItem::getTotalSeconds ).sum();
 
-		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, handlers, channelItems, arduinoSelected, processedImages, acqBegan, acqStart );
+		// Anti-Drift setup
+		HashMap< PositionItem, DefaultAntiDrift > driftCompMap = null;
+		if(antiDrift) {
+			driftCompMap = new HashMap<>(positionItems.size());
+			for( PositionItem positionItem : positionItems )
+				driftCompMap.put(positionItem, new DefaultAntiDrift(5, 10));
+		}
+
+		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, handlers, channelItems, arduinoSelected, processedImages, driftCompMap );
 
 		mainLoop:
 		for(TimePointItem tpItem : timePointItems ) {
@@ -369,9 +381,18 @@ public class MMAcquisitionEngine
 
 //						display.setCustomTitle( acqFilenamePrefix + String.format( " t=%d, p=%d", timePoints, step ) );
 
+						double xOffset = 0, yOffset = 0;
+
+						if(driftCompMap != null) {
+							Vector3D offset = driftCompMap.get(positionItem).getCumulativeOffset();
+							xOffset = offset.getX() * core.getPixelSizeUm();
+							yOffset = offset.getY() * core.getPixelSizeUm();
+							System.out.println("Anti-Drift used offset only X:" + xOffset + " Y:" + yOffset);
+						}
+
 						// Move the stage
 						if(stagePanel != null)
-							stagePanel.goToPos( positionItem.getX(), positionItem.getY(), positionItem.getR() );
+							stagePanel.goToPos( positionItem.getX() + xOffset, positionItem.getY() + yOffset, positionItem.getR() );
 						try
 						{
 							core.waitForSystem();

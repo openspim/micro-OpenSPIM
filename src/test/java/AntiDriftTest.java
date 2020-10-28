@@ -2,6 +2,7 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
 import ij.process.FloatProcessor;
+import ij.process.ImageProcessor;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.junit.Before;
 import org.junit.Test;
@@ -65,7 +66,7 @@ public class AntiDriftTest
 	@Test
 	public void testAntiDrift()
 	{
-		final DefaultAntiDrift proj = new DefaultAntiDrift();
+		final DefaultAntiDrift proj = new DefaultAntiDrift(5, 7);
 		proj.startNewStack();
 
 		final ImageStack stackFirst = impFirst.getImageStack();
@@ -182,10 +183,152 @@ public class AntiDriftTest
 		}
 	}
 
+	public void testAntiDriftWithJohannesData() {
+		final AntiDriftController ct = new AntiDriftController( new File("/Users/moon/temp/openspim"), 2, 3, 4, 0, 1, 0.5);
+//
+//		ct.setCallback(new AntiDrift.Callback() {
+//			public void applyOffset(Vector3D offs) {
+//				offs = updatedOffset = new Vector3D(offs.getX()*1, offs.getY()*1, offs.getZ());
+//				System.out.println(String.format("Offset: %s", offs.toString()));
+//			}
+//		});
+
+		final DefaultAntiDrift proj = new DefaultAntiDrift(5, 7);
+
+//		String filename = "Pd_100TP_ch_0-1.tif";
+		String filename = "TP0-310_shift_3xds.tif";
+		ImagePlus ip = IJ.openImage("/Users/moon/temp/openspim/" + filename);
+
+		System.out.println(ip.getNFrames());
+
+//		for(int t = 0; t < ip.getNFrames(); t++) {
+//			proj.startNewStack();
+//			System.out.println("t=" + t);
+//			for(int z = 0; z < ip.getNSlices(); z++) {
+//				ip.setPosition(0, z, t);
+//
+////				if(z > 29)
+////				{
+//					ImageProcessor p = ip.getProcessor();
+//					proj.addXYSlice( p );
+////				}
+//			}
+//			proj.finishStack();
+//
+//			final Vector3D correction = proj.finishStack( );
+//			final double DELTA = 1e-5;
+//
+//			System.out.println(String.format( "x=%f, y=%f, z=%f", correction.getX(), correction.getY(), correction.getZ() ));
+//		}
+//		int t = 5;
+//
+//			ct.startNewStack();
+//			System.out.println("t=" + t);
+//			for(int z = 0; z < ip.getNSlices(); z++) {
+//				ip.setPosition(0, z, t);
+//
+//				//				if(z > 29)
+//				//				{
+//				ImageProcessor p = ip.getProcessor();
+//				ct.addXYSlice( p );
+//				//				}
+//			}
+//			ct.finishStack();
+//
+////			Vector3D correction = proj.finishStack( );
+//
+////			System.out.println(String.format( "x=%f, y=%f, z=%f", correction.getX(), correction.getY(), correction.getZ() ));
+//
+//		t = 80;
+//		ct.startNewStack();
+//		System.out.println("t=" + t);
+//		for(int z = 0; z < ip.getNSlices(); z++) {
+//			ip.setPosition(0, z, t);
+//
+//			//				if(z > 29)
+//			//				{
+//			ImageProcessor p = ip.getProcessor();
+//			ct.addXYSlice( p );
+//			//				}
+//		}
+//		ct.finishStack();
+
+//		correction = proj.finishStack( );
+
+//		System.out.println(String.format( "x=%f, y=%f, z=%f", correction.getX(), correction.getY(), correction.getZ() ));
+
+
+		//		ImagePlus image = IJ.openImage();
+//		image.setStack( stack );
+//		image.show();
+		int t = ip.getNFrames();
+
+		for(int i = 0; i < t; i++) {
+//			ct.startNewStack();
+			proj.startNewStack();
+
+			double xOffset, yOffset;
+
+			Vector3D offset = proj.getCumulativeOffset();
+			xOffset = offset.getX();
+			yOffset = offset.getY();
+			System.out.println("Anti-Drift used offset only X,Y: " + offset);
+
+			for(int k = 1; k <= ip.getNSlices(); k++)
+			{
+				ip.setPosition( 0, k, i );
+
+				FloatProcessor fp = ( FloatProcessor ) ip.getProcessor().convertToFloat();
+
+				// Translate the original image according to the current offset
+				// This behavior will be replaced by Stage Control Movement operation with pixelSizeUm property
+				fp.translate( xOffset, yOffset );
+				// Corrected image will be used for the viewer
+//				ct.addXYSlice( fp );
+
+				proj.addXYSlice( fp );
+			}
+//			ct.finishStack();
+			proj.updateOffset(proj.finishStack());
+		}
+		ip.close();
+		System.out.println("Final offset: " + proj.getCumulativeOffset());
+
+
+//		for(int i = 0; i < 5; i++)
+//		{
+//			String filename = "Pd_100TP_ch_0-1.tif";
+//			ImagePlus ip = IJ.openImage("/Users/moon/temp/openspim/" + filename);
+//			ct.startNewStack();
+//
+//			final ImageStack stack = ip.getImageStack();
+//			for(int k = 1; k <= stack.getSize(); k++)
+//			{
+//				FloatProcessor fp = (FloatProcessor) stack.getProcessor( k ).convertToFloat();
+//
+//				fp.translate( updatedOffset.getX(), updatedOffset.getY() );
+//
+//				ct.addXYSlice( fp );
+//			}
+//			ct.finishStack();
+//
+//			ip.close();
+//
+//			try
+//			{
+//				Thread.sleep( 10000 );
+//			} catch (InterruptedException e)
+//			{
+//				e.printStackTrace();
+//			}
+//		}
+	}
+
 	public static void main(String[] argv)
 	{
 		AntiDriftTest test = new AntiDriftTest();
-		test.testAntiDriftWithData();
+//		test.testAntiDriftWithData();
+		test.testAntiDriftWithJohannesData();
 //		test.setup();
 //		test.testAntiDriftController();
 	}

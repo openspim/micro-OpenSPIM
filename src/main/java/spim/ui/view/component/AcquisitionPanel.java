@@ -176,6 +176,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	Tab laserTab;
 
 	MMAcquisitionEngine engine;
+	BooleanProperty antiDrift;
 
 	public AcquisitionPanel( SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView< PinItem > pinItemTableView, ObjectProperty roiRectangleProperty, SimpleDoubleProperty waitSeconds ) {
 		this.spimSetup = setup;
@@ -310,8 +311,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
+		CheckBox antiDriftCheckbox = new CheckBox("Anti-Drift");
+		antiDrift = antiDriftCheckbox.selectedProperty();
 
-		acquireHBox.getChildren().addAll(acquireButton, pi);
+		acquireHBox.getChildren().addAll(acquireButton, antiDriftCheckbox, pi);
 
 		BorderPane.setMargin(acquireHBox, new Insets(12,12,12,12));
 
@@ -952,6 +955,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			return false;
 		}
 
+		double pixSizeUm = getStudio().core().getPixelSizeUm();
+		if(antiDrift.getValue() && ! (pixSizeUm > 0)) {
+			new Alert( Alert.AlertType.WARNING, "Please, provide pixel size calibration data before using Anti-Drift").showAndWait();
+
+			System.err.println("Acquisition stopped due to no pixelSizeUm");
+			return false;
+		}
+
 		engine = new MMAcquisitionEngine();
 
 		engine.init();
@@ -979,7 +990,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 						timePointItemTableView.getItems(), currentTP, waitSeconds,
 						arduinoSelected, new File(directory.getValue()), filename.getValue(),
 						positionItemTableView.getItems(), channelItemList, processedImages,
-						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue() );
+						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), antiDrift.getValue() );
 
 //				new MMAcquisitionRunner().runAcquisition();
 

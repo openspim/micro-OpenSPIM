@@ -29,8 +29,10 @@ import org.micromanager.events.EventManager;
 import org.micromanager.events.internal.DefaultAcquisitionEndedEvent;
 import org.micromanager.internal.utils.ReportingUtils;
 import org.micromanager.internal.utils.imageanalysis.ImageUtils;
+import spim.algorithm.DefaultAntiDrift;
 import spim.hardware.SPIMSetup;
 import spim.io.OutputHandler;
+import spim.model.data.PositionItem;
 
 /**
  * This object spawns a new thread that receives images from the acquisition
@@ -60,6 +62,7 @@ public class TaggedImageSink {
 	private final double x_, y_, theta_;
 	private final TreeMap<Integer, Image>[] mpImages_;
 	private final LongProperty processedImages_;
+	private final DefaultAntiDrift antiDrift_;
 	Thread savingThread;
 
 	public TaggedImageSink(BlockingQueue<TaggedImage> queue,
@@ -71,7 +74,8 @@ public class TaggedImageSink {
 						   HashMap<String, OutputHandler > handlers,
 						   List<String> cameras, double x, double y, double theta,
 						   TreeMap<Integer, Image>[] mpImages,
-						   LongProperty processedImages) {
+						   LongProperty processedImages,
+						   DefaultAntiDrift antiDrift) {
 		imageProducingQueue_ = queue;
 		pipeline_ = pipeline;
 		store_ = store;
@@ -83,6 +87,7 @@ public class TaggedImageSink {
 		cameras_ = cameras;
 		mpImages_ = mpImages;
 		processedImages_ = processedImages;
+		antiDrift_ = antiDrift;
 
 		camChannels_ = new HashMap<>( handlers_.keySet()
 				.stream().collect( Collectors.toMap( Function.identity(), c -> 0 ) ) );
@@ -119,6 +124,10 @@ public class TaggedImageSink {
 				long t1 = System.currentTimeMillis();
 				int imageCount = 0;
 				try {
+					if(antiDrift_ != null) {
+						antiDrift_.startNewStack();
+					}
+
 					while (true) {
 						TaggedImage tagged = imageProducingQueue_.poll(1, TimeUnit.SECONDS);
 						if (tagged != null) {
@@ -196,6 +205,10 @@ public class TaggedImageSink {
 									camChannels_.put( cam, channel + 1 );
 								}
 
+								if(ch == 0 && antiDrift_ != null) {
+									antiDrift_.addXYSlice(ImageUtils.makeProcessor( tagged ));
+								}
+
 								processedImages_.set(processedImages_.get() + 1);
 							}
 							catch (OutOfMemoryError e) {
@@ -214,6 +227,9 @@ public class TaggedImageSink {
 				long t2 = System.currentTimeMillis();
 				ReportingUtils.logMessage(imageCount + " images stored in " + (t2 - t1) + " ms.");
 //				System.out.println("Total Images: " + processedImages_.get());
+				if(antiDrift_ != null) {
+					antiDrift_.updateOffset( antiDrift_.finishStack() );
+				}
 				processMIP.run();
 			}
 		};

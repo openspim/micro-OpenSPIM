@@ -37,6 +37,7 @@ import org.micromanager.internal.utils.AcqOrderMode;
 import org.micromanager.internal.utils.MMException;
 import org.micromanager.internal.utils.NumberUtils;
 import org.micromanager.internal.utils.ReportingUtils;
+import spim.algorithm.DefaultAntiDrift;
 import spim.hardware.SPIMSetup;
 import spim.io.OutputHandler;
 import spim.model.data.ChannelItem;
@@ -95,6 +96,8 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	private List< ChannelItem > channelItems_;
 	private boolean arduinoSelected_;
 	private LongProperty processedImages_;
+	private HashMap< PositionItem, DefaultAntiDrift> driftCompMap_;
+	private DefaultAntiDrift currentAntiDrift_;
 
 	final String channelGroupName = "OpenSPIM-channels";
 
@@ -109,7 +112,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			HashMap<String, OutputHandler > handlers,
 			List< ChannelItem > channelItems,
 			boolean arduinoSelected,
-			LongProperty processedImages, final double acqBegan, long acqStart) throws Exception
+			LongProperty processedImages, HashMap< PositionItem, DefaultAntiDrift> driftCompMap) throws Exception
 	{
 		curStore_ = store;
 
@@ -118,6 +121,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		channelItems_ = channelItems;
 		arduinoSelected_ = arduinoSelected;
 		processedImages_ = processedImages;
+		driftCompMap_ = driftCompMap;
 
 		spimSetup_ = setup;
 		studio_ = frame;
@@ -250,6 +254,9 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		posList_.clearAllPositions();
 		posList_.addPosition( 0, new MultiStagePosition( spimSetup_.getXStage().getLabel(), positionItem.getX(), positionItem.getY(), spimSetup_.getZStage().getLabel(), positionItem.getZStart() ) );
 
+		if(driftCompMap_ != null)
+			currentAntiDrift_ = driftCompMap_.get(positionItem);
+
 		acquire();
 	}
 
@@ -307,7 +314,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			// Start pumping images through the pipeline and into the datastore.
 			sink = new TaggedImageSink(
 					engineOutputQueue, curPipeline_, curStore_, this, studio_.events(),
-					t_, angle_, handlers_, cameras_, x, y, theta, mpImages_, processedImages_ );
+					t_, angle_, handlers_, cameras_, x, y, theta, mpImages_, processedImages_, currentAntiDrift_ );
 			sink.start(() -> getAcquisitionEngine2010().stop(), () -> generateMIP());
 
 			return curStore_;
