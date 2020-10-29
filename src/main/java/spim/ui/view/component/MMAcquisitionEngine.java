@@ -296,7 +296,7 @@ public class MMAcquisitionEngine
 					OutputHandler handler = new OMETIFFHandler(
 							core, outFolder, acqFilenamePrefix + "_" + camera + "_",
 							//what is the purpose of defining parameters and then passing null anyway?
-							acqRows, chSize * multis.size(), timeSeqs, 1, smb.userData(pm.build()).build(), false, separateChannel, saveMIP);
+							acqRows, chSize * multis.size(), timeSeqs, 1, smb.userData(pm.build()).build(), false, separateChannel);
 
 					handlers.put(camera, handler);
 				} else {
@@ -304,7 +304,7 @@ public class MMAcquisitionEngine
 					OutputHandler handler = new OMETIFFHandler(
 							core, outFolder, acqFilenamePrefix + "_" + camera + "_",
 							//what is the purpose of defining parameters and then passing null anyway?
-							acqRows, chSize, timeSeqs, 1, smb.userData(pm.build()).build(), false, separateChannel, saveMIP);
+							acqRows, chSize, timeSeqs, 1, smb.userData(pm.build()).build(), false, separateChannel);
 
 					handlers.put(camera, handler);
 				}

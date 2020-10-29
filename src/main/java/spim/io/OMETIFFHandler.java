@@ -62,12 +62,11 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	final PropertyMap metadataMap;
 	final boolean separateChannel;
 	private int timepoint;
-	final boolean maxProject;
 	final boolean isMultiPosition;
 	MaxProjections[] maxProjections;
 
 	public OMETIFFHandler( CMMCore iCore, File outDir, String filenamePrefix, Row[] acqRows, int channels,
-			int iTimeSteps, int tileCount, SummaryMetadata metadata, boolean exportToHDF5, boolean separateChannel, boolean maxProjection ) {
+			int iTimeSteps, int tileCount, SummaryMetadata metadata, boolean exportToHDF5, boolean separateChannel ) {
 
 		if(outDir == null || !outDir.exists() || !outDir.isDirectory())
 			throw new IllegalArgumentException("Null path specified: " + outDir.toString());
@@ -87,19 +86,7 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		this.prefix = filenamePrefix;
 		this.metadataMap = (( DefaultSummaryMetadata) metadata).toPropertyMap();
 		this.separateChannel = separateChannel;
-		this.maxProject = maxProjection;
 		this.isMultiPosition = ( stacks > 1 );
-
-		if ( maxProject )
-		{
-			if ( separateChannel )
-				maxProjections = new MaxProjections[ channels ];
-			else
-				maxProjections = new MaxProjections[ 1 ];
-
-			for ( int i = 0; i < maxProjections.length; i++ )
-				maxProjections[ i ] = new MaxProjections();
-		}
 
 		List<String> multis = MMAcquisitionEngine.getMultiCams(core);
 
@@ -242,12 +229,6 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		++imageCounter;
 		openWriter(angle, time);
 		timepoint = time;
-
-		if ( maxProject )
-		{
-			for ( int i = 0; i < maxProjections.length; i++ )
-				maxProjections[ i ].reset();
-		}
 	}
 
 	private int doubleAnnotations = 0;
@@ -290,14 +271,6 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 			meta.setPlaneTheC(new NonNegativeInteger(c), image, plane);
 		}
 
-		if ( maxProject )
-		{
-			if ( separateChannel )
-				maxProjections[ plane ].addXYSlice( ip );
-			else
-				maxProjections[ 0 ].addXYSlice( ip );
-		}
-
 		meta.setPlanePositionX(new Length(X, UNITS.REFERENCEFRAME), image, plane);
 		meta.setPlanePositionY(new Length(Y, UNITS.REFERENCEFRAME), image, plane);
 		meta.setPlanePositionZ(new Length(Z, UNITS.REFERENCEFRAME), image, plane);
@@ -328,35 +301,6 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		if(writer != null)
 		{
 			writer.close();
-		}
-
-		if ( maxProject )
-		{
-			if ( outputDirectory != null )
-			{
-				File saveDir = new File( outputDirectory, "MIP" );
-
-				if ( !saveDir.exists() && !saveDir.mkdirs() )
-				{
-					ij.IJ.log( "Couldn't create output directory " + saveDir.getAbsolutePath() );
-				}
-				else
-				{
-					for ( int i = 0; i < maxProjections.length; i++ )
-					{
-						String posString = "";
-						if ( isMultiPosition )
-							posString = String.format( "_Pos%02d", angle );
-
-						if ( separateChannel )
-							posString += String.format( "_Ch%02d", i );
-
-						String fileString = String.format( prefix + "TL%04d" + posString + ".tiff", timepoint );
-
-						maxProjections[ i ].write( new File( saveDir, fileString ) );
-					}
-				}
-			}
 		}
 	}
 
