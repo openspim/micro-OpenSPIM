@@ -385,10 +385,13 @@ public class MMAcquisitionEngine
 							Vector3D offset = driftCompMap.get(positionItem).getUpdatedOffset();
 							double xOffset = offset.getX() * core.getPixelSizeUm() * -1;
 							double yOffset = offset.getY() * core.getPixelSizeUm();
+							double zOffset = offset.getZ() * positionItem.getZStep() * -1;
 							System.out.println("PixelSizeUm = " + core.getPixelSizeUm());
-							System.out.println("Anti-Drift used offset only X:" + xOffset + " Y:" + yOffset + " Z:" + offset.getZ());
+							System.out.println("Anti-Drift used offset only X:" + xOffset + " Y:" + yOffset + " Z:" + zOffset);
 							positionItem.setX(positionItem.getX() + xOffset);
 							positionItem.setY(positionItem.getY() + yOffset);
+							positionItem.setZStart(positionItem.getZStart() + zOffset);
+							positionItem.setZEnd(positionItem.getZEnd() + zOffset);
 						}
 
 						// Move the stage
