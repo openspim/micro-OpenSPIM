@@ -89,7 +89,7 @@ public class TaggedImageSink {
 		processedImages_ = processedImages;
 		antiDrift_ = antiDrift;
 
-		camChannels_ = new HashMap<>( handlers_.keySet()
+		camChannels_ = new HashMap<>( cameras_
 				.stream().collect( Collectors.toMap( Function.identity(), c -> 0 ) ) );
 
 		x_ = x;
@@ -159,7 +159,7 @@ public class TaggedImageSink {
 //								System.out.println(ch);
 								int channel = ch;
 
-								if(handlers_.containsKey( cam ))
+								if(camChannels_.containsKey( cam ))
 								{
 									channel = camChannels_.get(cam);
 								}
