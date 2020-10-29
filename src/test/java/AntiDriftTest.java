@@ -66,7 +66,7 @@ public class AntiDriftTest
 	@Test
 	public void testAntiDrift()
 	{
-		final DefaultAntiDrift proj = new DefaultAntiDrift(5, 7);
+		final DefaultAntiDrift proj = new DefaultAntiDrift(7);
 		proj.startNewStack();
 
 		final ImageStack stackFirst = impFirst.getImageStack();
@@ -193,7 +193,7 @@ public class AntiDriftTest
 //			}
 //		});
 
-		final DefaultAntiDrift proj = new DefaultAntiDrift(5, 7);
+		final DefaultAntiDrift proj = new DefaultAntiDrift(7);
 
 //		String filename = "Pd_100TP_ch_0-1.tif";
 		String filename = "TP0-310_shift_3xds.tif";
@@ -269,7 +269,7 @@ public class AntiDriftTest
 
 			double xOffset, yOffset;
 
-			Vector3D offset = proj.getCumulativeOffset();
+			Vector3D offset = proj.getUpdatedOffset();
 			xOffset = offset.getX();
 			yOffset = offset.getY();
 			System.out.println("Anti-Drift used offset only X,Y: " + offset);
@@ -292,7 +292,7 @@ public class AntiDriftTest
 			proj.updateOffset(proj.finishStack());
 		}
 		ip.close();
-		System.out.println("Final offset: " + proj.getCumulativeOffset());
+		System.out.println("Final offset: " + proj.getUpdatedOffset());
 
 
 //		for(int i = 0; i < 5; i++)

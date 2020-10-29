@@ -360,7 +360,7 @@ public class MMAcquisitionEngine
 		if(antiDrift) {
 			driftCompMap = new HashMap<>(positionItems.size());
 			for( PositionItem positionItem : positionItems )
-				driftCompMap.put(positionItem, new DefaultAntiDrift(5, 10));
+				driftCompMap.put(positionItem, new DefaultAntiDrift(10));
 		}
 
 		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, handlers, channelItems, arduinoSelected, processedImages, driftCompMap );
@@ -381,18 +381,19 @@ public class MMAcquisitionEngine
 
 //						display.setCustomTitle( acqFilenamePrefix + String.format( " t=%d, p=%d", timePoints, step ) );
 
-						double xOffset = 0, yOffset = 0;
-
 						if(driftCompMap != null) {
-							Vector3D offset = driftCompMap.get(positionItem).getCumulativeOffset();
-							xOffset = offset.getX() * core.getPixelSizeUm();
-							yOffset = offset.getY() * core.getPixelSizeUm();
-							System.out.println("Anti-Drift used offset only X:" + xOffset + " Y:" + yOffset);
+							Vector3D offset = driftCompMap.get(positionItem).getUpdatedOffset();
+							double xOffset = offset.getX() * core.getPixelSizeUm();
+							double yOffset = offset.getY() * core.getPixelSizeUm();
+							System.out.println("PixelSizeUm = " + core.getPixelSizeUm());
+							System.out.println("Anti-Drift used offset only X:" + xOffset + " Y:" + yOffset + " Z:" + offset.getZ());
+							positionItem.setX(positionItem.getX() + xOffset);
+							positionItem.setY(positionItem.getY() + yOffset);
 						}
 
 						// Move the stage
 						if(stagePanel != null)
-							stagePanel.goToPos( positionItem.getX() + xOffset, positionItem.getY() + yOffset, positionItem.getR() );
+							stagePanel.goToPos( positionItem.getX(), positionItem.getY(), positionItem.getR() );
 						try
 						{
 							core.waitForSystem();
