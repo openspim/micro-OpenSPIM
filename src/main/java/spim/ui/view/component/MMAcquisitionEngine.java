@@ -383,7 +383,7 @@ public class MMAcquisitionEngine
 
 						if(driftCompMap != null) {
 							Vector3D offset = driftCompMap.get(positionItem).getUpdatedOffset();
-							double xOffset = offset.getX() * core.getPixelSizeUm();
+							double xOffset = offset.getX() * core.getPixelSizeUm() * -1;
 							double yOffset = offset.getY() * core.getPixelSizeUm();
 							System.out.println("PixelSizeUm = " + core.getPixelSizeUm());
 							System.out.println("Anti-Drift used offset only X:" + xOffset + " Y:" + yOffset + " Z:" + offset.getZ());
