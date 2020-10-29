@@ -225,7 +225,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 					DisplayWindow display = frame.displays().createDisplay(mpStore_);
 					display.setCustomTitle("MIP:" + acqFilenamePrefix);
 					frame.displays().manage(mpStore_);
-					mpImages_ = new TreeMap[!arduinoSelected_ && currentCamera.startsWith("Multi") ? multis.size() * channels.size() : channels.size()];
+					mpImages_ = new TreeMap[currentCamera.startsWith("Multi") ? multis.size() * channels.size() : channels.size()];
 					for (int i = 0; i < mpImages_.length; i++) {
 						mpImages_[i] = new TreeMap<>();
 					}
