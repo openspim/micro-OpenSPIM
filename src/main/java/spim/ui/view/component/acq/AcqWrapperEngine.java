@@ -25,6 +25,7 @@ import org.micromanager.acquisition.SequenceSettings;
 import org.micromanager.acquisition.internal.AcquisitionEngine;
 import org.micromanager.acquisition.internal.IAcquisitionEngine2010;
 import org.micromanager.data.*;
+import org.micromanager.data.internal.DefaultDatastore;
 import org.micromanager.display.DisplayWindow;
 import org.micromanager.events.AcquisitionEndedEvent;
 import org.micromanager.events.internal.DefaultAcquisitionEndedEvent;
@@ -39,6 +40,7 @@ import org.micromanager.internal.utils.NumberUtils;
 import org.micromanager.internal.utils.ReportingUtils;
 import spim.algorithm.DefaultAntiDrift;
 import spim.hardware.SPIMSetup;
+import spim.io.OpenSPIMSinglePaneTiffSeries;
 import spim.io.OutputHandler;
 import spim.model.data.ChannelItem;
 import spim.model.data.PositionItem;
@@ -215,7 +217,10 @@ public class AcqWrapperEngine implements AcquisitionEngine
 				if (null != acqFilenamePrefix) {
 					List<String> multis = MMAcquisitionEngine.getMultiCams(core_);
 
-					mpStore_ = frame.data().createMultipageTIFFDatastore(saveDir.getPath(), false, false);
+					DefaultDatastore result = new DefaultDatastore(frame);
+					result.setStorage(new OpenSPIMSinglePaneTiffSeries(result, saveDir.getAbsolutePath(), acqFilenamePrefix, true));
+					mpStore_ = result;
+
 					DisplayWindow display = frame.displays().createDisplay(mpStore_);
 					display.setCustomTitle("MIP:" + acqFilenamePrefix);
 					frame.displays().manage(mpStore_);
