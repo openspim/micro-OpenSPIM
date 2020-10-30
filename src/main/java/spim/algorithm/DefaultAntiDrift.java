@@ -29,8 +29,8 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 	{
 		latest = new Projections();
 
-//		if(first == null)
-//			first = latest;
+		if(first == null)
+			first = latest;
 	}
 
 	@Override public void addXYSlice( ImageProcessor ip )
