@@ -145,6 +145,8 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		}
 
 		if(setup != null) {
+			stageUnitR.setParents(this, studio);
+
 			// start executor for monitoring values
 			executor.scheduleAtFixedRate( () -> {
 				monitorSPIM();
@@ -276,6 +278,11 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		stageUnitR.setCurrentPos(r);
 		stageUnitX.setCurrentPos(x);
 		stageUnitY.setCurrentPos(y);
+	}
+
+	public void goToOffset(double x, double z) {
+		stageUnitX.setCurrentPos( stageUnitX.getCurrentValue() + x );
+		stageUnitZ.setCurrentPos( stageUnitZ.getCurrentValue() + z );
 	}
 
 	public void goToZ(double z) {

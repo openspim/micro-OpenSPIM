@@ -12,17 +12,18 @@ import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.Label;
-import javafx.scene.control.Separator;
-import javafx.scene.control.Tooltip;
+import javafx.scene.control.*;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
+import org.micromanager.Studio;
+import org.micromanager.internal.utils.imageanalysis.ImageUtils;
+import spim.algorithm.AntiDrift;
+import spim.algorithm.DefaultAntiDrift;
 import spim.ui.view.component.iconswitch.IconSwitch;
 import spim.ui.view.component.slider.StageSlider;
 
@@ -58,6 +59,20 @@ public class StageUnit extends Region
 	private spim.hardware.Stage stageDevice;
 
 	private double currentValue;
+
+	StagePanel parent;
+
+	Studio studio;
+
+	DefaultAntiDrift ad;
+
+	BooleanProperty smartSelected;
+
+	public void setParents(StagePanel parent, Studio studio) {
+		this.parent = parent;
+		this.studio = studio;
+		ad = new DefaultAntiDrift(10);
+	}
 
 	public void setStageDevice(spim.hardware.Stage stageDevice) {
 		this.stageDevice = stageDevice;
@@ -153,10 +168,29 @@ public class StageUnit extends Region
 
 		booleanStateMap.get( BooleanState.Ready ).addListener( ( observable, oldValue, newValue ) ->
 		{
-			if ( newValue )
-				indicator.setIndicatorStyle( SimpleIndicator.IndicatorStyle.GREEN );
-			else
-				indicator.setIndicatorStyle( SimpleIndicator.IndicatorStyle.GRAY );
+			if ( newValue ) {
+				indicator.setIndicatorStyle(SimpleIndicator.IndicatorStyle.GREEN);
+
+				if(smartSelected.get()) {
+					ad.startNewStack();
+					try {
+						ad.addXYSlice(ImageUtils.makeProcessor(studio.core().getTaggedImage()));
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+
+					ad.updateOffset( ad.finishStack() );
+					Vector3D offset = ad.getUpdatedOffset();
+
+					double xOffset = offset.getX() < 50 ? offset.getX() * studio.core().getPixelSizeUm() * -1 : 0;
+					double zOffset = offset.getZ() < 20 ? offset.getZ() * studio.core().getPixelSizeUm() : 0;
+					System.out.println("PixelSizeUm = " + studio.core().getPixelSizeUm());
+					System.out.println("Used offset only X:" + xOffset + " Z:" + zOffset);
+					parent.goToOffset(xOffset, zOffset);
+				}
+			} else {
+				indicator.setIndicatorStyle(SimpleIndicator.IndicatorStyle.GRAY);
+			}
 		} );
 
 		if ( booleanStateMap.get( BooleanState.Ready ).get() )
@@ -235,6 +269,9 @@ public class StageUnit extends Region
 
 		final HBox stageBox = new HBox( 5 );
 
+		CheckBox smart = new CheckBox("Smart Rotate");
+		smartSelected = smart.selectedProperty();
+
 		// Fine grained control buttons
 		String style = "-fx-font-size: 10px; ";
 		// 100 um
@@ -261,6 +298,16 @@ public class StageUnit extends Region
 			@Override public void handle( ActionEvent event )
 			{
 				double unit = isR ? -1 : -10;
+
+				if(smartSelected.get()) {
+					ad.startNewStack();
+					try {
+						ad.addXYSlice(ImageUtils.makeProcessor(studio.core().getTaggedImage()));
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					ad.finishStack();
+				}
 				double n = Math.max( ( ( SimpleDoubleProperty ) targetValueProperty ).get() + unit, 0);
 				targetValueProperty.setValue( n );
 				targetSlider.getSlider().setValue( n );
@@ -292,6 +339,16 @@ public class StageUnit extends Region
 			@Override public void handle( ActionEvent event )
 			{
 				double unit = isR ? 1 : 10;
+
+				if(smartSelected.get()) {
+					ad.startNewStack();
+					try {
+						ad.addXYSlice(ImageUtils.makeProcessor(studio.core().getTaggedImage()));
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					ad.finishStack();
+				}
 				double n = Math.min( ( ( SimpleDoubleProperty ) targetValueProperty ).get() + unit, targetSlider.getSlider().getMax() );
 				targetValueProperty.setValue( n );
 				targetSlider.getSlider().setValue( n );
@@ -299,7 +356,12 @@ public class StageUnit extends Region
 			}
 		} );
 
-		final HBox buttonsBox = new HBox( 2, decreaseBtn100, new Separator( Orientation.VERTICAL ), decreaseBtn10, new Separator( Orientation.VERTICAL ), increaseBtn10, new Separator( Orientation.VERTICAL ), increaseBtn100 );
+
+
+		HBox buttonsBox = new HBox( 2, decreaseBtn100, new Separator( Orientation.VERTICAL ), decreaseBtn10, new Separator( Orientation.VERTICAL ), increaseBtn10, new Separator( Orientation.VERTICAL ), increaseBtn100 );
+
+		if(isR) buttonsBox.getChildren().addAll(new Separator( Orientation.VERTICAL ), smart);
+
 		buttonsBox.setPadding(new Insets(0, 50, 0, 70));
 		buttonsBox.setAlignment( Pos.TOP_LEFT );
 		buttonsBox.setDisable( true );
