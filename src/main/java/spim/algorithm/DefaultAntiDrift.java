@@ -25,6 +25,11 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 		this(10);
 	}
 
+	public void reset()
+	{
+		first = null;
+	}
+
 	@Override public void startNewStack()
 	{
 		latest = new Projections();

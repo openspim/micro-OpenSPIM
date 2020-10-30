@@ -21,6 +21,8 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.micromanager.Studio;
+import org.micromanager.data.Image;
+import org.micromanager.data.internal.DefaultImageJConverter;
 import org.micromanager.internal.utils.imageanalysis.ImageUtils;
 import spim.algorithm.AntiDrift;
 import spim.algorithm.DefaultAntiDrift;
@@ -28,6 +30,7 @@ import spim.ui.view.component.iconswitch.IconSwitch;
 import spim.ui.view.component.slider.StageSlider;
 
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -301,11 +304,7 @@ public class StageUnit extends Region
 
 				if(smartSelected.get()) {
 					ad.startNewStack();
-					try {
-						ad.addXYSlice(ImageUtils.makeProcessor(studio.core().getTaggedImage()));
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
+					ad.addXYSlice( DefaultImageJConverter.createProcessor(studio.live().snap(false).get(0), false));
 					ad.finishStack();
 				}
 				double n = Math.max( ( ( SimpleDoubleProperty ) targetValueProperty ).get() + unit, 0);
@@ -342,11 +341,7 @@ public class StageUnit extends Region
 
 				if(smartSelected.get()) {
 					ad.startNewStack();
-					try {
-						ad.addXYSlice(ImageUtils.makeProcessor(studio.core().getTaggedImage()));
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
+					ad.addXYSlice( DefaultImageJConverter.createProcessor(studio.live().snap(false).get(0), false));
 					ad.finishStack();
 				}
 				double n = Math.min( ( ( SimpleDoubleProperty ) targetValueProperty ).get() + unit, targetSlider.getSlider().getMax() );
@@ -360,7 +355,15 @@ public class StageUnit extends Region
 
 		HBox buttonsBox = new HBox( 2, decreaseBtn100, new Separator( Orientation.VERTICAL ), decreaseBtn10, new Separator( Orientation.VERTICAL ), increaseBtn10, new Separator( Orientation.VERTICAL ), increaseBtn100 );
 
-		if(isR) buttonsBox.getChildren().addAll(new Separator( Orientation.VERTICAL ), smart);
+		Button resetAd = new Button("Reset Smart");
+		resetAd.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				ad.reset();
+			}
+		});
+
+		if(isR) buttonsBox.getChildren().addAll(new Separator( Orientation.VERTICAL ), resetAd, smart);
 
 		buttonsBox.setPadding(new Insets(0, 50, 0, 70));
 		buttonsBox.setAlignment( Pos.TOP_LEFT );
