@@ -198,8 +198,6 @@ public class StageUnit extends Region
 			resetButton.setPrefWidth( 70 );
 			resetButton.setOnAction( event -> {
 				if(getStageDevice() != null) {
-					System.err.println("Current Step Size: " + getStageDevice().getStepSize());
-					getStageDevice().setStepSize( 1.0f );
 					RotatorCalibrationDialog dlg = new RotatorCalibrationDialog( getStageDevice() );
 
 					dlg.showAndWait()

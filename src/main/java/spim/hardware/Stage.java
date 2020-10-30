@@ -5,14 +5,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import javafx.beans.property.SimpleDoubleProperty;
 import org.micromanager.internal.utils.ReportingUtils;
 
 import spim.hardware.SPIMSetup.SPIMDevice;
 
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
-
-import static spim.mm.MicroManager.setConfigChanged;
 
 public class Stage extends Device {
 	static {
@@ -23,8 +22,11 @@ public class Stage extends Device {
 		}, "*", SPIMDevice.STAGE_Z);
 	}
 
+	final SimpleDoubleProperty stepSizeProperty;
+
 	public Stage(CMMCore core, String label) {
 		super(core, label);
+		stepSizeProperty = new SimpleDoubleProperty(1);
 	}
 
 	/**
@@ -114,10 +116,17 @@ public class Stage extends Device {
 	 * @return um/step of the motor
 	 */
 	public double getStepSize() {
+		double stepSize;
 		if(hasProperty("StepSize"))
-			return getPropertyDouble("StepSize");
+			stepSize = getPropertyDouble("StepSize");
 		else
-			return 1.0;
+			stepSize = 1.0;
+
+		if(stepSize == 1.0) {
+			stepSize = stepSizeProperty.get();
+		}
+
+		return stepSize;
 	}
 
 	/**
@@ -190,9 +199,13 @@ public class Stage extends Device {
 	public void setStepSize(double stepSize) throws UnsupportedOperationException {
 		if(hasProperty("StepSize"))
 		{
+			stepSizeProperty.set(stepSize);
 			setProperty( "StepSize", stepSize );
-			setConfigChanged();
 		} else
 			throw new UnsupportedOperationException();
+	}
+
+	public SimpleDoubleProperty stepSizeProperty() {
+		return stepSizeProperty;
 	}
 }

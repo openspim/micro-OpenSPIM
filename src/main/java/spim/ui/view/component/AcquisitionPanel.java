@@ -169,6 +169,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	SimpleDoubleProperty cylinderSize;
 	SimpleDoubleProperty waitSeconds;
 
+	// Rotate Step Size
+	SimpleDoubleProperty rotateStepSize;
+
 	Group zStackGroup;
 	GridPane zStackGridPane;
 	StackCube cube;
@@ -210,6 +213,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		this.currentTP = new SimpleDoubleProperty( 0 );
 		this.cylinderSize = new SimpleDoubleProperty( 400 );
+
+		this.rotateStepSize = new SimpleDoubleProperty(1);
 
 		// Wait timer
 		this.waitSeconds = waitSeconds;
@@ -701,6 +706,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				else channelItemTableView = TableViewUtil.createChannelItemDataView(setup, null);
 				Node viewContent = createChannelItemTable( channelItemTableView, setup.getCamera1().getLabel(), setup.getLaser().getLabel(), exposure );
 				laserTab.setContent( viewContent );
+
+				if(spimSetup != null && spimSetup.getThetaStage() != null) {
+					rotateStepSize.bindBidirectional(spimSetup.getThetaStage().stepSizeProperty());
+				}
 			}
 
 			String acqSettingFile = (( MMStudio ) this.studio).getSysConfigFile() + ".xml";
@@ -805,6 +814,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			Roi ipRoi = studio.live().getDisplay().getImagePlus().getRoi();
 			studio.live().getDisplay().getImagePlus().setRoi( ( java.awt.Rectangle ) setting.getRoiRectangle() );
 		}
+
+		// Extra update
+		rotateStepSize.set(setting.getRotateStepSize());
 	}
 
 	private AcquisitionSetting getAcquisitionSetting() {
@@ -816,7 +828,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		return new AcquisitionSetting( enabledTimePoints, timePointItems,
 				enabledPositions, positionItems, enabledZStacks, acquisitionOrder,
 				enabledChannels, channelTabPane.getSelectionModel().selectedIndexProperty().get(), channelItems,
-				channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveAsHDF5, saveMIP, roiRectangle );
+				channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveAsHDF5, saveMIP, roiRectangle, rotateStepSize );
 	}
 
 	private void clearAcquisitionSetting() {
@@ -840,6 +852,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		saveAsHDF5.set( false );
 		saveMIP.set( false );
 		roiRectangle.set( null );
+
+		rotateStepSize.set(1);
 	}
 
 	public void stopAcquisition()

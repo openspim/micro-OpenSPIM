@@ -1,6 +1,7 @@
 package spim.ui.view.component;
 
 import javafx.application.Platform;
+import javafx.beans.property.StringProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.EventHandler;
@@ -31,6 +32,7 @@ import static java.lang.Math.signum;
 public class RotatorCalibrationDialog extends Alert
 {
 	private double returnResult = 0;
+	private StringProperty stepSizeProperty;
 	ScheduledExecutorService executor;
 
 	public RotatorCalibrationDialog( spim.hardware.Stage stage )
@@ -48,7 +50,8 @@ public class RotatorCalibrationDialog extends Alert
 		final StageUnit unit = new StageUnit( "Rotator ", false, true, stage );
 
 		Label stepSizeLabel = new Label( "Calculated StepSize:" );
-		TextField stepSize = new TextField(  );
+		TextField stepSize = new TextField( stage.getStepSize() + "" );
+		stepSizeProperty = stepSize.textProperty();
 		unit.deviceValueProperty().addListener( new ChangeListener< Number >()
 		{
 			@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
@@ -120,7 +123,8 @@ public class RotatorCalibrationDialog extends Alert
 
 	public double getReturnResult()
 	{
-		return returnResult;
+//		return returnResult;
+		return Double.parseDouble(stepSizeProperty.getValue());
 	}
 
 	private void monitorSPIM(StageUnit unit) {

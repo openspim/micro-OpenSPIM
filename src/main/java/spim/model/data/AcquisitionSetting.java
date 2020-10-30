@@ -1,6 +1,7 @@
 package spim.model.data;
 
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.StringProperty;
 
@@ -53,6 +54,9 @@ public class AcquisitionSetting
 	Boolean saveAsHDF5;
 	Boolean saveMIP;
 	Object roiRectangle;
+
+	// Extra
+	Double rotateStepSize;
 
 	public Boolean getEnabledTimePoints()
 	{
@@ -224,11 +228,19 @@ public class AcquisitionSetting
 		this.roiRectangle = roiRectangle;
 	}
 
+	public Double getRotateStepSize() {
+		return rotateStepSize;
+	}
+
+	public void setRotateStepSize(Double rotateStepSize) {
+		this.rotateStepSize = rotateStepSize;
+	}
+
 	public AcquisitionSetting()
 	{
 	}
 
-	public AcquisitionSetting( BooleanProperty enabledTimePoints, ArrayList< TimePointItem > timePointItems, BooleanProperty enabledPositions, ArrayList< PositionItem > positionItems, BooleanProperty enabledZStacks, ObjectProperty acquisitionOrder, BooleanProperty enabledChannels, int selectedTabIndex, ArrayList< ChannelItem > channelItems, ArrayList< ChannelItem > channelItemsArduino, BooleanProperty enabledSaveImages, StringProperty directory, StringProperty filename, ObjectProperty savingFormat, BooleanProperty saveAsHDF5, BooleanProperty saveMIP, ObjectProperty roiRectangle )
+	public AcquisitionSetting(BooleanProperty enabledTimePoints, ArrayList< TimePointItem > timePointItems, BooleanProperty enabledPositions, ArrayList< PositionItem > positionItems, BooleanProperty enabledZStacks, ObjectProperty acquisitionOrder, BooleanProperty enabledChannels, int selectedTabIndex, ArrayList< ChannelItem > channelItems, ArrayList< ChannelItem > channelItemsArduino, BooleanProperty enabledSaveImages, StringProperty directory, StringProperty filename, ObjectProperty savingFormat, BooleanProperty saveAsHDF5, BooleanProperty saveMIP, ObjectProperty roiRectangle, DoubleProperty rotateStepSize)
 	{
 		// 1.1 Time points panel
 		this.enabledTimePoints = enabledTimePoints.get();
@@ -260,6 +272,9 @@ public class AcquisitionSetting
 		this.saveAsHDF5 = saveAsHDF5.get();
 		this.saveMIP = saveMIP.get();
 		this.roiRectangle = roiRectangle.get();
+
+		// Extra
+		this.rotateStepSize = rotateStepSize.get();
 	}
 
 	public static AcquisitionSetting load( File file ) {
