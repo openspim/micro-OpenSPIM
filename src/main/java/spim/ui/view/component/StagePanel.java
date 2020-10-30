@@ -459,7 +459,10 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 				if(smartRotate.get()) {
 					double xoff = Double.parseDouble(xOffsetTextField.getText());
 					double zoff = Double.parseDouble(zOffsetTextField.getText());
-					goToOffset(xoff, zoff);
+					if(newValue.doubleValue() > oldValue.doubleValue())
+						goToOffset(xoff, zoff);
+					else
+						goToOffset(-xoff, -zoff);
 				}
 			}
 		});
