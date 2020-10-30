@@ -2,6 +2,7 @@ package spim.ui.view.component;
 
 import eu.hansolo.enzo.common.SymbolType;
 import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.Property;
 import javafx.beans.property.SimpleDoubleProperty;
@@ -15,11 +16,7 @@ import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.MenuButton;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.Spinner;
+import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -68,6 +65,8 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 	// For undo task
 	StageUnit lastUsedStageUnit;
 	double lastUsedLocation;
+
+	BooleanProperty smartRotate;
 
 	public void setAcquisitionPanel( AcquisitionPanel acquisitionPanel )
 	{
@@ -145,8 +144,6 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		}
 
 		if(setup != null) {
-			stageUnitR.setParents(this, studio);
-
 			// start executor for monitoring values
 			executor.scheduleAtFixedRate( () -> {
 				monitorSPIM();
@@ -445,6 +442,28 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		HBox topHbox = new HBox( 10, new Label( "All On/Off: " ), switchAll, saveCurrentLocation, loadLocation );
 		topHbox.setAlignment( Pos.CENTER_LEFT );
 
+		// Smart rotate
+		CheckBox smartCheckBox = new CheckBox("Smart Rotate");
+		smartRotate = smartCheckBox.selectedProperty();
+
+		TextField xOffsetTextField = new TextField("1");
+		xOffsetTextField.setMaxWidth(50);
+		TextField zOffsetTextField = new TextField("1");
+		zOffsetTextField.setMaxWidth(50);
+		HBox smartBox = new HBox(10, smartCheckBox, new Label("X:"), xOffsetTextField, new Label("Z:"), zOffsetTextField);
+		smartBox.setAlignment( Pos.CENTER_LEFT );
+
+		stageUnitR.targetValueProperty().addListener(new ChangeListener<Number>() {
+			@Override
+			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+				if(smartRotate.get()) {
+					double xoff = Double.parseDouble(xOffsetTextField.getText());
+					double zoff = Double.parseDouble(zOffsetTextField.getText());
+					goToOffset(xoff, zoff);
+				}
+			}
+		});
+
 		Button undoBtn = new Button( "Go back to the last used position" );
 		undoBtn.setStyle("-fx-base: #c1e796;");
 		undoBtn.setOnAction( new EventHandler< ActionEvent >()
@@ -457,7 +476,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		VBox controls = new VBox( 10, topHbox, angleIndiBox, stageUnitR, stageUnitX, stageUnitY, stageUnitZ, newButton, undoBtn );
+		VBox controls = new VBox( 10, topHbox, smartBox, angleIndiBox, stageUnitR, stageUnitX, stageUnitY, stageUnitZ, newButton, undoBtn );
 		controls.setPadding( new Insets( 10 ) );
 		return controls;
 	}

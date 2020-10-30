@@ -63,20 +63,6 @@ public class StageUnit extends Region
 
 	private double currentValue;
 
-	StagePanel parent;
-
-	Studio studio;
-
-	DefaultAntiDrift ad;
-
-	BooleanProperty smartSelected;
-
-	public void setParents(StagePanel parent, Studio studio) {
-		this.parent = parent;
-		this.studio = studio;
-		ad = new DefaultAntiDrift(10);
-	}
-
 	public void setStageDevice(spim.hardware.Stage stageDevice) {
 		this.stageDevice = stageDevice;
 
@@ -173,24 +159,6 @@ public class StageUnit extends Region
 		{
 			if ( newValue ) {
 				indicator.setIndicatorStyle(SimpleIndicator.IndicatorStyle.GREEN);
-
-				if(smartSelected.get()) {
-					ad.startNewStack();
-					try {
-						ad.addXYSlice(ImageUtils.makeProcessor(studio.core().getTaggedImage()));
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-
-					ad.updateOffset( ad.finishStack() );
-					Vector3D offset = ad.getUpdatedOffset();
-
-					double xOffset = offset.getX() < 50 ? offset.getX() * studio.core().getPixelSizeUm() * -1 : 0;
-					double zOffset = offset.getZ() < 20 ? offset.getZ() * studio.core().getPixelSizeUm() : 0;
-					System.out.println("PixelSizeUm = " + studio.core().getPixelSizeUm());
-					System.out.println("Used offset only X:" + xOffset + " Z:" + zOffset);
-					parent.goToOffset(xOffset, zOffset);
-				}
 			} else {
 				indicator.setIndicatorStyle(SimpleIndicator.IndicatorStyle.GRAY);
 			}
@@ -272,9 +240,6 @@ public class StageUnit extends Region
 
 		final HBox stageBox = new HBox( 5 );
 
-		CheckBox smart = new CheckBox("Smart Rotate");
-		smartSelected = smart.selectedProperty();
-
 		// Fine grained control buttons
 		String style = "-fx-font-size: 10px; ";
 		// 100 um
@@ -301,12 +266,6 @@ public class StageUnit extends Region
 			@Override public void handle( ActionEvent event )
 			{
 				double unit = isR ? -1 : -10;
-
-				if(smartSelected.get()) {
-					ad.startNewStack();
-					ad.addXYSlice( DefaultImageJConverter.createProcessor(studio.live().snap(false).get(0), false));
-					ad.finishStack();
-				}
 				double n = Math.max( ( ( SimpleDoubleProperty ) targetValueProperty ).get() + unit, 0);
 				targetValueProperty.setValue( n );
 				targetSlider.getSlider().setValue( n );
@@ -338,12 +297,6 @@ public class StageUnit extends Region
 			@Override public void handle( ActionEvent event )
 			{
 				double unit = isR ? 1 : 10;
-
-				if(smartSelected.get()) {
-					ad.startNewStack();
-					ad.addXYSlice( DefaultImageJConverter.createProcessor(studio.live().snap(false).get(0), false));
-					ad.finishStack();
-				}
 				double n = Math.min( ( ( SimpleDoubleProperty ) targetValueProperty ).get() + unit, targetSlider.getSlider().getMax() );
 				targetValueProperty.setValue( n );
 				targetSlider.getSlider().setValue( n );
@@ -354,16 +307,6 @@ public class StageUnit extends Region
 
 
 		HBox buttonsBox = new HBox( 2, decreaseBtn100, new Separator( Orientation.VERTICAL ), decreaseBtn10, new Separator( Orientation.VERTICAL ), increaseBtn10, new Separator( Orientation.VERTICAL ), increaseBtn100 );
-
-		Button resetAd = new Button("Reset Smart");
-		resetAd.setOnAction(new EventHandler<ActionEvent>() {
-			@Override
-			public void handle(ActionEvent event) {
-				ad.reset();
-			}
-		});
-
-		if(isR) buttonsBox.getChildren().addAll(new Separator( Orientation.VERTICAL ), resetAd, smart);
 
 		buttonsBox.setPadding(new Insets(0, 50, 0, 70));
 		buttonsBox.setAlignment( Pos.TOP_LEFT );
