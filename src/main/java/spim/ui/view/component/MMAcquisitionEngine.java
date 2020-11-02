@@ -27,7 +27,9 @@ import org.micromanager.data.RewritableDatastore;
 import org.micromanager.data.SummaryMetadata;
 import org.micromanager.data.internal.DefaultDatastore;
 import org.micromanager.data.internal.DefaultSummaryMetadata;
-import org.micromanager.display.DisplayWindow;
+import org.micromanager.data.internal.PropertyKey;
+import org.micromanager.display.*;
+import org.micromanager.display.internal.DefaultDisplaySettings;
 import org.micromanager.events.AcquisitionEndedEvent;
 import org.micromanager.events.AcquisitionStartedEvent;
 
@@ -36,7 +38,6 @@ import org.micromanager.internal.utils.UserProfileManager;
 import org.micromanager.internal.utils.imageanalysis.ImageUtils;
 import spim.acquisition.Row;
 import spim.algorithm.DefaultAntiDrift;
-import spim.controller.AntiDriftController;
 import spim.hardware.Device;
 import spim.hardware.SPIMSetup;
 import spim.hardware.Stage;
@@ -49,7 +50,7 @@ import spim.model.data.PositionItem;
 import spim.model.data.TimePointItem;
 import spim.ui.view.component.acq.AcqWrapperEngine;
 
-import java.awt.Rectangle;
+import java.awt.*;
 import java.io.File;
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -64,9 +65,12 @@ import java.util.List;
  */
 public class MMAcquisitionEngine
 {
-	static volatile boolean done;
-	static Thread captureThread;
-	static volatile boolean stopRequest = false;
+	private static final Color[] DEFAULT_COLORS = { Color.red, Color.green, Color.blue, Color.yellow, Color.pink, new Color(160, 32, 240) };
+
+	volatile boolean done;
+	Thread captureThread;
+	volatile boolean stopRequest = false;
+	DisplayWindow display_ = null;
 
 	static {
 		DebugTools.enableLogging( "OFF" );
@@ -109,7 +113,7 @@ public class MMAcquisitionEngine
 	 * @throws Exception the exception
 	 */
 	@SuppressWarnings("Duplicates")
-	public static void performAcquisition( Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, Object savingFormatValue, boolean saveMIP, boolean antiDrift ) throws Exception
+	public void performAcquisition( Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, Object savingFormatValue, boolean saveMIP, boolean antiDrift ) throws Exception
 	{
 		final Studio frame = studio;
 
@@ -118,7 +122,6 @@ public class MMAcquisitionEngine
 		boolean liveOn = false;
 //		RewritableDatastore store = null;
 		Datastore store = null;
-		DisplayWindow display = null;
 
 		if(frame != null) {
 			liveOn = frame.live().getIsLiveModeOn();
@@ -132,8 +135,8 @@ public class MMAcquisitionEngine
 			} else {
 				store = frame.data().createRewritableRAMDatastore();
 			}
-			display = frame.displays().createDisplay(store);
-			display.setCustomTitle( acqFilenamePrefix );
+			display_ = frame.displays().createDisplay(store);
+			display_.setCustomTitle( acqFilenamePrefix );
 			frame.displays().manage(store);
 		}
 
@@ -272,6 +275,43 @@ public class MMAcquisitionEngine
 			}
 		} );
 
+		// Setting up the channel colors
+		int[] chColors = new int[channelNames.length];
+
+		for(int i = 0; i < chColors.length; i++) {
+			chColors[i] = DEFAULT_COLORS[i % 6].getRGB();
+		}
+
+		pm.putIntegerList("ChColors", chColors);
+
+		DisplaySettings dsTmp = DefaultDisplaySettings.getStandardSettings(
+				PropertyKey.ACQUISITION_DISPLAY_SETTINGS.key());
+
+		DisplaySettings.Builder displaySettingsBuilder
+				= dsTmp.copyBuilder();
+
+		final int nrChannels = chColors.length;
+
+
+		if (nrChannels == 1) {
+			displaySettingsBuilder.colorModeGrayscale();
+		} else {
+			displaySettingsBuilder.colorModeComposite();
+		}
+		for (int channelIndex = 0; channelIndex < nrChannels; channelIndex++) {
+			ChannelDisplaySettings channelSettings
+					= displaySettingsBuilder.getChannelSettings(channelIndex);
+			Color chColor = new Color(chColors[channelIndex]);
+			ChannelDisplaySettings.Builder csb =
+					channelSettings.copyBuilder().color(chColor);
+
+			csb.name(channelNames[channelIndex]);
+
+			displaySettingsBuilder.channel(channelIndex, csb.build());
+		}
+
+		display_.compareAndSetDisplaySettings(display_.getDisplaySettings(), displaySettingsBuilder.build());
+
 		HashMap<String, OutputHandler> handlers = new HashMap<>(  );
 
 		boolean saveSpim = true;
@@ -323,30 +363,26 @@ public class MMAcquisitionEngine
 				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan, antiDrift);
 	}
 
-	@SuppressWarnings("Duplicates")
-	private static void executeNormalAcquisition(SPIMSetup setup, final Studio frame, Datastore store,
+	private void executeNormalAcquisition(SPIMSetup setup, final Studio frame, Datastore store,
 			StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
 			LongProperty processedImages, final double acqBegan, final boolean antiDrift) throws Exception
 	{
 
-		long acqStart = System.currentTimeMillis();
-
 		// Dynamic timeline
 		runNormalSmartImagingMMAcq(setup, frame, store, stagePanel, currentCamera, cameras,
 				outFolder, acqFilenamePrefix, handlers,
-				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan, acqStart, antiDrift);
+				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, antiDrift);
 
 		finalize(true, setup, currentCamera, cameras, frame, 0, 0, handlers, store);
 	}
 
-	@SuppressWarnings("Duplicates")
-	private static void runNormalSmartImagingMMAcq(SPIMSetup setup, final Studio frame, Datastore store,
+	private void runNormalSmartImagingMMAcq(SPIMSetup setup, final Studio frame, Datastore store,
 			StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
-			LongProperty processedImages, final double acqBegan, long acqStart, final boolean antiDrift) throws Exception
+			LongProperty processedImages, final boolean antiDrift) throws Exception
 	{
 
 		final CMMCore core = frame.core();
@@ -578,7 +614,7 @@ public class MMAcquisitionEngine
 		return frame.getAcquisitionEngine2010();
 	}
 
-	private static void finalize(boolean finalizeStack, SPIMSetup setup, final String currentCamera, List<String> cameras, final Studio frame, final int tp, final int rown, HashMap<String, OutputHandler> handlers, Datastore store) throws Exception
+	private void finalize(boolean finalizeStack, SPIMSetup setup, final String currentCamera, List<String> cameras, final Studio frame, final int tp, final int rown, HashMap<String, OutputHandler> handlers, Datastore store) throws Exception
 	{
 		final CMMCore core = frame.core();
 

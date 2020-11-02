@@ -26,7 +26,11 @@ import org.micromanager.acquisition.internal.AcquisitionEngine;
 import org.micromanager.acquisition.internal.IAcquisitionEngine2010;
 import org.micromanager.data.*;
 import org.micromanager.data.internal.DefaultDatastore;
+import org.micromanager.data.internal.PropertyKey;
+import org.micromanager.display.ChannelDisplaySettings;
+import org.micromanager.display.DisplaySettings;
 import org.micromanager.display.DisplayWindow;
+import org.micromanager.display.internal.DefaultDisplaySettings;
 import org.micromanager.events.AcquisitionEndedEvent;
 import org.micromanager.events.internal.DefaultAcquisitionEndedEvent;
 import org.micromanager.events.internal.DefaultAcquisitionStartedEvent;
@@ -152,7 +156,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		core_.defineConfigGroup( channelGroupName );
 
 		// Channel iteration
-		ArrayList channels = new ArrayList< ChannelSpec >();
+		ArrayList< ChannelSpec > channels = new ArrayList<>();
 		int ch = 0;
 		if(arduinoSelected_) {
 			for ( String camera : cameras_ )
@@ -223,6 +227,35 @@ public class AcqWrapperEngine implements AcquisitionEngine
 					mpStore_ = result;
 
 					DisplayWindow display = frame.displays().createDisplay(mpStore_);
+
+					// Channel setting for the display
+					DisplaySettings dsTmp = DefaultDisplaySettings.getStandardSettings(
+							PropertyKey.ACQUISITION_DISPLAY_SETTINGS.key());
+
+					DisplaySettings.Builder displaySettingsBuilder
+							= dsTmp.copyBuilder();
+
+					final int nrChannels = currentCamera.startsWith("Multi") ? multis.size() * channels.size() : channels.size();
+
+					if (nrChannels == 1) {
+						displaySettingsBuilder.colorModeGrayscale();
+					} else {
+						displaySettingsBuilder.colorModeComposite();
+					}
+					for (int channelIndex = 0; channelIndex < nrChannels; channelIndex++) {
+						ChannelDisplaySettings channelSettings
+								= displaySettingsBuilder.getChannelSettings(channelIndex);
+						Color chColor = DEFAULT_COLORS[(channelIndex+1) % 6];
+						ChannelDisplaySettings.Builder csb =
+								channelSettings.copyBuilder().color(chColor);
+
+						csb.name(channelIndex + "");
+
+						displaySettingsBuilder.channel(channelIndex, csb.build());
+					}
+
+					display.compareAndSetDisplaySettings(display.getDisplaySettings(), displaySettingsBuilder.build());
+
 					display.setCustomTitle("MIP:" + acqFilenamePrefix);
 					frame.displays().manage(mpStore_);
 					mpImages_ = new TreeMap[currentCamera.startsWith("Multi") ? multis.size() * channels.size() : channels.size()];
