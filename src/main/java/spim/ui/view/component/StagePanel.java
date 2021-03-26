@@ -148,6 +148,10 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 			executor.scheduleAtFixedRate( () -> {
 				monitorSPIM();
 			}, 500, 10, TimeUnit.MILLISECONDS );
+
+			switchAll.setSelected(true);
+		} else {
+			switchAll.setSelected(false);
 		}
 	}
 
