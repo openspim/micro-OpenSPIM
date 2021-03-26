@@ -1545,8 +1545,12 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			@Override public void handle( ActionEvent event )
 			{
-				addNewPosition( Integer.parseInt( zStartField.getText() ),
-						Integer.parseInt( zEndField.getText() ), Double.parseDouble( zStepField.getText() ) );
+				if(zStartField.getText().isEmpty()) {
+					addNewPosition( -1, -1, Double.parseDouble( zStepField.getText() ) );
+				} else {
+					addNewPosition( Integer.parseInt( zStartField.getText() ),
+							Integer.parseInt( zEndField.getText() ), Double.parseDouble( zStepField.getText() ) );
+				}
 			}
 		} );
 
@@ -1581,7 +1585,13 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			double r = spimSetup.getThetaStage().getPosition();
 			double x = spimSetup.getXStage().getPosition();
 			double y = spimSetup.getYStage().getPosition();
-			positionItemTableView.getItems().add( new PositionItem( x, y, r, zStart, zEnd, zStep ) );
+
+			if( zStart < 0 && zEnd < 0 ) {
+				double z = spimSetup.getZStage().getPosition();
+				positionItemTableView.getItems().add(new PositionItem(x, y, r, z, z, zStep));
+			} else {
+				positionItemTableView.getItems().add(new PositionItem(x, y, r, zStart, zEnd, zStep));
+			}
 		}
 		else {
 			positionItemTableView.getItems().add( new PositionItem( 10, 20, 30, zStart, zEnd, zStep ) );
