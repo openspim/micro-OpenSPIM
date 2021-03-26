@@ -110,10 +110,11 @@ public class MMAcquisitionEngine
 	 * @param savingFormatValue the value set from { "None", "Separate the channel dimension", "Image stack (include multi-channel)" }
 	 * @param saveMIP Save Maximum Intensity Projection or not
 	 * @param antiDrift Anti-Drift function used or not
+	 * @param experimentNote Experiment Note saved in the metadata
 	 * @throws Exception the exception
 	 */
 	@SuppressWarnings("Duplicates")
-	public void performAcquisition( Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, Object savingFormatValue, boolean saveMIP, boolean antiDrift ) throws Exception
+	public void performAcquisition( Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, Object savingFormatValue, boolean saveMIP, boolean antiDrift, String experimentNote ) throws Exception
 	{
 		final Studio frame = studio;
 
@@ -248,6 +249,8 @@ public class MMAcquisitionEngine
 		{
 			pm.putString("Camera-2", setup.getCamera2().getLabel() );
 		}
+
+		pm.putString("ExperimentNote", experimentNote);
 
 		if(null != roiRectangle)
 		{

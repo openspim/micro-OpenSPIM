@@ -41,6 +41,7 @@ import javafx.scene.control.SplitPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
 
@@ -143,6 +144,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	BooleanProperty saveAsHDF5;
 	BooleanProperty saveMIP;
 	ObjectProperty roiRectangle;
+
+	// Experiment note
+	StringProperty experimentNote;
 
 	// properties for progress
 	LongProperty totalImages, processedImages;
@@ -817,6 +821,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		// Extra update
 		rotateStepSize.set(setting.getRotateStepSize());
+
+		// Experiment Note
+		experimentNote.set(setting.getExperimentNote());
 	}
 
 	private AcquisitionSetting getAcquisitionSetting() {
@@ -828,7 +835,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		return new AcquisitionSetting( enabledTimePoints, timePointItems,
 				enabledPositions, positionItems, enabledZStacks, acquisitionOrder,
 				enabledChannels, channelTabPane.getSelectionModel().selectedIndexProperty().get(), channelItems,
-				channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveAsHDF5, saveMIP, roiRectangle, rotateStepSize );
+				channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveAsHDF5, saveMIP, roiRectangle, rotateStepSize,
+				experimentNote );
 	}
 
 	private void clearAcquisitionSetting() {
@@ -854,6 +862,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		roiRectangle.set( null );
 
 		rotateStepSize.set(1);
+		experimentNote.set( "" );
 	}
 
 	public void stopAcquisition()
@@ -1004,7 +1013,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 						timePointItemTableView.getItems(), currentTP, waitSeconds,
 						arduinoSelected, new File(directory.getValue()), filename.getValue(),
 						positionItemTableView.getItems(), channelItemList, processedImages,
-						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), antiDrift.getValue() );
+						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), antiDrift.getValue(), experimentNote.getValue() );
 
 //				new MMAcquisitionRunner().runAcquisition();
 
@@ -1190,7 +1199,20 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		CheckboxPane pane = new CheckboxPane( "Save Images", gridpane, 12 );
 		enabledSaveImages = pane.selectedProperty();
 
-		VBox vbox = new VBox( 12, pane, buttonPane );
+		Tab saveOptionTab = new Tab("Save option", pane);
+		saveOptionTab.setClosable(false);
+
+		TextArea textArea = new TextArea();
+		textArea.setWrapText(true);
+		experimentNote = textArea.textProperty();
+
+		Tab noteTab = new Tab("Notes", textArea);
+		noteTab.setClosable(false);
+
+		TabPane tabPane = new TabPane(saveOptionTab, noteTab);
+
+		VBox vbox = new VBox( 12, tabPane, buttonPane );
+
 		return vbox;
 	}
 

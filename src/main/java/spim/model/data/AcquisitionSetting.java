@@ -58,6 +58,9 @@ public class AcquisitionSetting
 	// Extra
 	Double rotateStepSize;
 
+	// ExperimentNote
+	String experimentNote;
+
 	public Boolean getEnabledTimePoints()
 	{
 		return enabledTimePoints;
@@ -236,11 +239,17 @@ public class AcquisitionSetting
 		this.rotateStepSize = rotateStepSize;
 	}
 
+	public String getExperimentNote() { return experimentNote; }
+
+	public void setExperimentNote(String experimentNote) {
+		this.experimentNote = experimentNote;
+	}
+
 	public AcquisitionSetting()
 	{
 	}
 
-	public AcquisitionSetting(BooleanProperty enabledTimePoints, ArrayList< TimePointItem > timePointItems, BooleanProperty enabledPositions, ArrayList< PositionItem > positionItems, BooleanProperty enabledZStacks, ObjectProperty acquisitionOrder, BooleanProperty enabledChannels, int selectedTabIndex, ArrayList< ChannelItem > channelItems, ArrayList< ChannelItem > channelItemsArduino, BooleanProperty enabledSaveImages, StringProperty directory, StringProperty filename, ObjectProperty savingFormat, BooleanProperty saveAsHDF5, BooleanProperty saveMIP, ObjectProperty roiRectangle, DoubleProperty rotateStepSize)
+	public AcquisitionSetting(BooleanProperty enabledTimePoints, ArrayList< TimePointItem > timePointItems, BooleanProperty enabledPositions, ArrayList< PositionItem > positionItems, BooleanProperty enabledZStacks, ObjectProperty acquisitionOrder, BooleanProperty enabledChannels, int selectedTabIndex, ArrayList< ChannelItem > channelItems, ArrayList< ChannelItem > channelItemsArduino, BooleanProperty enabledSaveImages, StringProperty directory, StringProperty filename, ObjectProperty savingFormat, BooleanProperty saveAsHDF5, BooleanProperty saveMIP, ObjectProperty roiRectangle, DoubleProperty rotateStepSize, StringProperty experimentNote)
 	{
 		// 1.1 Time points panel
 		this.enabledTimePoints = enabledTimePoints.get();
@@ -275,6 +284,9 @@ public class AcquisitionSetting
 
 		// Extra
 		this.rotateStepSize = rotateStepSize.get();
+
+		// Experiment Note
+		this.experimentNote = experimentNote.get();
 	}
 
 	public static AcquisitionSetting load( File file ) {
