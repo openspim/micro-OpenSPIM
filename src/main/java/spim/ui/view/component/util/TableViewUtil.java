@@ -118,7 +118,13 @@ public class TableViewUtil
 					}
 				};
 
-		TableColumn<PositionItem, Number> numberColumn = new TableColumn<>("X");
+		TableColumn<PositionItem, Number> numberColumn = new TableColumn<>( "#" );
+		numberColumn.setPrefWidth( 20 );
+		numberColumn.setCellValueFactory(p -> new ReadOnlyIntegerWrapper(tv.getItems().indexOf(p.getValue()) + 1));
+		numberColumn.setSortable(false);
+		tv.getColumns().add(numberColumn);
+
+		numberColumn = new TableColumn<>("X");
 		numberColumn.setPrefWidth(50);
 		numberColumn.setCellValueFactory( (param) ->
 				new ReadOnlyDoubleWrapper( param.getValue().getX() )
