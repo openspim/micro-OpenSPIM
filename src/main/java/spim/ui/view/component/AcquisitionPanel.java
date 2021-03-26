@@ -1334,21 +1334,21 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		// First row
 		Label label = new Label();
-		label.textProperty().bind( propertyMap.get("times") );
+		label.textProperty().bind( propertyMap.get("positions") );
 		label.textProperty().addListener( observable -> computeTotal() );
 
 		Label label2 = new Label();
 		label2.textProperty().bind( propertyMap.get("totalImages") );
-		gridpane.addRow( 0, new Label("No. of time points: "), label, new Label("Total images: "), label2 );
+		gridpane.addRow( 0, new Label("No. of positions: "), label, new Label("Total images: "), label2 );
 
 		// Second row
 		label = new Label();
-		label.textProperty().bind( propertyMap.get("positions") );
+		label.textProperty().bind( propertyMap.get("times") );
 		label.textProperty().addListener( observable -> computeTotal() );
 
 		label2 = new Label();
 		label2.textProperty().bind( propertyMap.get("totalSize") );
-		gridpane.addRow( 1, new Label("Images in positions: "), label, new Label("Total size: "), label2 );
+		gridpane.addRow( 1, new Label("No. of time points: "), label, new Label("Total size: "), label2 );
 
 		// Third row
 		label = new Label();
