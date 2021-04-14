@@ -371,6 +371,8 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			for(TreeMap<Integer, Image> stack : mpImages_) {
 				// Could be moved outside processImage() ?
 				Image img = stack.get(0);
+				if(img == null) continue;
+
 				int bitDepth = img.getMetadata().getBitDepth();
 				int width = img.getWidth();
 				int height = img.getHeight();
