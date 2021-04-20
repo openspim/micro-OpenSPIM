@@ -16,7 +16,9 @@ import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -153,6 +155,48 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		} else {
 			switchAll.setSelected(false);
 		}
+
+		Scene scene = this.getScene();
+		scene.setOnKeyPressed(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+//				System.out.println(event.getCode());
+				int offset = 10;
+
+				if(event.isShiftDown()) offset = 100;
+
+				switch (event.getCode()) {
+					// X
+					case J:
+						stageUnitX.setCurrentPos( stageUnitX.getCurrentValue() - offset );
+						System.out.println("X:-" + offset); break;
+					case L:
+						stageUnitX.setCurrentPos( stageUnitX.getCurrentValue() + offset );
+						System.out.println("X:" + offset); break;
+					// Y
+					case I:
+						stageUnitY.setCurrentPos( stageUnitY.getCurrentValue() + offset );
+						System.out.println("Y:" + offset); break;
+					case K:
+						stageUnitY.setCurrentPos( stageUnitY.getCurrentValue() - offset );
+						System.out.println("Y:-" + offset); break;
+					// Z
+					case Y:
+						stageUnitZ.setCurrentPos( stageUnitZ.getCurrentValue() + offset );
+						System.out.println("Z:" + offset); break;
+					case H:
+						stageUnitZ.setCurrentPos( stageUnitZ.getCurrentValue() - offset );
+						System.out.println("Z:-" + offset); break;
+					// Rotate
+					case U:
+						stageUnitR.setCurrentPos( stageUnitR.getCurrentValue() - (offset == 10 ? 1 : 5) );
+						System.out.println("R:-" + (offset == 10 ? 1 : 5)); break;
+					case O:
+						stageUnitR.setCurrentPos( stageUnitR.getCurrentValue() + (offset == 10 ? 1 : 5) );
+						System.out.println("R:" + (offset == 10 ? 1 : 5)); break;
+				}
+			}
+		});
 	}
 
 	private void initExecutor() {
