@@ -163,37 +163,39 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 //				System.out.println(event.getCode());
 				int offset = 10;
 
-				if(event.isShiftDown()) offset = 100;
+				if(event.isShiftDown()) return;
+
+				if(event.isControlDown()) offset = 100;
 
 				switch (event.getCode()) {
 					// X
-					case J:
+					case A:
 						stageUnitX.setCurrentPos( stageUnitX.getCurrentValue() - offset );
 						System.out.println("X:-" + offset); break;
-					case L:
+					case D:
 						stageUnitX.setCurrentPos( stageUnitX.getCurrentValue() + offset );
-						System.out.println("X:" + offset); break;
+						System.out.println("X:+" + offset); break;
 					// Y
-					case I:
+					case W:
 						stageUnitY.setCurrentPos( stageUnitY.getCurrentValue() + offset );
-						System.out.println("Y:" + offset); break;
-					case K:
+						System.out.println("Y:+" + offset); break;
+					case S:
 						stageUnitY.setCurrentPos( stageUnitY.getCurrentValue() - offset );
 						System.out.println("Y:-" + offset); break;
 					// Z
-					case Y:
+					case R:
 						stageUnitZ.setCurrentPos( stageUnitZ.getCurrentValue() + offset );
-						System.out.println("Z:" + offset); break;
-					case H:
+						System.out.println("Z:+" + offset); break;
+					case F:
 						stageUnitZ.setCurrentPos( stageUnitZ.getCurrentValue() - offset );
 						System.out.println("Z:-" + offset); break;
 					// Rotate
-					case U:
+					case Q:
 						stageUnitR.setCurrentPos( stageUnitR.getCurrentValue() - (offset == 10 ? 1 : 5) );
 						System.out.println("R:-" + (offset == 10 ? 1 : 5)); break;
-					case O:
+					case E:
 						stageUnitR.setCurrentPos( stageUnitR.getCurrentValue() + (offset == 10 ? 1 : 5) );
-						System.out.println("R:" + (offset == 10 ? 1 : 5)); break;
+						System.out.println("R:+" + (offset == 10 ? 1 : 5)); break;
 				}
 			}
 		});
