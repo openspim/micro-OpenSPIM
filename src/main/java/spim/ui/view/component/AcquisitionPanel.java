@@ -81,12 +81,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static spim.ui.view.component.util.TableViewUtil.createTimePointItemDataView;
@@ -184,6 +180,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 	MMAcquisitionEngine engine;
 	BooleanProperty antiDrift;
+
+	// Anti-Drift log
+	StringProperty antiDriftLog;
 
 	public AcquisitionPanel( SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView< PinItem > pinItemTableView, ObjectProperty roiRectangleProperty, SimpleDoubleProperty waitSeconds ) {
 		this.spimSetup = setup;
@@ -1020,7 +1019,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 						timePointItemTableView.getItems(), currentTP, waitSeconds,
 						arduinoSelected, new File(directory.getValue()), filename.getValue(),
 						positionItemTableView.getItems(), channelItemList, processedImages,
-						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), antiDrift.getValue(), experimentNote.getValue() );
+						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), antiDrift.getValue(), experimentNote.getValue(), antiDriftLog );
 
 //				new MMAcquisitionRunner().runAcquisition();
 
@@ -1060,7 +1059,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		return unit;
 	}
 
-	private CheckboxPane createPositionListPane( TableView< PositionItem > positionItemTableView ) {
+	private Node createPositionListPane( TableView< PositionItem > positionItemTableView ) {
 		positionItemTableView.setEditable( true );
 
 		EventHandler newEventHandler = ( EventHandler< ActionEvent > ) event -> {
@@ -1116,7 +1115,22 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		CheckboxPane pane = new CheckboxPane( "Positions/Angles", new VBox( hbox, positionItemTableView ) );
 		enabledPositions = pane.selectedProperty();
-		return pane;
+
+		Tab positionTab = new Tab("Position", pane);
+		positionTab.setClosable(false);
+
+		TextArea antiDriftLogArea = new TextArea();
+		antiDriftLogArea.setEditable(false);
+		antiDriftLog = antiDriftLogArea.textProperty();
+
+		Tab antiDriftLogTab = new Tab("Anti-Drift logs", antiDriftLogArea);
+		antiDriftLogTab.setClosable(false);
+
+		TabPane tabPane = new TabPane(positionTab, antiDriftLogTab);
+
+		VBox vbox = new VBox( 12, tabPane, pane );
+
+		return vbox;
 	}
 
 	public void computeTotalPositionImages() {

@@ -3,6 +3,7 @@ package spim.ui.view.component;
 import ij.process.ImageProcessor;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.LongProperty;
+import javafx.beans.property.StringProperty;
 import javafx.collections.ObservableList;
 import loci.common.DebugTools;
 import mmcorej.CMMCore;
@@ -111,10 +112,11 @@ public class MMAcquisitionEngine
 	 * @param saveMIP Save Maximum Intensity Projection or not
 	 * @param antiDrift Anti-Drift function used or not
 	 * @param experimentNote Experiment Note saved in the metadata
+	 * @param antiDriftLog holds anti drift log during acquisition
 	 * @throws Exception the exception
 	 */
 	@SuppressWarnings("Duplicates")
-	public void performAcquisition( Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, Object savingFormatValue, boolean saveMIP, boolean antiDrift, String experimentNote ) throws Exception
+	public void performAcquisition(Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, Object savingFormatValue, boolean saveMIP, boolean antiDrift, String experimentNote, StringProperty antiDriftLog) throws Exception
 	{
 		final Studio frame = studio;
 
@@ -363,20 +365,20 @@ public class MMAcquisitionEngine
 		if(!saveMIP) acqFilenamePrefix = null;
 
 		executeNormalAcquisition(setup, frame, store, stagePanel, currentCamera, cameras, output, acqFilenamePrefix, handlers,
-				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan, antiDrift);
+				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan, antiDrift, antiDriftLog);
 	}
 
 	private void executeNormalAcquisition(SPIMSetup setup, final Studio frame, Datastore store,
 			StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
-			LongProperty processedImages, final double acqBegan, final boolean antiDrift) throws Exception
+			LongProperty processedImages, final double acqBegan, final boolean antiDrift, StringProperty antiDriftLog) throws Exception
 	{
 
 		// Dynamic timeline
 		runNormalSmartImagingMMAcq(setup, frame, store, stagePanel, currentCamera, cameras,
 				outFolder, acqFilenamePrefix, handlers,
-				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, antiDrift);
+				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, antiDrift, antiDriftLog);
 
 		finalize(true, setup, currentCamera, cameras, frame, 0, 0, handlers, store);
 	}
@@ -385,7 +387,7 @@ public class MMAcquisitionEngine
 			StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
-			LongProperty processedImages, final boolean antiDrift) throws Exception
+			LongProperty processedImages, final boolean antiDrift, StringProperty antiDriftLog) throws Exception
 	{
 
 		final CMMCore core = frame.core();
@@ -420,17 +422,28 @@ public class MMAcquisitionEngine
 
 //						display.setCustomTitle( acqFilenamePrefix + String.format( " t=%d, p=%d", timePoints, step ) );
 
+						// TODO: Consider the binning factor
+						// Offset change log
 						if(driftCompMap != null) {
+							int binningFactor = setup.getCamera1().getBinning();
 							Vector3D offset = driftCompMap.get(positionItem).getUpdatedOffset();
-							double xOffset = offset.getX() < 50 ? offset.getX() * core.getPixelSizeUm() * -1 : 0;
-							double yOffset = offset.getY() < 50 ? offset.getY() * core.getPixelSizeUm() : 0;
+							double xOffset = offset.getX() < 50 ? offset.getX() * binningFactor * core.getPixelSizeUm() * -1 : 0;
+							double yOffset = offset.getY() < 50 ? offset.getY() * binningFactor * core.getPixelSizeUm() : 0;
 							double zOffset = offset.getZ() < 20 ? offset.getZ() * core.getPixelSizeUm() : 0;
 							System.out.println("PixelSizeUm = " + core.getPixelSizeUm());
-							System.out.println("Anti-Drift used offset only X:" + xOffset + " Y:" + yOffset + " Z:" + zOffset);
+							System.out.println("Anti-Drift used X:" + xOffset + " Y:" + yOffset + " Z:" + zOffset);
+
+							// Logging the anti-drift values
+							antiDriftLog.set(antiDriftLog.get() + "Position: #" + step + "\n");
+							antiDriftLog.set(antiDriftLog.get() + new Date() + "\n");
+							String pos = "X:" + positionItem.getX() + " Y:" + positionItem.getY() + " Z:" + positionItem.getZString() + "\n";
+							antiDriftLog.set(antiDriftLog.get() + pos);
 							positionItem.setX(positionItem.getX() + xOffset);
 							positionItem.setY(positionItem.getY() + yOffset);
 							positionItem.setZStart(positionItem.getZStart() + zOffset);
 							positionItem.setZEnd(positionItem.getZEnd() + zOffset);
+							pos = "->\nX:" + positionItem.getX() + " Y:" + positionItem.getY() + " Z:" + positionItem.getZString() + "\n";
+							antiDriftLog.set(antiDriftLog.get() + pos);
 						}
 
 						// Move the stage
