@@ -532,6 +532,13 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		content.setOrientation( Orientation.VERTICAL );
 		content.setDividerPositions( 0.5, 0.2 );
 
+		content.heightProperty().addListener(new ChangeListener<Number>() {
+			@Override
+			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+				content.setDividerPositions( 0.5, 0.2 );
+			}
+		});
+
 		// Compute acquisition order logic
 		BooleanBinding bb = new BooleanBinding()
 		{
