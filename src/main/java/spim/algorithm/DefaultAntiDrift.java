@@ -40,8 +40,9 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 
 	@Override public void addXYSlice( ImageProcessor ip )
 	{
-		ip.blurGaussian(sigma);
-		latest.addXYSlice( ip );
+		ImageProcessor copy = ip.duplicate();
+		copy.blurGaussian( sigma );
+		latest.addXYSlice( copy );
 	}
 
 	@Override public Vector3D finishStack()
