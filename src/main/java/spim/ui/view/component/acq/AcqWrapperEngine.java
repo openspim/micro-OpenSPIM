@@ -153,6 +153,9 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		// Channel settings
 		orgChannelGroup = core_.getChannelGroup();
 
+		if( core_.isGroupDefined( channelGroupName ) ) {
+			core_.deleteConfigGroup( channelGroupName );
+		}
 		core_.defineConfigGroup( channelGroupName );
 
 		// Channel iteration
