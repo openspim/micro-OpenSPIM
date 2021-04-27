@@ -312,6 +312,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		HBox chBox = new HBox(3, new Label("Ref Ch: "), spinner);
 		chBox.setAlignment(Pos.CENTER);
 		acquireHBox.getChildren().addAll(acquireButton, new VBox(2, antiDriftCheckbox, chBox), pi);
+		spinner.setTooltip(new Tooltip("This channel index will be used for Anti-Drift reference"));
 
 		BorderPane.setMargin(acquireHBox, new Insets(12,12,12,12));
 
