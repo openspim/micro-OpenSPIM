@@ -3,6 +3,7 @@ package spim.ui.view.component;
 import ij.process.ImageProcessor;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.LongProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.ObservableList;
 import loci.common.DebugTools;
@@ -114,10 +115,11 @@ public class MMAcquisitionEngine
 	 * @param antiDrift Anti-Drift function used or not
 	 * @param experimentNote Experiment Note saved in the metadata
 	 * @param antiDriftLog holds anti drift log during acquisition
+	 * @param antiDriftReferenceChannel the reference channel for anti-drift
 	 * @throws Exception the exception
 	 */
 	@SuppressWarnings("Duplicates")
-	public void performAcquisition(Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, Object savingFormatValue, boolean saveMIP, boolean antiDrift, String experimentNote, StringProperty antiDriftLog) throws Exception
+	public void performAcquisition(Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, Object savingFormatValue, boolean saveMIP, boolean antiDrift, String experimentNote, StringProperty antiDriftLog, Integer antiDriftReferenceChannel) throws Exception
 	{
 		final Studio frame = studio;
 
@@ -366,20 +368,20 @@ public class MMAcquisitionEngine
 		if(!saveMIP) acqFilenamePrefix = null;
 
 		executeNormalAcquisition(setup, frame, store, stagePanel, currentCamera, cameras, output, acqFilenamePrefix, handlers,
-				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan, antiDrift, antiDriftLog);
+				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan, antiDrift, antiDriftLog, antiDriftReferenceChannel);
 	}
 
 	private void executeNormalAcquisition(SPIMSetup setup, final Studio frame, Datastore store,
 			StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
-			LongProperty processedImages, final double acqBegan, final boolean antiDrift, StringProperty antiDriftLog) throws Exception
+			LongProperty processedImages, final double acqBegan, final boolean antiDrift, StringProperty antiDriftLog, Integer adReferenceChannel) throws Exception
 	{
 
 		// Dynamic timeline
 		runNormalSmartImagingMMAcq(setup, frame, store, stagePanel, currentCamera, cameras,
 				outFolder, acqFilenamePrefix, handlers,
-				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, antiDrift, antiDriftLog);
+				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, antiDrift, antiDriftLog, adReferenceChannel);
 
 		finalize(true, setup, currentCamera, cameras, frame, 0, 0, handlers, store);
 	}
@@ -388,7 +390,7 @@ public class MMAcquisitionEngine
 			StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
 			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
 			DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
-			LongProperty processedImages, final boolean antiDrift, StringProperty antiDriftLog) throws Exception
+			LongProperty processedImages, final boolean antiDrift, StringProperty antiDriftLog, Integer adReferenceChannel) throws Exception
 	{
 
 		final CMMCore core = frame.core();
@@ -405,7 +407,7 @@ public class MMAcquisitionEngine
 				driftCompMap.put(positionItem, new DefaultAntiDrift(10));
 		}
 
-		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, handlers, channelItems, arduinoSelected, processedImages, driftCompMap );
+		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, handlers, channelItems, arduinoSelected, processedImages, driftCompMap, adReferenceChannel );
 
 		mainLoop:
 		for(TimePointItem tpItem : timePointItems ) {

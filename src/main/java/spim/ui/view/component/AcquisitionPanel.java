@@ -6,15 +6,7 @@ import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.binding.StringBinding;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.LongProperty;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleDoubleProperty;
-import javafx.beans.property.SimpleLongProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
+import javafx.beans.property.*;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -27,24 +19,13 @@ import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Node;
-import javafx.scene.control.Alert;
+import javafx.scene.control.*;
+
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.ProgressIndicator;
-import javafx.scene.control.Slider;
-import javafx.scene.control.SplitPane;
-import javafx.scene.control.Tab;
-import javafx.scene.control.TabPane;
-import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.scene.control.TitledPane;
-
 import javafx.scene.image.ImageView;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
@@ -183,6 +164,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 	// Anti-Drift log
 	StringProperty antiDriftLog;
+	ReadOnlyObjectProperty<Integer> antiDriftRefCh;
 
 	public AcquisitionPanel( SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView< PinItem > pinItemTableView, ObjectProperty roiRectangleProperty, SimpleDoubleProperty waitSeconds ) {
 		this.spimSetup = setup;
@@ -321,6 +303,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		CheckBox antiDriftCheckbox = new CheckBox("Anti-Drift");
 		antiDrift = antiDriftCheckbox.selectedProperty();
+
+		Spinner<Integer> spinner = new Spinner<>(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 4, 1));
+		antiDriftRefCh = spinner.valueProperty();
 
 		acquireHBox.getChildren().addAll(acquireButton, antiDriftCheckbox, pi);
 
@@ -1019,7 +1004,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 						timePointItemTableView.getItems(), currentTP, waitSeconds,
 						arduinoSelected, new File(directory.getValue()), filename.getValue(),
 						positionItemTableView.getItems(), channelItemList, processedImages,
-						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), antiDrift.getValue(), experimentNote.getValue(), antiDriftLog );
+						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), antiDrift.getValue(), experimentNote.getValue(),
+						antiDriftLog, antiDriftRefCh.get() );
 
 //				new MMAcquisitionRunner().runAcquisition();
 

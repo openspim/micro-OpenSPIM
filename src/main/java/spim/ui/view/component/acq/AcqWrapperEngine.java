@@ -104,6 +104,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	private LongProperty processedImages_;
 	private HashMap< PositionItem, DefaultAntiDrift> driftCompMap_;
 	private DefaultAntiDrift currentAntiDrift_;
+	private Integer antiDriftReferenceChannel_;
 
 	final String channelGroupName = "OpenSPIM-channels";
 
@@ -118,7 +119,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			HashMap<String, OutputHandler > handlers,
 			List< ChannelItem > channelItems,
 			boolean arduinoSelected,
-			LongProperty processedImages, HashMap< PositionItem, DefaultAntiDrift> driftCompMap) throws Exception
+			LongProperty processedImages, HashMap< PositionItem, DefaultAntiDrift> driftCompMap, Integer adReferenceChannel) throws Exception
 	{
 		curStore_ = store;
 
@@ -147,6 +148,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 
 		settingsListeners_ = new ArrayList<AcqSettingsListener>();
 		posList_ = new PositionList();
+		antiDriftReferenceChannel_ = adReferenceChannel;
 
 		// Initial setting
 
@@ -356,7 +358,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			// Start pumping images through the pipeline and into the datastore.
 			sink = new TaggedImageSink(
 					engineOutputQueue, curPipeline_, curStore_, this, studio_.events(),
-					t_, angle_, handlers_, cameras_, x, y, theta, mpImages_, processedImages_, currentAntiDrift_ );
+					t_, angle_, handlers_, cameras_, x, y, theta, mpImages_, processedImages_, currentAntiDrift_, antiDriftReferenceChannel_ );
 			sink.start(() -> getAcquisitionEngine2010().stop(), () -> generateMIP());
 
 			return curStore_;

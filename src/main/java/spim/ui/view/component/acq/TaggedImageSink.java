@@ -63,6 +63,7 @@ public class TaggedImageSink {
 	private final TreeMap<Integer, Image>[] mpImages_;
 	private final LongProperty processedImages_;
 	private final DefaultAntiDrift antiDrift_;
+	private final Integer antiDriftRefChannel_;
 	Thread savingThread;
 
 	public TaggedImageSink(BlockingQueue<TaggedImage> queue,
@@ -75,7 +76,8 @@ public class TaggedImageSink {
 						   List<String> cameras, double x, double y, double theta,
 						   TreeMap<Integer, Image>[] mpImages,
 						   LongProperty processedImages,
-						   DefaultAntiDrift antiDrift) {
+						   DefaultAntiDrift antiDrift,
+						   Integer antiDriftReferenceChannel) {
 		imageProducingQueue_ = queue;
 		pipeline_ = pipeline;
 		store_ = store;
@@ -88,6 +90,7 @@ public class TaggedImageSink {
 		mpImages_ = mpImages;
 		processedImages_ = processedImages;
 		antiDrift_ = antiDrift;
+		antiDriftRefChannel_ = antiDriftReferenceChannel - 1;
 
 		camChannels_ = new HashMap<>( cameras_
 				.stream().collect( Collectors.toMap( Function.identity(), c -> 0 ) ) );
@@ -193,9 +196,11 @@ public class TaggedImageSink {
 									pipeline_.clearExceptions();
 								}
 
+								ImageProcessor ip = ImageUtils.makeProcessor( tagged );
+
 								if(handlers_.containsKey( cam ))
 								{
-									handlers_.get( cam ).processSlice( t_, angle_, ( int ) exp, channel, ImageUtils.makeProcessor( tagged ),
+									handlers_.get( cam ).processSlice( t_, angle_, ( int ) exp, channel, ip,
 											x_,
 											y_,
 											zPos,
@@ -205,8 +210,8 @@ public class TaggedImageSink {
 									camChannels_.put( cam, channel + 1 );
 								}
 
-								if(ch == 0 && antiDrift_ != null) {
-									antiDrift_.addXYSlice(ImageUtils.makeProcessor( tagged ));
+								if(antiDriftRefChannel_ == ch && antiDrift_ != null) {
+									antiDrift_.addXYSlice( ip );
 								}
 
 								processedImages_.set(processedImages_.get() + 1);
