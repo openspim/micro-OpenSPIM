@@ -1198,9 +1198,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				// "Separate all dimensions", <- not implemented yet
 				"None", "Separate the channel dimension", "Image stack (include multi-channel)" ) );
 
+		c.valueProperty().setValue("None");
+
 		savingFormat = c.valueProperty();
 
-		Label desc = new Label( "The default saving format is Single Plane TIFF." );
+		Label desc = new Label( "The default saving format is Single Plane TIFF.\nYou can have additional formats:" );
 		gridpane.addRow( 2, desc);
 		gridpane.setColumnSpan( desc, 2 );
 
