@@ -305,9 +305,13 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		antiDrift = antiDriftCheckbox.selectedProperty();
 
 		Spinner<Integer> spinner = new Spinner<>(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 4, 1));
+		spinner.setPrefSize(55, 50);
+		spinner.setMaxHeight(20);
 		antiDriftRefCh = spinner.valueProperty();
 
-		acquireHBox.getChildren().addAll(acquireButton, antiDriftCheckbox, pi);
+		HBox chBox = new HBox(3, new Label("Ref Ch: "), spinner);
+		chBox.setAlignment(Pos.CENTER);
+		acquireHBox.getChildren().addAll(acquireButton, new VBox(2, antiDriftCheckbox, chBox), pi);
 
 		BorderPane.setMargin(acquireHBox, new Insets(12,12,12,12));
 
