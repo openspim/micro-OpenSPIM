@@ -35,6 +35,7 @@ import org.micromanager.events.AcquisitionEndedEvent;
 import org.micromanager.events.AcquisitionStartedEvent;
 
 import org.micromanager.internal.MMStudio;
+import org.micromanager.internal.diagnostics.SystemInfo;
 import org.micromanager.internal.utils.UserProfileManager;
 import org.micromanager.internal.utils.imageanalysis.ImageUtils;
 import spim.acquisition.Row;
@@ -415,6 +416,8 @@ public class MMAcquisitionEngine
 				{
 					int step = 0;
 
+					SystemInfo.dumpAllToCoreLog(false);
+
 					for ( PositionItem positionItem : positionItems )
 					{
 						final int tp = timePoints;
@@ -422,7 +425,6 @@ public class MMAcquisitionEngine
 
 //						display.setCustomTitle( acqFilenamePrefix + String.format( " t=%d, p=%d", timePoints, step ) );
 
-						// TODO: Consider the binning factor
 						// Offset change log
 						if(driftCompMap != null) {
 							int binningFactor = setup.getCamera1().getBinning();
@@ -434,16 +436,18 @@ public class MMAcquisitionEngine
 							System.out.println("Anti-Drift used X:" + xOffset + " Y:" + yOffset + " Z:" + zOffset);
 
 							// Logging the anti-drift values
-							antiDriftLog.set(antiDriftLog.get() + "Position: #" + step + "\n");
-							antiDriftLog.set(antiDriftLog.get() + new Date() + "\n");
-							String pos = "X:" + positionItem.getX() + " Y:" + positionItem.getY() + " Z:" + positionItem.getZString() + "\n";
-							antiDriftLog.set(antiDriftLog.get() + pos);
+							StringBuffer sb =  new StringBuffer();
+							sb.append("Position: #").append(step).append("\n");
+							sb.append(new Date()).append("\n");
+							sb.append("X:").append(positionItem.getX()).append(" Y:").append(positionItem.getY()).append(" Z:").append(positionItem.getZString()).append("\n");
 							positionItem.setX(positionItem.getX() + xOffset);
 							positionItem.setY(positionItem.getY() + yOffset);
 							positionItem.setZStart(positionItem.getZStart() + zOffset);
 							positionItem.setZEnd(positionItem.getZEnd() + zOffset);
-							pos = "->\nX:" + positionItem.getX() + " Y:" + positionItem.getY() + " Z:" + positionItem.getZString() + "\n";
-							antiDriftLog.set(antiDriftLog.get() + pos);
+							sb.append("->\nX:").append(positionItem.getX()).append(" Y:").append(positionItem.getY()).append(" Z:").append(positionItem.getZString()).append("\n");
+
+							core.logMessage(sb.toString());
+							antiDriftLog.set(antiDriftLog.get() + sb.toString());
 						}
 
 						// Move the stage
