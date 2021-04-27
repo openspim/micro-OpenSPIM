@@ -55,6 +55,7 @@ import spim.model.event.ControlEvent;
 import spim.ui.view.component.pane.CheckboxPane;
 import spim.ui.view.component.pane.LabeledPane;
 import spim.ui.view.component.util.TableViewUtil;
+import spim.util.SystemInfo;
 
 import java.awt.*;
 import java.io.File;
@@ -311,7 +312,17 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		HBox chBox = new HBox(3, new Label("Ref Ch: "), spinner);
 		chBox.setAlignment(Pos.CENTER);
-		acquireHBox.getChildren().addAll(acquireButton, new VBox(2, antiDriftCheckbox, chBox), pi);
+
+		Button test = new Button("Test");
+		test.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				if(AcquisitionPanel.this.studio != null)
+					SystemInfo.dumpMemoryStatusToLog(AcquisitionPanel.this.studio.core());
+			}
+		});
+
+		acquireHBox.getChildren().addAll(acquireButton, new VBox(2, antiDriftCheckbox, chBox), test, pi);
 		spinner.setTooltip(new Tooltip("This channel index will be used for Anti-Drift reference"));
 
 		BorderPane.setMargin(acquireHBox, new Insets(12,12,12,12));

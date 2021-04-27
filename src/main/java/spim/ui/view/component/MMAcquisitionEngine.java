@@ -3,7 +3,6 @@ package spim.ui.view.component;
 import ij.process.ImageProcessor;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.LongProperty;
-import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.ObservableList;
 import loci.common.DebugTools;
@@ -36,7 +35,6 @@ import org.micromanager.events.AcquisitionEndedEvent;
 import org.micromanager.events.AcquisitionStartedEvent;
 
 import org.micromanager.internal.MMStudio;
-import org.micromanager.internal.diagnostics.SystemInfo;
 import org.micromanager.internal.utils.UserProfileManager;
 import org.micromanager.internal.utils.imageanalysis.ImageUtils;
 import spim.acquisition.Row;
@@ -52,6 +50,7 @@ import spim.model.data.ChannelItem;
 import spim.model.data.PositionItem;
 import spim.model.data.TimePointItem;
 import spim.ui.view.component.acq.AcqWrapperEngine;
+import spim.util.SystemInfo;
 
 import java.awt.*;
 import java.io.File;
@@ -418,7 +417,7 @@ public class MMAcquisitionEngine
 				{
 					int step = 0;
 
-					SystemInfo.dumpAllToCoreLog(false);
+					SystemInfo.dumpMemoryStatusToLog(core);
 
 					for ( PositionItem positionItem : positionItems )
 					{

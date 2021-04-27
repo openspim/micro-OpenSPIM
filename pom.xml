@@ -272,6 +272,10 @@
                         <keyStoreAlias>${env.KEY_STORE_ALIAS}</keyStoreAlias>
                         <keyStorePassword>${env.KEY_STORE_PASS}</keyStorePassword>
                         <allPermissions>true</allPermissions>
+                        <jvmArgs>
+                            <argument>-Xmx32g</argument>
+                            <argument>-Xms4g</argument>
+                        </jvmArgs>
                     </configuration>
                     <executions>
                         <execution>
