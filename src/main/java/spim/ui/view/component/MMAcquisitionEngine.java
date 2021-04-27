@@ -455,14 +455,24 @@ public class MMAcquisitionEngine
 							stagePanel.goToPos( positionItem.getX(), positionItem.getY(), positionItem.getR() );
 						try
 						{
+							// wait until the all devices in the system stop moving
 							core.waitForSystem();
 						} catch ( Exception e ) {
+							core.logMessage(e.toString());
 							System.out.println(e.toString());
 						}
 
 						for( OutputHandler handler : handlers.values() )
 							beginStack( tp, rown, handler );
 
+						core.clearCircularBuffer();
+
+						while( core.systemBusy() ) {
+							core.logMessage("System is busy. Wait for 100ms..");
+							Thread.sleep( 100 );
+						}
+
+						core.logMessage("MMAcquisition started");
 						System.out.println("MMAcquisition started");
 						engine.startAcquire( timePoints, step, positionItem );
 
@@ -472,11 +482,13 @@ public class MMAcquisitionEngine
 								Thread.sleep( 10 );
 							} catch ( InterruptedException ie )
 							{
+								core.logMessage(ie.toString());
 								finalize( false, setup, currentCamera, cameras, frame, 0, 0, handlers, store );
 								break mainLoop;
 							}
 						}
 
+						core.logMessage("MMAcquisition finished");
 						System.out.println("MMAcquisition finished");
 
 						if(setup.getArduino1() != null)
@@ -499,6 +511,7 @@ public class MMAcquisitionEngine
 
 					if(wait > 0D) {
 						System.err.println("Interval delay. (next seq in " + wait + "s)");
+						core.logMessage("Interval delay. (next seq in " + wait + "s)");
 
 						for(int i = 0; i < (int) wait; i++)
 						{
@@ -511,6 +524,7 @@ public class MMAcquisitionEngine
 							}
 							catch ( InterruptedException ie )
 							{
+								core.logMessage(ie.toString());
 								finalize( false, setup, currentCamera, cameras, frame, 0, 0, handlers, store );
 								break mainLoop;
 							}
@@ -534,6 +548,7 @@ public class MMAcquisitionEngine
 
 				if(wait > 0D) {
 					System.err.println("Wait delay. (next seq in " + wait + "s)");
+					core.logMessage("Wait delay. (next seq in " + wait + "s)");
 
 					for(int i = 0; i < (int) wait; i++)
 					{
@@ -546,6 +561,7 @@ public class MMAcquisitionEngine
 						}
 						catch ( InterruptedException ie )
 						{
+							core.logMessage(ie.toString());
 							finalize( false, setup, currentCamera, cameras, frame, 0, 0, handlers, store );
 							break mainLoop;
 						}
