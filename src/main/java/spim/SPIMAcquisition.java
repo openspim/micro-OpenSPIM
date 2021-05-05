@@ -1517,7 +1517,7 @@ public class SPIMAcquisition implements MMPlugin, ItemListener, ActionListener, 
 		MMStudio app = MMStudio.getInstance();
 		if (app == null) {
 			app = new MMStudio(true);
-			MMStudio.getFrame().setVisible(true);
+			MMStudio.getInstance().uiManager().frame().setVisible(true);
 		}
 		SPIMAcquisition plugin = new SPIMAcquisition();
 		plugin.setContext( app );

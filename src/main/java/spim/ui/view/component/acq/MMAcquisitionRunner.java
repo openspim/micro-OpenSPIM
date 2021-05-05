@@ -6,7 +6,7 @@ import org.micromanager.acquisition.ChannelSpec;
 import org.micromanager.acquisition.SequenceSettings;
 import org.micromanager.acquisition.internal.IAcquisitionEngine2010;
 import org.micromanager.data.Datastore;
-import org.micromanager.events.internal.DefaultAcquisitionEndedEvent;
+import org.micromanager.acquisition.internal.DefaultAcquisitionEndedEvent;
 import org.micromanager.internal.MMStudio;
 import org.micromanager.internal.utils.ReportingUtils;
 import spim.ui.view.component.acq.AcqWrapperEngine;
@@ -97,7 +97,7 @@ public class MMAcquisitionRunner
 
 //		IAcquisitionEngine2010 ae2010 = getAcquisitionEngine2010();
 
-		SequenceSettings mdaSeq = new SequenceSettings();
+		SequenceSettings mdaSeq = (new SequenceSettings.Builder()).build();
 		mdaSeq.numFrames = 2;
 		mdaSeq.intervalMs = 0.0;
 		mdaSeq.channelGroup = "Cam1";

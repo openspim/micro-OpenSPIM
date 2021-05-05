@@ -197,7 +197,7 @@ public class AntiDriftTest
 
 //		String filename = "Pd_100TP_ch_0-1.tif";
 		String filename = "TP0-310_shift_3xds.tif";
-		ImagePlus ip = IJ.openImage("/Users/moon/temp/openspim/" + filename);
+		ImagePlus ip = IJ.openVirtual("/Users/moon/temp/openspim/" + filename);
 
 		System.out.println(ip.getNFrames());
 
@@ -263,7 +263,8 @@ public class AntiDriftTest
 //		image.show();
 		int t = ip.getNFrames();
 
-		for(int i = 0; i < t; i++) {
+		for(int i = 10; i < t; i+=20) {
+			System.out.println(i);
 //			ct.startNewStack();
 			proj.startNewStack();
 
@@ -278,15 +279,16 @@ public class AntiDriftTest
 			{
 				ip.setPosition( 0, k, i );
 
-				FloatProcessor fp = ( FloatProcessor ) ip.getProcessor().convertToFloat();
+//				FloatProcessor fp = ( FloatProcessor ) ip.getProcessor().convertToFloat();
 
 				// Translate the original image according to the current offset
 				// This behavior will be replaced by Stage Control Movement operation with pixelSizeUm property
-				fp.translate( xOffset, yOffset );
+//				fp.translate( xOffset, yOffset );
 				// Corrected image will be used for the viewer
 //				ct.addXYSlice( fp );
 
-				proj.addXYSlice( fp );
+//				proj.addXYSlice( fp );
+				proj.addXYSlice( ip.getProcessor() );
 			}
 //			ct.finishStack();
 			proj.updateOffset(proj.finishStack());

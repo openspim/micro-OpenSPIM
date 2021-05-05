@@ -31,11 +31,11 @@ import org.micromanager.data.internal.DefaultSummaryMetadata;
 import org.micromanager.data.internal.PropertyKey;
 import org.micromanager.display.*;
 import org.micromanager.display.internal.DefaultDisplaySettings;
-import org.micromanager.events.AcquisitionEndedEvent;
-import org.micromanager.events.AcquisitionStartedEvent;
+import org.micromanager.acquisition.AcquisitionEndedEvent;
+import org.micromanager.acquisition.AcquisitionStartedEvent;
 
 import org.micromanager.internal.MMStudio;
-import org.micromanager.internal.utils.UserProfileManager;
+
 import org.micromanager.internal.utils.imageanalysis.ImageUtils;
 import spim.acquisition.Row;
 import spim.algorithm.DefaultAntiDrift;
@@ -221,7 +221,7 @@ public class MMAcquisitionEngine
 
 		SummaryMetadata.Builder smb = new DefaultSummaryMetadata.Builder();
 
-		UserProfile profile = new UserProfileManager().getProfile();
+		UserProfile profile = frame.profile();
 		smb = smb.userName( System.getProperty("user.name") )
 				.profileName( profile.getProfileName() );
 

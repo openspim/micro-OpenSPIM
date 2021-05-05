@@ -173,8 +173,8 @@ public class SPIMAcq extends Application
 
 		if (app == null) {
 			app = new MMStudio(true);
-			MMStudio.getFrame().setVisible(true);
-			ReportingUtils.SetContainingFrame(MMStudio.getFrame());
+			MMStudio.getInstance().uiManager().frame().setVisible(true);
+			ReportingUtils.SetContainingFrame(MMStudio.getInstance().uiManager().frame());
 		}
 		SPIMAcq plugin = new SPIMAcq();
 //		plugin.setContext( app );

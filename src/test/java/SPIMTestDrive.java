@@ -53,7 +53,7 @@ public class SPIMTestDrive
 			{
 				try
 				{
-					if ( studio_ == null || !studio_.getIsProgramRunning() )
+					if ( studio_ == null || !studio_.isProgramRunning() )
 					{
 						// OS-specific stuff
 						if ( JavaUtils.isMac() )
@@ -70,8 +70,8 @@ public class SPIMTestDrive
 						}
 
 						studio_ = new MMStudio( false );
-						MMStudio.getFrame().setVisible( true );
-						MMStudio.getFrame().setDefaultCloseOperation( JFrame.EXIT_ON_CLOSE );
+						MMStudio.getInstance().uiManager().frame().setVisible( true );
+						MMStudio.getInstance().uiManager().frame().setDefaultCloseOperation( JFrame.EXIT_ON_CLOSE );
 					}
 				}
 				catch ( Exception e )

@@ -31,9 +31,9 @@ import org.micromanager.display.ChannelDisplaySettings;
 import org.micromanager.display.DisplaySettings;
 import org.micromanager.display.DisplayWindow;
 import org.micromanager.display.internal.DefaultDisplaySettings;
-import org.micromanager.events.AcquisitionEndedEvent;
-import org.micromanager.events.internal.DefaultAcquisitionEndedEvent;
-import org.micromanager.events.internal.DefaultAcquisitionStartedEvent;
+import org.micromanager.acquisition.AcquisitionEndedEvent;
+import org.micromanager.acquisition.internal.DefaultAcquisitionEndedEvent;
+import org.micromanager.acquisition.internal.DefaultAcquisitionStartedEvent;
 import org.micromanager.events.internal.DefaultChannelGroupChangedEvent;
 import org.micromanager.events.internal.InternalShutdownCommencingEvent;
 import org.micromanager.internal.MMStudio;
@@ -495,7 +495,6 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		return numChannels;
 	}
 
-	@Override
 	public int getNumFrames() {
 		int numFrames = numFrames_;
 		if (!useFrames_) {
@@ -574,7 +573,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	}
 
 	public SequenceSettings getSequenceSettings() {
-		SequenceSettings acquisitionSettings = new SequenceSettings();
+		SequenceSettings acquisitionSettings = (new SequenceSettings.Builder()).build();
 
 		updateChannelCameras();
 
@@ -850,23 +849,12 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	}
 
 	@Override
-	public int getCurrentFrameCount() {
-		return 0;
-	}
-
-	@Override
 	public double getFrameIntervalMs() {
 		return interval_;
 	}
 
-	@Override
-	public double getSliceZStepUm() {
-		return sliceZStepUm_;
-	}
-
-	@Override
-	public double getSliceZBottomUm() {
-		return sliceZBottomUm_;
+    public boolean isZSliceSettingEnabled() {
+      return useSlices_;
 	}
 
 	@Override
@@ -947,188 +935,8 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	}
 
 	@Override
-	public void setFrames(int numFrames, double interval) {
-		numFrames_ = numFrames;
-		interval_ = interval;
-	}
-
-	@Override
-	public void setSlices(double bottom, double top, double step, boolean absolute) {
-		sliceZBottomUm_ = bottom;
-		sliceZTopUm_ = top;
-		sliceZStepUm_ = step;
-		absoluteZ_ = absolute;
-		this.settingsChanged();
-	}
-
-	@Override
-	public boolean getZAbsoluteMode() {
-		return absoluteZ_;
-	}
-
-	@Override
-	public boolean isFramesSettingEnabled() {
-		return useFrames_;
-	}
-
-	@Override
-	public void enableFramesSetting(boolean enable) {
-		useFrames_ = enable;
-	}
-
-	@Override
-	public boolean isChannelsSettingEnabled() {
-		return useChannels_;
-	}
-
-	@Override
-	public void enableChannelsSetting(boolean enable) {
-		useChannels_ = enable;
-	}
-
-	@Override
-	public boolean isZSliceSettingEnabled() {
-		return useSlices_;
-	}
-
-	@Override
-	public double getZTopUm() {
-		return sliceZTopUm_;
-	}
-
-	@Override
-	public void keepShutterOpenForStack(boolean open) {
-		keepShutterOpenForStack_ = open;
-	}
-
-	@Override
-	public boolean isShutterOpenForStack() {
-		return keepShutterOpenForStack_;
-	}
-
-	@Override
-	public void keepShutterOpenForChannels(boolean open) {
-		keepShutterOpenForChannels_ = open;
-	}
-
-	@Override
-	public boolean isShutterOpenForChannels() {
-		return keepShutterOpenForChannels_;
-	}
-
-	@Override
-	public void enableZSliceSetting(boolean boolean1) {
-		useSlices_ = boolean1;
-	}
-
-	@Override
-	public void enableMultiPosition(boolean selected) {
-		useMultiPosition_ = selected;
-	}
-
-	@Override
-	public boolean isMultiPositionEnabled() {
-		return useMultiPosition_;
-	}
-
-	@Override
-	public ArrayList<ChannelSpec> getChannels() {
-		return channels_;
-	}
-
-	@Override
 	public void setChannels(ArrayList<ChannelSpec> channels) {
 		channels_ = channels;
-	}
-
-	@Override
-	public String getRootName() {
-		return rootName_;
-	}
-
-	@Override
-	public void setRootName(String absolutePath) {
-		rootName_ = absolutePath;
-	}
-
-	@Override
-	public void setDirName(String text) {
-		dirName_ = text;
-	}
-
-	@Override
-	public void setComment(String text) {
-		comment_ = text;
-		settingsChanged();
-	}
-
-	/**
-	 * Add new channel if the current state of the hardware permits.
-	 *
-	 * @param config - configuration name
-	 * @param exp
-	 * @param doZStack
-	 * @param zOffset
-	 * @param c
-	 * @return - true if successful
-	 */
-	@Override
-	public boolean addChannel(String config, double exp, Boolean doZStack, double zOffset, int skip, Color c, boolean use) {
-		if (isConfigAvailable(config)) {
-			ChannelSpec channel = new ChannelSpec();
-			channel.config = config;
-			channel.useChannel = use;
-			channel.exposure = exp;
-			channel.doZStack = doZStack;
-			channel.zOffset = zOffset;
-			channel.color = c;
-			channel.skipFactorFrame = skip;
-			channels_.add(channel);
-			return true;
-		} else {
-			ReportingUtils.logError("\"" + config + "\" is not found in the current Channel group.");
-			return false;
-		}
-	}
-
-	@Override
-	public void setSaveFiles(boolean selected) {
-		saveFiles_ = selected;
-	}
-
-	@Override
-	public boolean getSaveFiles() {
-		return saveFiles_;
-	}
-
-	@Override
-	public int getAcqOrderMode() {
-		return acqOrderMode_;
-	}
-
-	@Override
-	public void setAcqOrderMode(int mode) {
-		acqOrderMode_ = mode;
-	}
-
-	@Override
-	public void enableAutoFocus(boolean enabled) {
-		useAutoFocus_ = enabled;
-	}
-
-	@Override
-	public boolean isAutoFocusEnabled() {
-		return useAutoFocus_;
-	}
-
-	@Override
-	public int getAfSkipInterval() {
-		return afSkipInterval_;
-	}
-
-	@Override
-	public void setAfSkipInterval(int interval) {
-		afSkipInterval_ = interval;
 	}
 
 	@Override
@@ -1248,7 +1056,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			ReportingUtils.logError(ex);
 			return new String[0];
 		}
-		ArrayList<String> strGroups = new ArrayList<String>();
+      	ArrayList<String> strGroups = new ArrayList<>();
 		for (String group : groups) {
 			if (groupIsEligibleChannel(group)) {
 				strGroups.add(group);
@@ -1310,43 +1118,6 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		return true;
 	}
 
-	@Override
-	public void setCustomTimeIntervals(double[] customTimeIntervals) {
-		if (customTimeIntervals == null || customTimeIntervals.length == 0) {
-			customTimeIntervalsMs_ = null;
-			enableCustomTimeIntervals(false);
-		} else {
-			enableCustomTimeIntervals(true);
-			customTimeIntervalsMs_ = new ArrayList<Double>();
-			for (double d : customTimeIntervals) {
-				customTimeIntervalsMs_.add(d);
-			}
-		}
-	}
-
-	@Override
-	public double[] getCustomTimeIntervals() {
-		if (customTimeIntervalsMs_ == null) {
-			return null;
-		}
-		double[] intervals = new double[customTimeIntervalsMs_.size()];
-		for (int i = 0; i < customTimeIntervalsMs_.size(); i++) {
-			intervals[i] = customTimeIntervalsMs_.get(i);
-		}
-		return intervals;
-
-	}
-
-	@Override
-	public void enableCustomTimeIntervals(boolean enable) {
-		useCustomIntervals_ = enable;
-	}
-
-	@Override
-	public boolean customTimeIntervalsEnabled() {
-		return useCustomIntervals_;
-	}
-
 	/*
 	 * Returns the summary metadata associated with the most recent acquisition.
 	 */
@@ -1368,7 +1139,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 
 	@Subscribe
 	public void onShutdownCommencing(InternalShutdownCommencingEvent event) {
-		if (!event.getIsCancelled() && isAcquisitionRunning()) {
+		if (!event.isCanceled() && isAcquisitionRunning()) {
 			int result = JOptionPane.showConfirmDialog(null,
 					"Acquisition in progress. Are you sure you want to exit and discard all data?",
 					"Micro-Manager", JOptionPane.YES_NO_OPTION,

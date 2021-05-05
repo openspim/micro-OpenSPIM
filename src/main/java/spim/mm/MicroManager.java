@@ -25,8 +25,8 @@ import org.micromanager.acquisition.internal.AcquisitionWrapperEngine;
 import org.micromanager.acquisition.internal.IAcquisitionEngine2010;
 import org.micromanager.display.internal.displaywindow.imagej.MMVirtualStack;
 
-import org.micromanager.events.AcquisitionEndedEvent;
-import org.micromanager.events.AcquisitionStartedEvent;
+import org.micromanager.acquisition.AcquisitionEndedEvent;
+import org.micromanager.acquisition.AcquisitionStartedEvent;
 import org.micromanager.internal.MMStudio;
 import org.micromanager.internal.MMVersion;
 import org.micromanager.internal.MainFrame;
@@ -34,7 +34,6 @@ import org.micromanager.internal.utils.GUIUtils;
 import org.micromanager.internal.utils.MDUtils;
 import org.micromanager.internal.utils.ReportingUtils;
 
-import org.micromanager.internal.utils.UserProfileManager;
 import org.micromanager.profile.internal.DefaultUserProfile;
 import org.micromanager.profile.internal.UserProfileAdmin;
 import org.micromanager.profile.internal.gui.HardwareConfigurationManager;
@@ -92,8 +91,7 @@ public class MicroManager implements PlugIn, CommandListener
 
 	private void rememberSysConfig(String profileNameAutoStart) throws IOException
 	{
-		UserProfileManager userProfileManager_ = new UserProfileManager();
-		UserProfileAdmin profileAdmin = userProfileManager_.getAdmin();
+		UserProfileAdmin profileAdmin = UserProfileAdmin.create();
 		Iterator iterator = profileAdmin.getProfileUUIDsAndNames().entrySet().iterator();
 		UserProfile profile = null;
 
@@ -140,7 +138,6 @@ public class MicroManager implements PlugIn, CommandListener
 					{
 						e.printStackTrace();
 					}
-					profileAdmin.shutdownAutosaves();
 					return;
 				}
 
@@ -157,7 +154,7 @@ public class MicroManager implements PlugIn, CommandListener
 			() -> {
 				try
 				{
-					if ( mmstudio == null || !mmstudio.getIsProgramRunning() )
+					if ( mmstudio == null || !mmstudio.isProgramRunning() )
 					{
 
 						Executer.addCommandListener( MicroManager.this );
@@ -168,8 +165,7 @@ public class MicroManager implements PlugIn, CommandListener
 						mmstudio = new MMStudio( true, profileNameAutoStart );
 						ReportingUtils.setCore( null );
 
-						final MainFrame frame = mmstudio.getFrame();
-
+						final MainFrame frame = mmstudio.uiManager().frame();
 						if ( frame != null )
 						{
 
@@ -414,7 +410,7 @@ public class MicroManager implements PlugIn, CommandListener
 
 	public void show() {
 		if(instance != null && mmstudio != null) {
-			mmstudio.getFrame().show();
+			mmstudio.uiManager().frame().show();
 		}
 	}
 
@@ -456,7 +452,7 @@ public class MicroManager implements PlugIn, CommandListener
 		if (mmstudio == null)
 			return null;
 
-		return mmstudio.getCore();
+		return mmstudio.getCMMCore();
 	}
 
 	/**
@@ -857,7 +853,7 @@ public class MicroManager implements PlugIn, CommandListener
 					stopLiveMode();
 
 				// better to use mmstudio method so it handles exposure synchronization
-				mmstudio.setExposure( exposure );
+				core.setExposure( exposure );
 
 				// // set new exposure
 				// core.setExposure(exposure);

@@ -66,6 +66,7 @@ public class OpenSPIMSinglePaneTiffSeries implements Storage {
 	private HashMap<Integer, String> positionIndexToName_;
 	private ArrayList<String> orderedChannelNames_;
 	private Coords maxIndices_;
+	private Image firstImage_;
 
 	public OpenSPIMSinglePaneTiffSeries(DefaultDatastore store, String directory, String prefix, boolean newDataSet) throws IOException {
 		store_ = store;
@@ -249,7 +250,7 @@ public class OpenSPIMSinglePaneTiffSeries implements Storage {
 		if (coordsToFilename_.isEmpty()) {
 			return null;
 		}
-		Coords coords = new ArrayList<Coords>(coordsToFilename_.keySet()).get(0);
+		Coords coords = new ArrayList<>(coordsToFilename_.keySet()).get(0);
 		return getImage(coords);
 	}
 
@@ -278,12 +279,27 @@ public class OpenSPIMSinglePaneTiffSeries implements Storage {
 	}
 
 	@Override
+	public List<Image> getImagesIgnoringAxes(Coords coords, String... ignoreTheseAxes) throws IOException {
+		ArrayList<Image> result = new ArrayList<Image>();
+		for (Coords altCoords : coordsToFilename_.keySet()) {
+			Coords strippedAltCoords = altCoords.copyRemovingAxes(ignoreTheseAxes);
+			if (coords.equals(strippedAltCoords)) {
+				result.add(getImage(altCoords));
+			}
+		}
+		return result;
+	}
+
+	@Override
 	public boolean hasImage(Coords coords) {
 		return coordsToFilename_.containsKey(coords);
 	}
 
 	@Override
-	public Integer getMaxIndex(String axis) {
+	public int getMaxIndex(String axis) {
+      if (!getAxes().contains(axis)) {
+         return -1;
+      }
 		return maxIndices_.getIndex(axis);
 	}
 
@@ -309,17 +325,27 @@ public class OpenSPIMSinglePaneTiffSeries implements Storage {
 	 */
 	@SuppressWarnings("Duplicates")
 	private String createFileName(Coords coords) {
-		List<String> axes = coords.getAxes();
+		List<String> axes = getAxes();
 		java.util.Collections.sort(axes);
 		String filename = prefix_;
 		for (String axis : axes) {
 			// HACK: more precision for the time axis.
-			String precision = "%03d";
-			if (axis.contentEquals(Coords.T)) {
-				precision = "%09d";
+			if(coords.hasAxis(axis)) {
+				String precision = "%03d";
+				if (axis.contentEquals(Coords.T)) {
+					precision = "%09d";
+				}
+				filename += String.format("_%s" + precision, axis,
+						coords.getIndex(axis));
+			} else {
+				String precision = "%03d";
+				if (axis.contentEquals(Coords.T)) {
+					precision = "%09d";
+				}
+				filename += String.format("_%s" + precision, axis,
+						0);
 			}
-			filename += String.format("_%s" + precision, axis,
-					coords.getIndex(axis));
+
 		}
 		return filename + ".tif";
 	}
@@ -376,7 +402,7 @@ public class OpenSPIMSinglePaneTiffSeries implements Storage {
 			String coordsKey = "Coords-" + fileName;
 
 			// Use 0 for situations where there's no index information.
-			int pos = 0;
+			int pos = Math.max(0, image.getCoords().getStagePosition());
 			JsonObject jo = new JsonObject();
 			NonPropertyMapJSONFormats.coords().addToGson(jo,
 					((DefaultCoords) image.getCoords()).toPropertyMap());
@@ -414,6 +440,11 @@ public class OpenSPIMSinglePaneTiffSeries implements Storage {
 	@SuppressWarnings("Duplicates")
 	private void saveImageFile(Image image, String path, String tiffFileName,
 							   String metadataJSON) {
+		if (firstImage_ == null) {
+			firstImage_ = image;
+		} else {
+			ImageSizeChecker.checkImageSizes(firstImage_, image);
+		}
 		ImagePlus imp;
 		try {
 			ImageProcessor ip;
@@ -603,12 +634,10 @@ public class OpenSPIMSinglePaneTiffSeries implements Storage {
 					Coords coords;
 					if (key.startsWith("Coords-")) {
 						// 2.0 method. SummaryMetadata is already valid.
+						File f = new File(key);
+						fileName = f.getName();
 						coords = DefaultCoords.fromPropertyMap(
 								NonPropertyMapJSONFormats.coords().fromGson(entry.getValue()));
-
-						// TODO Filename should be read from JSON key instead of
-						// using fixed rule!
-						fileName = createFileName(coords);
 					}
 					else if (key.startsWith("FrameKey-")) {
 						// 1.4 method. SummaryMetadata must be reconstructed.
