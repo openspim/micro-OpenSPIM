@@ -217,12 +217,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.micro-manager.acqengj</groupId>
-            <artifactId>AcqEngJ</artifactId>
-            <version>0.5.5</version>
-        </dependency>
-
-        <dependency>
             <groupId>org.dockfx</groupId>
             <artifactId>DockFX</artifactId>
             <version>0.1.12</version>
