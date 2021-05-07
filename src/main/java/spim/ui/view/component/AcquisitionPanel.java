@@ -55,7 +55,6 @@ import spim.model.event.ControlEvent;
 import spim.ui.view.component.pane.CheckboxPane;
 import spim.ui.view.component.pane.LabeledPane;
 import spim.ui.view.component.util.TableViewUtil;
-import spim.util.SystemInfo;
 
 import java.awt.*;
 import java.io.File;
@@ -166,6 +165,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	// Anti-Drift log
 	StringProperty antiDriftLog;
 	ReadOnlyObjectProperty<Integer> antiDriftRefCh;
+	ReadOnlyObjectProperty<Toggle> antiDriftTypeToggle;
 
 	public AcquisitionPanel( SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView< PinItem > pinItemTableView, ObjectProperty roiRectangleProperty, SimpleDoubleProperty waitSeconds ) {
 		this.spimSetup = setup;
@@ -302,16 +302,28 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		CheckBox antiDriftCheckbox = new CheckBox("Anti-Drift");
-		antiDrift = antiDriftCheckbox.selectedProperty();
+//		CheckBox antiDriftCheckbox = new CheckBox("Anti-Drift");
+//		antiDrift = antiDriftCheckbox.selectedProperty();
+
 
 		Spinner<Integer> spinner = new Spinner<>(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 4, 1));
 		spinner.setPrefSize(55, 50);
 		spinner.setMaxHeight(20);
 		antiDriftRefCh = spinner.valueProperty();
 
-		HBox chBox = new HBox(3, new Label("Ref Ch: "), spinner);
-		chBox.setAlignment(Pos.CENTER);
+		RadioButton centreOfMass = new RadioButton("Centre of mass");
+		RadioButton phaseCorrelation = new RadioButton("Phase correlation");
+
+		ToggleGroup antiDriftType = new ToggleGroup();
+
+		centreOfMass.setToggleGroup(antiDriftType);
+		centreOfMass.setSelected(true);
+		phaseCorrelation.setToggleGroup(antiDriftType);
+
+		antiDriftTypeToggle = antiDriftType.selectedToggleProperty();
+
+		HBox chBox = new HBox(10, new Label("Ref Ch: "), spinner, new VBox(5, centreOfMass, phaseCorrelation));
+		chBox.setAlignment(Pos.CENTER_LEFT);
 
 //		Button test = new Button("Test");
 //		test.setOnAction(new EventHandler<ActionEvent>() {
@@ -323,7 +335,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 //		});
 
 //		acquireHBox.getChildren().addAll(acquireButton, new VBox(2, antiDriftCheckbox, chBox), test, pi);
-		acquireHBox.getChildren().addAll(acquireButton, new VBox(2, antiDriftCheckbox, chBox), pi);
+		CheckboxPane antiDriftPane = new CheckboxPane("Anti-drift", chBox);
+		antiDriftPane.setSelected(false);
+		antiDrift = antiDriftPane.selectedProperty();
+
+		acquireHBox.getChildren().addAll(acquireButton, pi);
 		spinner.setTooltip(new Tooltip("This channel index will be used for Anti-Drift reference"));
 
 		BorderPane.setMargin(acquireHBox, new Insets(12,12,12,12));
@@ -337,10 +353,18 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		// acquisition order
 		createAcquisitionOrderPane();
-		final TitledPane acqPane = new TitledPane( "Acquisition", acquireHBox );
-		acqPane.setCollapsible( false );
 
-		VBox zstackAcquisitionOrderPane = new VBox( 20, createZStackPane(stagePanel), acqPane );
+
+		Tab acquisitionTab = new Tab("Acquisition", acquireHBox);
+		acquisitionTab.setClosable(false);
+
+		Tab antiDriftTab = new Tab("Anti-drift", new VBox(2, antiDriftPane, chBox));
+		antiDriftTab.setClosable(false);
+
+		TabPane acquisitionPane = new TabPane(acquisitionTab, antiDriftTab);
+		acquisitionPane.setMinHeight(120);
+
+		VBox zstackAcquisitionOrderPane = new VBox( 20, createZStackPane(stagePanel), acquisitionPane );
 
 		// setup the Z-stacks
 		// summary
@@ -1022,7 +1046,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 						arduinoSelected, new File(directory.getValue()), filename.getValue(),
 						positionItemTableView.getItems(), channelItemList, processedImages,
 						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), antiDrift.getValue(), experimentNote.getValue(),
-						antiDriftLog, antiDriftRefCh.get() );
+						antiDriftLog, antiDriftRefCh.get(), antiDriftTypeToggle );
 
 //				new MMAcquisitionRunner().runAcquisition();
 

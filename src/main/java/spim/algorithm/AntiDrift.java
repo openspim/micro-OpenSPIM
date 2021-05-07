@@ -8,6 +8,10 @@ import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
  */
 public interface AntiDrift
 {
+	enum Type {
+		CenterOfMass,
+		PhaseCorrelation
+	}
 	/**
 	 * Start new stack.
 	 */

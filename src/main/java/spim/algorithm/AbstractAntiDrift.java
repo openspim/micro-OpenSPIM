@@ -1,10 +1,9 @@
 package spim.algorithm;
 
+import ij.ImageStack;
 import ij.process.ImageProcessor;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
-import spim.algorithm.AntiDrift;
-import spim.algorithm.Projections;
 
 import java.io.File;
 
@@ -115,4 +114,9 @@ public abstract class AbstractAntiDrift implements AntiDrift
 	{
 		latest.writeDiff(first, zratio, offset, center, outputDir);
 	}
+
+	protected ImageProcessor refImage, lastMIP;
+	protected Vector3D refXY;
+	protected Vector3D lastXY;
+	protected ImageStack stack;
 }

@@ -3,8 +3,11 @@ package spim.ui.view.component;
 import ij.process.ImageProcessor;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.LongProperty;
+import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.ObservableList;
+import javafx.scene.control.RadioButton;
+import javafx.scene.control.Toggle;
 import loci.common.DebugTools;
 import mmcorej.CMMCore;
 import mmcorej.TaggedImage;
@@ -115,10 +118,11 @@ public class MMAcquisitionEngine
 	 * @param experimentNote Experiment Note saved in the metadata
 	 * @param antiDriftLog holds anti drift log during acquisition
 	 * @param antiDriftReferenceChannel the reference channel for anti-drift
+	 * @param antiDriftTypeToggle the type of anti-drift, CentreOfMass or PhaseCorrelation
 	 * @throws Exception the exception
 	 */
 	@SuppressWarnings("Duplicates")
-	public void performAcquisition(Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, Object savingFormatValue, boolean saveMIP, boolean antiDrift, String experimentNote, StringProperty antiDriftLog, Integer antiDriftReferenceChannel) throws Exception
+	public void performAcquisition(Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, ObservableList< TimePointItem > timePointItems, DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems, LongProperty processedImages, boolean bSave, Object savingFormatValue, boolean saveMIP, boolean antiDrift, String experimentNote, StringProperty antiDriftLog, Integer antiDriftReferenceChannel, ReadOnlyObjectProperty<Toggle> antiDriftTypeToggle) throws Exception
 	{
 		final Studio frame = studio;
 
@@ -367,29 +371,29 @@ public class MMAcquisitionEngine
 		if(!saveMIP) acqFilenamePrefix = null;
 
 		executeNormalAcquisition(setup, frame, store, stagePanel, currentCamera, cameras, output, acqFilenamePrefix, handlers,
-				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan, antiDrift, antiDriftLog, antiDriftReferenceChannel);
+				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan, antiDrift, antiDriftLog, antiDriftReferenceChannel, antiDriftTypeToggle);
 	}
 
 	private void executeNormalAcquisition(SPIMSetup setup, final Studio frame, Datastore store,
-			StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
-			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
-			DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
-			LongProperty processedImages, final double acqBegan, final boolean antiDrift, StringProperty antiDriftLog, Integer adReferenceChannel) throws Exception
+										  StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
+										  ObservableList<TimePointItem> timePointItems, ObservableList<PositionItem> positionItems, List<ChannelItem> channelItems,
+										  DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
+										  LongProperty processedImages, final double acqBegan, final boolean antiDrift, StringProperty antiDriftLog, Integer adReferenceChannel, ReadOnlyObjectProperty<Toggle> antiDriftTypeToggle) throws Exception
 	{
 
 		// Dynamic timeline
 		runNormalSmartImagingMMAcq(setup, frame, store, stagePanel, currentCamera, cameras,
 				outFolder, acqFilenamePrefix, handlers,
-				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, antiDrift, antiDriftLog, adReferenceChannel);
+				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, antiDrift, antiDriftLog, adReferenceChannel, antiDriftTypeToggle);
 
 		finalize(true, setup, currentCamera, cameras, frame, 0, 0, handlers, store);
 	}
 
 	private void runNormalSmartImagingMMAcq(SPIMSetup setup, final Studio frame, Datastore store,
-			StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
-			ObservableList< TimePointItem > timePointItems, ObservableList< PositionItem > positionItems, List< ChannelItem > channelItems,
-			DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
-			LongProperty processedImages, final boolean antiDrift, StringProperty antiDriftLog, Integer adReferenceChannel) throws Exception
+											StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
+											ObservableList<TimePointItem> timePointItems, ObservableList<PositionItem> positionItems, List<ChannelItem> channelItems,
+											DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
+											LongProperty processedImages, final boolean antiDrift, StringProperty antiDriftLog, Integer adReferenceChannel, ReadOnlyObjectProperty<Toggle> antiDriftTypeToggle) throws Exception
 	{
 
 		final CMMCore core = frame.core();
@@ -403,10 +407,19 @@ public class MMAcquisitionEngine
 		if(antiDrift) {
 			driftCompMap = new HashMap<>(positionItems.size());
 			for( PositionItem positionItem : positionItems )
-				driftCompMap.put(positionItem, new DefaultAntiDrift(10));
+			{
+				RadioButton selectedRadioButton = (RadioButton) antiDriftTypeToggle.getValue();
+				String toogleGroupValue = selectedRadioButton.getText();
+
+				if(toogleGroupValue.equals("Centre of mass")) {
+					driftCompMap.put(positionItem, new DefaultAntiDrift());
+				} else if(toogleGroupValue.equals("Phase correlation")) {
+					driftCompMap.put(positionItem, new DefaultAntiDrift(10));
+				}
+			}
 		}
 
-		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, handlers, channelItems, arduinoSelected, processedImages, driftCompMap, adReferenceChannel );
+		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, handlers, channelItems, arduinoSelected, processedImages, driftCompMap, adReferenceChannel);
 
 		mainLoop:
 		for(TimePointItem tpItem : timePointItems ) {
@@ -434,10 +447,11 @@ public class MMAcquisitionEngine
 							double yOffset = offset.getY() < 50 ? offset.getY() * binningFactor * core.getPixelSizeUm() : 0;
 							double zOffset = offset.getZ() < 20 ? offset.getZ() * core.getPixelSizeUm() * positionItem.getZStep() : 0;
 							System.out.println("PixelSizeUm = " + core.getPixelSizeUm());
-							System.out.println("Anti-Drift used X:" + xOffset + " Y:" + yOffset + " Z:" + zOffset);
+							System.out.println(driftCompMap.get(positionItem).getType() + " Anti-Drift used X:" + xOffset + " Y:" + yOffset + " Z:" + zOffset);
 
 							// Logging the anti-drift values
 							StringBuffer sb =  new StringBuffer();
+							sb.append(driftCompMap.get(positionItem).getType()).append("\n");
 							sb.append("Position: #").append(step).append("\n");
 							sb.append(new Date()).append("\n");
 							sb.append("X:").append(positionItem.getX()).append(" Y:").append(positionItem.getY()).append(" Z:").append(positionItem.getZString()).append("\n");

@@ -1,8 +1,7 @@
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
-import ij.process.FloatProcessor;
-import ij.process.ImageProcessor;
+import ij.process.*;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 import org.junit.Before;
 import org.junit.Test;
@@ -194,9 +193,10 @@ public class AntiDriftTest
 //		});
 
 		final DefaultAntiDrift proj = new DefaultAntiDrift(7);
+		final DefaultAntiDrift proj2 = new DefaultAntiDrift();
 
-//		String filename = "Pd_100TP_ch_0-1.tif";
-		String filename = "TP0-310_shift_3xds.tif";
+		String filename = "Pd_100TP_ch_0-1.tif";
+//		String filename = "TP0-310_shift_3xds.tif";
 		ImagePlus ip = IJ.openVirtual("/Users/moon/temp/openspim/" + filename);
 
 		System.out.println(ip.getNFrames());
@@ -263,38 +263,41 @@ public class AntiDriftTest
 //		image.show();
 		int t = ip.getNFrames();
 
-		for(int i = 10; i < t; i+=20) {
+		ImageStack outputStack = new ImageStack(ip.getWidth(), ip.getHeight());
+
+		for(int i = 0; i < t; i++) {
 			System.out.println(i);
 //			ct.startNewStack();
 			proj.startNewStack();
-
-			double xOffset, yOffset;
+			proj2.startNewStack();
 
 			Vector3D offset = proj.getUpdatedOffset();
-			xOffset = offset.getX();
-			yOffset = offset.getY();
-			System.out.println("Anti-Drift used offset only X,Y: " + offset);
+			System.out.println("Anti-Drift used offset PC: " + offset);
+
+			offset = proj2.getUpdatedOffset();
+			System.out.println("Anti-Drift used offset MIP: " + offset);
 
 			for(int k = 1; k <= ip.getNSlices(); k++)
 			{
 				ip.setPosition( 0, k, i );
 
-//				FloatProcessor fp = ( FloatProcessor ) ip.getProcessor().convertToFloat();
-
-				// Translate the original image according to the current offset
-				// This behavior will be replaced by Stage Control Movement operation with pixelSizeUm property
-//				fp.translate( xOffset, yOffset );
-				// Corrected image will be used for the viewer
-//				ct.addXYSlice( fp );
-
-//				proj.addXYSlice( fp );
 				proj.addXYSlice( ip.getProcessor() );
+				proj2.addXYSlice( ip.getProcessor() );
 			}
 //			ct.finishStack();
 			proj.updateOffset(proj.finishStack());
+
+			proj2.updateOffset(proj2.finishStack());
+
+			ImageProcessor mip = proj2.getLastMIP();
+			mip.translate( offset.getX(), -offset.getY() );
+			outputStack.addSlice(mip);
 		}
 		ip.close();
-		System.out.println("Final offset: " + proj.getUpdatedOffset());
+		System.out.println("Final offset (PC): " + proj.getUpdatedOffset());
+		System.out.println("Final offset (MIP): " + proj2.getUpdatedOffset());
+
+		IJ.save(new ImagePlus("output", outputStack), "/Users/moon/temp/openspim/output.tiff" );
 
 
 //		for(int i = 0; i < 5; i++)

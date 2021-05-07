@@ -8,9 +8,7 @@ import spim.algorithm.AntiDrift;
 import spim.gui.calibration.AntiDriftAdjustWindow;
 import spim.algorithm.DefaultAntiDrift;
 
-import java.awt.GraphicsEnvironment;
 import java.io.File;
-import java.util.logging.Logger;
 
 /**
  * The Anti-drift controller consists of AntiDrift logic and GUI.
@@ -48,7 +46,7 @@ public class AntiDriftController implements AntiDrift.Callback
 		this.zstep = zstep;
 		this.tp = 1;
 
-		antiDrift = new DefaultAntiDrift();
+		antiDrift = new DefaultAntiDrift(10);
 		gui = new AntiDriftAdjustWindow(x, y, z, theta, zratio);
 
 		if(outputDir != null) {
