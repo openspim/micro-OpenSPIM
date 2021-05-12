@@ -56,7 +56,7 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 				stack.addSlice( copy );
 				break;
 			case PhaseCorrelation:
-				copy.blurGaussian( sigma );
+//				copy.blurGaussian( sigma );
 				latest.addXYSlice( copy );
 				break;
 		}
@@ -70,6 +70,7 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 			case CenterOfMass:
 				lastMIP = generateMIP(stack);
 				addMIPImage(lastMIP);
+				// TODO: Check the inverse X, Y for XY Stage
 				suggested = new Vector3D(lastXY.getX() - refXY.getX(), lastXY.getY() - refXY.getY(), 0f);
 				break;
 			case PhaseCorrelation:

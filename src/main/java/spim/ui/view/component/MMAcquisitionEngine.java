@@ -41,6 +41,7 @@ import org.micromanager.internal.MMStudio;
 
 import org.micromanager.internal.utils.imageanalysis.ImageUtils;
 import spim.acquisition.Row;
+import spim.algorithm.AntiDrift;
 import spim.algorithm.DefaultAntiDrift;
 import spim.hardware.Device;
 import spim.hardware.SPIMSetup;
@@ -443,14 +444,30 @@ public class MMAcquisitionEngine
 						if(driftCompMap != null) {
 							int binningFactor = setup.getCamera1().getBinning();
 							Vector3D offset = driftCompMap.get(positionItem).getUpdatedOffset();
-							double xOffset = offset.getX() < 50 ? offset.getX() * binningFactor * core.getPixelSizeUm() * -1 : 0;
-							double yOffset = offset.getY() < 50 ? offset.getY() * binningFactor * core.getPixelSizeUm() : 0;
-							double zOffset = offset.getZ() < 20 ? offset.getZ() * positionItem.getZStep() : 0;
-							System.out.println("PixelSizeUm = " + core.getPixelSizeUm());
-							System.out.println(driftCompMap.get(positionItem).getType() + " Anti-Drift used X:" + xOffset + " Y:" + yOffset + " Z:" + zOffset);
+//							double xOffset = offset.getX() < 50 ? offset.getX() * binningFactor * core.getPixelSizeUm() * -1 : 0;
+//							double yOffset = offset.getY() < 50 ? offset.getY() * binningFactor * core.getPixelSizeUm() : 0;
+//							double zOffset = offset.getZ() < 20 ? offset.getZ() * positionItem.getZStep() * -1 : 0;
+
+							double xOffset = offset.getX() * binningFactor * core.getPixelSizeUm() * -1;
+							double yOffset = offset.getY() * binningFactor * core.getPixelSizeUm() * -1;
+							double zOffset = offset.getZ() * positionItem.getZStep() * -1;
+
+							// Remove double applying calibration value
+							if(driftCompMap.get(positionItem).getType().equals(AntiDrift.Type.CenterOfMass)) {
+								xOffset = xOffset / core.getPixelSizeUm();
+								yOffset = yOffset / core.getPixelSizeUm();
+							}
+
+							// Only use integer values
+							if(Math.abs(xOffset) > 1) xOffset = (int) xOffset;
+							if(Math.abs(yOffset) > 1) yOffset = (int) yOffset;
+
+							StringBuffer sb =  new StringBuffer();
+							sb.append("PixelSizeUm = " + core.getPixelSizeUm() + "\n");
+							sb.append(driftCompMap.get(positionItem).getType() + " Anti-Drift used X:" + xOffset + " Y:" + yOffset + " Z:" + zOffset + "\n");
+							System.out.println(sb.toString());
 
 							// Logging the anti-drift values
-							StringBuffer sb =  new StringBuffer();
 							sb.append(driftCompMap.get(positionItem).getType()).append("\n");
 							sb.append("Position: #").append(step).append("\n");
 							sb.append(new Date()).append("\n");
