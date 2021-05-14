@@ -48,13 +48,8 @@ import java.beans.ExceptionListener;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.UUID;
+import java.lang.reflect.Method;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.prefs.Preferences;
@@ -84,72 +79,13 @@ public class MicroManager implements PlugIn, CommandListener
 
 	static {
 		new WindowPositioningPatch().applyPatches();
+		new WindowPositioningPatch().applyMMPatches();
 	}
 
 	public MicroManager(ObjectProperty<Studio> studioObjectProperty) {
 		rlock = new ReentrantLock(true);
 		mmStudioProperty = studioObjectProperty;
 		run(null);
-	}
-
-	private void rememberSysConfig(String profileNameAutoStart) throws IOException
-	{
-		if(profileAdmin == null)
-			profileAdmin = UserProfileAdmin.create();
-
-		Iterator iterator = profileAdmin.getProfileUUIDsAndNames().entrySet().iterator();
-		UserProfile profile = null;
-
-		while(iterator.hasNext()) {
-			Map.Entry<UUID, String> entry = ( Map.Entry )iterator.next();
-			String name = entry.getValue();
-			if (name.equals(profileNameAutoStart)) {
-				profile = profileAdmin.getAutosavingProfile((UUID)entry.getKey(), new ExceptionListener() {
-					public void exceptionThrown(Exception e) {
-						System.err.println("Exception Listener:" + e);
-					}
-				});
-				break;
-			}
-		}
-
-		List<String> files = profile.getSettings(HardwareConfigurationManager.class).getStringList("RECENTLY_USED", (new File("MMConfig_demo.cfg")).getAbsolutePath());
-		ListIterator it = files.listIterator();
-		while(true) {
-			File file;
-			do {
-				if (!it.hasNext()) {
-					files.add(0, sysConfigFile);
-					it = files.listIterator(files.size());
-
-					while(it.hasPrevious() && files.size() > 10) {
-						file = new File((String)it.previous());
-						if (!file.isFile()) {
-							it.remove();
-						}
-					}
-
-					while(files.size() > 10) {
-						files.remove(files.size() - 1);
-					}
-
-					profile.getSettings(HardwareConfigurationManager.class).putStringList("RECENTLY_USED", files);
-					try
-					{
-						(( DefaultUserProfile )profile).close();
-					}
-					catch ( InterruptedException e )
-					{
-						e.printStackTrace();
-					}
-					return;
-				}
-
-				file = new File((String)it.next());
-			} while(file.isFile() && !file.equals(sysConfigFile));
-
-			it.remove();
-		}
 	}
 
 	@Override
@@ -164,7 +100,11 @@ public class MicroManager implements PlugIn, CommandListener
 						Executer.addCommandListener( MicroManager.this );
 
 						String profileNameAutoStart = parseMacroOptions();
-						rememberSysConfig(profileNameAutoStart);
+
+						Method setSysConfFile
+								= MMStudio.class.getDeclaredMethod("setSysConfFile", String.class);
+
+						setSysConfFile.invoke(null, sysConfigFile);
 
 						mmstudio = new MMStudio( true, profileNameAutoStart );
 						mmstudio.events().registerForEvents( this );

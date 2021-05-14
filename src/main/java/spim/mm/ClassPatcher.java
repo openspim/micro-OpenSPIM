@@ -3,14 +3,7 @@ package spim.mm;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 
-import javassist.CannotCompileException;
-import javassist.ClassClassPath;
-import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.CtMethod;
-import javassist.CtNewMethod;
-import javassist.LoaderClassPath;
-import javassist.NotFoundException;
+import javassist.*;
 
 
 /**
@@ -187,6 +180,20 @@ public class ClassPatcher
 		catch (final CannotCompileException e)
 		{
 			throw new IllegalArgumentException("Cannot add method: " + methodSig, e);
+		}
+	}
+
+	public void addField(final String fullClass, final String code)
+	{
+		final CtClass classRef = getClass(fullClass);
+
+		try
+		{
+			classRef.addField(CtField.make(code, getClass(fullClass)));
+		}
+		catch (final CannotCompileException e)
+		{
+			throw new IllegalArgumentException("Cannot add field: " + code, e);
 		}
 	}
 
