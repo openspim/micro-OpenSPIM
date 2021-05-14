@@ -50,6 +50,8 @@ public abstract class Device {
 	 * @return true if this device is invalid. Otherwise, it returns false.
 	 */
 	public boolean isInvalid() {
+		if(core == null) return true;
+
 		try {
 			core.getDeviceName( label );
 		} catch (Exception e) {
