@@ -41,7 +41,7 @@ public class LaserDevicePanel extends HBox implements SPIMSetupInjectable
 {
 
 	//	private LaserDeviceInterface mLaserDeviceInterface;
-
+	private SPIMSetup spimSetup;
 	private String powerUnits;
 	private double maxPower, minPower;
 
@@ -75,7 +75,6 @@ public class LaserDevicePanel extends HBox implements SPIMSetupInjectable
 		minPower = null == laser ? 0 : laser.getMinPower();
 
 		init();
-		executor = Executors.newScheduledThreadPool( 5 );
 
 		// data -> GUI
 		// CurrentPower update (data -> GUI)
@@ -99,7 +98,7 @@ public class LaserDevicePanel extends HBox implements SPIMSetupInjectable
 			}, 500, 100, TimeUnit.MILLISECONDS );
 		} else {
 			executor.scheduleAtFixedRate( () -> {
-				if(laser.isInvalid()) {
+				if(this.spimSetup == null || laser.isInvalid()) {
 					executor.shutdown();
 					executor = null;
 					return;
@@ -145,6 +144,16 @@ public class LaserDevicePanel extends HBox implements SPIMSetupInjectable
 
 	@Override public void setSetup( SPIMSetup setup, Studio studio )
 	{
+		this.spimSetup = setup;
+
+		initExecutor();
+
+		if(setup == null) {
+			laserOnSwitch.setSelected(false);
+		}
+	}
+
+	private void initExecutor() {
 		if(executor != null) {
 			executor.shutdown();
 			try {
@@ -155,10 +164,14 @@ public class LaserDevicePanel extends HBox implements SPIMSetupInjectable
 				executor.shutdownNow();
 			}
 		}
+
+		executor = Executors.newScheduledThreadPool( 5 );
 	}
 
 	private void init()
 	{
+		initExecutor();
+
 		// Power on/off
 		laserOnSwitch = new IconSwitch();
 
