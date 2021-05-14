@@ -27,6 +27,8 @@ import org.micromanager.display.internal.displaywindow.imagej.MMVirtualStack;
 
 import org.micromanager.acquisition.AcquisitionEndedEvent;
 import org.micromanager.acquisition.AcquisitionStartedEvent;
+import org.micromanager.events.*;
+import org.micromanager.events.internal.InternalShutdownCommencingEvent;
 import org.micromanager.internal.MMStudio;
 import org.micromanager.internal.MMVersion;
 import org.micromanager.internal.MainFrame;
@@ -77,6 +79,7 @@ public class MicroManager implements PlugIn, CommandListener
 	static ReentrantLock rlock;
 	static String sysConfigFile = "";
 	public static String orgUserDir = "";
+	static UserProfileAdmin profileAdmin;
 	static Thread mmThread;
 
 	static {
@@ -91,7 +94,9 @@ public class MicroManager implements PlugIn, CommandListener
 
 	private void rememberSysConfig(String profileNameAutoStart) throws IOException
 	{
-		UserProfileAdmin profileAdmin = UserProfileAdmin.create();
+		if(profileAdmin == null)
+			profileAdmin = UserProfileAdmin.create();
+
 		Iterator iterator = profileAdmin.getProfileUUIDsAndNames().entrySet().iterator();
 		UserProfile profile = null;
 
@@ -110,7 +115,6 @@ public class MicroManager implements PlugIn, CommandListener
 
 		List<String> files = profile.getSettings(HardwareConfigurationManager.class).getStringList("RECENTLY_USED", (new File("MMConfig_demo.cfg")).getAbsolutePath());
 		ListIterator it = files.listIterator();
-
 		while(true) {
 			File file;
 			do {
@@ -163,6 +167,8 @@ public class MicroManager implements PlugIn, CommandListener
 						rememberSysConfig(profileNameAutoStart);
 
 						mmstudio = new MMStudio( true, profileNameAutoStart );
+						mmstudio.events().registerForEvents( this );
+
 						ReportingUtils.setCore( null );
 
 						final MainFrame frame = mmstudio.uiManager().frame();
@@ -190,7 +196,7 @@ public class MicroManager implements PlugIn, CommandListener
 						// get the MM core
 						final CMMCore core = getCore();
 
-//						core.registerCallback( new OpenSPIMEventCallback() );
+						core.registerCallback( new OpenSPIMEventCallback() );
 						mmStudioProperty.set( MicroManager.getMMStudio() );
 
 //						ReportingUtils.setCore( core );
@@ -1396,6 +1402,40 @@ public class MicroManager implements PlugIn, CommandListener
 //		store_ = null;
 	}
 
+	@Subscribe
+	public void onSystemConfigurationLoaded(SystemConfigurationLoadedEvent event) {
+		System.out.println("Config loaded");
+	}
+
+	@Subscribe
+	public void onStagePositionChanged(StagePositionChangedEvent event) {
+		System.out.println("Stage changed");
+	}
+
+	@Subscribe
+	public void onXYStagePositionChanged(XYStagePositionChangedEvent event) {
+		System.out.println("XYStage changed");
+	}
+
+
+	@Subscribe
+	public void onShutdownCommencing(InternalShutdownCommencingEvent event) {
+//		if(!event.isCanceled()) {
+//			shutdown();
+//		}
+		System.out.println("Shutdown");
+	}
+
+	@Subscribe
+	public void onStartupComplete(StartupCompleteEvent event) {
+		System.out.println("Started up");
+	}
+
+	@Subscribe
+	public void onGUIRefresh(GUIRefreshEvent event) {
+		System.out.println("Refreshed.....");
+	}
+
 //	private static class LiveListenerThread extends Thread
 //	{
 //		public LiveListenerThread()
@@ -1495,7 +1535,10 @@ public class MicroManager implements PlugIn, CommandListener
 		@Override
 		public void onPropertyChanged(String deviceName, String propName, String propValue)
 		{
-			System.out.println("PropertyChanged");
+			System.out.println("PropertyChanged:" + deviceName + "-" + propName + " with " + propValue);
+			if(deviceName.equals("Core") && propName.equals("Camera") && propValue.isEmpty()) {
+				mmStudioProperty.set( null );
+			}
 		}
 
 		@Override
@@ -1516,7 +1559,7 @@ public class MicroManager implements PlugIn, CommandListener
 			// Reload the SPIMSetup from the Micro-Manager studio
 			//
 //			System.out.println("SystemconfigurationLoaded");
-			System.err.println("SystemconfigurationLoaded");
+			System.err.println("SystemConfigurationLoaded");
 			System.setProperty( "user.dir", MicroManager.orgUserDir );
 			mmStudioProperty.set( MicroManager.getMMStudio() );
 		}
