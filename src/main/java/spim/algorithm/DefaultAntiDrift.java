@@ -56,7 +56,7 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 				stack.addSlice( copy );
 				break;
 			case PhaseCorrelation:
-//				copy.blurGaussian( sigma );
+				copy.blurGaussian( sigma );
 				latest.addXYSlice( copy );
 				break;
 		}
