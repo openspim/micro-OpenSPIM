@@ -19,7 +19,6 @@ import mmcorej.TaggedImage;
 
 import mmcorej.org.json.JSONObject;
 import org.micromanager.Studio;
-import org.micromanager.UserProfile;
 import org.micromanager.acquisition.SequenceSettings;
 import org.micromanager.acquisition.internal.AcquisitionWrapperEngine;
 import org.micromanager.acquisition.internal.IAcquisitionEngine2010;
@@ -36,17 +35,11 @@ import org.micromanager.internal.utils.GUIUtils;
 import org.micromanager.internal.utils.MDUtils;
 import org.micromanager.internal.utils.ReportingUtils;
 
-import org.micromanager.profile.internal.DefaultUserProfile;
-import org.micromanager.profile.internal.UserProfileAdmin;
-import org.micromanager.profile.internal.gui.HardwareConfigurationManager;
 import spim.mm.patch.WindowPositioningPatch;
 import spim.ui.view.component.HalcyonMain;
 
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.beans.ExceptionListener;
-import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -68,21 +61,20 @@ public class MicroManager implements PlugIn, CommandListener
 	 */
 	private static final Map<Integer, JSONObject> metadatas = new HashMap<Integer, JSONObject>(4);
 
-	volatile static ObjectProperty<Studio> mmStudioProperty = null;
-	volatile static MMStudio mmstudio = null;
-	volatile static MicroManager instance = null;
-	static ReentrantLock rlock;
-	static String sysConfigFile = "";
+	private volatile static ObjectProperty<Studio> mmStudioProperty = null;
+	private volatile static MMStudio mmstudio = null;
+	private volatile static MicroManager instance = null;
+	private static ReentrantLock rlock;
+	private static String sysConfigFile = "";
 	public static String orgUserDir = "";
-	static UserProfileAdmin profileAdmin;
-	static Thread mmThread;
+	private static Thread mmThread;
 
 	static {
-		new WindowPositioningPatch().applyPatches();
-		new WindowPositioningPatch().applyMMPatches();
+		WindowPositioningPatch.applyPatches();
+		WindowPositioningPatch.applyMMPatches();
 	}
 
-	public MicroManager(ObjectProperty<Studio> studioObjectProperty) {
+	private MicroManager(ObjectProperty<Studio> studioObjectProperty) {
 		rlock = new ReentrantLock(true);
 		mmStudioProperty = studioObjectProperty;
 		run(null);
