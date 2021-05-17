@@ -541,7 +541,7 @@ public class MMAcquisitionEngine
 
 					double wait = tpItem.getIntervalSeconds();
 
-					if(wait > 0D) {
+					if(timeSeq < (timeSeqs - 1) && wait > 0D) {
 						System.err.println("Interval delay. (next seq in " + wait + "s)");
 						core.logMessage("Interval delay. (next seq in " + wait + "s)");
 

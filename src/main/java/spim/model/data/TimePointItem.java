@@ -156,7 +156,7 @@ public class TimePointItem
 
 	public double getTotalSeconds() {
 		if(type.equals( Type.Acq ) )
-			return intervalUnit.get().getValue() * noTimePoints.get() * interval.get();
+			return intervalUnit.get().getValue() * (noTimePoints.get() - 1) * interval.get();
 		else if(type.equals( Type.Wait ))
 			return intervalUnit.get().getValue() * interval.get();
 		else return 0;
