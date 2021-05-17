@@ -73,7 +73,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	private boolean useMultiPosition_;
 	private boolean keepShutterOpenForStack_;
 	private boolean keepShutterOpenForChannels_;
-	private ArrayList<ChannelSpec> channels_ = new ArrayList<>();
+	private ArrayList<ChannelSpec> channels_;
 
 	private String rootName_;
 	private String dirName_;
@@ -359,7 +359,11 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			sink = new TaggedImageSink(
 					engineOutputQueue, curPipeline_, curStore_, this, studio_.events(),
 					t_, angle_, handlers_, cameras_, x, y, theta, mpImages_, processedImages_, currentAntiDrift_, antiDriftReferenceChannel_ );
-			sink.start(() -> getAcquisitionEngine2010().stop(), () -> generateMIP());
+
+			sink.start(() -> getAcquisitionEngine2010().stop(), () -> {
+				generateMIP();
+				curStore_.unregisterForEvents(AcqWrapperEngine.this);
+			});
 
 			return curStore_;
 
@@ -573,25 +577,18 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	}
 
 	public SequenceSettings getSequenceSettings() {
-		SequenceSettings acquisitionSettings = (new SequenceSettings.Builder()).build();
+		SequenceSettings.Builder ssb = new SequenceSettings.Builder();
 
 		updateChannelCameras();
 
 		// Frames
-		if (useFrames_) {
-			acquisitionSettings.useCustomIntervals = useCustomIntervals_;
-			if (useCustomIntervals_) {
-				acquisitionSettings.customIntervalsMs = customTimeIntervalsMs_;
-				acquisitionSettings.numFrames = acquisitionSettings.customIntervalsMs.size();
-			} else {
-				acquisitionSettings.numFrames = numFrames_;
-				acquisitionSettings.intervalMs = interval_;
-			}
-		} else {
-			acquisitionSettings.numFrames = 0;
-		}
+		ssb.useFrames(useFrames_);
+		ssb.useCustomIntervals(useCustomIntervals_);
+		ssb.numFrames(numFrames_);
+		ssb.intervalMs(interval_);
 
 		// Slices
+		ssb.useSlices(useSlices_);
 		if (useSlices_) {
 			double start = sliceZBottomUm_;
 			double stop = sliceZTopUm_;
@@ -603,52 +600,53 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			if (start > stop) {
 				step = -step;
 			}
+			ArrayList<Double> list = new ArrayList<>();
 			for (int i = 0; i < count; i++) {
-				acquisitionSettings.slices.add(start + i * step);
+				list.add(start + i * step);
 			}
+			ssb.slices(list);
 		}
 
-		acquisitionSettings.relativeZSlice = !this.absoluteZ_;
+		ssb.relativeZSlice(!this.absoluteZ_);
 		try {
 			String zdrive = core_.getFocusDevice();
-			acquisitionSettings.zReference = (zdrive.length() > 0)
-					? core_.getPosition(core_.getFocusDevice()) : 0.0;
+			ssb.zReference((zdrive.length() > 0)
+					? core_.getPosition(core_.getFocusDevice()) : 0.0);
 		} catch (Exception ex) {
 			ReportingUtils.logError(ex);
 		}
-		// Channels
 
-		if (this.useChannels_) {
-			for (ChannelSpec channel : channels_) {
-				if (channel.useChannel) {
-					acquisitionSettings.channels.add(channel);
-				}
-			}
-		}
+		// Channels
+		ssb.useChannels(this.useChannels_);
+		ssb.channels(this.channels_);
+
 		//since we're just getting this from the core, it should be safe to get
 		//regardless of whether we're using any channels. This also makes the
 		//behavior more consistent with the setting behavior.
-		acquisitionSettings.channelGroup = getChannelGroup();
+		ssb.channelGroup(getChannelGroup());
 
 		//timeFirst = true means that time points are collected at each position
-		acquisitionSettings.timeFirst = (acqOrderMode_ == AcqOrderMode.POS_TIME_CHANNEL_SLICE
-				|| acqOrderMode_ == AcqOrderMode.POS_TIME_SLICE_CHANNEL);
-		acquisitionSettings.slicesFirst = (acqOrderMode_ == AcqOrderMode.POS_TIME_CHANNEL_SLICE
-				|| acqOrderMode_ == AcqOrderMode.TIME_POS_CHANNEL_SLICE);
+		ssb.timeFirst((acqOrderMode_ == AcqOrderMode.POS_TIME_CHANNEL_SLICE
+				|| acqOrderMode_ == AcqOrderMode.POS_TIME_SLICE_CHANNEL));
+		ssb.slicesFirst((acqOrderMode_ == AcqOrderMode.POS_TIME_CHANNEL_SLICE
+				|| acqOrderMode_ == AcqOrderMode.TIME_POS_CHANNEL_SLICE));
 
-		acquisitionSettings.useAutofocus = useAutoFocus_;
-		acquisitionSettings.skipAutofocusCount = afSkipInterval_;
+		ssb.useAutofocus(useAutoFocus_);
+		ssb.skipAutofocusCount(afSkipInterval_);
 
-		acquisitionSettings.keepShutterOpenChannels = keepShutterOpenForChannels_;
-		acquisitionSettings.keepShutterOpenSlices = keepShutterOpenForStack_;
+		ssb.keepShutterOpenChannels(keepShutterOpenForChannels_);
+		ssb.keepShutterOpenSlices(keepShutterOpenForStack_);
 
-		acquisitionSettings.save = saveFiles_;
-		acquisitionSettings.comment = comment_;
-		acquisitionSettings.usePositionList = this.useMultiPosition_;
-		acquisitionSettings.cameraTimeout = this.cameraTimeout_;
-		acquisitionSettings.shouldDisplayImages = shouldDisplayImages_;
-		acquisitionSettings.usePositionList = useMultiPosition_;
-		return acquisitionSettings;
+		ssb.save(saveFiles_);
+		ssb.comment(comment_);
+
+		ssb.usePositionList(this.useMultiPosition_);
+		ssb.cameraTimeout(this.cameraTimeout_);
+		ssb.shouldDisplayImages(shouldDisplayImages_);
+
+		ssb.saveMode(Datastore.SaveMode.SINGLEPLANE_TIFF_SERIES);
+
+		return ssb.build();
 	}
 
 	public void setSequenceSettings(SequenceSettings ss) {

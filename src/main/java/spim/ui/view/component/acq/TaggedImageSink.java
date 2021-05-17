@@ -151,7 +151,7 @@ public class TaggedImageSink {
 								double xPos = tagged.tags.getDouble( "XPositionUm" );
 								double yPos = tagged.tags.getDouble( "YPositionUm" );
 								int ch = tagged.tags.getInt( "ChannelIndex" );
-								String cam = tagged.tags.getString( "Core-Camera" );
+								String cam = tagged.tags.getString( "Camera" );
 								double zStep = tagged.tags.getJSONObject( "Summary" ).getDouble( "z-step_um" );
 
 								if(ch == 0) {
