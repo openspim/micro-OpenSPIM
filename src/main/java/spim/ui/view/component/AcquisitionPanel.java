@@ -1143,19 +1143,19 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		CheckboxPane pane = new CheckboxPane( "Positions/Angles", new VBox( hbox, positionItemTableView ) );
 		enabledPositions = pane.selectedProperty();
 
-		Tab positionTab = new Tab("Position", pane);
-		positionTab.setClosable(false);
+//		Tab positionTab = new Tab("Position", pane);
+//		positionTab.setClosable(false);
 
 		TextArea antiDriftLogArea = new TextArea();
 		antiDriftLogArea.setEditable(false);
 		antiDriftLog = antiDriftLogArea.textProperty();
 
-		Tab antiDriftLogTab = new Tab("Anti-Drift logs", antiDriftLogArea);
-		antiDriftLogTab.setClosable(false);
+//		Tab antiDriftLogTab = new Tab("Anti-Drift logs", antiDriftLogArea);
+//		antiDriftLogTab.setClosable(false);
+//
+//		TabPane tabPane = new TabPane(positionTab, antiDriftLogTab);
 
-		TabPane tabPane = new TabPane(positionTab, antiDriftLogTab);
-
-		return tabPane;
+		return pane;
 	}
 
 	public void computeTotalPositionImages() {
