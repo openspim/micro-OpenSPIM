@@ -486,7 +486,7 @@ public class MMAcquisitionEngine
 							sb.append("->\nX:").append(positionItem.getX()).append(" Y:").append(positionItem.getY()).append(" Z:").append(positionItem.getZString()).append("\n");
 
 							core.logMessage(sb.toString());
-							antiDriftLog.set(antiDriftLog.get() + sb.toString());
+//							antiDriftLog.set(antiDriftLog.get() + sb.toString());
 						}
 
 						// Move the stage
