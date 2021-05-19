@@ -1,6 +1,7 @@
 package spim.ui.view.component;
 
 import ij.process.ImageProcessor;
+import javafx.application.Platform;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.LongProperty;
 import javafx.beans.property.ReadOnlyObjectProperty;
@@ -547,9 +548,8 @@ public class MMAcquisitionEngine
 
 						for(int i = 0; i < (int) wait; i++)
 						{
-							waitSeconds.set(wait - i);
 							++passedTimePoints;
-							currentTP.set( 1 / totalTimePoints * passedTimePoints );
+							updateTimeProperties( waitSeconds, wait - i, currentTP, 1 / totalTimePoints * passedTimePoints );
 							try
 							{
 								Thread.sleep( ( long ) ( 1e3 ) );
@@ -562,16 +562,19 @@ public class MMAcquisitionEngine
 							}
 
 							if(stopRequest) {
+								System.err.println("Stop requested.");
+								core.logMessage("Stop requested.");
+
 								engine.stop(true);
-								waitSeconds.set(-1);
+								updateWaitTimeProperty( waitSeconds, -1 );
 								break mainLoop;
 							}
 						}
-						waitSeconds.set(-1);
+						updateWaitTimeProperty( waitSeconds, -1 );
 					}
 					++timePoints;
 
-					currentTP.set( 1 / totalTimePoints * passedTimePoints );
+					updateCurrentTPProperty( currentTP, 1 / totalTimePoints * passedTimePoints );
 				}
 			}
 			else if(tpItem.getType().equals( TimePointItem.Type.Wait ))
@@ -584,9 +587,8 @@ public class MMAcquisitionEngine
 
 					for(int i = 0; i < (int) wait; i++)
 					{
-						waitSeconds.set(wait - i);
 						++passedTimePoints;
-						currentTP.set( 1 / totalTimePoints * passedTimePoints );
+						updateTimeProperties( waitSeconds, wait - i, currentTP, 1 / totalTimePoints * passedTimePoints );
 						try
 						{
 							Thread.sleep( ( long ) ( 1e3 ) );
@@ -599,17 +601,40 @@ public class MMAcquisitionEngine
 						}
 
 						if(stopRequest) {
+							System.err.println("Stop requested.");
+							core.logMessage("Stop requested.");
 							engine.stop(true);
-							waitSeconds.set(-1);
+							updateWaitTimeProperty( waitSeconds, -1 );
 							break mainLoop;
 						}
 					}
-					waitSeconds.set(-1);
+					updateWaitTimeProperty( waitSeconds, -1 );
 				}
 			}
 		}
 
 		engine.exit();
+		System.err.println("AcquisitionEngine exited.");
+		core.logMessage("AcquisitionEngine exited.");
+	}
+
+	private static void updateCurrentTPProperty(DoubleProperty currentTP, double updatedCurrentTP) {
+		Platform.runLater(() -> {
+			currentTP.set( updatedCurrentTP );
+		});
+	}
+
+	private static void updateWaitTimeProperty(DoubleProperty waitSeconds, double updatedWaitSeconds) {
+		Platform.runLater(() -> {
+			waitSeconds.set( updatedWaitSeconds );
+		});
+	}
+
+	private static void updateTimeProperties(DoubleProperty waitSeconds, double updatedWaitSeconds, DoubleProperty currentTP, double updatedCurrentTP) {
+		Platform.runLater(() -> {
+			waitSeconds.set( updatedWaitSeconds );
+			currentTP.set( updatedCurrentTP );
+		});
 	}
 
 	private static int addSlice(TaggedImage ti, SPIMSetup setup, int exp, int ch, double acqBegan, int tp, int step, OutputHandler handler,
