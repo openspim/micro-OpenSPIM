@@ -461,7 +461,13 @@ public class MMAcquisitionEngine
 
 							// Only use integer values
 							if(Math.abs(xOffset) > 1) xOffset = (int) xOffset;
+							else xOffset = 0;
+
 							if(Math.abs(yOffset) > 1) yOffset = (int) yOffset;
+							else yOffset = 0;
+
+							if(Math.abs(zOffset) > 1) zOffset = (int) zOffset;
+							else zOffset = 0;
 
 							StringBuffer sb =  new StringBuffer();
 							sb.append("PixelSizeUm = " + core.getPixelSizeUm() + "\n");
