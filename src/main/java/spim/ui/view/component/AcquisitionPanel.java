@@ -1155,9 +1155,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		TabPane tabPane = new TabPane(positionTab, antiDriftLogTab);
 
-		VBox vbox = new VBox( 12, tabPane, pane );
-
-		return vbox;
+		return tabPane;
 	}
 
 	public void computeTotalPositionImages() {
