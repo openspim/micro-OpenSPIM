@@ -1,5 +1,6 @@
 package spim.ui.view.component.acq;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TreeMap;
@@ -151,7 +152,8 @@ public class TaggedImageSink {
 								double xPos = tagged.tags.getDouble( "XPositionUm" );
 								double yPos = tagged.tags.getDouble( "YPositionUm" );
 								int ch = tagged.tags.getInt( "ChannelIndex" );
-								String cam = tagged.tags.getString( "Camera" );
+//								String cam = tagged.tags.getString( "Camera" );
+								String coreCam = tagged.tags.getString( "Core-Camera" );
 								double zStep = tagged.tags.getJSONObject( "Summary" ).getDouble( "z-step_um" );
 
 								if(ch == 0) {
@@ -162,15 +164,15 @@ public class TaggedImageSink {
 //								System.out.println(ch);
 								int channel = ch;
 
-								if(camChannels_.containsKey( cam ))
+								if(camChannels_.containsKey( coreCam ))
 								{
-									channel = camChannels_.get(cam);
+									channel = camChannels_.get( coreCam );
 								}
 
 								DefaultImage image = new DefaultImage(tagged);
 
 								Coords.Builder cb = Coordinates.builder();
-								Coords coord = cb.p(angle_).t(t_).c(channel).z(slice).index("view", cameras_.indexOf(cam)).build();
+								Coords coord = cb.p(angle_).t(t_).c(channel).z(slice).index("view", cameras_.indexOf( coreCam )).build();
 								Image img = image;
 								Metadata md = img.getMetadata();
 								Metadata.Builder mdb = md.copyBuilderPreservingUUID();
@@ -198,16 +200,16 @@ public class TaggedImageSink {
 
 								ImageProcessor ip = ImageUtils.makeProcessor( tagged );
 
-								if(handlers_.containsKey( cam ))
+								if(handlers_.containsKey( coreCam ))
 								{
-									handlers_.get( cam ).processSlice( t_, angle_, ( int ) exp, channel, ip,
+									handlers_.get( coreCam ).processSlice( t_, angle_, ( int ) exp, channel, ip,
 											x_,
 											y_,
 											zPos,
 											theta_,
 											System.currentTimeMillis() - t1 );
 
-									camChannels_.put( cam, channel + 1 );
+									camChannels_.put( coreCam, channel + 1 );
 								}
 
 								if(antiDriftRefChannel_ == ch && antiDrift_ != null) {
