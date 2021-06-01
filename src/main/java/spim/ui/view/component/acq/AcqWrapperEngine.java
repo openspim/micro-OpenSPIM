@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.swing.JOptionPane;
 
@@ -107,6 +108,8 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	private Integer antiDriftReferenceChannel_;
 
 	final String channelGroupName = "OpenSPIM-channels";
+
+	private ReentrantLock rlock = new ReentrantLock(true);
 
 	Datastore mpStore_;
 	TreeMap<Integer, Image>[] mpImages_;
@@ -277,8 +280,13 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		{
 			core_.setChannelGroup( orgChannelGroup );
 			core_.deleteConfigGroup( channelGroupName );
-			if(null != mpStore_)
+			if(null != mpStore_) {
+				while(rlock.isLocked()) {
+					Thread.sleep(100);
+				}
 				mpStore_.freeze();
+			}
+
 		}
 		catch ( Exception e )
 		{
@@ -361,7 +369,9 @@ public class AcqWrapperEngine implements AcquisitionEngine
 					t_, angle_, handlers_, cameras_, x, y, theta, mpImages_, processedImages_, currentAntiDrift_, antiDriftReferenceChannel_ );
 
 			sink.start(() -> getAcquisitionEngine2010().stop(), () -> {
+				rlock.tryLock();
 				generateMIP();
+				rlock.unlock();
 				curStore_.unregisterForEvents(AcqWrapperEngine.this);
 			});
 
@@ -471,7 +481,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 				Image processedImage_ = studio_.data().createImage(resultPixels, width, height,
 						bytesPerPixel, numComponents, coords, metadata);
 
-				if(null != mpStore_)
+				if(null != mpStore_ && !mpStore_.isFrozen())
 					try {
 						mpStore_.putImage(processedImage_);
 					} catch (IOException e) {

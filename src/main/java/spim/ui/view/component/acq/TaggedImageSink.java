@@ -152,7 +152,7 @@ public class TaggedImageSink {
 								double xPos = tagged.tags.getDouble( "XPositionUm" );
 								double yPos = tagged.tags.getDouble( "YPositionUm" );
 								int ch = tagged.tags.getInt( "ChannelIndex" );
-//								String cam = tagged.tags.getString( "Camera" );
+								String cam = tagged.tags.getString( "Camera" );
 								String coreCam = tagged.tags.getString( "Core-Camera" );
 								double zStep = tagged.tags.getJSONObject( "Summary" ).getDouble( "z-step_um" );
 
@@ -164,15 +164,15 @@ public class TaggedImageSink {
 //								System.out.println(ch);
 								int channel = ch;
 
-								if(camChannels_.containsKey( coreCam ))
+								if(camChannels_.containsKey( cam ))
 								{
-									channel = camChannels_.get( coreCam );
+									channel = camChannels_.get( cam );
 								}
 
 								DefaultImage image = new DefaultImage(tagged);
 
 								Coords.Builder cb = Coordinates.builder();
-								Coords coord = cb.p(angle_).t(t_).c(channel).z(slice).index("view", cameras_.indexOf( coreCam )).build();
+								Coords coord = cb.p(angle_).t(t_).c(channel).z(slice).index("view", cameras_.indexOf( cam )).build();
 								Image img = image;
 								Metadata md = img.getMetadata();
 								Metadata.Builder mdb = md.copyBuilderPreservingUUID();
