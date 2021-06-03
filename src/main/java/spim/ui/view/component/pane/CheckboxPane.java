@@ -30,8 +30,11 @@ public class CheckboxPane extends BorderPane
 		topic.setSelected( true );
 		topic.setFont( Font.font("Verdana", FontWeight.BOLD, 13) );
 
-		if(help != null)
-			setTop( new HBox(5, topic, help) );
+		if(help != null) {
+			HBox hbox = new HBox(5, topic, help);
+			hbox.setAlignment(Pos.BASELINE_LEFT);
+			setTop(hbox);
+		}
 		else
 			setTop( topic );
 

@@ -341,7 +341,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		antiDriftPane.setSelected(false);
 		antiDrift = antiDriftPane.selectedProperty();
 
-		Button acqHelpButton = new Button("?");
+		Button acqHelpButton = createHelpButton();
 		acqHelpButton.setOnAction( event -> new HelpWindow().show(HelpType.ACQUISITION));
 
 		acquireHBox.getChildren().addAll(acquireButton, pi, acqHelpButton);
@@ -428,7 +428,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		Button helpButton = new Button("?");
+		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.CHANNEL));
 
 		CheckboxPane channelPane = new CheckboxPane( "Select Channels/Pins", channelTabPane, helpButton);
@@ -556,7 +556,13 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		);
 //		channelListSaveImage.setDividerPositions( 0.6 );
 
-		VBox smartImagingBox = new VBox( 10, new Label( "Smart Imaging" ), smartImagingCylinder );
+		Button imgHelpButton = createHelpButton();
+		imgHelpButton.setOnAction( event -> new HelpWindow().show(HelpType.IMAGING));
+
+		HBox imgHBox = new HBox(10, new Label( "Preview of imaging session" ), imgHelpButton);
+		imgHBox.setAlignment(Pos.BASELINE_LEFT);
+
+		VBox smartImagingBox = new VBox( 10, imgHBox, smartImagingCylinder );
 		smartImagingBox.setAlignment( Pos.CENTER_LEFT );
 		smartImagingBox.setPadding( new Insets(10) );
 		cylinderSize.bind(smartImagingBox.widthProperty());
@@ -1128,7 +1134,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		MenuItem deleteItem = new MenuItem( "Delete" );
 		deleteItem.setOnAction( event -> deleteButton.fire() );
 
-		Button helpButton = new Button("?");
+		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.POSITION));
 
 		HBox hbox = new HBox( 5, newButton, deleteButton );
@@ -1255,7 +1261,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		saveMIP = mip.selectedProperty();
 
-		Button helpButton = new Button("?");
+		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.SAVEIMAGE));
 
 		CheckboxPane pane = new CheckboxPane( "Save Images", gridpane, helpButton, 12 );
@@ -1484,6 +1490,20 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		return button;
 	}
 
+	private Button createHelpButton() {
+		Button button = new Button("?");
+		button.setStyle("-fx-background-radius: 5em; " +
+						"-fx-font-size: 10px;" +
+						"-fx-min-width: 20px; " +
+						"-fx-min-height: 20px; " +
+						"-fx-max-width: 20px; " +
+						"-fx-max-height: 20px; " +
+						"-fx-font-weight: bold; " +
+						"-fx-text-fill: white; " +
+						"-fx-base: #3e8cd6;");
+		return button;
+	}
+
 	private CheckboxPane createZStackPane( StagePanel stagePanel ) {
 
 		double cubeHeight = 200;
@@ -1637,7 +1657,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		// create a group
 		zStackGroup = new Group(cube, zStackGridPane );
 
-		Button helpButton = new Button("?");
+		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.ZSTACK));
 
 		CheckboxPane pane = new CheckboxPane( "Z-stacks", zStackGroup, helpButton );
@@ -1784,7 +1804,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		smartImagingCylinder = new CylinderProgress( cylinderSize, timePointItemTableView.getItems(), currentTP );
 
-		Button helpButton = new Button("?");
+		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.TIMEPOINT));
 
 		CheckboxPane pane = new CheckboxPane( "Time points", new VBox( hbox, timePointItemTableView ), helpButton );
