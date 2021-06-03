@@ -498,7 +498,7 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 		} );
 
 
-		CheckboxPane visibleGuideLine = new CheckboxPane( "Grid line" , new VBox( spinner, colorPicker ));
+		CheckboxPane visibleGuideLine = new CheckboxPane( "Grid line" , new VBox( spinner, colorPicker ), null);
 		visibleGuideLine.setSelected( true );
 		visibleGuideLine.selectedProperty().addListener( new ChangeListener< Boolean >()
 		{
@@ -1269,9 +1269,9 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 				HBox expBox = new HBox( 5, new Label( "Exposure:" ), exp );
 				expBox.setAlignment( Pos.BASELINE_LEFT );
 
-				checkboxPane = new CheckboxPane( key, new VBox( 8, buttons, slider, expBox ) );
+				checkboxPane = new CheckboxPane( key, new VBox( 8, buttons, slider, expBox ), null );
 			} else {
-				checkboxPane = new CheckboxPane( key, slider );
+				checkboxPane = new CheckboxPane( key, slider, null );
 			}
 			bandMap.get(key).enabledProperty.bind( checkboxPane.selectedProperty() );
 			bandMap.get(key).enabledProperty.addListener( new ChangeListener< Boolean >()

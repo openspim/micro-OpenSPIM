@@ -1,0 +1,99 @@
+<!--
+  #%L
+  OpenSPIM classes with minimal dependencies.
+  %%
+  Copyright (C) 2012 - 2021 OpenSPIM developers.
+  %%
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are met:
+
+  1. Redistributions of source code must retain the above copyright notice,
+     this list of conditions and the following disclaimer.
+  2. Redistributions in binary form must reproduce the above copyright notice,
+     this list of conditions and the following disclaimer in the documentation
+     and/or other materials provided with the distribution.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE
+  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  POSSIBILITY OF SUCH DAMAGE.
+  #L%
+  -->
+<!-- vim::set expandtab tabstop=4 softtabstop=2 shiftwidth=2: -->
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <style TYPE="text/css">
+        h2
+        {
+            margin-bottom: 0px;
+        }
+        table, tr, td
+        {
+            border-spacing: 0px;
+        }
+        table
+        {
+            width:100%;
+            border-top: 1px solid black;
+            border-right: 1px solid black;
+            background-color:#f8f8f8;
+        }
+        td
+        {
+            padding:5px;
+            padding-right:10px;
+            padding-left:10px;
+            border-left: 1px solid black;
+            border-bottom: 1px solid black;
+        }
+        td.a
+        {
+            text-align:center;
+        }
+        body
+        {
+            background-color:white;
+            margin-left:10px;
+        }
+    </style>
+</head>
+<body>
+<h2>POSITIONS</h2>
+<h3>Adding multiple positions</h3>
+<p>
+    The viewer can display files containing multiple sources.
+    For example, in a multi-angle SPIM sequence, each angle is a source.
+</p>
+<h3>Adding multiple angles</h3>
+<p>
+    In case multiple angles should be acquired, we recommend to verify if the R stage completes a full revolution. If the 360 degrees don’t correspond to a full revolution, press the “Calibrate” button below the R Stage and correct for the deviation. Follow the help instructions in the new window if needed.
+</p>
+<h3>Deleting created entries</h3>
+<p>
+    Select any previously created position from the list and then press the “Delete position” button to remove the entry.
+</p>
+<h3>Changing/Updating positional values</h3>
+<p>
+    It is possible to manually change any positional values by double-clicking on one of the positional entries. Note that this can be done during an ongoing imaging session.
+    In order to overwrite all positional values with the current positions of the stepper motors simply select any previously created position entry and press the “Update position” button. Every time such changes are applied, the plugin will ask for confirmation of the changes.
+
+</p>
+<h3>Changing the order of created entries</h3>
+<p>
+    The order of the list can be changed via drag and drop.
+</p>
+<h3></h3>
+<p>
+
+</p>
+
+</body>
+</html>

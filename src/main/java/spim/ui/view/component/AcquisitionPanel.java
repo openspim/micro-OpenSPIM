@@ -55,6 +55,8 @@ import spim.model.event.ControlEvent;
 import spim.ui.view.component.pane.CheckboxPane;
 import spim.ui.view.component.pane.LabeledPane;
 import spim.ui.view.component.util.TableViewUtil;
+import spim.ui.view.component.viewer.HelpType;
+import spim.ui.view.component.viewer.HelpWindow;
 
 import java.awt.*;
 import java.io.File;
@@ -335,11 +337,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 //		});
 
 //		acquireHBox.getChildren().addAll(acquireButton, new VBox(2, antiDriftCheckbox, chBox), test, pi);
-		CheckboxPane antiDriftPane = new CheckboxPane("Anti-drift", chBox);
+		CheckboxPane antiDriftPane = new CheckboxPane("Anti-drift", chBox, null);
 		antiDriftPane.setSelected(false);
 		antiDrift = antiDriftPane.selectedProperty();
 
-		acquireHBox.getChildren().addAll(acquireButton, pi);
+		Button acqHelpButton = new Button("?");
+		acqHelpButton.setOnAction( event -> new HelpWindow().show(HelpType.ACQUISITION));
+
+		acquireHBox.getChildren().addAll(acquireButton, pi, acqHelpButton);
 		spinner.setTooltip(new Tooltip("This channel index will be used for Anti-Drift reference"));
 
 		BorderPane.setMargin(acquireHBox, new Insets(12,12,12,12));
@@ -423,7 +428,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		CheckboxPane channelPane = new CheckboxPane( "Select Channels/Pins", channelTabPane );
+		Button helpButton = new Button("?");
+		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.CHANNEL));
+
+		CheckboxPane channelPane = new CheckboxPane( "Select Channels/Pins", channelTabPane, helpButton);
 		enabledChannels = channelPane.selectedProperty();
 
 		// Acquisition Setting Buttons
@@ -1120,6 +1128,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		MenuItem deleteItem = new MenuItem( "Delete" );
 		deleteItem.setOnAction( event -> deleteButton.fire() );
 
+		Button helpButton = new Button("?");
+		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.POSITION));
+
 		HBox hbox = new HBox( 5, newButton, deleteButton );
 
 		positionItemTableView.getSelectionModel().selectedItemProperty().addListener( new ChangeListener< PositionItem >()
@@ -1140,7 +1151,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		CheckboxPane pane = new CheckboxPane( "Positions/Angles", new VBox( hbox, positionItemTableView ) );
+		CheckboxPane pane = new CheckboxPane( "Positions/Angles", new VBox( hbox, positionItemTableView ), helpButton );
 		enabledPositions = pane.selectedProperty();
 
 //		Tab positionTab = new Tab("Position", pane);
@@ -1244,7 +1255,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		saveMIP = mip.selectedProperty();
 
-		CheckboxPane pane = new CheckboxPane( "Save Images", gridpane, 12 );
+		Button helpButton = new Button("?");
+		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.SAVEIMAGE));
+
+		CheckboxPane pane = new CheckboxPane( "Save Images", gridpane, helpButton, 12 );
 		enabledSaveImages = pane.selectedProperty();
 
 		Tab saveOptionTab = new Tab("Save option", pane);
@@ -1623,7 +1637,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		// create a group
 		zStackGroup = new Group(cube, zStackGridPane );
 
-		CheckboxPane pane = new CheckboxPane( "Z-stacks", zStackGroup );
+		Button helpButton = new Button("?");
+		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.ZSTACK));
+
+		CheckboxPane pane = new CheckboxPane( "Z-stacks", zStackGroup, helpButton );
 		enabledZStacks = pane.selectedProperty();
 		return pane;
 	}
@@ -1761,11 +1778,16 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
+
+
 		HBox hbox = new HBox( 5, newTPButton, newWaitButton, deleteButton );
 
 		smartImagingCylinder = new CylinderProgress( cylinderSize, timePointItemTableView.getItems(), currentTP );
 
-		CheckboxPane pane = new CheckboxPane( "Time points", new VBox( hbox, timePointItemTableView ) );
+		Button helpButton = new Button("?");
+		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.TIMEPOINT));
+
+		CheckboxPane pane = new CheckboxPane( "Time points", new VBox( hbox, timePointItemTableView ), helpButton );
 
 		TimePointItem.updateTimePointItem.addListener( new ChangeListener< String >()
 		{

@@ -1,0 +1,102 @@
+<!--
+  #%L
+  OpenSPIM classes with minimal dependencies.
+  %%
+  Copyright (C) 2012 - 2021 OpenSPIM developers.
+  %%
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are met:
+
+  1. Redistributions of source code must retain the above copyright notice,
+     this list of conditions and the following disclaimer.
+  2. Redistributions in binary form must reproduce the above copyright notice,
+     this list of conditions and the following disclaimer in the documentation
+     and/or other materials provided with the distribution.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE
+  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  POSSIBILITY OF SUCH DAMAGE.
+  #L%
+  -->
+<!-- vim::set expandtab tabstop=4 softtabstop=2 shiftwidth=2: -->
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <style TYPE="text/css">
+        h2
+        {
+            margin-bottom: 0px;
+        }
+        table, tr, td
+        {
+            border-spacing: 0px;
+        }
+        table
+        {
+            width:100%;
+            border-top: 1px solid black;
+            border-right: 1px solid black;
+            background-color:#f8f8f8;
+        }
+        td
+        {
+            padding:5px;
+            padding-right:10px;
+            padding-left:10px;
+            border-left: 1px solid black;
+            border-bottom: 1px solid black;
+        }
+        td.a
+        {
+            text-align:center;
+        }
+        body
+        {
+            background-color:white;
+            margin-left:10px;
+        }
+    </style>
+</head>
+<body>
+<h2>SELECT CHANNELS/PINS</h2>
+<p>
+    This is the place to add or activate one or more channels such as various laser lines or other hardware components of the OpenSPIM system. There are two ways to do this: Software controlled (without an ArduinoUNO microcontroller) and Arduino Controlled (with an ArduinoUNO microcontroller).
+</p>
+<h3>Software controlled versus hardware controlled image acquisition</h3>
+<p>
+    “Software controlled” indicates that during image acquisition the software alone controls all hardware components of the microscope, such as camera exposure times and laser shutters. In this case images cannot be acquired as fast as in microscopes where some or most of the hardware components are controlled via triggering signals coming e.g. from an ArduinoUNO microcontroller, i.e. “hardware controlled”.
+    However, if the intention is to capture slow developmental processes with acquisition speed playing a subordinate role, software-controlled acquisition should be sufficient.
+</p>
+<p>
+    An ArduinoUno board allows to speed up acquisition speed by connecting the board’s pins to certain hardware components of the OpenSPIM system. As shown in the figure below one can e.g. connect two of the Arduino pins directly to two separate laser lines whereby the Arduino shutter takes over and triggers the respective lasers. As a result, the lasers will fire faster benefitting acquisition speed.
+    It is important to note that the OpenSPIM plugin assumes that the camera will be connected to the Arduino board and therefore provides the initial 5V TTL-trigger-pulse.
+</p>
+<h3>Set up a “Software Controlled” imaging session</h3>
+<p>
+    Select the “Software Controlled” tab within the “Select Channels/Pins” panel.
+    Click on “Add a channel” to add one or several laser lines. Changes can also be made in the drop-down menus. The exposure time for each channel during the acquisition is also set here.
+</p>
+<h3>Set up an “Arduino controlled” imaging session</h3>
+<p>
+    Select the “Arduino Controlled” tab within the “Select Channels/Pins” panel.
+    In order to initially access this tab, the ArduinoUNO has to be configured at least once in the OpenSPIM Configurations menu, located on the very left of the GUI; double click on ArduinoUno and - if necessary - follow the help guide. Save the plugin to skip this step next time you start the OpenSPIM pugin.
+</p>
+<p>
+    In order to trigger the six individual output pins of the ArduinoUNO board (Pin 9-13). Every hardware component that is connected to and triggered by these pins, such as lasers or other light sources, can be considered also as channels. Channels of each corresponding pin can be added to the acquisition simply by ticking the individual checkboxes. Tick the “simultaneous triggering” box to trigger the selected channels at the same time.
+    Note that the moment you go into LIVE mode, all ticked channels/pins will already provide the 5V-trigger-pulse. If a laser is already connected and correctly set to receive the trigger-pulse it will now fire in accordance with the current exposure value of the camera. However, for the image acquisition itself only the exposure time specified next to the Channel name will be considered.
+</p>
+<h3></h3>
+<p>
+
+</p>
+
+</body>
+</html>

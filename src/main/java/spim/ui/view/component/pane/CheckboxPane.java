@@ -6,6 +6,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
@@ -17,19 +18,22 @@ import javafx.scene.text.FontWeight;
 public class CheckboxPane extends BorderPane
 {
 	final CheckBox topic;
-	public CheckboxPane( String title, Node content )
+	public CheckboxPane( String title, Node content, Node help )
 	{
-		this(title, content, 0);
+		this(title, content, help, 0);
 	}
 
-	public CheckboxPane( String title, Node content, int margin )
+	public CheckboxPane( String title, Node content, Node help, int margin )
 	{
 		topic = new CheckBox( title );
 		topic.setPadding( new Insets(5 ) );
 		topic.setSelected( true );
 		topic.setFont( Font.font("Verdana", FontWeight.BOLD, 13) );
 
-		setTop( topic );
+		if(help != null)
+			setTop( new HBox(5, topic, help) );
+		else
+			setTop( topic );
 
 		if(margin > 0) {
 			BorderPane.setAlignment(content, Pos.TOP_LEFT);
