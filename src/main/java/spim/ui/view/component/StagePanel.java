@@ -23,6 +23,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.util.StringConverter;
 import org.micromanager.Studio;
 import spim.hardware.SPIMSetup;
 import spim.ui.view.component.iconswitch.IconSwitch;
@@ -477,6 +478,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 
 		// Angle indicator
 		final Spinner<Integer> spinner = new Spinner<Integer>(0, 100, 0);
+		spinner.setEditable( true );
 		spinner.setPrefSize( 60, 10 );
 		spinner.valueProperty().addListener( new ChangeListener< Integer >()
 		{
@@ -485,6 +487,14 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 				stageUnitR.getTargetSlider().getSlider().setUpTickUpperValue( newValue );
 			}
 		} );
+
+		// useage in client code
+		spinner.focusedProperty().addListener((s, ov, nv) -> {
+			if (nv) return;
+			//intuitive method on textField, has no effect, though
+			//spinner.getEditor().commitValue();
+			commitEditorText(spinner);
+		});
 
 		HBox angleIndiBox = new HBox( new Label( "Indicate angles: " ), spinner );
 		angleIndiBox.setAlignment( Pos.CENTER_LEFT );
@@ -532,6 +542,19 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		VBox controls = new VBox( 10, topHbox, smartBox, angleIndiBox, stageUnitR, stageUnitX, stageUnitY, stageUnitZ, newButton, undoBtn );
 		controls.setPadding( new Insets( 10 ) );
 		return controls;
+	}
+
+	private <T> void commitEditorText(Spinner<T> spinner) {
+		if (!spinner.isEditable()) return;
+		String text = spinner.getEditor().getText();
+		SpinnerValueFactory<T> valueFactory = spinner.getValueFactory();
+		if (valueFactory != null) {
+			StringConverter<T> converter = valueFactory.getConverter();
+			if (converter != null) {
+				T value = converter.fromString(text);
+				valueFactory.setValue(value);
+			}
+		}
 	}
 
 	public class SizedStack<T>

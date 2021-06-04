@@ -71,7 +71,7 @@ public class CylinderProgress extends Group
 		);
 
 		setRotationAxis( Rotate.Y_AXIS );
-		setRotate( 20 );
+		setRotate( 0 );
 	}
 
 	public void refresh() {

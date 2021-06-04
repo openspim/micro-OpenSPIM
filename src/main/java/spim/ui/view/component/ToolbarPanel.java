@@ -113,6 +113,8 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			{
 				if(null == MicroManager.getInstance()) {
 					Stage stage = new Stage();
+					MMUtils.resetCancelled();
+
 					if (!MMUtils.isSystemLibrairiesLoaded())
 					{
 						// load micro manager libraries
@@ -121,6 +123,18 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 					}
 
 					MicroManager.init( stage, mmStudioObjectProperty );
+
+					while(MMUtils.invalidMMPath() && !MMUtils.cancelled())
+					{
+						if (!MMUtils.isSystemLibrairiesLoaded())
+						{
+							// load micro manager libraries
+							if (!MMUtils.fixSystemLibrairies( stage ))
+								return;
+						}
+
+						MicroManager.init( stage, mmStudioObjectProperty );
+					}
 				} else {
 					MicroManager.getInstance().show();
 				}

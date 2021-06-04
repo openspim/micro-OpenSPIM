@@ -37,6 +37,10 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.RectangleBuilder;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.scene.transform.Shear;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
@@ -545,7 +549,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		acqSettings.getChildren().addAll( saveButton, loadButton, clearButton );
 		BorderPane.setMargin(acqSettings, new Insets(12,12,12,12));
 
-		final TitledPane acqSettingPane = new TitledPane( "Acquisition Setting", acqSettings );
+		final TitledPane acqSettingPane = new TitledPane( "Acquisition Settings", acqSettings );
 		acqSettingPane.setCollapsible( false );
 
 		// Laser shutter(software) / Arduino Shutter(hardware)
@@ -559,13 +563,16 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Button imgHelpButton = createHelpButton();
 		imgHelpButton.setOnAction( event -> new HelpWindow().show(HelpType.IMAGING));
 
-		HBox imgHBox = new HBox(10, new Label( "Preview of imaging session" ), imgHelpButton);
+		Text label = new Text("Preview of imaging session");
+		label.setFont( Font.font("Verdana", FontWeight.BOLD, 13) );
+
+		HBox imgHBox = new HBox(10, new TextFlow( label ), imgHelpButton);
 		imgHBox.setAlignment(Pos.BASELINE_LEFT);
 
 		VBox smartImagingBox = new VBox( 10, imgHBox, smartImagingCylinder );
 		smartImagingBox.setAlignment( Pos.CENTER_LEFT );
 		smartImagingBox.setPadding( new Insets(10) );
-		cylinderSize.bind(smartImagingBox.widthProperty());
+		cylinderSize.bind(smartImagingBox.widthProperty().subtract(15));
 
 		SplitPane content = new SplitPane( positionZStackSplit, smartImagingBox, channelListSaveImage );
 		content.setOrientation( Orientation.VERTICAL );
@@ -1125,11 +1132,26 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		};
 
-		Button newButton = new Button("Add current position/angle");
+		Button newButton = new Button("Add current position");
 		newButton.setOnAction( newEventHandler );
 
-		Button deleteButton = new Button("Delete");
+		Button deleteButton = new Button("Delete position");
 		deleteButton.setOnAction( deleteEventHandler );
+
+		Button updateButton = new Button("Update position");
+		updateButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(currentPosition.get() != null) {
+					currentPosition.get().setZStart( zStackStart );
+					currentPosition.get().setZStep( zStackStepSize );
+					currentPosition.get().setZEnd( zStackEnd );
+					computeTotalPositionImages();
+					positionItemTableView.refresh();
+				}
+			}
+		} );
 
 		MenuItem deleteItem = new MenuItem( "Delete" );
 		deleteItem.setOnAction( event -> deleteButton.fire() );
@@ -1137,7 +1159,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.POSITION));
 
-		HBox hbox = new HBox( 5, newButton, deleteButton );
+		HBox hbox = new HBox( 5, newButton, deleteButton, updateButton );
 
 		positionItemTableView.getSelectionModel().selectedItemProperty().addListener( new ChangeListener< PositionItem >()
 		{
@@ -1157,7 +1179,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		CheckboxPane pane = new CheckboxPane( "Positions/Angles", new VBox( hbox, positionItemTableView ), helpButton );
+		CheckboxPane pane = new CheckboxPane( "Positions", new VBox( hbox, positionItemTableView ), helpButton );
 		enabledPositions = pane.selectedProperty();
 
 //		Tab positionTab = new Tab("Position", pane);
@@ -1199,6 +1221,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		directory = textField.textProperty();
 
 		Button selectFolder = new Button( "..." );
+		selectFolder.setTooltip(new Tooltip("Choose the folder to save the images"));
 		TextField finalTextField = textField;
 		selectFolder.setOnAction( new EventHandler< ActionEvent >()
 		{
@@ -1216,12 +1239,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		ImageView img = new ImageView(ResourceUtil.getString("root.icon"));
 		Button openFolder = new Button();
+		openFolder.setTooltip(new Tooltip("Open the folder"));
 		openFolder.setGraphic(img);
 		openFolder.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
 				try {
-					Desktop.getDesktop().open(new File(directory.get()));
+					if (!directory.get().isEmpty())
+						Desktop.getDesktop().open(new File(directory.get()));
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -1255,7 +1280,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 //		gridpane.addRow( 3, ch );
 		saveAsHDF5 = ch.selectedProperty();
 
-		CheckBox mip = new CheckBox( "Save & show Maximum Intensity Projection in each stack" );
+		CheckBox mip = new CheckBox( "Show/save Maximum Intensity Projection of each TP" );
 		gridpane.addRow( 4, mip );
 		gridpane.setColumnSpan( mip, 2 );
 
@@ -1529,7 +1554,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		cube.setTranslateX( -60 );
 
 		zStackGridPane = new GridPane();
-		zStackGridPane.setVgap( 50 );
+		zStackGridPane.setVgap( 30 );
 		zStackGridPane.setHgap( 5 );
 
 		Button startButton = createZStackButton( "Z-start" );
@@ -1636,21 +1661,21 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		Button updateButton = new Button("Update");
-		updateButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				if(currentPosition.get() != null) {
-					currentPosition.get().setZStart( Double.parseDouble( zStartField.getText() ) );
-					currentPosition.get().setZStep( Double.parseDouble( zStepField.getText() ) );
-					currentPosition.get().setZEnd( Double.parseDouble( zEndField.getText() ) );
-					computeTotalPositionImages();
-					positionItemTableView.refresh();
-				}
-			}
-		} );
-		zStackGridPane.addRow( 3, newButton, updateButton );
+//		Button updateButton = new Button("Update");
+//		updateButton.setOnAction( new EventHandler< ActionEvent >()
+//		{
+//			@Override public void handle( ActionEvent event )
+//			{
+//				if(currentPosition.get() != null) {
+//					currentPosition.get().setZStart( Double.parseDouble( zStartField.getText() ) );
+//					currentPosition.get().setZStep( Double.parseDouble( zStepField.getText() ) );
+//					currentPosition.get().setZEnd( Double.parseDouble( zEndField.getText() ) );
+//					computeTotalPositionImages();
+//					positionItemTableView.refresh();
+//				}
+//			}
+//		} );
+		zStackGridPane.addRow( 3, newButton );
 
 		zStackGridPane.setTranslateY( -30 );
 
@@ -1660,7 +1685,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.ZSTACK));
 
-		CheckboxPane pane = new CheckboxPane( "Z-stacks", zStackGroup, helpButton );
+		CheckboxPane pane = new CheckboxPane( "Define Z-stacks", zStackGroup, helpButton );
 		enabledZStacks = pane.selectedProperty();
 		return pane;
 	}
@@ -1770,7 +1795,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		timePointItemTableView = createTimePointItemDataView();
 		timePointItemTableView.setEditable( true );
 
-		Button newTPButton = new Button("New TP");
+		Button newTPButton = new Button("Add TP");
 		newTPButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -1779,7 +1804,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		Button newWaitButton = new Button("New Wait");
+		Button newWaitButton = new Button("Add Pause");
 		newWaitButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -1788,7 +1813,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		Button deleteButton = new Button("Delete");
+		Button deleteButton = new Button("Delete TP");
 		deleteButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -1807,7 +1832,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.TIMEPOINT));
 
-		CheckboxPane pane = new CheckboxPane( "Time points", new VBox( hbox, timePointItemTableView ), helpButton );
+		CheckboxPane pane = new CheckboxPane( "Time points (TP)", new VBox( hbox, timePointItemTableView ), helpButton );
 
 		TimePointItem.updateTimePointItem.addListener( new ChangeListener< String >()
 		{

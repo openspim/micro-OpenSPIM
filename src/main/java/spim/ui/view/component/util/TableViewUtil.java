@@ -315,7 +315,7 @@ public class TableViewUtil
 		} );
 		tv.getColumns().add(typeColumn);
 
-		TableColumn<ChannelItem, String> column = new TableColumn<>("Name");
+		TableColumn<ChannelItem, String> column = new TableColumn<>("Channel Name");
 		column.setPrefWidth(100);
 		column.setCellValueFactory( (param) ->
 				new ReadOnlyStringWrapper( param.getValue().getName() )
@@ -369,7 +369,7 @@ public class TableViewUtil
 		} );
 		tv.getColumns().add(typeColumn);
 
-		TableColumn<ChannelItem, String> column = new TableColumn<>("Name");
+		TableColumn<ChannelItem, String> column = new TableColumn<>("Channel Name");
 		column.setPrefWidth(150);
 		column.setCellValueFactory( (param) ->
 				param.getValue().nameProperty()

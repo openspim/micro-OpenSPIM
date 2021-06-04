@@ -94,7 +94,7 @@ public class HalcyonMain extends HalcyonFrame
 		nodeTypeList.add(SpimHalcyonNodeType.CONSOLE);
 		nodeTypeList.add(SpimHalcyonNodeType.CONTROL);
 
-		TreePanel lTreePanel = new TreePanel("OpenSPIM Configurations",
+		TreePanel lTreePanel = new TreePanel("Configurations",
 				"OpenSPIM",
 				getClass().getResourceAsStream(rootIconPath),
 				nodeTypeList);

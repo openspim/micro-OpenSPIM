@@ -199,8 +199,10 @@ public class StageUnit extends Region
 
 		if(isR) {
 			resetButton = new Button( "Calibrate" );
+			resetButton.setStyle("-fx-background-radius: 5em;" +
+									"-fx-base: #ede030;");
 			resetButton.setAlignment( Pos.BASELINE_LEFT );
-			resetButton.setPrefWidth( 70 );
+			resetButton.setPrefWidth( 75 );
 			resetButton.setOnAction( event -> {
 				if(getStageDevice() != null) {
 					RotatorCalibrationDialog dlg = new RotatorCalibrationDialog( getStageDevice() );

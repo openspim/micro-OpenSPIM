@@ -54,6 +54,7 @@ public class MMUtils
 	private static String microManagerFolder = null;
 	static File demoConfigFile = null;
 	private static boolean loaded = false;
+	private static boolean cancelled = false;
 
 	public static boolean isSystemLibrairiesLoaded()
 	{
@@ -63,7 +64,7 @@ public class MMUtils
 	public static boolean fixSystemLibrairies( Stage stage )
 	{
 		if (loaded)
-			return loaded;
+			return true;
 
 		microManagerFolder = prefs.get(MM_PATH_ID, "");
 
@@ -96,6 +97,8 @@ public class MMUtils
 				File folder = directoryChooser.showDialog( stage );
 				if(folder != null) {
 					microManagerFolder = folder.getPath();
+				} else {
+					return false;
 				}
 			} else if (result.get() == buttonTypeDownloadMM) {
 				try
@@ -116,14 +119,13 @@ public class MMUtils
 				info.setHeaderText( "Restart this plugin after Micro-Manager installation complete." );
 				info.show();
 				microManagerFolder = null;
+				return false;
 			} else {
+				cancelled = true;
 				microManagerFolder = null;
+				return false;
 			}
 		}
-
-		// operation canceled or directory set
-		if ( microManagerFolder == null)
-			return false;
 
 		// Set working directory with the give uManager folder
 		System.setProperty("user.dir", microManagerFolder );
@@ -170,6 +172,19 @@ public class MMUtils
 		loaded = false;
 		prefs.put(MM_PATH_ID, "");
 		System.setProperty("mmcorej.library.path", "");
+	}
+
+	public static boolean invalidMMPath()
+	{
+		return prefs.get(MM_PATH_ID, "").isEmpty();
+	}
+
+	public static boolean cancelled() {
+		return cancelled;
+	}
+
+	public static void resetCancelled() {
+		cancelled = false;
 	}
 
 	/**
