@@ -1,6 +1,5 @@
 package spim.ui.view.component;
 
-import ij.gui.Roi;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -8,23 +7,21 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import mmcorej.CMMCore;
 import org.dockfx.DockNode;
 import org.micromanager.Studio;
-import spim.hardware.Camera;
+
 import spim.hardware.SPIMSetup;
 import spim.mm.MMUtils;
 import spim.mm.MicroManager;
@@ -40,11 +37,6 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 	final ObjectProperty<Studio> studioProperty;
 	final ObjectProperty<SPIMSetup> spimSetupObjectProperty;
 
-	final ObjectProperty roiRectangle;
-
-	final ObservableList<String> binningOptions =
-			FXCollections.observableArrayList();
-
 	final VBox topHbox;
 	final VBox liveViewHbox;
 	final HBox buttonHbox;
@@ -53,11 +45,6 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 	final Button mmButton;
 	final Button liveViewButton;
 
-	final Label roiXYLabel;
-	final Label roiWLabel;
-	final Label roiHLabel;
-
-	final ComboBox binningComboBox;
 	final SimpleDoubleProperty waitSeconds;
 
 	public ToolbarPanel( Studio mmStudio, ObjectProperty< Studio > mmStudioObjectProperty )
@@ -178,95 +165,6 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		liveViewHbox = new VBox(3);
 		liveViewHbox.setAlignment( Pos.CENTER );
 
-		// Region Of Interest
-		roiRectangle = new SimpleObjectProperty();
-
-		java.awt.Rectangle roi = new java.awt.Rectangle( 0, 0, 0, 0 );
-
-		roiXYLabel = new Label(String.format( "X=%d, Y=%d", roi.x, roi.y ) );
-		roiWLabel = new Label(String.format( "Width=%d", roi.width ));
-		roiHLabel = new Label(String.format( "Height=%d", roi.height ));
-
-		roiRectangle.addListener( new ChangeListener()
-		{
-			@Override public void changed( ObservableValue observable, Object oldValue, Object newValue )
-			{
-				java.awt.Rectangle roi;
-				if(null != newValue) {
-					roi = ( java.awt.Rectangle ) newValue;
-				} else {
-					roi = new java.awt.Rectangle( 0, 0, 0, 0 );
-				}
-
-				roiXYLabel.setText( String.format( "X=%d, Y=%d", roi.x, roi.y ) );
-				roiWLabel.setText( String.format( "Width=%d", roi.width ) );
-				roiHLabel.setText( String.format( "Height=%d", roi.height ) );
-			}
-		} );
-
-		Button setRoiButton = new Button( "Set ROI" );
-		setRoiButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				Studio studio = studioProperty.get();
-				if( studio != null && studio.live() != null && studio.live().getDisplay() != null && studio.live().getDisplay().getImagePlus() != null && studio.live().getDisplay().getImagePlus().getRoi() != null) {
-					Roi ipRoi = studio.live().getDisplay().getImagePlus().getRoi();
-					roiRectangle.setValue( ipRoi.getBounds() );
-				}
-			}
-		} );
-
-		Button clearRoiButton = new Button("Reset");
-		clearRoiButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				Studio studio = studioProperty.get();
-				try
-				{
-					if( studio != null && studio.core() != null)
-					{
-						studio.core().clearROI();
-						roiRectangle.setValue( new java.awt.Rectangle(0, 0, (int) studio.core().getImageWidth(), (int) studio.core().getImageHeight()) );
-						if( studio.live() != null && studio.live().getDisplay() != null && studio.live().getDisplay().getImagePlus() != null && studio.live().getDisplay().getImagePlus().getRoi() != null) {
-							studio.live().getDisplay().getImagePlus().deleteRoi();
-						}
-					}
-				}
-				catch ( Exception e )
-				{
-					e.printStackTrace();
-				}
-			}
-		} );
-
-		VBox roiInfo = new VBox(3);
-		roiInfo.setStyle("-fx-border-color: gray");
-		roiInfo.getChildren().addAll( roiXYLabel, roiWLabel, roiHLabel );
-		roiInfo.setPadding( new Insets(3, 3, 3, 3) );
-
-		TitledPane roiPane = new TitledPane( "ROI Setting", new HBox( 3, roiInfo, new VBox( 3, setRoiButton, clearRoiButton ) ) );
-//		roiPane.setExpanded( false );
-		roiPane.setMinWidth(200);
-
-		liveViewHbox.getChildren().add( roiPane );
-
-		// Setup binning
-		binningComboBox = new ComboBox( binningOptions );
-		binningComboBox.getSelectionModel().selectedItemProperty().addListener(new ChangeListener() {
-			@Override
-			public void changed(ObservableValue observable, Object oldValue, Object newValue) {
-				if(newValue != null)
-					binningItemChanged(newValue.toString());
-			}
-		});
-
-		HBox binningHBox = new HBox(3, new Label("Binning: "), binningComboBox);
-		binningHBox.setAlignment( Pos.CENTER_LEFT );
-		binningHBox.setPadding(new Insets(5));
-		liveViewHbox.getChildren().add( binningHBox );
-
 		gridpane.addRow( 3, liveViewHbox );
 
 		VBox timerBox = new VBox(3);
@@ -312,38 +210,6 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 //		box.getChildren().add(btn);
 	}
 
-	void binningItemChanged(String item) {
-//		System.out.println(item);
-
-		if (studioProperty.get() != null) {
-			Studio studio = studioProperty.get();
-			CMMCore core = studio.core();
-
-			SPIMSetup spimSetup = spimSetupObjectProperty.get();
-			String currentCamera = core.getCameraDevice();
-
-			if(currentCamera.startsWith("Multi")) {
-				if(spimSetup.getCamera1() != null) {
-					spimSetup.getCamera1().setBinning(item);
-				}
-
-				if(spimSetup.getCamera2() != null) {
-					spimSetup.getCamera2().setBinning(item);
-				}
-			} else {
-				if(spimSetup.getCamera1() != null && currentCamera.equals(spimSetup.getCamera1().getLabel()))
-					spimSetup.getCamera1().setBinning(item);
-
-				if(spimSetup.getCamera2() != null && currentCamera.equals(spimSetup.getCamera2().getLabel()))
-					spimSetup.getCamera2().setBinning(item);
-			}
-		}
-	}
-
-	public ObjectProperty roiRectangleProperty() {
-		return roiRectangle;
-	}
-
 	public SimpleDoubleProperty waitSecondsProperty() {
 		return waitSeconds;
 	}
@@ -352,33 +218,17 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		this.studioProperty.set(studio);
 		this.spimSetupObjectProperty.set(setup);
 
-		java.awt.Rectangle roi;
+//		java.awt.Rectangle roi;
 		if(null != studio) {
 			topHbox.getChildren().remove( liveDemoLabel );
 			buttonHbox.getChildren().remove( mmButton );
 			liveViewHbox.getChildren().add( 0, liveViewButton );
-			roi = new java.awt.Rectangle(0, 0, (int) studio.core().getImageWidth(), (int) studio.core().getImageHeight());
+//			roi = new java.awt.Rectangle(0, 0, 0, 0);
 		} else {
 			topHbox.getChildren().add( liveDemoLabel );
 			buttonHbox.getChildren().add( mmButton );
 			liveViewHbox.getChildren().remove( liveViewButton );
-			roi = new java.awt.Rectangle( 0, 0, 0, 0 );
-		}
-
-		roiXYLabel.setText( String.format( "X=%d, Y=%d", roi.x, roi.y ) );
-		roiWLabel.setText( String.format( "Width=%d", roi.width ) );
-		roiHLabel.setText( String.format( "Height=%d", roi.height ) );
-
-		if(null != setup) {
-			try {
-				Camera camera = setup.getCamera1();
-				camera.getAvailableBinningValues().forEach(binningOptions::add);
-				binningComboBox.getSelectionModel().select(camera.getBinningAsString());
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		} else {
-			binningOptions.clear();
+//			roi = new java.awt.Rectangle( 0, 0, 0, 0 );
 		}
 	}
 }

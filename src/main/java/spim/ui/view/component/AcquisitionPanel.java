@@ -44,11 +44,13 @@ import javafx.scene.text.TextFlow;
 import javafx.scene.transform.Shear;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
+import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 
 import org.micromanager.Studio;
 
 import org.micromanager.internal.MMStudio;
+import spim.hardware.Camera;
 import spim.hardware.SPIMSetup;
 import spim.model.data.AcquisitionSetting;
 import spim.model.data.ChannelItem;
@@ -173,7 +175,17 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	ReadOnlyObjectProperty<Integer> antiDriftRefCh;
 	ReadOnlyObjectProperty<Toggle> antiDriftTypeToggle;
 
-	public AcquisitionPanel( SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView< PinItem > pinItemTableView, ObjectProperty roiRectangleProperty, SimpleDoubleProperty waitSeconds ) {
+	// ROI
+	final Label roiXYLabel;
+	final Label roiWLabel;
+	final Label roiHLabel;
+
+	// Binning
+	final ComboBox binningComboBox;
+	final ObservableList<String> binningOptions =
+			FXCollections.observableArrayList();
+
+	public AcquisitionPanel( SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView< PinItem > pinItemTableView, SimpleDoubleProperty waitSeconds ) {
 		this.spimSetup = setup;
 		this.studio = studio;
 		this.propertyMap = new HashMap<>();
@@ -183,7 +195,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		this.processedImages = new SimpleLongProperty();
 
 		this.stagePanel = stagePanel;
-		this.roiRectangle = roiRectangleProperty;
+		this.roiRectangle = new SimpleObjectProperty();;
 		this.roiRectangle.addListener( ( observable, oldValue, newValue ) -> {
 			if(null != newValue) {
 				java.awt.Rectangle roi = ( java.awt.Rectangle ) newValue;
@@ -363,6 +375,116 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		// acquisition order
 		createAcquisitionOrderPane();
 
+		// ROI
+		// Region Of Interest
+		java.awt.Rectangle roi = new java.awt.Rectangle( 0, 0, 0, 0 );
+
+		roiXYLabel = new Label(String.format( "X=%d, Y=%d", roi.x, roi.y ) );
+		roiWLabel = new Label(String.format( "Width=%d", roi.width ));
+		roiHLabel = new Label(String.format( "Height=%d", roi.height ));
+
+		roiRectangle.addListener( new ChangeListener()
+		{
+			@Override public void changed( ObservableValue observable, Object oldValue, Object newValue )
+			{
+				java.awt.Rectangle roi;
+				if(null != newValue) {
+					roi = ( java.awt.Rectangle ) newValue;
+				} else {
+					roi = new java.awt.Rectangle( 0, 0, 0, 0 );
+				}
+
+				roiXYLabel.setText( String.format( "X=%d, Y=%d", roi.x, roi.y ) );
+				roiWLabel.setText( String.format( "Width=%d", roi.width ) );
+				roiHLabel.setText( String.format( "Height=%d", roi.height ) );
+			}
+		} );
+
+		Button setRoiButton = new Button( "Apply" );
+		setRoiButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+//				Studio studio = studioProperty.get();
+				Studio studio = AcquisitionPanel.this.studio;
+				if (studio != null && studio.live() != null && studio.live().getDisplay() != null && studio.live().getDisplay().getImagePlus() != null) {
+					if(studio.live().getDisplay().getImagePlus().getRoi() != null) {
+						Roi ipRoi = studio.live().getDisplay().getImagePlus().getRoi();
+//						System.out.println(ipRoi);
+						roiRectangle.setValue( ipRoi.getBounds() );
+					} else {
+						java.awt.Rectangle roi = ( java.awt.Rectangle )roiRectangle.getValue();
+//						System.out.println(roi);
+//						System.out.println(roi.isEmpty());
+						if(!roi.isEmpty()) {
+							studio.live().getDisplay().getImagePlus().setRoi(( java.awt.Rectangle )roiRectangle.getValue());
+						}
+					}
+				}
+			}
+		} );
+
+		Button clearRoiButton = new Button("Reset");
+		clearRoiButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+//				Studio studio = studioProperty.get();
+				Studio studio = AcquisitionPanel.this.studio;
+				try
+				{
+					if( studio != null && studio.core() != null)
+					{
+						studio.core().clearROI();
+						roiRectangle.setValue( new java.awt.Rectangle(0, 0, 0, 0 ) );
+						if( studio.live() != null && studio.live().getDisplay() != null && studio.live().getDisplay().getImagePlus() != null && studio.live().getDisplay().getImagePlus().getRoi() != null) {
+							studio.live().getDisplay().getImagePlus().deleteRoi();
+						}
+					}
+				}
+				catch ( Exception e )
+				{
+					e.printStackTrace();
+				}
+			}
+		} );
+
+		VBox roiInfo = new VBox(5);
+		roiInfo.setStyle("-fx-border-color: gray");
+		roiInfo.getChildren().addAll( roiXYLabel, roiWLabel, roiHLabel );
+		roiInfo.setPadding( new Insets(5) );
+
+		HBox roiBox = new HBox( 3, roiInfo, new VBox( 5, setRoiButton, clearRoiButton ) );
+		roiBox.setPadding( new Insets(5) );
+		roiBox.setAlignment( Pos.CENTER_LEFT );
+		roiBox.setMinWidth(200);
+
+		// Binning
+		binningComboBox = new ComboBox( binningOptions );
+		binningComboBox.getSelectionModel().selectedItemProperty().addListener(new ChangeListener() {
+			@Override
+			public void changed(ObservableValue observable, Object oldValue, Object newValue) {
+				if(newValue != null)
+					binningItemChanged(newValue.toString());
+			}
+		});
+
+		Button binningApplyButton = new Button( "Apply" );
+		binningApplyButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				String item = binningComboBox.getSelectionModel().getSelectedItem().toString();
+				System.out.println("Binning mode: " + item);
+
+				if(item != null)
+					binningItemChanged(item);
+			}
+		} );
+
+		HBox binningHBox = new HBox(3, binningComboBox, binningApplyButton);
+		binningHBox.setAlignment( Pos.CENTER_LEFT );
+		binningHBox.setPadding(new Insets(5));
 
 		Tab acquisitionTab = new Tab("Acquisition", acquireHBox);
 		acquisitionTab.setClosable(false);
@@ -370,14 +492,29 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Tab antiDriftTab = new Tab("Anti-drift", new VBox(2, antiDriftPane, chBox));
 		antiDriftTab.setClosable(false);
 
-		TabPane acquisitionPane = new TabPane(acquisitionTab, antiDriftTab);
+		Tab roiTab = new Tab("ROI", roiBox);
+		roiTab.setClosable(false);
+
+		Tab binningTab = new Tab("Binning", binningHBox);
+		binningTab.setClosable(false);
+
+		TabPane acquisitionPane = new TabPane(acquisitionTab, antiDriftTab, roiTab, binningTab);
 		acquisitionPane.setMinHeight(120);
 
-		VBox zstackAcquisitionOrderPane = new VBox( 20, createZStackPane(stagePanel), acquisitionPane );
+		SplitPane zStackAcqTabs = new SplitPane(createZStackPane(stagePanel), acquisitionPane);
+		zStackAcqTabs.setOrientation( Orientation.VERTICAL );
+		zStackAcqTabs.setDividerPositions( 0.8 );
+
+		zStackAcqTabs.heightProperty().addListener(new ChangeListener<Number>() {
+			@Override
+			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+				zStackAcqTabs.setDividerPositions( 0.8 );
+			}
+		});
 
 		// setup the Z-stacks
 		// summary
-		SplitPane positionZStackSplit = new SplitPane(timePositionSplit, zstackAcquisitionOrderPane);
+		SplitPane positionZStackSplit = new SplitPane(timePositionSplit, zStackAcqTabs);
 		positionZStackSplit.setOrientation( Orientation.HORIZONTAL );
 		positionZStackSplit.setDividerPositions( 0.6 );
 
@@ -552,38 +689,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		final TitledPane acqSettingPane = new TitledPane( "Acquisition Settings", acqSettings );
 		acqSettingPane.setCollapsible( false );
 
-		// Laser shutter(software) / Arduino Shutter(hardware)
-		// Save image options
-		SplitPane channelListSaveImage = new SplitPane(
-				channelPane,
-				createSaveImagesPane(acqSettingPane)
-		);
-//		channelListSaveImage.setDividerPositions( 0.6 );
-
-		Button imgHelpButton = createHelpButton();
-		imgHelpButton.setOnAction( event -> new HelpWindow().show(HelpType.IMAGING));
-
-		Text label = new Text("Preview of imaging session");
-		label.setFont( Font.font("Verdana", FontWeight.BOLD, 13) );
-
-		HBox imgHBox = new HBox(10, new TextFlow( label ), imgHelpButton);
-		imgHBox.setAlignment(Pos.BASELINE_LEFT);
-
-		VBox smartImagingBox = new VBox( 10, imgHBox, smartImagingCylinder );
-		smartImagingBox.setAlignment( Pos.CENTER_LEFT );
-		smartImagingBox.setPadding( new Insets(10) );
-		cylinderSize.bind(smartImagingBox.widthProperty().subtract(15));
-
-		SplitPane content = new SplitPane( positionZStackSplit, smartImagingBox, channelListSaveImage );
-		content.setOrientation( Orientation.VERTICAL );
-		content.setDividerPositions( 0.5, 0.2 );
-
-		content.heightProperty().addListener(new ChangeListener<Number>() {
-			@Override
-			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
-				content.setDividerPositions( 0.5, 0.2 );
-			}
-		});
 
 		// Compute acquisition order logic
 		BooleanBinding bb = new BooleanBinding()
@@ -644,11 +749,51 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		disabledAcquisitionOrder.bind( bb );
 
-		setCenter( content );
+		// Laser shutter(software) / Arduino Shutter(hardware)
+		SplitPane channelSummary = new SplitPane( channelPane, createSummaryPane() );
+		channelSummary.setOrientation( Orientation.VERTICAL );
+		channelSummary.setDividerPositions( 0.8 );
 
-		HBox bottom = new HBox(20, createSummaryPane() );
-		bottom.setAlignment( Pos.CENTER_LEFT );
-		setBottom( bottom );
+		channelSummary.heightProperty().addListener(new ChangeListener<Number>() {
+			@Override
+			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+				channelSummary.setDividerPositions( 0.8 );
+			}
+		});
+
+		// Save image options
+		SplitPane channelListSaveImage = new SplitPane(
+				channelSummary,
+				createSaveImagesPane(acqSettingPane)
+		);
+//		channelListSaveImage.setDividerPositions( 0.6 );
+
+		Button imgHelpButton = createHelpButton();
+		imgHelpButton.setOnAction( event -> new HelpWindow().show(HelpType.IMAGING));
+
+		Text label = new Text("Preview of imaging session");
+		label.setFont( Font.font("Verdana", FontWeight.BOLD, 13) );
+
+		HBox imgHBox = new HBox(10, new TextFlow( label ), imgHelpButton);
+		imgHBox.setAlignment(Pos.BASELINE_LEFT);
+
+		VBox smartImagingBox = new VBox( 10, imgHBox, smartImagingCylinder );
+		smartImagingBox.setAlignment( Pos.CENTER_LEFT );
+		smartImagingBox.setPadding( new Insets(10) );
+		cylinderSize.bind(smartImagingBox.widthProperty().subtract(15));
+
+		SplitPane content = new SplitPane( positionZStackSplit, smartImagingBox, channelListSaveImage );
+		content.setOrientation( Orientation.VERTICAL );
+		content.setDividerPositions( 0.5, 0.2 );
+
+		content.heightProperty().addListener(new ChangeListener<Number>() {
+			@Override
+			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+				content.setDividerPositions( 0.5, 0.2 );
+			}
+		});
+
+		setCenter( content );
 
 		addEventHandler( ControlEvent.STAGE, new EventHandler< ControlEvent >()
 		{
@@ -712,6 +857,34 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		if ( !new File( dir ).exists() )
 		{
 			new File( dir ).mkdirs();
+		}
+	}
+
+	void binningItemChanged(String item) {
+//		System.out.println(item);
+
+		if (getStudio() != null) {
+			Studio studio = getStudio();
+			CMMCore core = studio.core();
+
+			SPIMSetup spimSetup = this.spimSetup;
+			String currentCamera = core.getCameraDevice();
+
+			if(currentCamera.startsWith("Multi")) {
+				if(spimSetup.getCamera1() != null) {
+					spimSetup.getCamera1().setBinning(item);
+				}
+
+				if(spimSetup.getCamera2() != null) {
+					spimSetup.getCamera2().setBinning(item);
+				}
+			} else {
+				if(spimSetup.getCamera1() != null && currentCamera.equals(spimSetup.getCamera1().getLabel()))
+					spimSetup.getCamera1().setBinning(item);
+
+				if(spimSetup.getCamera2() != null && currentCamera.equals(spimSetup.getCamera2().getLabel()))
+					spimSetup.getCamera2().setBinning(item);
+			}
 		}
 	}
 
@@ -779,6 +952,15 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 					updateUI( setting );
 				}
 			}
+
+			try {
+				Camera camera = setup.getCamera1();
+				camera.getAvailableBinningValues().forEach(binningOptions::add);
+				binningComboBox.getSelectionModel().select(camera.getBinningAsString());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
 		} else {
 			this.imageWidth = 512;
 			this.imageHeight = 512;
@@ -794,8 +976,15 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				channelItemTableView = TableViewUtil.createChannelItemDataView(setup, null);
 				Node viewContent = createChannelItemTable( channelItemTableView, "Camera-1", "Laser-1", exposure );
 				laserTab.setContent( viewContent );
+
+				binningOptions.clear();
 			}
 		}
+
+		java.awt.Rectangle roi = new java.awt.Rectangle(0, 0, 0, 0);
+		roiXYLabel.setText( String.format( "X=%d, Y=%d", roi.x, roi.y ) );
+		roiWLabel.setText( String.format( "Width=%d", roi.width ) );
+		roiHLabel.setText( String.format( "Height=%d", roi.height ) );
 	}
 
 	public void setStagePanel(StagePanel stagePanel) {
