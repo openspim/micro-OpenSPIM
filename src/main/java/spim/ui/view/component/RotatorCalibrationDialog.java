@@ -50,7 +50,8 @@ public class RotatorCalibrationDialog extends Alert
 		final StageUnit unit = new StageUnit( "Rotator ", false, true, stage );
 
 		Label stepSizeLabel = new Label( "Calculated StepSize:" );
-		TextField stepSize = new TextField( stage.getStepSize() + "" );
+		String stepSizeString = stage != null ? stage.getStepSize() + "" : "";
+		TextField stepSize = new TextField( stepSizeString );
 		stepSizeProperty = stepSize.textProperty();
 		unit.deviceValueProperty().addListener( new ChangeListener< Number >()
 		{
