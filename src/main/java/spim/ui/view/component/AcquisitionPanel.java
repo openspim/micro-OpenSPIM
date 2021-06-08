@@ -91,8 +91,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 	private TableView< TimePointItem > timePointItemTableView;
 
-	private SPIMSetup spimSetup;
-	private Studio studio;
+	final private ObjectProperty<Studio> studioProperty;
+	final private ObjectProperty<SPIMSetup> spimSetupProperty;
+
 	final private TabPane channelTabPane;
 	ObservableList<String> acquisitionOrderItems;
 	long imageWidth, imageHeight, imageDepth, bufferSize;
@@ -186,8 +187,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			FXCollections.observableArrayList();
 
 	public AcquisitionPanel( SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView< PinItem > pinItemTableView, SimpleDoubleProperty waitSeconds ) {
-		this.spimSetup = setup;
-		this.studio = studio;
+		this.studioProperty = new SimpleObjectProperty<>( studio );
+		this.spimSetupProperty = new SimpleObjectProperty<>( setup );
 		this.propertyMap = new HashMap<>();
 		this.currentPosition = new SimpleObjectProperty<>();
 
@@ -202,9 +203,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				imageWidth = roi.width;
 				imageHeight = roi.height;
 			} else {
-				if (this.studio.core() != null) {
-					this.imageWidth = this.studio.core().getImageWidth();
-					this.imageHeight = this.studio.core().getImageHeight();
+				if (getStudio().core() != null) {
+					this.imageWidth = getStudio().core().getImageWidth();
+					this.imageHeight = getStudio().core().getImageHeight();
 				}
 			}
 			bufferSize = imageWidth * imageHeight * imageDepth / 8;
@@ -235,15 +236,15 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		this.propertyMap.put( "order", new SimpleStringProperty( "Position > Slice > Channel" ) );
 		this.propertyMap.put( "filename", new SimpleStringProperty( "" ) );
 
-		if(this.studio != null)
+		if(getStudio() != null)
 		{
-			System.out.println("Height: " + this.studio.core().getImageHeight());
-			System.out.println("Width: " + this.studio.core().getImageWidth());
-			System.out.println("Depth: " + this.studio.core().getImageBitDepth());
-			System.out.println("BufferSize: " + this.studio.core().getImageBufferSize());
-			this.imageWidth = this.studio.core().getImageWidth();
-			this.imageHeight = this.studio.core().getImageHeight();
-			this.imageDepth = this.studio.core().getImageBitDepth();
+			System.out.println("Height: " + getStudio().core().getImageHeight());
+			System.out.println("Width: " + getStudio().core().getImageWidth());
+			System.out.println("Depth: " + getStudio().core().getImageBitDepth());
+			System.out.println("BufferSize: " + getStudio().core().getImageBufferSize());
+			this.imageWidth = getStudio().core().getImageWidth();
+			this.imageHeight = getStudio().core().getImageHeight();
+			this.imageDepth = getStudio().core().getImageBitDepth();
 		}
 		else
 		{
@@ -284,12 +285,13 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			@Override public void handle( ActionEvent event )
 			{
-				if(AcquisitionPanel.this.studio == null) {
+				Studio studio = getStudio();
+				if(studio == null) {
 					new Alert( Alert.AlertType.WARNING, "MM2 config is not loaded.").show();
 					return;
 				}
 
-				if(studio != null)
+				if(getStudio() != null)
 				{
 					System.out.println("Height: " + studio.core().getImageHeight());
 					System.out.println("Width: " + studio.core().getImageWidth());
@@ -405,8 +407,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			@Override public void handle( ActionEvent event )
 			{
-//				Studio studio = studioProperty.get();
-				Studio studio = AcquisitionPanel.this.studio;
+				Studio studio = getStudio();
 				if (studio != null && studio.live() != null && studio.live().getDisplay() != null && studio.live().getDisplay().getImagePlus() != null) {
 					if(studio.live().getDisplay().getImagePlus().getRoi() != null) {
 						Roi ipRoi = studio.live().getDisplay().getImagePlus().getRoi();
@@ -429,8 +430,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			@Override public void handle( ActionEvent event )
 			{
-//				Studio studio = studioProperty.get();
-				Studio studio = AcquisitionPanel.this.studio;
+				Studio studio = getStudio();
 				try
 				{
 					if( studio != null && studio.core() != null)
@@ -806,7 +806,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 					double zEnd = pos.getZEnd();
 					double zMid = zStart + (zEnd - zStart) / 2;
 
-					if(spimSetup != null) {
+					if(spimSetupProperty.get() != null) {
 //						double r = spimSetup.getThetaStage().getPosition();
 //						double x = spimSetup.getXStage().getPosition();
 //						double y = spimSetup.getYStage().getPosition();
@@ -840,8 +840,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	}
 
 	Studio getStudio() {
-		return this.studio;
+		return studioProperty.get();
 	}
+
+	SPIMSetup getSpimSetup() { return spimSetupProperty.get(); }
 
 	private static String getUserDataDirectory()
 	{
@@ -867,7 +869,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			Studio studio = getStudio();
 			CMMCore core = studio.core();
 
-			SPIMSetup spimSetup = this.spimSetup;
+			SPIMSetup spimSetup = getSpimSetup();
 			String currentCamera = core.getCameraDevice();
 
 			if(currentCamera.startsWith("Multi")) {
@@ -891,21 +893,21 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	@Override public void setSetup( SPIMSetup setup, Studio studio )
 	{
 		// Automatic Acquisition Setting saving
-		if(this.studio != null) {
-			String acqSettingFile = (( MMStudio ) this.studio).getSysConfigFile() + ".xml";
+		if(getStudio() != null) {
+			String acqSettingFile = (( MMStudio ) getStudio()).getSysConfigFile() + ".xml";
 			acqSettingFile = acqSettingFile.replace( File.separator, "_" );
 			AcquisitionSetting.save( new File(getUserDataDirectory() + acqSettingFile), getAcquisitionSetting() );
 		}
 
-		this.spimSetup = setup;
-		this.studio = studio;
+		spimSetupProperty.set( setup );
+		studioProperty.set( studio );
 
 		if(studio != null)
 		{
-			System.out.println("Height: " + this.studio.core().getImageHeight());
-			System.out.println("Width: " + this.studio.core().getImageWidth());
-			System.out.println("Depth: " + this.studio.core().getImageBitDepth());
-			System.out.println("BufferSize: " + this.studio.core().getImageBufferSize());
+			System.out.println("Height: " + getStudio().core().getImageHeight());
+			System.out.println("Width: " + getStudio().core().getImageWidth());
+			System.out.println("Depth: " + getStudio().core().getImageBitDepth());
+			System.out.println("BufferSize: " + getStudio().core().getImageBufferSize());
 			this.imageWidth = studio.core().getImageWidth();
 			this.imageHeight = studio.core().getImageHeight();
 			this.imageDepth = studio.core().getImageBitDepth();
@@ -937,12 +939,12 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				Node viewContent = createChannelItemTable( channelItemTableView, setup.getCamera1().getLabel(), setup.getLaser().getLabel(), exposure );
 				laserTab.setContent( viewContent );
 
-				if(spimSetup != null && spimSetup.getThetaStage() != null) {
-					rotateStepSize.bindBidirectional(spimSetup.getThetaStage().stepSizeProperty());
+				if(getSpimSetup() != null && getSpimSetup().getThetaStage() != null) {
+					rotateStepSize.bindBidirectional(getSpimSetup().getThetaStage().stepSizeProperty());
 				}
 			}
 
-			String acqSettingFile = (( MMStudio ) this.studio).getSysConfigFile() + ".xml";
+			String acqSettingFile = (( MMStudio ) getStudio()).getSysConfigFile() + ".xml";
 			acqSettingFile = acqSettingFile.replace( File.separator, "_" );
 			File acqSetting = new File(getUserDataDirectory() + acqSettingFile);
 			if(acqSetting.exists()) {
@@ -1056,6 +1058,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		saveAsHDF5.set( setting.getSaveAsHDF5() );
 		saveMIP.set( setting.getSaveMIP() );
 		roiRectangle.set( setting.getRoiRectangle() );
+
+		Studio studio = getStudio();
 		if(studio != null && studio.live() != null && studio.live().getDisplay() != null && studio.live().getDisplay().getImagePlus() != null && studio.live().getDisplay().getImagePlus().getRoi() != null) {
 			Roi ipRoi = studio.live().getDisplay().getImagePlus().getRoi();
 			studio.live().getDisplay().getImagePlus().setRoi( ( java.awt.Rectangle ) setting.getRoiRectangle() );
@@ -1251,7 +1255,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 			try
 			{
-				engine.performAcquisition( studio, spimSetup, stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp,
+				engine.performAcquisition( getStudio(), getSpimSetup(), stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp,
 						timePointItemTableView.getItems(), currentTP, waitSeconds,
 						arduinoSelected, new File(directory.getValue()), filename.getValue(),
 						positionItemTableView.getItems(), channelItemList, processedImages,
@@ -1300,6 +1304,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		positionItemTableView.setEditable( true );
 
 		EventHandler newEventHandler = ( EventHandler< ActionEvent > ) event -> {
+			SPIMSetup spimSetup = getSpimSetup();
 			if(spimSetup != null ) {
 				double r = spimSetup.getThetaStage().getPosition();
 				double x = spimSetup.getXStage().getPosition();
@@ -1555,6 +1560,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		InvalidationListener invalidationListener = observable -> {
 			computeTotalChannels();
+			SPIMSetup spimSetup = getSpimSetup();
 			if(spimSetup != null && spimSetup.getArduino1() != null) {
 				int sum = 0;
 				for (ChannelItem item : channelItemTableView.getItems()) {
@@ -1880,6 +1886,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	}
 
 	private void addNewPosition( int zStart, int zEnd, double zStep ) {
+		SPIMSetup spimSetup = getSpimSetup();
 		if(spimSetup != null ) {
 			double r = spimSetup.getThetaStage().getPosition();
 			double x = spimSetup.getXStage().getPosition();
@@ -1907,6 +1914,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			@Override public void handle( ActionEvent event )
 			{
+				SPIMSetup spimSetup = getSpimSetup();
 				if(spimSetup != null && spimSetup.getZStage() != null) {
 					int currPos = (int) spimSetup.getZStage().getPosition();
 					if(zEndField.getText().isEmpty())
@@ -1928,6 +1936,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			@Override public void handle( ActionEvent event )
 			{
+				SPIMSetup spimSetup = getSpimSetup();
 				if(spimSetup != null && spimSetup.getZStage() != null) {
 					int currPos = (int) spimSetup.getZStage().getPosition();
 					if(zStartField.getText().isEmpty())
@@ -1949,6 +1958,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			@Override public void handle( ActionEvent event )
 			{
+				SPIMSetup spimSetup = getSpimSetup();
 				if(spimSetup != null && spimSetup.getZStage() != null) {
 					if(!zStartField.getText().isEmpty() && !zEndField.getText().isEmpty())
 					{
