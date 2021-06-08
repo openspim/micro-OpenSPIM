@@ -306,6 +306,12 @@ public class TableViewUtil
 		booleanColumn.setOnEditCommit( event -> event.getRowValue().setSelected( event.getNewValue() ) );
 		tv.getColumns().add(booleanColumn);
 
+		TableColumn<ChannelItem, Number> numberColumn = new TableColumn<>( "#" );
+		numberColumn.setPrefWidth( 20 );
+		numberColumn.setCellValueFactory(p -> new ReadOnlyIntegerWrapper(tv.getItems().indexOf(p.getValue()) + 1));
+		numberColumn.setSortable(false);
+		tv.getColumns().add(numberColumn);
+
 		TableColumn<ChannelItem, ChannelItem.Type> typeColumn = new TableColumn<>("Shutter");
 		typeColumn.setPrefWidth(80);
 		typeColumn.setCellValueFactory( new PropertyValueFactory<>( "type" ) );
@@ -333,7 +339,7 @@ public class TableViewUtil
 		column.setOnEditCommit( event -> event.getRowValue().setLaser( event.getNewValue() ) );
 		tv.getColumns().add(column);
 
-		TableColumn<ChannelItem, Number> numberColumn = new TableColumn<>("Exposure");
+		numberColumn = new TableColumn<>("Exposure");
 		numberColumn.setPrefWidth(100);
 		numberColumn.setCellValueFactory( (param) ->
 				new ReadOnlyDoubleWrapper( param.getValue().getValue().doubleValue() )
@@ -342,6 +348,66 @@ public class TableViewUtil
 		numberColumn.setOnEditCommit( event -> event.getRowValue().setValue( event.getNewValue().doubleValue() ) );
 		numberColumn.setEditable( true );
 		tv.getColumns().add(numberColumn);
+
+
+		TableColumn<ChannelItem, Void> btnColumn = new TableColumn<>("");
+		btnColumn.setPrefWidth(130);
+		Callback<TableColumn<ChannelItem, Void>, TableCell<ChannelItem, Void>> cellFactory = new Callback<TableColumn<ChannelItem, Void>, TableCell<ChannelItem, Void>>() {
+			@Override
+			public TableCell<ChannelItem, Void> call(final TableColumn<ChannelItem, Void> param) {
+				final TableCell<ChannelItem, Void> cell = new TableCell<ChannelItem, Void>() {
+
+					private final Button up = new Button();
+					private final Button down = new Button();
+
+					{
+						FontAwesomeIconView icon = new FontAwesomeIconView( FontAwesomeIcon.ANGLE_UP );
+						up.setContentDisplay( ContentDisplay.GRAPHIC_ONLY );
+						up.setGraphic(icon);
+						up.setOnAction( event -> {
+							int idx = getIndex();
+//							System.out.println(idx);
+							ChannelItem data = getTableView().getItems().get( idx );
+							getTableView().getItems().remove( idx );
+							if(idx == 0) getTableView().getItems().add( 0, data );
+							else getTableView().getItems().add( idx - 1, data );
+							getTableView().getSelectionModel().select( data );
+							getTableView().requestFocus();
+						} );
+
+						icon = new FontAwesomeIconView( FontAwesomeIcon.ANGLE_DOWN );
+						down.setContentDisplay( ContentDisplay.GRAPHIC_ONLY );
+						down.setGraphic(icon);
+						down.setOnAction( event -> {
+							int idx = getIndex();
+//							System.out.println(idx);
+							ChannelItem data = getTableView().getItems().get( idx );
+							getTableView().getItems().remove( idx );
+							if(idx == getTableView().getItems().size()) getTableView().getItems().add( data );
+							else if(idx < getTableView().getItems().size()) getTableView().getItems().add( idx + 1, data );
+							getTableView().getSelectionModel().select( data );
+							getTableView().requestFocus();
+						} );
+					}
+
+
+					@Override
+					public void updateItem(Void item, boolean empty) {
+						super.updateItem(item, empty);
+						if (empty) {
+							setGraphic(null);
+						} else {
+							setGraphic(new HBox( 5, up, down ));
+						}
+					}
+				};
+				return cell;
+			}
+		};
+
+		btnColumn.setCellFactory(cellFactory);
+
+		tv.getColumns().add(btnColumn);
 
 		// Drag and drop
 		tv.setRowFactory(createDragNDropRowFactory(tv));
@@ -360,6 +426,12 @@ public class TableViewUtil
 		booleanColumn.setOnEditCommit( event -> event.getRowValue().setSelected( event.getNewValue() ) );
 		tv.getColumns().add(booleanColumn);
 
+		TableColumn<ChannelItem, Number> numberColumn = new TableColumn<>( "#" );
+		numberColumn.setPrefWidth( 20 );
+		numberColumn.setCellValueFactory(p -> new ReadOnlyIntegerWrapper(tv.getItems().indexOf(p.getValue()) + 1));
+		numberColumn.setSortable(false);
+		tv.getColumns().add(numberColumn);
+
 		TableColumn<ChannelItem, ChannelItem.Type> typeColumn = new TableColumn<>("Shutter");
 		typeColumn.setPrefWidth(80);
 		typeColumn.setCellValueFactory( new PropertyValueFactory<>( "type" ) );
@@ -376,7 +448,7 @@ public class TableViewUtil
 		);
 		tv.getColumns().add(column);
 
-		TableColumn<ChannelItem, Number> numberColumn = new TableColumn<>("Exposure");
+		numberColumn = new TableColumn<>("Exposure");
 		numberColumn.setPrefWidth(100);
 		numberColumn.setCellValueFactory( (param) ->
 				new ReadOnlyDoubleWrapper( param.getValue().getValue().doubleValue() )
@@ -385,6 +457,69 @@ public class TableViewUtil
 		numberColumn.setOnEditCommit( event -> event.getRowValue().setValue( event.getNewValue().doubleValue() ) );
 		numberColumn.setEditable( true );
 		tv.getColumns().add(numberColumn);
+
+
+		TableColumn<ChannelItem, Void> btnColumn = new TableColumn<>("");
+		btnColumn.setPrefWidth(130);
+		Callback<TableColumn<ChannelItem, Void>, TableCell<ChannelItem, Void>> cellFactory = new Callback<TableColumn<ChannelItem, Void>, TableCell<ChannelItem, Void>>() {
+			@Override
+			public TableCell<ChannelItem, Void> call(final TableColumn<ChannelItem, Void> param) {
+				final TableCell<ChannelItem, Void> cell = new TableCell<ChannelItem, Void>() {
+
+					private final Button up = new Button();
+					private final Button down = new Button();
+
+					{
+						FontAwesomeIconView icon = new FontAwesomeIconView( FontAwesomeIcon.ANGLE_UP );
+						up.setContentDisplay( ContentDisplay.GRAPHIC_ONLY );
+						up.setGraphic(icon);
+						up.setOnAction( event -> {
+							int idx = getIndex();
+//							System.out.println(idx);
+							ChannelItem data = getTableView().getItems().get( idx );
+							getTableView().getItems().remove( idx );
+							if(idx == 0) getTableView().getItems().add( 0, data );
+							else getTableView().getItems().add( idx - 1, data );
+							getTableView().getSelectionModel().select( data );
+							getTableView().requestFocus();
+						} );
+
+						icon = new FontAwesomeIconView( FontAwesomeIcon.ANGLE_DOWN );
+						down.setContentDisplay( ContentDisplay.GRAPHIC_ONLY );
+						down.setGraphic(icon);
+						down.setOnAction( event -> {
+							int idx = getIndex();
+//							System.out.println(idx);
+							ChannelItem data = getTableView().getItems().get( idx );
+							getTableView().getItems().remove( idx );
+							if(idx == getTableView().getItems().size()) getTableView().getItems().add( data );
+							else if(idx < getTableView().getItems().size()) getTableView().getItems().add( idx + 1, data );
+							getTableView().getSelectionModel().select( data );
+							getTableView().requestFocus();
+						} );
+					}
+
+
+					@Override
+					public void updateItem(Void item, boolean empty) {
+						super.updateItem(item, empty);
+						if (empty) {
+							setGraphic(null);
+						} else {
+							setGraphic(new HBox( 5, up, down ));
+						}
+					}
+				};
+				return cell;
+			}
+		};
+
+		btnColumn.setCellFactory(cellFactory);
+
+		tv.getColumns().add(btnColumn);
+
+		// Drag and drop
+		tv.setRowFactory(createDragNDropRowFactory(tv));
 
 		return tv;
 	}
