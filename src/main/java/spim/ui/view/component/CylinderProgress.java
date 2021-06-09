@@ -71,7 +71,7 @@ public class CylinderProgress extends Group
 		);
 
 		setRotationAxis( Rotate.Y_AXIS );
-		setRotate( 0 );
+		setRotate( -5 );
 	}
 
 	public void refresh() {
@@ -125,7 +125,8 @@ public class CylinderProgress extends Group
 				cylinder.setRadius( 20 );
 
 				PhongMaterial cylinderMat = new PhongMaterial();
-				cylinderMat.setDiffuseColor( color.deriveColor( 0.0, 1.0, ( 1 - 0.2 ), 0.5 ) );
+				cylinderMat.setDiffuseColor( color.deriveColor( 0.0, 1.0, 0.8, 0.5 ) );
+//				cylinderMat.setSpecularColor( Color.BLACK );
 				cylinder.setMaterial( cylinderMat );
 				cylinder.setRotate( 90 );
 				cylinder.setTranslateX( cylOffset + offset * 0.5 );
