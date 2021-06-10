@@ -23,6 +23,7 @@ import javafx.stage.Stage;
 import org.dockfx.DockNode;
 import org.micromanager.Studio;
 
+import org.micromanager.events.GUIRefreshEvent;
 import spim.hardware.SPIMSetup;
 import spim.mm.MMUtils;
 import spim.mm.MicroManager;
@@ -53,7 +54,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 	final Text pixelSizeValue;
 	final Text rotatorStepSizeValue;
 
-	public ToolbarPanel( Studio mmStudio, ObjectProperty< Studio > mmStudioObjectProperty )
+	public ToolbarPanel( Studio mmStudio, ObjectProperty< Studio > mmStudioObjectProperty, ObjectProperty<GUIRefreshEvent> refreshEventProperty )
 	{
 		super(new VBox());
 		this.studioProperty = new SimpleObjectProperty<>( mmStudio );
@@ -115,7 +116,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 							return;
 					}
 
-					MicroManager.init( stage, mmStudioObjectProperty );
+					MicroManager.init( stage, mmStudioObjectProperty, refreshEventProperty );
 
 					while(MMUtils.invalidMMPath() && !MMUtils.cancelled())
 					{
@@ -126,7 +127,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 								return;
 						}
 
-						MicroManager.init( stage, mmStudioObjectProperty );
+						MicroManager.init( stage, mmStudioObjectProperty, refreshEventProperty );
 					}
 				} else {
 					MicroManager.getInstance().show();
@@ -209,6 +210,13 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		rotatorStepSizeLabel.setFont(Font.font("Helvetica", FontWeight.BOLD, 12));
 		rotatorStepSizeValue = new Text("N.A.");
 		rotatorStepSizeValue.setFont(Font.font("Helvetica", 12));
+
+		refreshEventProperty.addListener((observable, oldValue, newValue) -> {
+			if(studioProperty.get() != null) {
+				pixelSizeValue.setText(studioProperty.get().core().getPixelSizeUm() + "");
+				rotatorStepSizeValue.setText(spimSetupObjectProperty.get().getThetaStage().getStepSize() + "");
+			}
+		});
 
 		TextFlow textFlow = new TextFlow(pixelSizeLabel, pixelSizeValue, nl.get(),
 				rotatorStepSizeLabel, rotatorStepSizeValue, nl.get());

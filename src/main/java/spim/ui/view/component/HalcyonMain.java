@@ -19,6 +19,7 @@ import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import org.micromanager.Studio;
 
+import org.micromanager.events.GUIRefreshEvent;
 import spim.hardware.SPIMSetup;
 import spim.hardware.VersaLase;
 import spim.ui.view.component.console.StdOutCaptureConsole;
@@ -33,6 +34,7 @@ import java.util.ArrayList;
 public class HalcyonMain extends HalcyonFrame
 {
 	private ObjectProperty<Studio> mmStudioProperty = new SimpleObjectProperty<>();
+	private ObjectProperty<GUIRefreshEvent> mmStudioGUIRefreshEventProperty = new SimpleObjectProperty<>();
 	private BooleanProperty terminated = new SimpleBooleanProperty();
 	AcquisitionPanel acquisitionPanel;
 
@@ -135,7 +137,7 @@ public class HalcyonMain extends HalcyonFrame
 		addNode( arduino );
 
 		// Custom Toolbar provided here
-		ToolbarPanel lToolbar = new ToolbarPanel( studio, mmStudioProperty );
+		ToolbarPanel lToolbar = new ToolbarPanel( studio, mmStudioProperty, mmStudioGUIRefreshEventProperty );
 		lToolbar.setPrefSize(300, 200);
 		addToolbar(lToolbar);
 

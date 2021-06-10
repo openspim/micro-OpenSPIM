@@ -7,6 +7,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.stage.Stage;
 import loci.common.DebugTools;
 import org.micromanager.Studio;
+import org.micromanager.events.GUIRefreshEvent;
 import spim.mm.MMUtils;
 import spim.mm.MicroManager;
 import spim.ui.view.component.HalcyonMain;
@@ -34,7 +35,8 @@ public class SlimOpenSPIM extends Application
 		}
 
 		ObjectProperty< Studio > mmStudioProperty = new SimpleObjectProperty<>();
-		MicroManager.init( stage, mmStudioProperty );
+		ObjectProperty<GUIRefreshEvent> mmStudioGUIRefreshEventProperty = new SimpleObjectProperty<>();
+		MicroManager.init( stage, mmStudioProperty, mmStudioGUIRefreshEventProperty );
 	}
 
 	public static void main( final String[] args )

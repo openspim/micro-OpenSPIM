@@ -62,6 +62,7 @@ public class MicroManager implements PlugIn, CommandListener
 	private static final Map<Integer, JSONObject> metadatas = new HashMap<Integer, JSONObject>(4);
 
 	private volatile static ObjectProperty<Studio> mmStudioProperty = null;
+	private volatile static ObjectProperty<GUIRefreshEvent> mmStudioGUIRefreshEventProperty = null;
 	private volatile static MMStudio mmstudio = null;
 	private volatile static MicroManager instance = null;
 	private static ReentrantLock rlock;
@@ -74,9 +75,10 @@ public class MicroManager implements PlugIn, CommandListener
 		WindowPositioningPatch.applyMMPatches();
 	}
 
-	private MicroManager(ObjectProperty<Studio> studioObjectProperty) {
+	private MicroManager(ObjectProperty<Studio> studioObjectProperty, ObjectProperty<GUIRefreshEvent> refreshEventProperty) {
 		rlock = new ReentrantLock(true);
 		mmStudioProperty = studioObjectProperty;
+		mmStudioGUIRefreshEventProperty = refreshEventProperty;
 		run(null);
 	}
 
@@ -241,7 +243,7 @@ public class MicroManager implements PlugIn, CommandListener
 	/**
 	 * For initialization
 	 */
-	public static synchronized void init(Stage stage, ObjectProperty< Studio > mmStudioProperty )
+	public static synchronized void init(Stage stage, ObjectProperty< Studio > mmStudioProperty, ObjectProperty<GUIRefreshEvent> refreshEventProperty )
 	{
 		// already initialized --> show the frame and return it
 		if (instance != null)
@@ -294,7 +296,7 @@ public class MicroManager implements PlugIn, CommandListener
 			{
 				try
 				{
-					instance = new MicroManager(mmStudioProperty);
+					instance = new MicroManager(mmStudioProperty, refreshEventProperty);
 				}
 				catch (Throwable e)
 				{
@@ -1366,6 +1368,7 @@ public class MicroManager implements PlugIn, CommandListener
 	@Subscribe
 	public void onGUIRefresh(GUIRefreshEvent event) {
 		System.out.println("Refreshed.....");
+		mmStudioGUIRefreshEventProperty.set(event);
 	}
 
 //	private static class LiveListenerThread extends Thread
