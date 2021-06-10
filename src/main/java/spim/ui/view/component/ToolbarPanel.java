@@ -18,6 +18,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.*;
 import javafx.stage.Stage;
 import org.dockfx.DockNode;
 import org.micromanager.Studio;
@@ -25,6 +26,8 @@ import org.micromanager.Studio;
 import spim.hardware.SPIMSetup;
 import spim.mm.MMUtils;
 import spim.mm.MicroManager;
+
+import java.util.function.Supplier;
 
 
 /**
@@ -46,6 +49,9 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 	final Button liveViewButton;
 
 	final SimpleDoubleProperty waitSeconds;
+
+	final Text pixelSizeValue;
+	final Text rotatorStepSizeValue;
 
 	public ToolbarPanel( Studio mmStudio, ObjectProperty< Studio > mmStudioObjectProperty )
 	{
@@ -192,6 +198,23 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 		gridpane.addRow( 4, timerBox );
 
+		Supplier<Text> nl = () -> new Text("\n");
+
+		Text pixelSizeLabel = new Text("Pixel Size μm: ");
+		pixelSizeLabel.setFont(Font.font("Helvetica", FontWeight.BOLD, 12));
+		pixelSizeValue = new Text("N.A.");
+		pixelSizeValue.setFont(Font.font("Helvetica", 12));
+
+		Text rotatorStepSizeLabel = new Text("Rotator Step Size μm: ");
+		rotatorStepSizeLabel.setFont(Font.font("Helvetica", FontWeight.BOLD, 12));
+		rotatorStepSizeValue = new Text("N.A.");
+		rotatorStepSizeValue.setFont(Font.font("Helvetica", 12));
+
+		TextFlow textFlow = new TextFlow(pixelSizeLabel, pixelSizeValue, nl.get(),
+				rotatorStepSizeLabel, rotatorStepSizeValue, nl.get());
+
+		gridpane.addRow( 5, textFlow );
+
 //		btn = new Button("Test Std Err");
 //		btn.setOnAction(e -> {
 //
@@ -223,11 +246,15 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			topHbox.getChildren().remove( liveDemoLabel );
 			buttonHbox.getChildren().remove( mmButton );
 			liveViewHbox.getChildren().add( 0, liveViewButton );
+			pixelSizeValue.setText(studio.core().getPixelSizeUm() + "");
+			rotatorStepSizeValue.setText(setup.getThetaStage().getStepSize() + "");
 //			roi = new java.awt.Rectangle(0, 0, 0, 0);
 		} else {
 			topHbox.getChildren().add( liveDemoLabel );
 			buttonHbox.getChildren().add( mmButton );
 			liveViewHbox.getChildren().remove( liveViewButton );
+			pixelSizeValue.setText("N.A.");
+			rotatorStepSizeValue.setText("N.A.");
 //			roi = new java.awt.Rectangle( 0, 0, 0, 0 );
 		}
 	}

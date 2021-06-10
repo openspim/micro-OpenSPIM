@@ -312,16 +312,16 @@ public class TableViewUtil
 		numberColumn.setSortable(false);
 		tv.getColumns().add(numberColumn);
 
-		TableColumn<ChannelItem, ChannelItem.Type> typeColumn = new TableColumn<>("Shutter");
-		typeColumn.setPrefWidth(80);
-		typeColumn.setCellValueFactory( new PropertyValueFactory<>( "type" ) );
-		typeColumn.setCellFactory( ChoiceBoxTableCell.forTableColumn( FXCollections.observableArrayList(ChannelItem.Type.Laser) ) );
-		typeColumn.setOnEditCommit( event -> {
-			event.getRowValue().setType( event.getNewValue() );
-		} );
-		tv.getColumns().add(typeColumn);
+//		TableColumn<ChannelItem, ChannelItem.Type> typeColumn = new TableColumn<>("Shutter");
+//		typeColumn.setPrefWidth(80);
+//		typeColumn.setCellValueFactory( new PropertyValueFactory<>( "type" ) );
+//		typeColumn.setCellFactory( ChoiceBoxTableCell.forTableColumn( FXCollections.observableArrayList(ChannelItem.Type.Laser) ) );
+//		typeColumn.setOnEditCommit( event -> {
+//			event.getRowValue().setType( event.getNewValue() );
+//		} );
+//		tv.getColumns().add(typeColumn);
 
-		TableColumn<ChannelItem, String> column = new TableColumn<>("Channel Name");
+		TableColumn<ChannelItem, String> column = new TableColumn<>("Camera");
 		column.setPrefWidth(100);
 		column.setCellValueFactory( (param) ->
 				new ReadOnlyStringWrapper( param.getValue().getName() )
@@ -330,7 +330,7 @@ public class TableViewUtil
 		column.setOnEditCommit( event -> event.getRowValue().setName( event.getNewValue() ) );
 		tv.getColumns().add(column);
 
-		column = new TableColumn<>("Laser");
+		column = new TableColumn<>("Laser Shutter");
 		column.setPrefWidth(100);
 		column.setCellValueFactory( (param) ->
 				new ReadOnlyStringWrapper( param.getValue().getLaser() )
@@ -432,14 +432,14 @@ public class TableViewUtil
 		numberColumn.setSortable(false);
 		tv.getColumns().add(numberColumn);
 
-		TableColumn<ChannelItem, ChannelItem.Type> typeColumn = new TableColumn<>("Shutter");
-		typeColumn.setPrefWidth(80);
-		typeColumn.setCellValueFactory( new PropertyValueFactory<>( "type" ) );
-		typeColumn.setCellFactory( ChoiceBoxTableCell.forTableColumn( FXCollections.observableArrayList(ChannelItem.Type.Arduino) ) );
-		typeColumn.setOnEditCommit( event -> {
-			event.getRowValue().setType( event.getNewValue() );
-		} );
-		tv.getColumns().add(typeColumn);
+//		TableColumn<ChannelItem, ChannelItem.Type> typeColumn = new TableColumn<>("Shutter");
+//		typeColumn.setPrefWidth(80);
+//		typeColumn.setCellValueFactory( new PropertyValueFactory<>( "type" ) );
+//		typeColumn.setCellFactory( ChoiceBoxTableCell.forTableColumn( FXCollections.observableArrayList(ChannelItem.Type.Arduino) ) );
+//		typeColumn.setOnEditCommit( event -> {
+//			event.getRowValue().setType( event.getNewValue() );
+//		} );
+//		tv.getColumns().add(typeColumn);
 
 		TableColumn<ChannelItem, String> column = new TableColumn<>("Channel Name");
 		column.setPrefWidth(150);

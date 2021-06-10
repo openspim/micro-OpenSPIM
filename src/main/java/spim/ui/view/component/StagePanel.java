@@ -539,7 +539,32 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		VBox controls = new VBox( 10, topHbox, smartBox, angleIndiBox, stageUnitR, stageUnitX, stageUnitY, stageUnitZ, newButton, undoBtn );
+		Button calibrateButton = new Button( "Calibrate Anti-Drift" );
+		calibrateButton.setStyle("-fx-background-radius: 5em;" +
+				"-fx-base: #ede030;");
+		calibrateButton.setAlignment( Pos.BASELINE_LEFT );
+		calibrateButton.setPrefWidth( 140 );
+		calibrateButton.setOnAction( event -> {
+			if(stageUnitX.getStageDevice() != null) {
+				AntiDriftCalibrationDialog dlg = new AntiDriftCalibrationDialog( stageUnitX.getStageDevice() );
+
+				dlg.showAndWait()
+						.filter(response -> response == ButtonType.OK)
+						.ifPresent(response -> {
+							System.err.println("[Anti-Drift Calibration] Step Size: " + dlg.getReturnResult());
+						});
+			} else {
+				AntiDriftCalibrationDialog dlg = new AntiDriftCalibrationDialog( null );
+
+				dlg.showAndWait()
+						.filter(response -> response == ButtonType.OK)
+						.ifPresent(response -> {
+							System.err.println("[Anti-Drift Calibration-Demo] Step Size: " + dlg.getReturnResult());
+						});
+			}
+		} );
+
+		VBox controls = new VBox( 10, topHbox, smartBox, angleIndiBox, stageUnitR, stageUnitX, stageUnitY, stageUnitZ, new HBox(20, newButton, calibrateButton) , undoBtn );
 		controls.setPadding( new Insets( 10 ) );
 		return controls;
 	}

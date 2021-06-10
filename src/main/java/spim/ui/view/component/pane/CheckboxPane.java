@@ -40,7 +40,7 @@ public class CheckboxPane extends BorderPane
 
 		if(margin > 0) {
 			BorderPane.setAlignment(content, Pos.TOP_LEFT);
-			BorderPane.setMargin(content, new Insets(12,12,12,12));
+			BorderPane.setMargin(content, new Insets( margin ));
 		}
 
 		setCenter( content );

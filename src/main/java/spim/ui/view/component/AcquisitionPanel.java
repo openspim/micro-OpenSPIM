@@ -359,10 +359,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		antiDriftPane.setSelected(false);
 		antiDrift = antiDriftPane.selectedProperty();
 
-		Button acqHelpButton = createHelpButton();
-		acqHelpButton.setOnAction( event -> new HelpWindow().show(HelpType.ACQUISITION));
-
-		acquireHBox.getChildren().addAll(acquireButton, pi, acqHelpButton);
+		acquireHBox.getChildren().addAll(acquireButton, pi);
 		spinner.setTooltip(new Tooltip("This channel index will be used for Anti-Drift reference"));
 
 		BorderPane.setMargin(acquireHBox, new Insets(12,12,12,12));
@@ -486,9 +483,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		binningHBox.setAlignment( Pos.CENTER_LEFT );
 		binningHBox.setPadding(new Insets(5));
 
-		Tab acquisitionTab = new Tab("Acquisition", acquireHBox);
-		acquisitionTab.setClosable(false);
-
 		Tab antiDriftTab = new Tab("Anti-drift", new VBox(2, antiDriftPane, chBox));
 		antiDriftTab.setClosable(false);
 
@@ -498,8 +492,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Tab binningTab = new Tab("Binning", binningHBox);
 		binningTab.setClosable(false);
 
-		TabPane acquisitionPane = new TabPane(acquisitionTab, antiDriftTab, roiTab, binningTab);
-		acquisitionPane.setMinHeight(120);
+		TabPane acquisitionTabPane = new TabPane( antiDriftTab, roiTab, binningTab );
+		acquisitionTabPane.setMinHeight(120);
+
+		Button acqHelpButton = createHelpButton();
+		acqHelpButton.setOnAction( event -> new HelpWindow().show(HelpType.ACQUISITION));
+
+		LabeledPane acquisitionPane = new LabeledPane( "Acquisition", new VBox(10, acquireHBox, acquisitionTabPane), acqHelpButton, 0 );
+
 
 		SplitPane zStackAcqTabs = new SplitPane(createZStackPane(stagePanel), acquisitionPane);
 		zStackAcqTabs.setOrientation( Orientation.VERTICAL );
@@ -768,13 +768,13 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		);
 //		channelListSaveImage.setDividerPositions( 0.6 );
 
-		Button imgHelpButton = createHelpButton();
-		imgHelpButton.setOnAction( event -> new HelpWindow().show(HelpType.IMAGING));
+//		Button imgHelpButton = createHelpButton();
+//		imgHelpButton.setOnAction( event -> new HelpWindow().show(HelpType.IMAGING));
 
 		Text label = new Text("Preview of imaging session");
 		label.setFont( Font.font("Verdana", FontWeight.BOLD, 13) );
 
-		HBox imgHBox = new HBox(10, new TextFlow( label ), imgHelpButton);
+		HBox imgHBox = new HBox(10, new TextFlow( label ));
 		imgHBox.setAlignment(Pos.BASELINE_LEFT);
 
 		VBox smartImagingBox = new VBox( 10, imgHBox, smartImagingCylinder );
@@ -1655,7 +1655,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		label2.textProperty().bind( propertyMap.get("order") );
 		gridpane.addRow( 3, new Label("No. of channels: "), label, new Label("Order: "), label2 );
 
-		return new LabeledPane( "Summary", gridpane );
+		return new LabeledPane( "Summary", gridpane, null, 12 );
 	}
 
 	private void computeTotal() {
@@ -1695,7 +1695,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		propertyMap.get("order").bind( acquisitionOrder );
 
-		LabeledPane pane = new LabeledPane( "Acquisition Order", orderComboBox );
+		LabeledPane pane = new LabeledPane( "Acquisition Order", orderComboBox, null, 12 );
 		disabledAcquisitionOrder = pane.disableProperty();
 
 		return pane;
