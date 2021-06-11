@@ -717,8 +717,8 @@ public class MMAcquisitionEngine
 	{
 		final CMMCore core = frame.core();
 
-		if(setup.getArduino1() != null)
-			setup.getArduino1().setSwitchState( "0" );
+//		if(setup.getArduino1() != null)
+//			setup.getArduino1().setSwitchState( "0" );
 
 //		if(autoShutter)
 //			core.setAutoShutter(true);
