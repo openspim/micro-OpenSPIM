@@ -45,8 +45,7 @@ import org.micromanager.internal.utils.NumberUtils;
 import org.micromanager.internal.utils.ReportingUtils;
 import spim.algorithm.DefaultAntiDrift;
 import spim.hardware.SPIMSetup;
-import spim.io.OpenSPIMSinglePaneTiffSeries;
-import spim.io.OutputHandler;
+import spim.io.OpenSPIMSinglePlaneTiffSeries;
 import spim.model.data.ChannelItem;
 import spim.model.data.PositionItem;
 import spim.ui.view.component.MMAcquisitionEngine;
@@ -99,7 +98,6 @@ public class AcqWrapperEngine implements AcquisitionEngine
 
 	private int t_, angle_;
 	private List<String> cameras_;
-	private HashMap<String, OutputHandler > handlers_;
 	private List< ChannelItem > channelItems_;
 	private boolean arduinoSelected_;
 	private LongProperty processedImages_;
@@ -119,7 +117,6 @@ public class AcqWrapperEngine implements AcquisitionEngine
 
 	public AcqWrapperEngine( SPIMSetup setup, final Studio frame, Datastore store,
 			String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix,
-			HashMap<String, OutputHandler > handlers,
 			List< ChannelItem > channelItems,
 			boolean arduinoSelected,
 			LongProperty processedImages, HashMap< PositionItem, DefaultAntiDrift> driftCompMap, Integer adReferenceChannel) throws Exception
@@ -127,7 +124,6 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		curStore_ = store;
 
 		cameras_ = cameras;
-		handlers_ = handlers;
 		channelItems_ = channelItems;
 		arduinoSelected_ = arduinoSelected;
 		processedImages_ = processedImages;
@@ -226,12 +222,12 @@ public class AcqWrapperEngine implements AcquisitionEngine
 					Arrays.stream(saveDir.listFiles()).forEach(c -> c.delete());
 					saveDir.delete();
 				}
-				saveDir.mkdirs();
 				if (null != acqFilenamePrefix) {
+					saveDir.mkdirs();
 					List<String> multis = MMAcquisitionEngine.getMultiCams(core_);
 
 					DefaultDatastore result = new DefaultDatastore(frame);
-					result.setStorage(new OpenSPIMSinglePaneTiffSeries(result, saveDir.getAbsolutePath(), acqFilenamePrefix, true));
+					result.setStorage(new OpenSPIMSinglePlaneTiffSeries(result, saveDir.getAbsolutePath(), acqFilenamePrefix, true));
 					mpStore_ = result;
 
 					DisplayWindow display = frame.displays().createDisplay(mpStore_);
@@ -366,7 +362,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			// Start pumping images through the pipeline and into the datastore.
 			sink = new TaggedImageSink(
 					engineOutputQueue, curPipeline_, curStore_, this, studio_.events(),
-					t_, angle_, handlers_, cameras_, x, y, theta, mpImages_, processedImages_, currentAntiDrift_, antiDriftReferenceChannel_ );
+					t_, angle_, cameras_, x, y, theta, mpImages_, processedImages_, currentAntiDrift_, antiDriftReferenceChannel_ );
 
 			sink.start(() -> getAcquisitionEngine2010().stop(), () -> {
 				rlock.tryLock();

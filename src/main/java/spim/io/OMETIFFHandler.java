@@ -39,7 +39,6 @@ import spim.acquisition.Program;
 import spim.acquisition.Row;
 
 import org.micromanager.internal.utils.ReportingUtils;
-import spim.algorithm.MaxProjections;
 import spim.ui.view.component.MMAcquisitionEngine;
 
 public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHandler
@@ -63,7 +62,6 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 	final boolean separateChannel;
 	private int timepoint;
 	final boolean isMultiPosition;
-	MaxProjections[] maxProjections;
 
 	public OMETIFFHandler( CMMCore iCore, File outDir, String filenamePrefix, Row[] acqRows, int channels,
 			int iTimeSteps, int tileCount, SummaryMetadata metadata, boolean exportToHDF5, boolean separateChannel ) {
@@ -276,10 +274,10 @@ public class OMETIFFHandler implements OutputHandler, Thread.UncaughtExceptionHa
 		meta.setPlanePositionZ(new Length(Z, UNITS.REFERENCEFRAME), image, plane);
 
 		meta.setPlaneTheZ(new NonNegativeInteger(plane), image, plane);
-		meta.setPlaneTheT(new NonNegativeInteger(0), image, plane);
+		meta.setPlaneTheT(new NonNegativeInteger(time), image, plane);
 
 		meta.setPlaneDeltaT(new Time(deltaT, UNITS.SECOND), image, plane);
-		meta.setPlaneExposureTime(new Time(expT, UNITS.MILLISECOND), image, plane);
+		meta.setPlaneExposureTime(new Time(expT, UNITS.MS), image, plane);
 
 		storeDouble(image, plane, 0, "Theta", theta);
 

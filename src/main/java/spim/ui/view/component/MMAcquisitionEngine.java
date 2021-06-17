@@ -29,7 +29,6 @@ import org.micromanager.data.DatastoreRewriteException;
 import org.micromanager.data.Image;
 import org.micromanager.data.Metadata;
 import org.micromanager.data.RewritableDatastore;
-import org.micromanager.data.SummaryMetadata;
 import org.micromanager.data.internal.DefaultDatastore;
 import org.micromanager.data.internal.DefaultSummaryMetadata;
 import org.micromanager.data.internal.PropertyKey;
@@ -47,9 +46,7 @@ import spim.algorithm.DefaultAntiDrift;
 import spim.hardware.Device;
 import spim.hardware.SPIMSetup;
 import spim.hardware.Stage;
-import spim.io.OMETIFFHandler;
-import spim.io.OpenSPIMSinglePaneTiffSeries;
-import spim.io.OutputHandler;
+import spim.io.*;
 
 import spim.model.data.ChannelItem;
 import spim.model.data.PositionItem;
@@ -114,7 +111,7 @@ public class MMAcquisitionEngine
 	 * @param channelItems the channel items
 	 * @param processedImages the processed images
 	 * @param bSave the b save
-	 * @param savingFormatValue the value set from { "None", "Separate the channel dimension", "Image stack (include multi-channel)" }
+	 * @param savingFormatValue the value set from { "Single Plane TIFF", "OMETIFF Image stack", "N5 format" }
 	 * @param saveMIP Save Maximum Intensity Projection or not
 	 * @param antiDrift Anti-Drift function used or not
 	 * @param experimentNote Experiment Note saved in the metadata
@@ -141,7 +138,14 @@ public class MMAcquisitionEngine
 
 			if(bSave) {
 				DefaultDatastore result = new DefaultDatastore(frame);
-				result.setStorage(new OpenSPIMSinglePaneTiffSeries(result, output.getAbsolutePath(), acqFilenamePrefix, true));
+
+				if(savingFormatValue.equals( "Single Plane TIFF" ))
+					result.setStorage(new OpenSPIMSinglePlaneTiffSeries(result, output.getAbsolutePath(), acqFilenamePrefix, true));
+				else if(savingFormatValue.equals( "OMETIFF Image stack" ))
+					result.setStorage(new OMETIFFStorage(result, output.getAbsolutePath(), acqFilenamePrefix, true));
+				else if(savingFormatValue.equals( "N5 format" ))
+					result.setStorage(new N5MicroManagerStorage(result, output.getAbsolutePath(), acqFilenamePrefix, timeSeqs, true));
+
 				store = result;
 			} else {
 				store = frame.data().createRewritableRAMDatastore();
@@ -225,7 +229,7 @@ public class MMAcquisitionEngine
 
 		PropertyMap.Builder pm = PropertyMaps.builder();
 
-		SummaryMetadata.Builder smb = new DefaultSummaryMetadata.Builder();
+		DefaultSummaryMetadata.Builder smb = new DefaultSummaryMetadata.Builder();
 
 		UserProfile profile = frame.profile();
 		smb = smb.userName( System.getProperty("user.name") )
@@ -272,8 +276,6 @@ public class MMAcquisitionEngine
 			pm.putIntegerList("ROI", roiRectangle.x, roiRectangle.y, roiRectangle.width, roiRectangle.height );
 		}
 
-		store.setSummaryMetadata(smb.userData(pm.build()).build());
-
 		Datastore finalStore1 = store;
 		frame.events().post( new AcquisitionStartedEvent()
 		{
@@ -296,6 +298,8 @@ public class MMAcquisitionEngine
 		}
 
 		pm.putIntegerList("ChColors", chColors);
+
+		store.setSummaryMetadata(smb.userData(pm.build()).build());
 
 		DisplaySettings dsTmp = DefaultDisplaySettings.getStandardSettings(
 				PropertyKey.ACQUISITION_DISPLAY_SETTINGS.key());
@@ -325,45 +329,6 @@ public class MMAcquisitionEngine
 
 		display_.compareAndSetDisplaySettings(display_.getDisplaySettings(), displaySettingsBuilder.build());
 
-		HashMap<String, OutputHandler> handlers = new HashMap<>(  );
-
-		boolean saveSpim = true;
-		if(savingFormatValue != null && savingFormatValue.equals( "None" ))
-			saveSpim = false;
-
-		if(bSave && saveSpim)
-		{
-			boolean separateChannel = false;
-			if(savingFormatValue != null && savingFormatValue.equals( "Separate the channel dimension" ))
-				separateChannel = true;
-
-			File outFolder = new File(output, acqFilenamePrefix + "-spim");
-
-			if (!outFolder.exists() && !outFolder.mkdirs()) {
-				System.err.println( "Couldn't create output directory " + outFolder.getAbsolutePath() );
-			}
-
-			for (String camera : cameras) {
-				if (camera.startsWith("Multi")) {
-					int chSize = arduinoSelected ? channelItems.size() : (int) channelItems.stream().filter(c -> c.getName().equals(camera)).count();
-					OutputHandler handler = new OMETIFFHandler(
-							core, outFolder, acqFilenamePrefix + "_" + camera + "_",
-							//what is the purpose of defining parameters and then passing null anyway?
-							acqRows, chSize * multis.size(), timeSeqs, 1, smb.userData(pm.build()).build(), false, separateChannel);
-
-					handlers.put(camera, handler);
-				} else {
-					int chSize = arduinoSelected ? channelItems.size() : (int) channelItems.stream().filter(c -> c.getName().equals(camera)).count();
-					OutputHandler handler = new OMETIFFHandler(
-							core, outFolder, acqFilenamePrefix + "_" + camera + "_",
-							//what is the purpose of defining parameters and then passing null anyway?
-							acqRows, chSize, timeSeqs, 1, smb.userData(pm.build()).build(), false, separateChannel);
-
-					handlers.put(camera, handler);
-				}
-			}
-		}
-
 		// For checking Max intensity projection is needed or not
 		if(!bSave) {
 			output = null;
@@ -372,12 +337,11 @@ public class MMAcquisitionEngine
 
 		if(!saveMIP) acqFilenamePrefix = null;
 
-		executeNormalAcquisition(setup, frame, store, stagePanel, currentCamera, cameras, output, acqFilenamePrefix, handlers,
-				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan, antiDrift, antiDriftLog, antiDriftReferenceChannel, antiDriftTypeToggle);
+		executeNormalAcquisition(setup, frame, store, stagePanel, currentCamera, cameras, output, acqFilenamePrefix, timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan, antiDrift, antiDriftLog, antiDriftReferenceChannel, antiDriftTypeToggle);
 	}
 
 	private void executeNormalAcquisition(SPIMSetup setup, final Studio frame, Datastore store,
-										  StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
+										  StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix,
 										  ObservableList<TimePointItem> timePointItems, ObservableList<PositionItem> positionItems, List<ChannelItem> channelItems,
 										  DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
 										  LongProperty processedImages, final double acqBegan, final boolean antiDrift, StringProperty antiDriftLog, Integer adReferenceChannel, ReadOnlyObjectProperty<Toggle> antiDriftTypeToggle) throws Exception
@@ -385,14 +349,14 @@ public class MMAcquisitionEngine
 
 		// Dynamic timeline
 		runNormalSmartImagingMMAcq(setup, frame, store, stagePanel, currentCamera, cameras,
-				outFolder, acqFilenamePrefix, handlers,
+				outFolder, acqFilenamePrefix,
 				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, antiDrift, antiDriftLog, adReferenceChannel, antiDriftTypeToggle);
 
-		finalize(true, setup, currentCamera, cameras, frame, 0, 0, handlers, store);
+		finalize(true, setup, currentCamera, cameras, frame, 0, 0, store);
 	}
 
 	private void runNormalSmartImagingMMAcq(SPIMSetup setup, final Studio frame, Datastore store,
-											StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix, HashMap<String, OutputHandler> handlers,
+											StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix,
 											ObservableList<TimePointItem> timePointItems, ObservableList<PositionItem> positionItems, List<ChannelItem> channelItems,
 											DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
 											LongProperty processedImages, final boolean antiDrift, StringProperty antiDriftLog, Integer adReferenceChannel, ReadOnlyObjectProperty<Toggle> antiDriftTypeToggle) throws Exception
@@ -421,7 +385,7 @@ public class MMAcquisitionEngine
 			}
 		}
 
-		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, handlers, channelItems, arduinoSelected, processedImages, driftCompMap, adReferenceChannel);
+		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, channelItems, arduinoSelected, processedImages, driftCompMap, adReferenceChannel);
 
 		mainLoop:
 		for(TimePointItem tpItem : timePointItems ) {
@@ -501,9 +465,6 @@ public class MMAcquisitionEngine
 							System.out.println(e.toString());
 						}
 
-						for( OutputHandler handler : handlers.values() )
-							beginStack( tp, rown, handler );
-
 						core.clearCircularBuffer();
 
 						while( core.systemBusy() ) {
@@ -522,7 +483,7 @@ public class MMAcquisitionEngine
 							} catch ( InterruptedException ie )
 							{
 								core.logMessage(ie.toString());
-								finalize( false, setup, currentCamera, cameras, frame, 0, 0, handlers, store );
+								finalize( false, setup, currentCamera, cameras, frame, 0, 0, store );
 								break mainLoop;
 							}
 						}
@@ -532,11 +493,6 @@ public class MMAcquisitionEngine
 
 						if(setup.getArduino1() != null)
 							setup.getArduino1().setSwitchState( "0" );
-
-						for( OutputHandler handler : handlers.values() )
-						{
-							finalizeStack( tp, rown, handler );
-						}
 
 						if(stopRequest) {
 							engine.stop(true);
@@ -563,7 +519,7 @@ public class MMAcquisitionEngine
 							catch ( InterruptedException ie )
 							{
 								core.logMessage(ie.toString());
-								finalize( false, setup, currentCamera, cameras, frame, 0, 0, handlers, store );
+								finalize( false, setup, currentCamera, cameras, frame, 0, 0, store );
 								break mainLoop;
 							}
 
@@ -602,7 +558,7 @@ public class MMAcquisitionEngine
 						catch ( InterruptedException ie )
 						{
 							core.logMessage(ie.toString());
-							finalize( false, setup, currentCamera, cameras, frame, 0, 0, handlers, store );
+							finalize( false, setup, currentCamera, cameras, frame, 0, 0, store );
 							break mainLoop;
 						}
 
@@ -620,6 +576,7 @@ public class MMAcquisitionEngine
 		}
 
 		engine.exit();
+		store.freeze();
 		System.err.println("AcquisitionEngine exited.");
 		core.logMessage("AcquisitionEngine exited.");
 	}
@@ -713,7 +670,7 @@ public class MMAcquisitionEngine
 		return frame.getAcquisitionEngine2010();
 	}
 
-	private void finalize(boolean finalizeStack, SPIMSetup setup, final String currentCamera, List<String> cameras, final Studio frame, final int tp, final int rown, HashMap<String, OutputHandler> handlers, Datastore store) throws Exception
+	private void finalize(boolean finalizeStack, SPIMSetup setup, final String currentCamera, List<String> cameras, final Studio frame, final int tp, final int rown, Datastore store) throws Exception
 	{
 		final CMMCore core = frame.core();
 
@@ -746,19 +703,6 @@ public class MMAcquisitionEngine
 			core.waitForSystem();
 		} catch ( Exception e ) {
 			System.out.println(e.toString());
-		}
-
-		if (finalizeStack) {
-			for(String camera : cameras)
-			{
-				if(null != handlers.get( camera ))
-					finalizeStack( tp, rown, handlers.get( camera ) );
-			}
-		}
-
-		for( OutputHandler handler : handlers.values() )
-		{
-			handler.finalizeAcquisition( true );
 		}
 
 		if (store != null) {

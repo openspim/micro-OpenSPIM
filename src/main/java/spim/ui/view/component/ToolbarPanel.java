@@ -19,15 +19,21 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.*;
+import javafx.scene.text.Font;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import org.dockfx.DockNode;
 import org.micromanager.Studio;
 
+import org.micromanager.data.internal.DefaultDatastore;
 import org.micromanager.events.GUIRefreshEvent;
 import spim.hardware.SPIMSetup;
+import spim.io.*;
 import spim.mm.MMUtils;
 import spim.mm.MicroManager;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.function.Supplier;
 
 
@@ -48,6 +54,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 	final Label liveDemoLabel;
 	final Button mmButton;
 	final Button liveViewButton;
+	final Button openDatasetButton;
 
 	final SimpleDoubleProperty waitSeconds;
 
@@ -169,6 +176,18 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			}
 		} );
 
+		openDatasetButton = new Button("Open Dataset");
+		openDatasetButton.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				try {
+					loadData();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		});
+
 		liveViewHbox = new VBox(3);
 		liveViewHbox.setAlignment( Pos.CENTER );
 
@@ -241,6 +260,47 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 //		box.getChildren().add(btn);
 	}
 
+	public void loadData() throws IOException {
+
+		DirectoryChooser d = new DirectoryChooser();
+		File f = d.showDialog(null);
+
+		if(f == null) return;
+
+		File[] list = f.listFiles((file, s) -> s.endsWith("_metadata.txt"));
+
+		if (list.length == 0) return;
+
+		StorageType storageType = null;
+		String prefix = "";
+
+		if (list.length == 1) {
+			prefix = list[0].getName().replaceFirst("_metadata.txt", "");
+			String directory = f.getAbsolutePath();
+			storageType = StorageOpener.checkStorageType(directory, prefix);
+		} else {
+			// List up all the prefix candidates and let the user choose one
+		}
+
+		String directory = f.getAbsolutePath();
+		DefaultDatastore result = new DefaultDatastore(studioProperty.get());
+
+		switch (storageType) {
+			case SinglePlaneTiff: result.setStorage(new OpenSPIMSinglePlaneTiffSeries(result, directory, prefix, false));
+			break;
+			case OMETiff: result.setStorage(new OMETIFFStorage(result, directory, prefix, false));
+			break;
+			case N5: result.setStorage(new N5MicroManagerStorage(result, directory, prefix, 1, false));
+			break;
+		}
+
+		result.setSavePath(directory);
+		result.freeze();
+
+		studioProperty.get().displays().manage(result);
+		studioProperty.get().displays().loadDisplays(result);
+	}
+
 	public SimpleDoubleProperty waitSecondsProperty() {
 		return waitSeconds;
 	}
@@ -253,7 +313,8 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		if(null != studio) {
 			topHbox.getChildren().remove( liveDemoLabel );
 			buttonHbox.getChildren().remove( mmButton );
-			liveViewHbox.getChildren().add( 0, liveViewButton );
+			liveViewHbox.getChildren().add( 0, liveViewButton);
+			liveViewHbox.getChildren().add( 1, openDatasetButton);
 			pixelSizeValue.setText(studio.core().getPixelSizeUm() + "");
 			rotatorStepSizeValue.setText(setup.getThetaStage().getStepSize() + "");
 //			roi = new java.awt.Rectangle(0, 0, 0, 0);
@@ -261,6 +322,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			topHbox.getChildren().add( liveDemoLabel );
 			buttonHbox.getChildren().add( mmButton );
 			liveViewHbox.getChildren().remove( liveViewButton );
+			liveViewHbox.getChildren().remove( openDatasetButton );
 			pixelSizeValue.setText("N.A.");
 			rotatorStepSizeValue.setText("N.A.");
 //			roi = new java.awt.Rectangle( 0, 0, 0, 0 );

@@ -1,6 +1,5 @@
 package spim.ui.view.component.acq;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TreeMap;
@@ -33,7 +32,6 @@ import org.micromanager.internal.utils.imageanalysis.ImageUtils;
 import spim.algorithm.DefaultAntiDrift;
 import spim.hardware.SPIMSetup;
 import spim.io.OutputHandler;
-import spim.model.data.PositionItem;
 
 /**
  * This object spawns a new thread that receives images from the acquisition
@@ -57,7 +55,6 @@ public class TaggedImageSink {
 	private final EventManager studioEvents_;
 	private final int t_;
 	private final int angle_;
-	private final HashMap<String, OutputHandler > handlers_;
 	private final List<String> cameras_;
 	private final HashMap<String, Integer> camChannels_;
 	private final double x_, y_, theta_;
@@ -73,7 +70,6 @@ public class TaggedImageSink {
 						   AcquisitionEngine engine,
 						   EventManager studioEvents,
 						   int t, int angle,
-						   HashMap<String, OutputHandler > handlers,
 						   List<String> cameras, double x, double y, double theta,
 						   TreeMap<Integer, Image>[] mpImages,
 						   LongProperty processedImages,
@@ -86,7 +82,6 @@ public class TaggedImageSink {
 		studioEvents_ = studioEvents;
 		t_ = t;
 		angle_ = angle;
-		handlers_ = handlers;
 		cameras_ = cameras;
 		mpImages_ = mpImages;
 		processedImages_ = processedImages;
@@ -155,6 +150,8 @@ public class TaggedImageSink {
 								String cam = tagged.tags.getString( "Camera" );
 								String coreCam = tagged.tags.getString( "Core-Camera" );
 								double zStep = tagged.tags.getJSONObject( "Summary" ).getDouble( "z-step_um" );
+								int slices = tagged.tags.getJSONObject( "Summary" ).getInt( "Slices" );
+								int channels = tagged.tags.getJSONObject( "Summary" ).getInt( "Channels" );
 
 								if(ch == 0) {
 									// initialize cam channels
@@ -177,9 +174,9 @@ public class TaggedImageSink {
 								Metadata md = img.getMetadata();
 								Metadata.Builder mdb = md.copyBuilderPreservingUUID();
 								PropertyMap ud = md.getUserData();
-								ud = ud.copyBuilder().putDouble("Z-Step-um", zStep).build();
+								ud = ud.copyBuilder().putDouble("Z-Step-um", zStep).putInteger("Slices", slices).putInteger("Channels", channels).build();
 								String posName = angle_ + "";
-								mdb = mdb.xPositionUm(xPos).yPositionUm(yPos).zPositionUm( zPos ).elapsedTimeMs( exp );
+								mdb = mdb.xPositionUm(xPos).yPositionUm(yPos).zPositionUm(zPos).elapsedTimeMs( exp );
 
 								md = mdb.positionName(posName).userData(ud).build();
 								img = img.copyWith(coord, md);
@@ -200,16 +197,9 @@ public class TaggedImageSink {
 
 								ImageProcessor ip = ImageUtils.makeProcessor( tagged );
 
-								if(handlers_.containsKey( coreCam ))
+								if(camChannels_.containsKey( cam ))
 								{
-									handlers_.get( coreCam ).processSlice( t_, angle_, ( int ) exp, channel, ip,
-											x_,
-											y_,
-											zPos,
-											theta_,
-											System.currentTimeMillis() - t1 );
-
-									camChannels_.put( coreCam, channel + 1 );
+									camChannels_.put( cam, channel + 1 );
 								}
 
 								if(antiDriftRefChannel_ == ch && antiDrift_ != null) {

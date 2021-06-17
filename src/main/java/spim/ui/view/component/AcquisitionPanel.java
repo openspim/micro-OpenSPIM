@@ -127,7 +127,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	StringProperty directory;
 	StringProperty filename;
 	ObjectProperty savingFormat;
-	BooleanProperty saveAsHDF5;
 	BooleanProperty saveMIP;
 	ObjectProperty roiRectangle;
 
@@ -198,7 +197,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		this.stagePanel = stagePanel;
 		this.roiRectangle = new SimpleObjectProperty();;
 		this.roiRectangle.addListener( ( observable, oldValue, newValue ) -> {
-			if(null != newValue) {
+			if(null != newValue && !newValue.toString().equals("java.awt.Rectangle[x=0,y=0,width=0,height=0]")) {
+				System.out.println(newValue);
 				java.awt.Rectangle roi = ( java.awt.Rectangle ) newValue;
 				imageWidth = roi.width;
 				imageHeight = roi.height;
@@ -1055,7 +1055,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		directory.set( setting.getDirectory() );
 		filename.set( setting.getFilename() );
 		savingFormat.set( setting.getSavingFormat() );
-		saveAsHDF5.set( setting.getSaveAsHDF5() );
 		saveMIP.set( setting.getSaveMIP() );
 		roiRectangle.set( setting.getRoiRectangle() );
 
@@ -1081,7 +1080,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		return new AcquisitionSetting( enabledTimePoints, timePointItems,
 				enabledPositions, positionItems, enabledZStacks, acquisitionOrder,
 				enabledChannels, channelTabPane.getSelectionModel().selectedIndexProperty().get(), channelItems,
-				channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveAsHDF5, saveMIP, roiRectangle, rotateStepSize,
+				channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveMIP, roiRectangle, rotateStepSize,
 				experimentNote );
 	}
 
@@ -1103,7 +1102,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		directory.set( "" );
 		filename.set( "Untitled" );
 		savingFormat.set( null );
-		saveAsHDF5.set( false );
 		saveMIP.set( false );
 		roiRectangle.set( null );
 
@@ -1400,7 +1398,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		}
 
-		propertyMap.get("positions").setValue( totalImages + "" );
+		propertyMap.get("positions").setValue( positionItemTableView.getItems().size() + "" );
+		propertyMap.get("slices").setValue( totalImages + "" );
 	}
 
 	private Node createSaveImagesPane(Node buttonPane) {
@@ -1456,26 +1455,16 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		gridpane.addRow( 1, new Label( "File name:" ), textField );
 
 		ComboBox c = new ComboBox<>( FXCollections.observableArrayList(
-				// "Separate all dimensions", <- not implemented yet
-				"None", "Separate the channel dimension", "Image stack (include multi-channel)" ) );
+				"Single Plane TIFF", "OMETIFF Image stack", "N5 format" ) );
 
-		c.valueProperty().setValue("None");
+		c.valueProperty().setValue("Single Plane TIFF");
 
 		savingFormat = c.valueProperty();
 
-		Label desc = new Label( "The default saving format is Single Plane TIFF.\nYou can have additional formats:" );
-		gridpane.addRow( 2, desc);
-		gridpane.setColumnSpan( desc, 2 );
-
-		gridpane.addRow( 3, new Label( "SPIM format:" ), c );
-
-		CheckBox ch = new CheckBox( "Save as HDF5" );
-		// TODO: Use N5 format instead
-//		gridpane.addRow( 3, ch );
-		saveAsHDF5 = ch.selectedProperty();
+		gridpane.addRow( 2, new Label( "Saving format:" ), c );
 
 		CheckBox mip = new CheckBox( "Show/save Maximum Intensity Projection of each TP" );
-		gridpane.addRow( 4, mip );
+		gridpane.addRow( 3, mip );
 		gridpane.setColumnSpan( mip, 2 );
 
 		saveMIP = mip.selectedProperty();
@@ -1660,7 +1649,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 	private void computeTotal() {
 		long tp = propertyMap.get("times").getValue().isEmpty() ? 1 : Long.parseLong( propertyMap.get("times").getValue() );
-		long pos = propertyMap.get("positions").getValue().isEmpty() ? 1 : Long.parseLong( propertyMap.get("positions").getValue() );
+		long pos = propertyMap.get("slices").getValue().isEmpty() ? 1 : Long.parseLong( propertyMap.get("slices").getValue() );
 		long ch = propertyMap.get("channels").getValue().isEmpty() ? 1 : Long.parseLong( propertyMap.get("channels").getValue() );
 		long cams = propertyMap.get("cams").getValue().isEmpty() ? 1 : Long.parseLong( propertyMap.get("cams").getValue() );
 

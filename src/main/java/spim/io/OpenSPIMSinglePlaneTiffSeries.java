@@ -2,14 +2,7 @@ package spim.io;
 
 import com.google.common.base.Splitter;
 import com.google.common.eventbus.Subscribe;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonIOException;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
-import com.google.gson.stream.JsonReader;
+import com.google.gson.*;
 import ij.ImagePlus;
 import ij.io.FileSaver;
 import ij.io.Opener;
@@ -21,7 +14,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.StringReader;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,6 +25,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.micromanager.PropertyMap;
+import org.micromanager.PropertyMaps;
 import org.micromanager.data.Coordinates;
 import org.micromanager.data.Coords;
 import org.micromanager.data.Image;
@@ -42,7 +35,6 @@ import org.micromanager.data.SummaryMetadata;
 import org.micromanager.data.internal.*;
 import org.micromanager.internal.propertymap.NonPropertyMapJSONFormats;
 import org.micromanager.internal.utils.ReportingUtils;
-import org.micromanager.internal.utils.TextUtils;
 import org.micromanager.data.DataProviderHasNewSummaryMetadataEvent;
 
 /**
@@ -50,7 +42,7 @@ import org.micromanager.data.DataProviderHasNewSummaryMetadataEvent;
  * Organization: MPI-CBG Dresden
  * Date: October 2020
  */
-public class OpenSPIMSinglePaneTiffSeries implements Storage {
+public class OpenSPIMSinglePlaneTiffSeries implements Storage {
 	private static final HashSet<String> ALLOWED_AXES = new HashSet<String>(
 			Arrays.asList(Coords.CHANNEL, Coords.T, Coords.Z,
 					Coords.STAGE_POSITION, "view"));
@@ -68,7 +60,7 @@ public class OpenSPIMSinglePaneTiffSeries implements Storage {
 	private Coords maxIndices_;
 	private Image firstImage_;
 
-	public OpenSPIMSinglePaneTiffSeries(DefaultDatastore store, String directory, String prefix, boolean newDataSet) throws IOException {
+	public OpenSPIMSinglePlaneTiffSeries(DefaultDatastore store, String directory, String prefix, boolean newDataSet) throws IOException {
 		store_ = store;
 		dir_ = directory;
 		prefix_ = prefix;
@@ -557,6 +549,12 @@ public class OpenSPIMSinglePaneTiffSeries implements Storage {
 			summary = summary.copyBuilder().startDate(time.split(" ")[0]).build();
 		}
 
+		PropertyMap.Builder b = PropertyMaps.builder()
+				.putInteger("Width", image.getWidth())
+				.putInteger("Height", image.getHeight());
+
+		summary = DefaultSummaryMetadata.fromPropertyMap(((DefaultSummaryMetadata) summary).toPropertyMap().merge(b.build()));
+
 		JsonObject jo = new JsonObject();
 		NonPropertyMapJSONFormats.summaryMetadata().addToGson(jo,
 				((DefaultSummaryMetadata) summary).toPropertyMap());
@@ -565,6 +563,7 @@ public class OpenSPIMSinglePaneTiffSeries implements Storage {
 		PropertyMap formatPmap = ((DefaultImage) image).formatToPropertyMap();
 		PropertyKey.IJ_TYPE.storeInGsonObject(formatPmap, jo);
 		PropertyKey.PIXEL_TYPE.storeInGsonObject(formatPmap, jo);
+		jo.add("StorageType", new JsonPrimitive(StorageType.SinglePlaneTiff.name()));
 		Gson gson = new GsonBuilder().disableHtmlEscaping().
 				setPrettyPrinting().create();
 		writeJSONMetadata(pos, gson.toJson(jo), "Summary");
@@ -676,12 +675,12 @@ public class OpenSPIMSinglePaneTiffSeries implements Storage {
 							// Assume file is in a subdirectory.
 							fileName = position + "/" + fileName;
 						}
-						if (!(new File(dir_ + "/" + fileName).exists())) {
+						if (!(new File(dir_ + "/" + fileName.replaceFirst("Coords-", "")).exists())) {
 							ReportingUtils.logError("For key " + key + " tried to find file at " + fileName + " but it did not exist");
 						}
 						// This will update our internal records without touching
 						// the disk, as amLoading_ is true.
-						coordsToFilename_.put(coords, fileName);
+						coordsToFilename_.put(coords, fileName.replaceFirst("Coords-", ""));
 						Image image = getImage(coords);
 						putImage(image);
 					} catch (Exception ex) {
@@ -709,56 +708,8 @@ public class OpenSPIMSinglePaneTiffSeries implements Storage {
    }
 */
 
-	@SuppressWarnings("Duplicates")
 	private JsonObject readJSONMetadata(String pos) {
-		String fileStr;
-		String path = new File(new File(dir_, pos), "metadata.txt").getPath();
-
-		try {
-			fileStr = TextUtils.readTextFile(path);
-		}
-		catch (IOException e) {
-			ReportingUtils.logError(e, "Unable to read text file at " + path);
-			return null;
-		}
-
-		JsonReader reader = new JsonReader(new StringReader(fileStr));
-		reader.setLenient(true);
-		JsonParser parser = new JsonParser();
-		try {
-			return parser.parse(reader).getAsJsonObject();
-		}
-		catch (JsonIOException e) {
-			// Try again with an added curly brace because some old versions
-			// failed to write the final '}' under some circumstances.
-			try {
-				reader = new JsonReader(new StringReader(fileStr + "}"));
-				reader.setLenient(true);
-				return parser.parse(reader).getAsJsonObject();
-			}
-			catch (JsonIOException e2) {
-				// Give up.
-				return null;
-			} catch (JsonSyntaxException e2) {
-				// Give up.
-				return null;
-			}
-		} catch (JsonSyntaxException e) {
-			// Try again with an added curly brace because some old versions
-			// failed to write the final '}' under some circumstances.
-			try {
-				reader = new JsonReader(new StringReader(fileStr + "}"));
-				reader.setLenient(true);
-				return parser.parse(reader).getAsJsonObject();
-			}
-			catch (JsonIOException e2) {
-				// Give up.
-				return null;
-			} catch (JsonSyntaxException e2) {
-				// Give up.
-				return null;
-			}
-		}
+		return StorageOpener.readJSONMetadata(dir_, pos, prefix_);
 	}
 
 	@Override
