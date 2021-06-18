@@ -600,34 +600,6 @@ public class MMAcquisitionEngine
 		});
 	}
 
-	private static int addSlice(TaggedImage ti, SPIMSetup setup, int exp, int ch, double acqBegan, int tp, int step, OutputHandler handler,
-			Studio frame, Datastore store, int noSlice, double zStart, PositionItem positionItem, long ms, LongProperty processedImages) throws Exception
-	{
-		// Convert TaggedImage to ImageProcessor
-		ImageProcessor ip = ImageUtils.makeProcessor( ti );
-
-		// Handle a slice to save in the handler
-		if(handler != null)
-		{
-			handleSlice( setup, exp, ch, acqBegan, tp, step, ip, handler );
-			// Add an image to the store for display
-//			addImageToAcquisition( frame, store, ch, noSlice, zStart,
-//					positionItem, ms, ti );
-			addImageToDisplay( frame, store, step, tp, ch, noSlice, zStart,
-					positionItem, ms, ti );
-		} else {
-			addImageToDisplay( frame, store, step, tp, ch, noSlice, zStart,
-					positionItem, ms, ti );
-		}
-
-
-		// Increase the number of processed image
-		processedImages.set( processedImages.get() + 1 );
-
-		// return ch
-		return ch + 1;
-	}
-
 	/**
 	 * Gets multi cameras.
 	 * @param core the core
@@ -897,25 +869,5 @@ public class MMAcquisitionEngine
 						+ "\"");
 		}
 		core.waitForSystem();
-	}
-
-	private static void handleSlice(SPIMSetup setup, int exp, int channel, double start, int time, int angle, ImageProcessor ip,
-			OutputHandler handler) throws Exception {
-		if(null != handler)
-			handler.processSlice(time, angle, exp, channel, ip, setup.getXStage().getPosition(),
-				setup.getYStage().getPosition(),
-				setup.getZStage().getPosition(),
-				setup.getAngle(),
-				System.nanoTime() / 1e9 - start);
-	}
-
-	private static void beginStack(int time, int angle, OutputHandler handler) throws Exception {
-		ij.IJ.log("beginStack - Time:" + time + " Row: "+ angle);
-		handler.beginStack( time, angle );
-	}
-
-	private static void finalizeStack(int time, int angle, OutputHandler handler) throws Exception {
-		ij.IJ.log("finalizeStack - Time:" + time + " Row: "+ angle);
-		handler.finalizeStack( time, angle );
 	}
 }

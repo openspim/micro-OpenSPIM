@@ -30,8 +30,6 @@ import org.micromanager.acquisition.internal.DefaultAcquisitionEndedEvent;
 import org.micromanager.internal.utils.ReportingUtils;
 import org.micromanager.internal.utils.imageanalysis.ImageUtils;
 import spim.algorithm.DefaultAntiDrift;
-import spim.hardware.SPIMSetup;
-import spim.io.OutputHandler;
 
 /**
  * This object spawns a new thread that receives images from the acquisition
@@ -231,16 +229,6 @@ public class TaggedImageSink {
 			}
 		};
 		savingThread.start();
-	}
-
-	private static void handleSlice( SPIMSetup setup, int exp, int channel, double start, int time, int angle, ImageProcessor ip,
-			OutputHandler handler) throws Exception {
-		if(null != handler)
-			handler.processSlice(time, angle, exp, channel, ip, setup.getXStage().getPosition(),
-					setup.getYStage().getPosition(),
-					setup.getZStage().getPosition(),
-					setup.getAngle(),
-					System.nanoTime() / 1e9 - start);
 	}
 
 	// Never called from EDT
