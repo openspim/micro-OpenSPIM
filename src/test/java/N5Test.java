@@ -16,11 +16,11 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import spim.util.NativeLoader;
 import utils.ImageGenerator;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -41,7 +41,24 @@ public class N5Test {
 	@Before
 	public void setup()
 	{
-		// The below parameters are simplified version with above ratio
+//		final String osName = System.getProperty( "os.name" ).toLowerCase();
+//
+//		String libPrefix = "lib";
+//		final String libSuffix;
+//		if ( osName.startsWith( "mac" ) ) {
+//			// MacOSX library naming convention
+//			libSuffix = ".jnilib";
+//		} else if ( osName.startsWith( "win" ) ) {
+//			// Windows library naming convention
+//			libPrefix = "";
+//			libSuffix = ".dll";
+//		} else {
+//			// Linux library naming convention
+//			libSuffix = ".so";
+//		}
+//
+//		System.load( libPath );
+		NativeLoader.loadLibrary(NativeLoader.class);
 	}
 
 	@After
