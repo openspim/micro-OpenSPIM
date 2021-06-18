@@ -9,3 +9,7 @@
 /.idea
 !/src/main/resource/lib/linux64/
 !/src/main/resource/lib/win64/
+!/src/main/resource/lib/linux64/libblosc.so
+!/src/main/resource/lib/linux64/libffmpeg.so
+!/src/main/resource/lib/win64/blosc.dll
+!/src/main/resource/lib/win64/ffmpeg.dll

@@ -2,15 +2,12 @@ import ij.ImagePlus;
 import ij.ImageStack;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
-import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.numeric.real.FloatType;
-import net.imglib2.util.Intervals;
 import net.imglib2.view.Views;
 import org.apache.commons.io.FileUtils;
 import org.janelia.saalfeldlab.n5.*;
 import org.janelia.saalfeldlab.n5.ij.N5IJUtils;
-import org.janelia.saalfeldlab.n5.imglib2.N5CellLoader;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
 import org.junit.After;
 import org.junit.Assert;
@@ -81,97 +78,6 @@ public class N5Test {
 			croppedBlockDimensions[d] = Math.min(blockDimensions[d], max[d] - offset[d] + 1);
 			intCroppedBlockDimensions[d] = (int)croppedBlockDimensions[d];
 			gridPosition[d] = offset[d] / blockDimensions[d];
-		}
-	}
-
-	@Test
-	public void testSaveN5() {
-		System.out.println(System.getProperty("java.library.path"));
-
-		N5FSWriter writer = null;
-		try {
-			writer = new N5FSWriter(testDirPath + ".n5");
-		} catch (IOException e) {
-			Assert.fail( "Could not create writer or dataset." );
-		}
-
-		int[] blockSize = new int[] {64, 64, 64, 64};
-		GzipCompression compression = new GzipCompression();
-//		RawCompression compression = new RawCompression();
-
-
-		final long[] dimensions = new long[] {128, 128, 128, 128};
-		final DatasetAttributes attributes = new DatasetAttributes(
-				dimensions,
-				blockSize,
-				DataType.FLOAT32,
-				compression);
-
-		final String dataset = "/volumes/raw";
-		try {
-			writer.createDataset(dataset, attributes);
-		} catch (IOException e) {
-			Assert.fail( "Could not create writer or dataset." );
-		}
-
-
-		for(int i = 0; i < 128; i++) {
-			ImagePlus imp = ImageGenerator.generateFloatBlob(128, 128, 128, 24, 32, 48,
-					12.5f , 7.5f, 10.0f);
-			imp.setDimensions(128, 1, 1);
-
-			final long[] gridPosition = new long[4];
-			gridPosition[3] = i;
-
-			final Img rai = ImageJFunctions.<FloatType>wrap(imp);
-
-			RandomAccessibleInterval<FloatType> source = Views.zeroMin(rai);
-//			RandomAccessibleInterval<FloatType> source = Views.addDimension(Views.zeroMin(rai), 0, 0);
-//			source = Views.addDimension(Views.zeroMin(source), 0, 0);
-
-//			final long[] dims = Intervals.dimensionsAsLongArray(source);
-//			System.out.println(Arrays.toString(dims));
-//			final long[] dimensions = Intervals.dimensionsAsLongArray(source);
-
-			final int n = dimensions.length;
-			final long[] max = Intervals.maxAsLongArray(source);
-			final long[] offset = new long[n];
-//			final long[] gridPosition = new long[n];
-			final int[] intCroppedBlockSize = new int[n];
-			final long[] longCroppedBlockSize = new long[n];
-
-			for (int d = 0; d < n;) {
-				cropBlockDimensions(max, offset, blockSize, longCroppedBlockSize, intCroppedBlockSize, gridPosition);
-				final RandomAccessibleInterval<FloatType> sourceBlock = Views.offsetInterval(source, offset, longCroppedBlockSize);
-				final DataBlock<?> dataBlock = attributes.getDataType().createDataBlock(intCroppedBlockSize, gridPosition);
-				N5CellLoader.burnIn(
-						(RandomAccessibleInterval<FloatType>)sourceBlock,
-						ArrayImgs.floats((float[])dataBlock.getData(), longCroppedBlockSize));
-
-				try {
-					writer.writeBlock(dataset, attributes, dataBlock);
-				} catch (IOException e) {
-					Assert.fail( "Could not write blocks." );
-				}
-//				final DataBlock<?> dataBlock = createDataBlock(
-//						sourceBlock,
-//						attributes.getDataType(),
-//						intCroppedBlockSize,
-//						longCroppedBlockSize,
-//						gridPosition);
-//
-//				n5.writeBlock(dataset, attributes, dataBlock);
-
-				for (d = 0; d < n; ++d) {
-					offset[d] += blockSize[d];
-					if (offset[d] <= max[d])
-						break;
-					else
-						offset[d] = 0;
-				}
-			}
-
-//			N5Utils.saveBlock(rai, writer, dataset, gridPosition);
 		}
 	}
 
