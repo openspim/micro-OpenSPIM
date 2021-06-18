@@ -7,3 +7,5 @@
 /scripts/plugins/Micro-Manager/
 /scripts/jars/
 /.idea
+!/src/main/resource/lib/linux64/
+!/src/main/resource/lib/win64/
