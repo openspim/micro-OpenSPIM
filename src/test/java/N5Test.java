@@ -7,22 +7,24 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Intervals;
 import net.imglib2.view.Views;
+import org.apache.commons.io.FileUtils;
 import org.janelia.saalfeldlab.n5.*;
 import org.janelia.saalfeldlab.n5.ij.N5IJUtils;
 import org.janelia.saalfeldlab.n5.imglib2.N5CellLoader;
 import org.janelia.saalfeldlab.n5.imglib2.N5Utils;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import utils.ImageGenerator;
 
+import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static org.janelia.saalfeldlab.n5.imglib2.N5Utils.saveBlock;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -30,15 +32,24 @@ import static org.janelia.saalfeldlab.n5.imglib2.N5Utils.saveBlock;
  * Date: June 2021
  */
 public class N5Test {
+
+	static private String testDirPath = System.getProperty("user.home") + "/tmp/n5-test";
+
 	/**
 	 * setup the images
 	 */
 	@Before
 	public void setup()
 	{
-		// impFirst = generateBlob(128, 128, 128, 64, 32, 48, 50 / 8.0f , 30 / 4.0f, 40 / 4.0f);
-		// impSecond = generateBlob(128, 128, 128, 64 + 16, 32 + 24, 48 + 32, 40 /8.0f, 20 / 4.0f, 30 / 4.0f);
 		// The below parameters are simplified version with above ratio
+	}
+
+	@After
+	public void tearDown() throws IOException {
+		if(new File(testDirPath + ".n5").exists()) {
+			FileUtils.cleanDirectory(new File(testDirPath + ".n5"));
+		}
+
 	}
 
 	static void cropBlockDimensions(
@@ -57,10 +68,16 @@ public class N5Test {
 	}
 
 	@Test
-	public void testSaveN5() throws IOException {
+	public void testSaveN5() {
 		System.out.println(System.getProperty("java.library.path"));
 
-		N5FSWriter writer = new N5FSWriter("/Users/moon/temp/example.n5");
+		N5FSWriter writer = null;
+		try {
+			writer = new N5FSWriter(testDirPath + ".n5");
+		} catch (IOException e) {
+			Assert.fail( "Could not create writer or dataset." );
+		}
+
 		int[] blockSize = new int[] {64, 64, 64, 64};
 		GzipCompression compression = new GzipCompression();
 //		RawCompression compression = new RawCompression();
@@ -74,8 +91,11 @@ public class N5Test {
 				compression);
 
 		final String dataset = "/volumes/raw";
-		writer.createDataset(dataset, attributes);
-
+		try {
+			writer.createDataset(dataset, attributes);
+		} catch (IOException e) {
+			Assert.fail( "Could not create writer or dataset." );
+		}
 
 
 		for(int i = 0; i < 128; i++) {
@@ -111,7 +131,11 @@ public class N5Test {
 						(RandomAccessibleInterval<FloatType>)sourceBlock,
 						ArrayImgs.floats((float[])dataBlock.getData(), longCroppedBlockSize));
 
-				writer.writeBlock(dataset, attributes, dataBlock);
+				try {
+					writer.writeBlock(dataset, attributes, dataBlock);
+				} catch (IOException e) {
+					Assert.fail( "Could not write blocks." );
+				}
 //				final DataBlock<?> dataBlock = createDataBlock(
 //						sourceBlock,
 //						attributes.getDataType(),
@@ -132,11 +156,10 @@ public class N5Test {
 
 //			N5Utils.saveBlock(rai, writer, dataset, gridPosition);
 		}
-
 	}
 
 	@Test
-	public void testSaveN5Single() throws IOException {
+	public void testSaveN5Single() {
 		ImageStack is = new ImageStack(128, 128);
 		for(int i = 0; i < 128; i++) {
 			ImagePlus imp = ImageGenerator.generateFloatBlob(128, 128, 128, i, 32, 48,
@@ -153,7 +176,12 @@ public class N5Test {
 //		im.show();
 
 
-		N5FSWriter writer = new N5FSWriter("/Users/moon/temp/example.n5");
+		N5FSWriter writer = null;
+		try {
+			writer = new N5FSWriter(testDirPath + ".n5");
+		} catch (IOException e) {
+			Assert.fail( "Could not create writer or dataset." );
+		}
 		int[] blockSize = new int[] {64, 64, 64, 64};
 		GzipCompression compression = new GzipCompression();
 
@@ -166,14 +194,29 @@ public class N5Test {
 				compression);
 
 		final String dataset = "/volumes/raw";
-		writer.createDataset(dataset, attributes);
+		try {
+			writer.createDataset(dataset, attributes);
+		} catch (IOException e) {
+			Assert.fail( "Could not create writer or dataset." );
+		}
 
-		N5IJUtils.save(im, writer, dataset, blockSize, compression);
+		try {
+			N5IJUtils.save(im, writer, dataset, blockSize, compression);
+		} catch (IOException e) {
+			Assert.fail( "Could not save the dataset." );
+		}
+
+		Assert.assertTrue( new File(testDirPath + ".n5").exists() );
 	}
 
 	@Test
-	public void testSaveN5WithStack() throws IOException, ExecutionException, InterruptedException {
-		N5FSWriter writer = new N5FSWriter("/Users/moon/temp/example.n5");
+	public void testSaveN5WithStack() {
+		N5FSWriter writer = null;
+		try {
+			writer = new N5FSWriter(testDirPath + ".n5");
+		} catch (IOException e) {
+			Assert.fail( "Could not create writer or dataset." );
+		}
 		GzipCompression compression = new GzipCompression();
 
 		final long[] dimensions = new long[] {128, 128, 1, 128, 128};
@@ -187,7 +230,11 @@ public class N5Test {
 				compression);
 
 		final String dataset = "/volumes/raw";
-		writer.createDataset(dataset, attributes);
+		try {
+			writer.createDataset(dataset, attributes);
+		} catch (IOException e) {
+			Assert.fail( "Could not create writer or dataset." );
+		}
 
 		final ExecutorService exec = Executors.newFixedThreadPool(10);
 
@@ -203,7 +250,15 @@ public class N5Test {
 			source = Views.addDimension(source, 0, 0);
 			source = Views.moveAxis(source, 2, 3);
 
-			N5Utils.saveBlock(source, writer, dataset, gridPosition, exec);
+			try {
+				N5Utils.saveBlock(source, writer, dataset, gridPosition, exec);
+			} catch (IOException e) {
+				Assert.fail( "Could not write blocks." );
+			} catch (InterruptedException e) {
+				Assert.fail( "Could not write blocks." );
+			} catch (ExecutionException e) {
+				Assert.fail( "Could not write blocks." );
+			}
 		}
 	}
 }
