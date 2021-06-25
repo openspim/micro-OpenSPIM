@@ -222,8 +222,8 @@ public class AcqWrapperEngine implements AcquisitionEngine
 					Arrays.stream(saveDir.listFiles()).forEach(c -> c.delete());
 					saveDir.delete();
 				}
+				saveDir.mkdirs();
 				if (null != acqFilenamePrefix) {
-					saveDir.mkdirs();
 					List<String> multis = MMAcquisitionEngine.getMultiCams(core_);
 
 					DefaultDatastore result = new DefaultDatastore(frame);
