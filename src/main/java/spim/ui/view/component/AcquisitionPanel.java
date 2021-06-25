@@ -47,6 +47,7 @@ import javafx.stage.FileChooser;
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 
+import org.apache.commons.io.FileUtils;
 import org.micromanager.Studio;
 
 import org.micromanager.internal.MMStudio;
@@ -1186,20 +1187,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 					Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The given filename exists. \nDo you want delete them?", ButtonType.YES, ButtonType.CANCEL).showAndWait();
 
 					if( results.isPresent() && results.get() == ButtonType.YES) {
-						for(File file: Objects.requireNonNull( folder.listFiles() ) ) {
-							if(file.getName().startsWith( filename.getValue() )) {
-								file.delete();
-							}
+						try {
+							FileUtils.cleanDirectory(folder);
+						} catch (IOException e) {
+							System.err.println(e.getMessage());
 						}
-						File spim = new File(folder, filename.getValue() + "-spim");
-						if(spim.exists()) {
-							for(File file: Objects.requireNonNull( spim.listFiles() ) ) {
-								if(file.getName().startsWith( filename.getValue() )) {
-									file.delete();
-								}
-							}
-						}
-						spim.delete();
 					} else {
 						System.err.println("Acquisition stopped by user cancellation.");
 						return false;

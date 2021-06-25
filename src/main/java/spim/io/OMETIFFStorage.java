@@ -429,7 +429,7 @@ public class OMETIFFStorage implements Storage {
 		String posString;
 		posString=String.format("_Pos%02d", coords.getP());
 
-		return String.format(prefix_ + "TL%04d" + posString + ".tiff", coords.getT());
+		return String.format(prefix_ + "_TL%04d" + posString + ".tiff", coords.getT());
 	}
 
 	@SuppressWarnings("Duplicates")
