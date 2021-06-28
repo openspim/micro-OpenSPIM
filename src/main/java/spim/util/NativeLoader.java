@@ -2,7 +2,6 @@ package spim.util;
 
 import java.io.*;
 import java.net.URL;
-import java.util.Properties;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
