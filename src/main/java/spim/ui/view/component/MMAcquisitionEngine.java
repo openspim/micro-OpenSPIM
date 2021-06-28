@@ -394,6 +394,8 @@ public class MMAcquisitionEngine
 				int timeSeqs = tpItem.getNoTimePoints();
 				for ( int timeSeq = 0; timeSeq < timeSeqs; ++timeSeq )
 				{
+					final double acqBegan = System.nanoTime() / 1e9;
+
 					int step = 0;
 
 					SystemInfo.dumpMemoryStatusToLog(core);
@@ -502,7 +504,7 @@ public class MMAcquisitionEngine
 						++step;
 					}
 
-					double wait = tpItem.getIntervalSeconds();
+					double wait = tpItem.getIntervalSeconds() - (System.nanoTime() / 1e9 - acqBegan);
 
 					if(timeSeq < (timeSeqs - 1) && wait > 0D) {
 						System.err.println("Interval delay. (next seq in " + wait + "s)");
@@ -533,6 +535,8 @@ public class MMAcquisitionEngine
 							}
 						}
 						updateWaitTimeProperty( waitSeconds, -1 );
+					} else {
+						core.logMessage("Behind schedule! (next seq in " + wait + "s)");
 					}
 					++timePoints;
 
