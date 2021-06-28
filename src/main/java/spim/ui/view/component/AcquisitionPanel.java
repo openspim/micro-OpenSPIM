@@ -410,13 +410,20 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 						Roi ipRoi = studio.live().getDisplay().getImagePlus().getRoi();
 //						System.out.println(ipRoi);
 						roiRectangle.setValue( ipRoi.getBounds() );
-					} else {
-						java.awt.Rectangle roi = ( java.awt.Rectangle )roiRectangle.getValue();
-//						System.out.println(roi);
-//						System.out.println(roi.isEmpty());
-						if(!roi.isEmpty()) {
-							studio.live().getDisplay().getImagePlus().setRoi(( java.awt.Rectangle )roiRectangle.getValue());
+						java.awt.Rectangle r = ipRoi.getBounds();
+
+						boolean b = studio.live().isLiveModeOn();
+						if(b)
+							studio.live().setLiveModeOn(false);
+
+						try {
+							studio.core().setROI(r.x, r.y, r.width, r.height);
+						} catch (Exception e) {
+							e.printStackTrace();
 						}
+
+						if(b)
+							studio.live().setLiveModeOn(true);
 					}
 				}
 			}
@@ -432,11 +439,20 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				{
 					if( studio != null && studio.core() != null)
 					{
-						studio.core().clearROI();
 						roiRectangle.setValue( new java.awt.Rectangle(0, 0, 0, 0 ) );
+
+						boolean b = studio.live().isLiveModeOn();
+
+						if(b)
+							studio.live().setLiveModeOn(false);
+
+						studio.core().clearROI();
 						if( studio.live() != null && studio.live().getDisplay() != null && studio.live().getDisplay().getImagePlus() != null && studio.live().getDisplay().getImagePlus().getRoi() != null) {
 							studio.live().getDisplay().getImagePlus().deleteRoi();
 						}
+
+						if(b)
+							studio.live().setLiveModeOn(true);
 					}
 				}
 				catch ( Exception e )
@@ -458,13 +474,13 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		// Binning
 		binningComboBox = new ComboBox( binningOptions );
-		binningComboBox.getSelectionModel().selectedItemProperty().addListener(new ChangeListener() {
-			@Override
-			public void changed(ObservableValue observable, Object oldValue, Object newValue) {
-				if(newValue != null)
-					binningItemChanged(newValue.toString());
-			}
-		});
+//		binningComboBox.getSelectionModel().selectedItemProperty().addListener(new ChangeListener() {
+//			@Override
+//			public void changed(ObservableValue observable, Object oldValue, Object newValue) {
+//				if(newValue != null)
+//					binningItemChanged(newValue.toString());
+//			}
+//		});
 
 		Button binningApplyButton = new Button( "Apply" );
 		binningApplyButton.setOnAction( new EventHandler< ActionEvent >()
@@ -474,8 +490,19 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				String item = binningComboBox.getSelectionModel().getSelectedItem().toString();
 				System.out.println("Binning mode: " + item);
 
-				if(item != null)
+				if(item != null) {
+					Studio studio = getStudio();
+
+					boolean b = studio.live().isLiveModeOn();
+
+					if(b)
+						studio.live().setLiveModeOn(false);
+
 					binningItemChanged(item);
+
+					if(b)
+						studio.live().setLiveModeOn(true);
+				}
 			}
 		} );
 
