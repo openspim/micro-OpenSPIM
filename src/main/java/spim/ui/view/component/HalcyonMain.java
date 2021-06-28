@@ -39,8 +39,7 @@ public class HalcyonMain extends HalcyonFrame
 	AcquisitionPanel acquisitionPanel;
 
 	public HalcyonMain() {
-		super("OpenSPIM v2.0",
-				ResourceUtil.getString("app.icon"),
+		super("µOpenSPIM", ResourceUtil.getString("app.icon"),
 				800,
 				600);
 	}
