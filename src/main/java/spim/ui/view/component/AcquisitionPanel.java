@@ -66,8 +66,7 @@ import spim.ui.view.component.viewer.HelpType;
 import spim.ui.view.component.viewer.HelpWindow;
 
 import java.awt.*;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
@@ -1222,6 +1221,13 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			return false;
 		}
 
+		// Write the experiment note
+		try {
+			writeNote();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
 		engine = new MMAcquisitionEngine();
 
 		engine.init();
@@ -1275,6 +1281,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		acquisitionThread.start();
 
 		return true;
+	}
+
+	private void writeNote() throws IOException {
+		if(!experimentNote.getValue().isEmpty()) {
+			Writer noteStream = new BufferedWriter(new FileWriter(directory.getValue() + "/" + filename.getValue() + "_note.txt"));
+			noteStream.write(experimentNote.getValue());
+			noteStream.close();
+		}
 	}
 
 	static double getUnit(String unitString) {
