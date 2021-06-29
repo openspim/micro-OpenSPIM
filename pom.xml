@@ -6,11 +6,11 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>org.openspim</groupId>
-	<artifactId>SPIMAcquisition</artifactId>
+	<artifactId>uOpenSPIM</artifactId>
 	<version>1.0.2-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>SlimOpenSPIM</name>
+    <name>µOpenSPIM</name>
 
 	<properties>
         <mainClass>spim.SlimOpenSPIM</mainClass>
@@ -234,8 +234,8 @@
                             <!-- the JNLP-bundler needs this, they don't use "appName" for the filename ... you have to set this, otherwise it doesn't build -->
                             <!-- for details of that JNLP-bundler, please have a look at the source -->
                             <!-- https://github.com/Debian/openjfx/blob/e32fd960e20c58c9b7db27e426b4bca6d52add2f/modules/fxpackager/src/main/java/com/oracle/tools/packager/jnlp/JNLPBundler.java#L84 -->
-                            <jnlp.outfile>OpenSPIM</jnlp.outfile>
-                            <icon>${project.basedir}/src/main/deploy/package/windows/OpenSPIM.ico</icon>
+                            <jnlp.outfile>µOpenSPIM</jnlp.outfile>
+                            <!--<icon>${project.basedir}/src/main/deploy/package/windows/uOS.ico</icon>-->
                         </bundleArguments>
                         <keyStore>${env.KEY_STORE}</keyStore>
                         <keyStoreAlias>${env.KEY_STORE_ALIAS}</keyStoreAlias>
@@ -245,6 +245,8 @@
                             <argument>-Xmx128g</argument>
                             <argument>-Xms4g</argument>
                         </jvmArgs>
+                        <appName>µOpenSPIM</appName>
+                        <verbose>true</verbose>
                     </configuration>
                     <executions>
                         <execution>
@@ -273,7 +275,7 @@
                                     <jnlp.allPermisions>true</jnlp.allPermisions>
 
                                     <!-- the JNLP-bundler is a bit picky about its parametes, it does not use <appName> -->
-                                    <jnlp.outfile>OpenSPIM</jnlp.outfile>
+                                    <jnlp.outfile>µOpenSPIM</jnlp.outfile>
                                 </bundleArguments>
 
                                 <!-- this setting is required for the new "jarsigner"-feature -->

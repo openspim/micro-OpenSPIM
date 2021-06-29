@@ -70,7 +70,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 		getDockTitleBar().setVisible(false);
 
-		setTitle("OpenSPIM");
+		setTitle("µOpenSPIM");
 
 		GridPane gridpane = new GridPane();
 
@@ -79,9 +79,10 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 		setContents( gridpane );
 
-		Image logoImg = new javafx.scene.image.Image( getClass().getResourceAsStream( "logo.png" ),
-				160, 100, true, true );
+		Image logoImg = new javafx.scene.image.Image( getClass().getResourceAsStream( "logo.jpg" ) );
 		ImageView iv = new ImageView(logoImg);
+		iv.setPreserveRatio(true);
+		iv.setFitWidth(160);
 
 		liveDemoLabel = new Label( "LIVE DEMO" );
 		liveDemoLabel.setStyle( "-fx-font: 18 arial; -fx-background-color: #0faff0" );
