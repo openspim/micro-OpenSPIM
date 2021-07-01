@@ -39,7 +39,6 @@ import org.micromanager.acquisition.AcquisitionStartedEvent;
 
 import org.micromanager.internal.MMStudio;
 
-import org.micromanager.internal.utils.imageanalysis.ImageUtils;
 import spim.acquisition.Row;
 import spim.algorithm.AntiDrift;
 import spim.algorithm.DefaultAntiDrift;
@@ -419,6 +418,14 @@ public class MMAcquisitionEngine
 							double yOffset = offset.getY() * binningFactor * core.getPixelSizeUm() * -1;
 							double zOffset = offset.getZ() * positionItem.getZStep() * -1;
 
+							// Applying inversion status of X and Z
+							if(setup.getXStage().inversedProperty().get()) {
+								xOffset *= -1;
+							}
+							if(setup.getZStage().inversedProperty().get()) {
+								zOffset *= -1;
+							}
+
 							// Remove double applying calibration value
 							if(driftCompMap.get(positionItem).getType().equals(AntiDrift.Type.CenterOfMass)) {
 								xOffset = xOffset / core.getPixelSizeUm();
@@ -452,7 +459,6 @@ public class MMAcquisitionEngine
 							sb.append("->\nX:").append(positionItem.getX()).append(" Y:").append(positionItem.getY()).append(" Z:").append(positionItem.getZString()).append("\n");
 
 							core.logMessage(sb.toString());
-//							antiDriftLog.set(antiDriftLog.get() + sb.toString());
 						}
 
 						// Move the stage

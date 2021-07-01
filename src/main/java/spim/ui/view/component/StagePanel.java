@@ -274,7 +274,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 						double device = stageMap.get( stage ).deviceValueProperty().getValue().doubleValue();
 						double error = target - device;
 
-						double granularity = stage == StageUnit.Stage.R ? 0.5 : 3;
+						double granularity = stage == StageUnit.Stage.R ? 0.3 : 3;
 						double newDevice = device + granularity * signum( error );
 
 						Platform.runLater( () -> {

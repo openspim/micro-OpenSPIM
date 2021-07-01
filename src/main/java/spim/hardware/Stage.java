@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import org.micromanager.internal.utils.ReportingUtils;
 
@@ -23,10 +24,12 @@ public class Stage extends Device {
 	}
 
 	final SimpleDoubleProperty stepSizeProperty;
+	final SimpleBooleanProperty inversedProperty;
 
 	public Stage(CMMCore core, String label) {
 		super(core, label);
 		stepSizeProperty = new SimpleDoubleProperty(1);
+		inversedProperty = new SimpleBooleanProperty(false);
 	}
 
 	/**
@@ -207,5 +210,9 @@ public class Stage extends Device {
 
 	public SimpleDoubleProperty stepSizeProperty() {
 		return stepSizeProperty;
+	}
+
+	public SimpleBooleanProperty inversedProperty() {
+		return inversedProperty;
 	}
 }

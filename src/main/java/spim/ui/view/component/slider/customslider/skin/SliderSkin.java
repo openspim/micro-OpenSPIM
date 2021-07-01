@@ -1,5 +1,7 @@
 package spim.ui.view.component.slider.customslider.skin;
 
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import spim.ui.view.component.slider.customslider.Slider;
 import spim.ui.view.component.slider.customslider.behavior.SliderBehavior;
 import com.sun.javafx.scene.control.skin.BehaviorSkinBase;
@@ -44,6 +46,7 @@ public class SliderSkin extends
   private StackPane thumb;
   private StackPane track;
   private boolean trackClicked = false;
+  private boolean inversed = false;
 
   // private double visibleAmount = 16;
 
@@ -111,13 +114,18 @@ public class SliderSkin extends
       if (!thumb.isPressed())
       {
         trackClicked = true;
+        inversed = getSkinnable().getInversed();
         if (getSkinnable().getOrientation() == Orientation.HORIZONTAL)
         {
-          getBehavior().trackPress(me, (me.getX() / trackLength));
+        	if(inversed)
+          		getBehavior().trackPress(me, (trackLength - me.getX()) / trackLength);
+        	else getBehavior().trackPress(me, (me.getX() / trackLength));
         }
         else
         {
-          getBehavior().trackPress(me, (me.getY() / trackLength));
+        	if(inversed)
+          		getBehavior().trackPress(me, (trackLength - me.getY()) / trackLength);
+        	else getBehavior().trackPress(me, (me.getY() / trackLength));
         }
         trackClicked = false;
       }
@@ -126,22 +134,28 @@ public class SliderSkin extends
     track.setOnMouseDragged(me -> {
       if (!thumb.isPressed())
       {
+		inversed = getSkinnable().getInversed();
         if (getSkinnable().getOrientation() == Orientation.HORIZONTAL)
         {
-          getBehavior().trackPress(me, (me.getX() / trackLength));
+			if(inversed)
+				getBehavior().trackPress(me, (trackLength - me.getX()) / trackLength);
+			else getBehavior().trackPress(me, (me.getX() / trackLength));
         }
         else
         {
-          getBehavior().trackPress(me, (me.getY() / trackLength));
+			if(inversed)
+				getBehavior().trackPress(me, (trackLength - me.getY()) / trackLength);
+			else getBehavior().trackPress(me, (me.getY() / trackLength));
         }
       }
     });
 
     thumb.setOnMousePressed(me -> {
-      getBehavior().thumbPressed(me, 0.0f);
+      getBehavior().thumbPressed(me, trackLength);
+	  inversed = getSkinnable().getInversed();
       dragStart = thumb.localToParent(me.getX(), me.getY());
-      preDragThumbPos = (getSkinnable().getValue()
-                         - getSkinnable().getMin())
+      preDragThumbPos = (inversed ? getSkinnable().getMax() - getSkinnable().getValue() :
+			  getSkinnable().getValue() - getSkinnable().getMin())
                         / (getSkinnable().getMax()
                            - getSkinnable().getMin());
     });
@@ -153,13 +167,15 @@ public class SliderSkin extends
     thumb.setOnMouseDragged(me -> {
       Point2D cur = thumb.localToParent(me.getX(), me.getY());
       double dragPos =
-                     (getSkinnable().getOrientation() == Orientation.HORIZONTAL) ? cur.getX()
-                                                                                   - dragStart.getX()
-                                                                                 : -(cur.getY()
-                                                                                     - dragStart.getY());
-      getBehavior().thumbDragged(me,
-                                 preDragThumbPos
-                                     + dragPos / trackLength);
+                     (getSkinnable().getOrientation() == Orientation.HORIZONTAL) ?
+							 inversed ? dragStart.getX() - cur.getX(): cur.getX() - dragStart.getX()
+							 				: -(cur.getY() - dragStart.getY());
+
+		if(inversed)
+		  getBehavior().thumbDragged(me,
+				   dragPos / trackLength - preDragThumbPos + 1);
+		else getBehavior().thumbDragged(me,
+				preDragThumbPos + dragPos / trackLength );
     });
   }
 
@@ -204,6 +220,19 @@ public class SliderSkin extends
                                                                                                              : Side.BOTTOM);
         tickLine.setUpperBound(slider.getMax());
         tickLine.setLowerBound(slider.getMin());
+
+        slider.inversedProperty().addListener(new ChangeListener<Boolean>() {
+			@Override
+			public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
+				if (newValue) {
+					tickLine.setUpperBound(slider.getMin());
+					tickLine.setLowerBound(slider.getMax());
+				} else {
+					tickLine.setUpperBound(slider.getMax());
+					tickLine.setLowerBound(slider.getMin());
+				}
+			}
+		});
         tickLine.setTickUnit(slider.getMajorTickUnit());
         tickLine.setTickMarkVisible(ticksVisible);
         tickLine.setTickLabelsVisible(labelsVisible);
@@ -431,8 +460,16 @@ public class SliderSkin extends
     if (s.getValue() > s.getMax())
       return;// this can happen if we are bound to something
     boolean horizontal = s.getOrientation() == Orientation.HORIZONTAL;
+    boolean inversed = s.getInversed();
     final double endX = (horizontal)
-                                     ? trackStart
+                                     ? (inversed) ?
+										trackStart + (((trackLength
+												* ((s.getMax()
+												- s.getValue())
+												/ (s.getMax()
+												- s.getMin())))
+												- thumbWidth / 2)) :
+										trackStart
                                        + (((trackLength
                                             * ((s.getValue()
                                                 - s.getMin())

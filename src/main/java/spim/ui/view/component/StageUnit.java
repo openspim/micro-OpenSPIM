@@ -6,6 +6,8 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.Property;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.HPos;
@@ -19,18 +21,11 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
-import org.micromanager.Studio;
-import org.micromanager.data.Image;
-import org.micromanager.data.internal.DefaultImageJConverter;
-import org.micromanager.internal.utils.imageanalysis.ImageUtils;
-import spim.algorithm.AntiDrift;
-import spim.algorithm.DefaultAntiDrift;
+import javafx.util.StringConverter;
 import spim.ui.view.component.iconswitch.IconSwitch;
 import spim.ui.view.component.slider.StageSlider;
 
 import java.util.HashMap;
-import java.util.List;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -63,6 +58,8 @@ public class StageUnit extends Region
 
 	private double currentValue;
 
+	private final BooleanProperty inversedProperty;
+
 	public void setStageDevice(spim.hardware.Stage stageDevice) {
 		this.stageDevice = stageDevice;
 
@@ -82,6 +79,13 @@ public class StageUnit extends Region
 
 	public spim.hardware.Stage getStageDevice() {
 		return this.stageDevice;
+	}
+
+	public boolean inversed() {
+		if(this.getStageDevice() == null)
+			return inversedProperty.get();
+		else
+			return this.getStageDevice().inversedProperty().get();
 	}
 
 	public StageUnit( String labelString, boolean isR, spim.hardware.Stage stageDevice )
@@ -197,6 +201,29 @@ public class StageUnit extends Region
 			booleanStateMap.get( BooleanState.Ready ).setValue( false );
 		} );
 
+		CheckBox inverseCheckBox = new CheckBox("Inverse");
+		inverseCheckBox.setPrefWidth( 70 );
+
+		inverseCheckBox.selectedProperty().addListener(new ChangeListener<Boolean>() {
+			@Override
+			public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
+				if(newValue) {
+					targetSlider.inserveSlider(true);
+					deviceSlider.inserveSlider(true);
+				} else {
+					targetSlider.inserveSlider(false);
+					deviceSlider.inserveSlider(false);
+				}
+			}
+		});
+
+		if(this.stageDevice != null)
+			inversedProperty = this.stageDevice.inversedProperty();
+		else
+			inversedProperty = new SimpleBooleanProperty(false);
+
+		inversedProperty.bind(inverseCheckBox.selectedProperty());
+
 		if(isR) {
 			resetButton = new Button( "Calibrate" );
 			resetButton.setStyle("-fx-background-radius: 5em;" +
@@ -233,12 +260,16 @@ public class StageUnit extends Region
 
 		gridPane.add( indicator, 0, 0 );
 		GridPane.setRowSpan( indicator, 2 );
-		gridPane.add( enableSwitch, 0, 2 );
+//		gridPane.add( enableSwitch, 0, 2 );
 		GridPane.setHalignment( enableSwitch, HPos.CENTER );
 
 		gridPane.add( homingButton, 1, 0 );
 		gridPane.add( stopButton, 1, 1 );
-		gridPane.add( resetButton, 1, 2 );
+
+		if( labelString.startsWith("Stage X") || labelString.startsWith("Stage Z") )
+			gridPane.add( inverseCheckBox, 1, 2 );
+		else
+			gridPane.add( resetButton, 1, 2 );
 
 		final HBox stageBox = new HBox( 5 );
 
@@ -253,6 +284,8 @@ public class StageUnit extends Region
 			@Override public void handle( ActionEvent event )
 			{
 				double unit = isR ? -5 : -100;
+				if(inversed()) unit *= -1;
+
 				double n = Math.max( ( ( SimpleDoubleProperty ) targetValueProperty ).get() + unit, 0);
 				targetValueProperty.setValue( n );
 				targetSlider.getSlider().setValue( n );
@@ -268,6 +301,8 @@ public class StageUnit extends Region
 			@Override public void handle( ActionEvent event )
 			{
 				double unit = isR ? -1 : -10;
+				if(inversed()) unit *= -1;
+
 				double n = Math.max( ( ( SimpleDoubleProperty ) targetValueProperty ).get() + unit, 0);
 				targetValueProperty.setValue( n );
 				targetSlider.getSlider().setValue( n );
@@ -284,6 +319,8 @@ public class StageUnit extends Region
 			@Override public void handle( ActionEvent event )
 			{
 				double unit = isR ? 5 : 100;
+				if(inversed()) unit *= -1;
+
 				double n = Math.min( ( ( SimpleDoubleProperty ) targetValueProperty ).get() + unit, targetSlider.getSlider().getMax() );
 				targetValueProperty.setValue( n );
 				targetSlider.getSlider().setValue( n );
@@ -299,6 +336,8 @@ public class StageUnit extends Region
 			@Override public void handle( ActionEvent event )
 			{
 				double unit = isR ? 1 : 10;
+				if(inversed()) unit *= -1;
+
 				double n = Math.min( ( ( SimpleDoubleProperty ) targetValueProperty ).get() + unit, targetSlider.getSlider().getMax() );
 				targetValueProperty.setValue( n );
 				targetSlider.getSlider().setValue( n );
@@ -318,7 +357,8 @@ public class StageUnit extends Region
 		enableSwitch.selectedProperty().addListener( ( observable, oldValue, newValue ) ->
 		{
 			booleanStateMap.get( BooleanState.Enable ).set( newValue );
-//			booleanStateMap.get( BooleanState.Ready ).setValue( newValue );
+			if(targetValueProperty.getValue().intValue() == deviceValueProperty.getValue().intValue())
+				booleanStateMap.get( BooleanState.Ready ).setValue( newValue );
 			buttonsBox.setDisable( !newValue );
 		} );
 

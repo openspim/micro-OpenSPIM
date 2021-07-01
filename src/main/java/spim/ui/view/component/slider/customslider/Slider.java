@@ -5,19 +5,12 @@ package spim.ui.view.component.slider.customslider;
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
  */
 
-import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.*;
 import spim.ui.view.component.slider.customslider.skin.SliderSkin;
 import com.sun.javafx.css.converters.BooleanConverter;
 import com.sun.javafx.css.converters.EnumConverter;
 import com.sun.javafx.css.converters.SizeConverter;
 import com.sun.javafx.util.Utils;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.DoublePropertyBase;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.WritableValue;
 import javafx.css.CssMetaData;
 import javafx.css.PseudoClass;
@@ -117,6 +110,42 @@ public class Slider extends Control
     // Initialize the style class to be 'slider'.
     getStyleClass().setAll(DEFAULT_STYLE_CLASS);
     setAccessibleRole(AccessibleRole.SLIDER);
+  }
+
+  private BooleanProperty inversed;
+
+  public final void setInversed(boolean value)
+  {
+  	inversedProperty().set(value);
+  }
+
+  public final boolean getInversed() { return inversed == null ? false : inversed.get(); }
+
+  public final BooleanProperty inversedProperty()
+  {
+  	if (inversed == null)
+	{
+		inversed = new BooleanPropertyBase(false) {
+			@Override
+			protected void invalidated()
+			{
+				adjustValues();
+				notifyAccessibleAttributeChanged(AccessibleAttribute.VALUE);
+			}
+
+			@Override
+			public Object getBean() {
+				return Slider.this;
+			}
+
+			@Override
+			public String getName() {
+				return "inversed";
+			}
+		};
+	}
+
+  	return inversed;
   }
 
   /**

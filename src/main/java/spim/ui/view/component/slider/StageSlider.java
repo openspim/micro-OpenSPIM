@@ -7,6 +7,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
+import javafx.util.StringConverter;
 import javafx.util.converter.NumberStringConverter;
 import spim.ui.view.component.slider.customslider.Slider;
 import spim.ui.view.component.xyzr3d.controls.CircleIndicator;
@@ -110,6 +111,10 @@ public class StageSlider extends HBox
 	public Slider getSlider()
 	{
 		return mSlider;
+	}
+
+	public void inserveSlider(boolean inv) {
+		mSlider.setInversed(inv);
 	}
 
 	public TextField getTextField()
