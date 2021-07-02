@@ -243,6 +243,7 @@ public class SPIMSetup {
 			Class.forName( "spim.hardware.PicardXYStage" );
 			Class.forName( "spim.hardware.PicardTwister" );
 			Class.forName( "spim.hardware.AndorsCMOS" );
+			Class.forName( "spim.hardware.PCOCamera" );
 			Class.forName( "spim.hardware.Cobolt" );
 			Class.forName( "spim.hardware.CoherentCube" );
 			Class.forName( "spim.hardware.CoherentObis" );
