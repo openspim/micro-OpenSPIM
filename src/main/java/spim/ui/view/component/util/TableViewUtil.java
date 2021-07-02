@@ -35,6 +35,7 @@ import javafx.scene.layout.HBox;
 import javafx.util.Callback;
 import javafx.util.converter.NumberStringConverter;
 import spim.hardware.SPIMSetup;
+import spim.hardware.VersaLase;
 import spim.model.data.ChannelItem;
 import spim.model.data.DeviceItem;
 import spim.model.data.PinItem;
@@ -288,7 +289,26 @@ public class TableViewUtil
 
 			if ( setup.getLaser() != null )
 			{
-				lasers.add( setup.getLaser().getLabel() );
+				if(setup.getLaser().getLabel().startsWith("VLT_VersaLase")) {
+					VersaLase laser = ( VersaLase ) setup.getLaser();
+					if(laser.getLaserA() != null)
+					{
+						lasers.add( laser.getLaserA().getLaserLabel() );
+					}
+					if(laser.getLaserB() != null)
+					{
+						lasers.add( laser.getLaserB().getLaserLabel() );
+					}
+					if(laser.getLaserC() != null)
+					{
+						lasers.add( laser.getLaserC().getLaserLabel() );
+					}
+					if(laser.getLaserD() != null)
+					{
+						lasers.add( laser.getLaserD().getLaserLabel() );
+					}
+				} else
+					lasers.add( setup.getLaser().getLabel() );
 			}
 
 			if ( setup.getLaser2() != null )

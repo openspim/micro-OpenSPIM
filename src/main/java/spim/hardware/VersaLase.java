@@ -79,6 +79,10 @@ public class VersaLase extends Laser {
 		}
 	}
 
+	public VersaLaseLaser getLaser(String laser) {
+		return map.getOrDefault( laser, null );
+	}
+
 	public VersaLaseLaser getLaserA() {
 		return map.getOrDefault( "A", null );
 	}
@@ -135,6 +139,10 @@ public class VersaLase extends Laser {
 			}
 		}
 
+		public String getLaserEmissionProperty() {
+			return laserLabel + "LaserEmission";
+		}
+
 		@Override
 		public boolean getPoweredOn() {
 			return getProperty( laserLabel + "LaserEmission" ).equals( "ON" );
@@ -142,18 +150,37 @@ public class VersaLase extends Laser {
 
 		@Override
 		public void setPower(double power) throws UnsupportedOperationException, IllegalArgumentException {
-			if(hasProperty(laserLabel + "PowerSetting"))
-				setProperty(laserLabel + "PowerSetting", power);
-			else
-				throw new UnsupportedOperationException();
+			if(isDigitalModulationOn()) {
+				if(hasProperty(laserLabel + "DigitalPeakPowerSetting"))
+					setProperty(laserLabel + "DigitalPeakPowerSetting", power);
+				else
+					throw new UnsupportedOperationException();
+			} else {
+				if(hasProperty(laserLabel + "PowerSetting"))
+					setProperty(laserLabel + "PowerSetting", power);
+				else
+					throw new UnsupportedOperationException();
+			}
 		}
 
 		@Override
 		public double getPower() {
-			if(hasProperty(laserLabel + "PowerSetting"))
-				return getPropertyDouble(laserLabel + "PowerSetting");
-			else
-				return 0.0;
+			if(isDigitalModulationOn()) {
+				if(hasProperty(laserLabel + "DigitalPeakPowerSetting"))
+					return getPropertyDouble(laserLabel + "DigitalPeakPowerSetting");
+				else
+					return 0.0;
+			} else {
+				if(hasProperty(laserLabel + "PowerSetting"))
+					return getPropertyDouble(laserLabel + "PowerSetting");
+				else
+					return 0.0;
+			}
+		}
+
+		boolean isDigitalModulationOn() throws UnsupportedOperationException {
+			String val = getDigitalModulation();
+			return val.equals("ON");
 		}
 
 		@Override

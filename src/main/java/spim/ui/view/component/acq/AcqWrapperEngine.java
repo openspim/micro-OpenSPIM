@@ -45,6 +45,7 @@ import org.micromanager.internal.utils.NumberUtils;
 import org.micromanager.internal.utils.ReportingUtils;
 import spim.algorithm.DefaultAntiDrift;
 import spim.hardware.SPIMSetup;
+import spim.hardware.VersaLase;
 import spim.io.OpenSPIMSinglePlaneTiffSeries;
 import spim.model.data.ChannelItem;
 import spim.model.data.PositionItem;
@@ -192,7 +193,16 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			for ( ChannelItem channelItem : channelItems_ )
 			{
 				String config = "Ch-" + ch++;
-				core_.defineConfig(channelGroupName, config, "Core", "Shutter", channelItem.getLaser());
+
+				if(spimSetup_.getLaser().getLabel().startsWith("VLT_VersaLase")) {
+					core_.defineConfig(channelGroupName, config, "Core", "Shutter", spimSetup_.getLaser().getLabel());
+					VersaLase.VersaLaseLaser laser = ((VersaLase)spimSetup_.getLaser()).getLaser(channelItem.getLaser());
+
+					core_.defineConfig(channelGroupName, config, spimSetup_.getLaser().getLabel(), laser.getLaserEmissionProperty(), "ON");
+				} else {
+					core_.defineConfig(channelGroupName, config, "Core", "Shutter", channelItem.getLaser());
+				}
+
 				core_.defineConfig(channelGroupName, config, "Core", "Camera", channelItem.getName());
 				double exp = channelItem.getValue().doubleValue();
 
