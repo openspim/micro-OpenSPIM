@@ -117,7 +117,7 @@ public class LoadConfig extends Application
 		summaryText.setEditable( false );
 		summaryText.setPrefRowCount( 3 );
 
-		Button addFileBtn = new Button( "+" );
+		Button addFileBtn = new Button( "Add .cfg file" );
 		addFileBtn.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -126,7 +126,7 @@ public class LoadConfig extends Application
 			}
 		} );
 
-		Button deleteFileBtn = new Button( "-" );
+		Button deleteFileBtn = new Button( "Remove .cfg file" );
 		deleteFileBtn.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
