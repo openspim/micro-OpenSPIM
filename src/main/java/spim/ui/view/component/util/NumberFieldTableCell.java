@@ -25,6 +25,8 @@ public class NumberFieldTableCell<S,T> extends TextFieldTableCell<S,T>
 		return list -> new NumberFieldTableCell<S,T>(converter);
 	}
 
+	static NumberFieldTableCell lastCell;
+
 	NumberFieldTableCell(StringConverter<T> converter) {
 		super(converter);
 		this.addEventFilter( MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
@@ -32,8 +34,13 @@ public class NumberFieldTableCell<S,T> extends TextFieldTableCell<S,T>
 			public void handle(MouseEvent event) {
 				if (event.getClickCount() > 1) {
 					NumberFieldTableCell c = (NumberFieldTableCell) event.getSource();
-
-					c.startSuperStartEdit();
+					lastCell = c;
+					lastCell.startSuperStartEdit();
+				} else {
+					if (lastCell != null && !lastCell.equals(event.getSource())) {
+						lastCell.cancelEdit();
+						lastCell = null;
+					}
 				}
 			}
 		});
