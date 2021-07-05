@@ -165,7 +165,7 @@ public class TableViewUtil
 			}
 
 			// invoke selected item changed!
-			cascadeUpdatedValues( acquisitionPanel, tv );
+//			cascadeUpdatedValues( acquisitionPanel, tv );
 		} );
 		column.setEditable( true );
 		tv.getColumns().add(column);
@@ -178,7 +178,7 @@ public class TableViewUtil
 		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
 		numberColumn.setOnEditCommit( event -> {
 			event.getRowValue().setZStep( event.getNewValue().doubleValue() );
-			cascadeUpdatedValues( acquisitionPanel, tv );
+//			cascadeUpdatedValues( acquisitionPanel, tv );
 		});
 		numberColumn.setEditable( true );
 		tv.getColumns().add(numberColumn);

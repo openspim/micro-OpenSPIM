@@ -1884,7 +1884,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		if(stagePanel == null && zSlider != null)
 			zStackGridPane.add( zSlider, 3, 0, 1, 2 );
 
-		Button newButton = new Button( "Add Pos." );
+		Button newButton = new Button( "Add Z-stack position" );
 		newButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
