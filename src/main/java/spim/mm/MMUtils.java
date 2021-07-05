@@ -174,6 +174,10 @@ public class MMUtils
 		System.setProperty("mmcorej.library.path", "");
 	}
 
+//	public static void loadDll() {
+//		loadDllFrom(new File( microManagerFolder ));
+//	}
+
 	public static boolean invalidMMPath()
 	{
 		return prefs.get(MM_PATH_ID, "").isEmpty();

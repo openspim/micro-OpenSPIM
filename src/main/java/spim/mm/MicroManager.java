@@ -130,13 +130,15 @@ public class MicroManager implements PlugIn, CommandListener
 						// get the MM core
 						final CMMCore core = getCore();
 
-//						core.registerCallback( new OpenSPIMEventCallback() );
+						core.registerCallback( new OpenSPIMEventCallback() );
 						mmStudioProperty.set( MicroManager.getMMStudio() );
 
 //						ReportingUtils.setCore( core );
 						// set core for reporting
 						core.enableDebugLog( false );
 						core.enableStderrLog( false );
+
+						setSysConfFile.invoke(null, "");
 
 						try
 						{
@@ -1471,9 +1473,12 @@ public class MicroManager implements PlugIn, CommandListener
 		public void onPropertyChanged(String deviceName, String propName, String propValue)
 		{
 			System.out.println("PropertyChanged:" + deviceName + "-" + propName + " with " + propValue);
-			if(deviceName.equals("Core") && propName.equals("Camera") && propValue.isEmpty()) {
+			if(deviceName.equals("Core") && propName.equals("Initialize") && propValue.equals("0")) {
 				mmStudioProperty.set( null );
 			}
+//			else if(deviceName.equals("Core") && propName.equals("Camera") && propValue == null) {
+//				mmStudioProperty.set( null );
+//			}
 		}
 
 		@Override

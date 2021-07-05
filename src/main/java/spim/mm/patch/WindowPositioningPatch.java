@@ -32,7 +32,7 @@ public class WindowPositioningPatch
 //		hacker.insertBeforeMethod("org.micromanager.internal.MMStudio", "public boolean loadSystemConfiguration()", "private static String configFile;");
 //
 //		String newCode = "";
-		hacker.addField("org.micromanager.internal.MMStudio", "public static java.lang.String configFile = \"Test\";");
+		hacker.addField("org.micromanager.internal.MMStudio", "public static java.lang.String configFile = \"\";");
 		hacker.insertMethod("org.micromanager.internal.MMStudio", "public static java.lang.String getSysConfFile()", "return configFile;");
 		hacker.insertMethod("org.micromanager.internal.MMStudio", "public static void setSysConfFile(java.lang.String file)", "configFile = file;");
 
@@ -49,7 +49,7 @@ public class WindowPositioningPatch
 				"      }\n" +
 				"\n" +
 				"      try {\n" +
-				"		  sysConfigFile_ = configFile;\n" +
+				"		  if ( !configFile.isEmpty() ) sysConfigFile_ = configFile;\n" +
 				"         if (sysConfigFile_ != null && sysConfigFile_.length() > 0) {\n" +
 				"            org.micromanager.internal.utils.GUIUtils.preventDisplayAdapterChangeExceptions();\n" +
 				"            core_.waitForSystem();\n" +
