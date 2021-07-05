@@ -1059,6 +1059,8 @@ public class CameraDevicePanel extends ScrollPane implements SPIMSetupInjectable
 		executor = Executors.newScheduledThreadPool( 5 );
 		executor.scheduleAtFixedRate( () -> {
 
+			if( this.studio == null ) return;
+
 			if( cameraOnSwitch.isSelected() )
 			{
 				if(null != studio) {

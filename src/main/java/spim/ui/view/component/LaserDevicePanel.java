@@ -59,6 +59,7 @@ public class LaserDevicePanel extends HBox implements SPIMSetupInjectable
 	final double granularity = 3;
 	private String laserName;
 	ScheduledExecutorService executor;
+	Studio studio;
 
 	public LaserDevicePanel( Laser laser ) {
 		this(laser, Integer.parseInt( laser.getWavelength() ));
@@ -98,7 +99,7 @@ public class LaserDevicePanel extends HBox implements SPIMSetupInjectable
 			}, 500, 100, TimeUnit.MILLISECONDS );
 		} else {
 			executor.scheduleAtFixedRate( () -> {
-				if(this.spimSetup == null || laser.isInvalid()) {
+				if(this.spimSetup == null || this.studio == null || laser.isInvalid()) {
 					executor.shutdown();
 					executor = null;
 					return;
@@ -145,6 +146,7 @@ public class LaserDevicePanel extends HBox implements SPIMSetupInjectable
 	@Override public void setSetup( SPIMSetup setup, Studio studio )
 	{
 		this.spimSetup = setup;
+		this.studio = studio;
 
 		initExecutor();
 

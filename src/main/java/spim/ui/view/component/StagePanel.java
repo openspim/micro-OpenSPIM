@@ -70,6 +70,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 	double lastUsedLocation;
 
 	BooleanProperty smartRotate;
+	Studio studio;
 
 	public void setAcquisitionPanel( AcquisitionPanel acquisitionPanel )
 	{
@@ -93,6 +94,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 
 	@Override public void setSetup( SPIMSetup setup, Studio studio )
 	{
+		this.studio = studio;
 		this.spimSetup = setup;
 
 		initExecutor();
@@ -120,7 +122,8 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 				}
 			}
 
-			unit.setStageDevice( stageDevice );
+			if (setup == null) unit.setStageDevice( null );
+			else unit.setStageDevice( stageDevice );
 
 			final Property< Number > targetProperty = unit.targetValueProperty();
 
@@ -218,6 +221,8 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 	}
 
 	private void monitorSPIM() {
+		if(studio == null) return;
+
 		for ( StageUnit.Stage stage : stageMap.keySet() )
 		{
 			if ( stageMap.get( stage ).get( StageUnit.BooleanState.Enable ).get() &&
