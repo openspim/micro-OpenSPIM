@@ -510,13 +510,17 @@ public class MMAcquisitionEngine
 						++step;
 					}
 
-					double wait = tpItem.getIntervalSeconds() - (System.nanoTime() / 1e9 - acqBegan);
+					double elapsed = (System.nanoTime() / 1e9 - acqBegan);
+					double wait = tpItem.getIntervalSeconds() - elapsed;
 
 					if(timeSeq < (timeSeqs - 1) && wait > 0D) {
 						System.err.println("Interval delay. (next seq in " + wait + "s)");
 						core.logMessage("Interval delay. (next seq in " + wait + "s)");
 
-						for(int i = 0; i < (int) wait; i++)
+						wait = tpItem.getIntervalSeconds();
+						passedTimePoints += (int) elapsed;
+
+						for(int i = (int) elapsed; i < (int) wait; i++)
 						{
 							++passedTimePoints;
 							updateTimeProperties( waitSeconds, wait - i, currentTP, 1 / totalTimePoints * passedTimePoints );

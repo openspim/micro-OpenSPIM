@@ -198,7 +198,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 					core_.defineConfig(channelGroupName, config, "Core", "Shutter", spimSetup_.getLaser().getLabel());
 					VersaLase.VersaLaseLaser laser = ((VersaLase)spimSetup_.getLaser()).getLaser(channelItem.getLaser());
 
-					core_.defineConfig(channelGroupName, config, spimSetup_.getLaser().getLabel(), laser.getDigitalModulationProperty(), "OFF");
+//					core_.defineConfig(channelGroupName, config, spimSetup_.getLaser().getLabel(), laser.getDigitalModulationProperty(), "OFF");
 					core_.defineConfig(channelGroupName, config, spimSetup_.getLaser().getLabel(), laser.getLaserEmissionProperty(), "ON");
 				} else {
 					core_.defineConfig(channelGroupName, config, "Core", "Shutter", channelItem.getLaser());

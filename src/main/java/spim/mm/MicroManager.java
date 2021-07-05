@@ -130,7 +130,7 @@ public class MicroManager implements PlugIn, CommandListener
 						// get the MM core
 						final CMMCore core = getCore();
 
-						core.registerCallback( new OpenSPIMEventCallback() );
+//						core.registerCallback( new OpenSPIMEventCallback() );
 						mmStudioProperty.set( MicroManager.getMMStudio() );
 
 //						ReportingUtils.setCore( core );
@@ -1500,8 +1500,8 @@ public class MicroManager implements PlugIn, CommandListener
 			//
 //			System.out.println("SystemconfigurationLoaded");
 			System.err.println("SystemConfigurationLoaded");
-			System.setProperty( "user.dir", MicroManager.orgUserDir );
-			mmStudioProperty.set( MicroManager.getMMStudio() );
+//			System.setProperty( "user.dir", MicroManager.orgUserDir );
+//			mmStudioProperty.set( MicroManager.getMMStudio() );
 		}
 	}
 }
