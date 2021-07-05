@@ -293,19 +293,19 @@ public class TableViewUtil
 					VersaLase laser = ( VersaLase ) setup.getLaser();
 					if(laser.getLaserA() != null)
 					{
-						lasers.add( laser.getLaserA().getLaserLabel() );
+						lasers.add( "A" );
 					}
 					if(laser.getLaserB() != null)
 					{
-						lasers.add( laser.getLaserB().getLaserLabel() );
+						lasers.add( "B" );
 					}
 					if(laser.getLaserC() != null)
 					{
-						lasers.add( laser.getLaserC().getLaserLabel() );
+						lasers.add( "C" );
 					}
 					if(laser.getLaserD() != null)
 					{
-						lasers.add( laser.getLaserD().getLaserLabel() );
+						lasers.add( "D" );
 					}
 				} else
 					lasers.add( setup.getLaser().getLabel() );

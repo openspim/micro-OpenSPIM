@@ -143,6 +143,10 @@ public class VersaLase extends Laser {
 			return laserLabel + "LaserEmission";
 		}
 
+		public String getDigitalModulationProperty() {
+			return laserLabel + "DigitalModulation";
+		}
+
 		@Override
 		public boolean getPoweredOn() {
 			return getProperty( laserLabel + "LaserEmission" ).equals( "ON" );

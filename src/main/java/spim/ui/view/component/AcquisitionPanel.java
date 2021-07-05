@@ -53,6 +53,7 @@ import org.micromanager.Studio;
 import org.micromanager.internal.MMStudio;
 import spim.hardware.Camera;
 import spim.hardware.SPIMSetup;
+import spim.hardware.VersaLase;
 import spim.model.data.AcquisitionSetting;
 import spim.model.data.ChannelItem;
 import spim.model.data.PinItem;
@@ -1033,7 +1034,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			zStackGroup.getChildren().remove( cube );
 
 		} else {
-			this.stagePanel.setAcquisitionPanel( null );
+			if(this.stagePanel != null)
+				this.stagePanel.setAcquisitionPanel( null );
 			this.stagePanel = null;
 
 			zStackGridPane.add( zSlider, 3, 0, 1, 2 );
@@ -1530,12 +1532,30 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		InvalidationListener invalidationListener = observable -> computeTotalChannels();
 
+		if(laser.startsWith("VLT_VersaLase")) {
+			VersaLase lase = ( VersaLase ) getSpimSetup().getLaser();
+			if(lase.getLaserA() != null)
+			{
+				laser = "A";
+			} else if(lase.getLaserB() != null)
+			{
+				laser = "B";
+			} else if(lase.getLaserC() != null)
+			{
+				laser = "C";
+			} else if(lase.getLaserD() != null)
+			{
+				laser = "D";
+			}
+		}
+
+		String finalLaser = laser;
 		EventHandler<ActionEvent> newChannelHandler = new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
 			{
 				// TODO: Get the current position from the stage control and make the new position
-				channelItemTableView.getItems().add( new ChannelItem( camera, laser, exp, invalidationListener ) );
+				channelItemTableView.getItems().add( new ChannelItem( camera, finalLaser, exp, invalidationListener ) );
 			}
 		};
 
