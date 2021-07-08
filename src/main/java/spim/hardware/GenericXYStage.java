@@ -88,7 +88,7 @@ public class GenericXYStage {
 
 		public double getMinPosition() {
 			if(hasProperty("Min"))
-				return getPropertyDouble("Min")*getStepSize();
+				return getPropertyDouble("Min");
 			else
 				return 0.0;
 		}
@@ -101,7 +101,7 @@ public class GenericXYStage {
 		public double getMaxPosition()
 		{
 			if(hasProperty("Max")) {
-				return getPropertyDouble("Max")*getStepSize();
+				return getPropertyDouble("Max");
 			}	
 			else
 				return 9000.0; // *** this is why you should implement your own stages.
