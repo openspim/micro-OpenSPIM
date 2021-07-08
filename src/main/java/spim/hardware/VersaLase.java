@@ -143,6 +143,10 @@ public class VersaLase extends Laser {
 			return laserLabel + "LaserEmission";
 		}
 
+		public String getShutter() {
+			return laserLabel + "Shutter";
+		}
+
 		public String getDigitalModulationProperty() {
 			return laserLabel + "DigitalModulation";
 		}
