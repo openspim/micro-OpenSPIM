@@ -1394,14 +1394,16 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		HBox hbox = new HBox( 5, newButton, deleteButton, updateButton );
 
-		// Remove the currentPosition change event handler, it gives the confusion changing position values without intention
-//		positionItemTableView.getSelectionModel().selectedItemProperty().addListener( new ChangeListener< PositionItem >()
-//		{
-//			@Override public void changed( ObservableValue< ? extends PositionItem > observable, PositionItem oldValue, PositionItem newValue )
-//			{
-//				currentPosition.set( newValue );
-//			}
-//		} );
+		// If it gives the confusion changing position values without intention,
+		// Remove the currentPosition change event handler,
+		// However it is useful for checking the slices scheme
+		positionItemTableView.getSelectionModel().selectedItemProperty().addListener( new ChangeListener< PositionItem >()
+		{
+			@Override public void changed( ObservableValue< ? extends PositionItem > observable, PositionItem oldValue, PositionItem newValue )
+			{
+				currentPosition.set( newValue );
+			}
+		} );
 
 		positionItemTableView.setContextMenu( new ContextMenu( deleteItem ) );
 
