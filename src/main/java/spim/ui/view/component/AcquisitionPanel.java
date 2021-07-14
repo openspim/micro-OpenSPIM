@@ -281,7 +281,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		Button acquireButton = new Button( "Acquire" );
 		acquireButton.setMinSize( 110, 40 );
-		acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
+		acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #69e760;");
 		acquireButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )

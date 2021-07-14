@@ -107,8 +107,8 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 //			}
 //		} );
 
-		mmButton = new Button( "START");
-		mmButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
+		mmButton = new Button( "µManager");
+		mmButton.setStyle("-fx-font: 18 arial; -fx-base: #e7e45d;");
 		mmButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
