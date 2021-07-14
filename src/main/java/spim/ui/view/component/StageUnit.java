@@ -192,15 +192,6 @@ public class StageUnit extends Region
 			if(null != this.stageDevice) this.stageDevice.setPosition( pos );
 		} );
 
-		Button resetButton = new Button( "Reset" );
-		resetButton.setAlignment( Pos.BASELINE_LEFT );
-		resetButton.setPrefWidth( 70 );
-		resetButton.setOnAction( event -> {
-			targetValueProperty.setValue( currentValue );
-			targetSlider.getSlider().setValue( currentValue );
-			booleanStateMap.get( BooleanState.Ready ).setValue( false );
-		} );
-
 		CheckBox inverseCheckBox = new CheckBox("Inverse");
 		inverseCheckBox.setPrefWidth( 70 );
 
@@ -224,6 +215,7 @@ public class StageUnit extends Region
 
 		inversedProperty.bind(inverseCheckBox.selectedProperty());
 
+		Button resetButton = null;
 		if(isR) {
 			resetButton = new Button( "Calibrate" );
 			resetButton.setStyle("-fx-background-radius: 5em;" +
@@ -266,10 +258,10 @@ public class StageUnit extends Region
 		gridPane.add( homingButton, 1, 0 );
 		gridPane.add( stopButton, 1, 1 );
 
-		if( labelString.startsWith("Stage X") || labelString.startsWith("Stage Z") )
-			gridPane.add( inverseCheckBox, 1, 2 );
-		else
+		if( labelString.startsWith("Stage R") )
 			gridPane.add( resetButton, 1, 2 );
+		else
+			gridPane.add( inverseCheckBox, 1, 2 );
 
 		final HBox stageBox = new HBox( 5 );
 
