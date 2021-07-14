@@ -226,10 +226,24 @@ public class SliderSkin extends
 			public void changed(ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) {
 				if (newValue) {
 					tickLine.setUpperBound(slider.getMin());
-					tickLine.setLowerBound(slider.getMax());
+					tickLine.setLowerBound(-slider.getMax());
+					tickLine.setTickLabelFormatter(new NumberAxis.DefaultFormatter(tickLine) {
+						@Override
+						public String toString(Number value) {
+							// note we are printing minus value
+							return String.format("%d", -value.intValue());
+						}
+					});
 				} else {
 					tickLine.setUpperBound(slider.getMax());
 					tickLine.setLowerBound(slider.getMin());
+					tickLine.setTickLabelFormatter(new NumberAxis.DefaultFormatter(tickLine) {
+						@Override
+						public String toString(Number value) {
+							// note we are printing minus value
+							return String.format("%d", value.intValue());
+						}
+					});
 				}
 			}
 		});
