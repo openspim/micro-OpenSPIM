@@ -17,7 +17,6 @@ import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
-import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 
@@ -35,13 +34,10 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
-import javafx.scene.shape.RectangleBuilder;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
-import javafx.scene.transform.Shear;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import mmcorej.CMMCore;
@@ -60,6 +56,8 @@ import spim.model.data.PinItem;
 import spim.model.data.PositionItem;
 import spim.model.data.TimePointItem;
 import spim.model.event.ControlEvent;
+import spim.ui.view.component.cube.SliceCube;
+import spim.ui.view.component.cube.StackCube;
 import spim.ui.view.component.pane.CheckboxPane;
 import spim.ui.view.component.pane.LabeledPane;
 import spim.ui.view.component.util.TableViewUtil;
@@ -147,6 +145,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	// For StackCube sizing, zStart and zEnd are converted to the actual cube size
 	SimpleDoubleProperty zStart;
 	SimpleDoubleProperty zEnd;
+	SimpleDoubleProperty zStep;
 	SimpleDoubleProperty zCurrent;
 	ChangeListener< Number > currentChangeListener;
 
@@ -162,9 +161,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	// Rotate Step Size
 	SimpleDoubleProperty rotateStepSize;
 
-	Group zStackGroup;
+	HBox zStackGroup;
 	GridPane zStackGridPane;
 	StackCube cube;
+	SliceCube sliceCube;
 	Slider zSlider = null;
 	Tab laserTab;
 
@@ -215,6 +215,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		this.zStart = new SimpleDoubleProperty( 0 );
 		this.zEnd = new SimpleDoubleProperty( 0 );
+		this.zStep  = new SimpleDoubleProperty( 0 );
 		this.zCurrent = new SimpleDoubleProperty( 0 );
 
 		this.currentTP = new SimpleDoubleProperty( 0 );
@@ -1032,6 +1033,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			stagePanel.getZValueProperty().addListener( currentChangeListener);
 
 			zStackGroup.getChildren().remove( cube );
+			zStackGroup.getChildren().remove( sliceCube );
 
 		} else {
 			if(this.stagePanel != null)
@@ -1039,11 +1041,15 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			this.stagePanel = null;
 
 			zStackGridPane.add( zSlider, 3, 0, 1, 2 );
-		}
-		cube = new StackCube(50, cubeHeight, Color.CORNFLOWERBLUE, 1, zStart, zEnd, zCurrent );
 
+			zStackGroup.getChildren().remove( cube );
+			zStackGroup.getChildren().remove( sliceCube );
+		}
+		cube = new StackCube(50, cubeHeight, maxZStack, Color.CORNFLOWERBLUE, 1, zStart, zEnd, zCurrent );
+		sliceCube = new SliceCube(50, cubeHeight, maxZStack, Color.CADETBLUE, 1, zStart, zEnd, zCurrent, zStep );
+
+		zStackGroup.getChildren().add( 0, sliceCube );
 		zStackGroup.getChildren().add( 0, cube );
-		cube.setTranslateX( -60 );
 	}
 
 	private void updateUI ( AcquisitionSetting setting ) {
@@ -1786,10 +1792,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 			stagePanel.getZValueProperty().addListener( currentChangeListener );
 		}
-		cube = new StackCube(50, cubeHeight, Color.CORNFLOWERBLUE, 1, zStart, zEnd, zCurrent );
-
-//		cube.setRotate( 180 );
-		cube.setTranslateX( -60 );
+		cube = new StackCube(50, cubeHeight, 100, Color.CORNFLOWERBLUE, 1, zStart, zEnd, zCurrent );
+		sliceCube = new SliceCube(50, cubeHeight, 100, Color.CADETBLUE, 1, zStart, zEnd, zCurrent, zStep );
 
 		zStackGridPane = new GridPane();
 		zStackGridPane.setVgap( 30 );
@@ -1826,6 +1830,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			{
 				if(!newValue.isEmpty()) {
 					zStackStepSize = Double.parseDouble( newValue );
+					zStep.set( zStackStepSize / maxZStack * cubeHeight );
 				}
 			}
 		} );
@@ -1878,6 +1883,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 					zStart.set( newValue.getZStart() / maxZStack * cubeHeight );
 					zEnd.set( newValue.getZEnd() / maxZStack * cubeHeight );
+					zStep.set( newValue.getZStep() / maxZStack * cubeHeight );
 				}
 			}
 		} );
@@ -1915,10 +1921,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 //		} );
 		zStackGridPane.addRow( 3, newButton );
 
-		zStackGridPane.setTranslateY( -30 );
-
 		// create a group
-		zStackGroup = new Group(cube, zStackGridPane );
+		zStackGroup = new HBox(10, cube, sliceCube, zStackGridPane );
 
 		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.ZSTACK));
@@ -2159,87 +2163,5 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		}
 
 		return hrSize;
-	}
-
-	public class StackCube extends Group
-	{
-		public StackCube(double size, double height, Color color, double shade,
-				DoubleProperty startZ, DoubleProperty endZ,
-				DoubleProperty currentZ ) {
-
-
-			Rectangle current = RectangleBuilder.create() // top face
-					.width(size).height(0.25*size)
-					.fill(Color.RED.deriveColor(0.0, 1.0, (1 - 0.1*shade), 0.5))
-					.translateX(0)
-					.translateY( - 0.75 * size )
-					.transforms( new Shear( -2, 0 ) )
-					.build();
-
-			current.translateYProperty().bind( currentZ.subtract( 0.75 * size ) );
-
-			double currentStackSize = endZ.get() - startZ.get();
-			double endPosition = startZ.get();
-
-			Color posStackColor = Color.GREEN.deriveColor(0.0, 1.0, (1 - 0.1*shade), 0.5);
-
-			Rectangle currentStackTopFace = RectangleBuilder.create() // top face
-					.width(size).height(0.25*size)
-					.fill(posStackColor.deriveColor(0.0, 1.0, (1 - 0.1*shade), 1.0))
-					.translateX(0)
-					.translateY( endPosition - 0.75 * size)
-					.transforms( new Shear( -2, 0 ) )
-					.build();
-
-			currentStackTopFace.translateYProperty().bind( startZ.subtract( 0.75 * size ) );
-
-			Rectangle currentStackRightFace = RectangleBuilder.create() // right face
-					.width(size/2).height(currentStackSize)
-					.fill(posStackColor.deriveColor(0.0, 1.0, (1 - 0.3*shade), 1.0))
-					.translateX( 0.5 * size )
-					.translateY( endPosition -0.5 * size )
-					.transforms( new Shear( 0, -0.5 ) )
-					.build();
-
-			currentStackRightFace.heightProperty().bind( endZ.subtract( startZ ) );
-			currentStackRightFace.translateYProperty().bind( startZ.subtract( 0.5 * size ) );
-
-			Rectangle currentStackFrontFace = RectangleBuilder.create() // front face
-					.width(size).height(currentStackSize)
-					.fill(posStackColor)
-					.translateX( -0.5 * size )
-					.translateY( endPosition -0.5 * size )
-					.build();
-
-			currentStackFrontFace.heightProperty().bind( endZ.subtract( startZ ) );
-			currentStackFrontFace.translateYProperty().bind( startZ.subtract( 0.5 * size ) );
-
-			getChildren().addAll(
-					RectangleBuilder.create() // top face
-							.width(size).height(0.25*size)
-							.fill(color.deriveColor(0.0, 1.0, (1 - 0.1*shade), 1.0))
-							.translateX(0)
-							.translateY(-0.75*size)
-							.transforms( new Shear( -2, 0 ) )
-							.build(),
-					RectangleBuilder.create() // right face
-							.width(size/2).height(height)
-							.fill(color.deriveColor(0.0, 1.0, (1 - 0.3*shade), 1.0))
-							.translateX(0.5*size)
-							.translateY(-0.5*size)
-							.transforms( new Shear( 0, -0.5 ) )
-							.build(),
-					RectangleBuilder.create() // front face
-							.width(size).height(height)
-							.fill(color)
-							.translateX(-0.5*size)
-							.translateY(-0.5*size)
-							.build(),
-					currentStackTopFace,
-					currentStackRightFace,
-					currentStackFrontFace,
-					current
-			);
-		}
 	}
 }
