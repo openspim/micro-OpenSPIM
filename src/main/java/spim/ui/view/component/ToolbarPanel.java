@@ -79,7 +79,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 		setContents( gridpane );
 
-		Image logoImg = new javafx.scene.image.Image( getClass().getResourceAsStream( "logo.jpg" ) );
+		Image logoImg = new javafx.scene.image.Image( getClass().getResourceAsStream( "uOS-logo.png" ) );
 		ImageView iv = new ImageView(logoImg);
 		iv.setPreserveRatio(true);
 		iv.setFitWidth(160);
