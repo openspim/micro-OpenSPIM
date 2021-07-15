@@ -2159,7 +2159,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.TIMEPOINT));
 
-		CheckboxPane pane = new CheckboxPane( "Time points (TP)", new VBox( hbox, timePointItemTableView ), helpButton );
+		CheckboxPane pane = new CheckboxPane( "Time points", new VBox( hbox, timePointItemTableView ), helpButton );
 
 		TimePointItem.updateTimePointItem.addListener( new ChangeListener< String >()
 		{
