@@ -162,7 +162,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	HBox zStackGroup;
 	GridPane zStackGridPane;
 	StackCube cube;
+	VBox cubeBox;
 	SliceCube sliceCube;
+	VBox sliceCubeBox;
 	Slider zSlider = null;
 	Tab laserTab;
 
@@ -1100,8 +1102,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 			stagePanel.getZValueProperty().addListener( currentChangeListener);
 
-			zStackGroup.getChildren().remove( cube );
-			zStackGroup.getChildren().remove( sliceCube );
+			cubeBox.getChildren().remove( cube );
+			sliceCubeBox.getChildren().remove( sliceCube );
 
 		} else {
 			if(this.stagePanel != null)
@@ -1110,14 +1112,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 			zStackGridPane.add( zSlider, 3, 0, 1, 2 );
 
-			zStackGroup.getChildren().remove( cube );
-			zStackGroup.getChildren().remove( sliceCube );
+			cubeBox.getChildren().remove( cube );
+			sliceCubeBox.getChildren().remove( sliceCube );
 		}
 		cube = new StackCube(50, cubeHeight, maxZStack, Color.CORNFLOWERBLUE, 1, zStart, zEnd, zCurrent );
 		sliceCube = new SliceCube(50, cubeHeight, maxZStack, Color.CADETBLUE, 1, zStart, zEnd, zCurrent, zStep );
 
-		zStackGroup.getChildren().add( 0, sliceCube );
-		zStackGroup.getChildren().add( 0, cube );
+		cubeBox.getChildren().add( 0, cube );
+		sliceCubeBox.getChildren().add( 0, sliceCube );
 	}
 
 	private void updateUI ( AcquisitionSetting setting ) {
@@ -1878,7 +1880,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			{
 				if(!newValue.isEmpty()) {
 					zStackStart = Double.parseDouble( newValue );
-					zStart.set( zStackStart / maxZStack * cubeHeight );
+					if(zStackStart < maxZStack)
+						zStart.set( zStackStart / maxZStack * cubeHeight );
 				}
 			}
 		} );
@@ -1926,7 +1929,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			{
 				if(!newValue.isEmpty()) {
 					zStackEnd = Double.parseDouble( newValue );
-					zEnd.set( zStackEnd / maxZStack * cubeHeight );
+					if(zStackEnd <= maxZStack)
+						zEnd.set( zStackEnd / maxZStack * cubeHeight );
 				}
 			}
 		} );
@@ -1993,7 +1997,12 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		zStackGridPane.addRow( 3, newButton );
 
 		// create a group
-		zStackGroup = new HBox(10, cube, sliceCube, zStackGridPane );
+		HBox b = new HBox(new Label("Stage"));
+		b.setAlignment(Pos.BASELINE_CENTER);
+		cubeBox = new VBox(cube, b);
+
+		sliceCubeBox = new VBox(sliceCube, new Label("Z-stack"));
+		zStackGroup = new HBox(10, cubeBox, sliceCubeBox, zStackGridPane );
 		zStackGroup.setPadding(new Insets(20));
 
 		Button helpButton = createHelpButton();
