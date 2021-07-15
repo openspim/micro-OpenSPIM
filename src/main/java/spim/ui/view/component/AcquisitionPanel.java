@@ -29,10 +29,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -138,6 +135,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	// Cameras
 	int noCams = 0;
 	StagePanel stagePanel;
+	TextField exposureField;
 
 	Thread acquisitionThread = null;
 	double maxZStack = 100;
@@ -280,6 +278,59 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		acquireHBox.setAlignment( Pos.CENTER_LEFT );
 		acquireHBox.setPadding( new Insets(10) );
 
+		SimpleBooleanProperty liveOn = new SimpleBooleanProperty( false );
+		Button liveViewButton = new Button( "Live");
+		liveViewButton.setMinSize( 100, 40 );
+		liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
+		liveViewButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(studioProperty.get() == null) {
+					new Alert( Alert.AlertType.WARNING, "MM2 config is not loaded.").show();
+					return;
+				}
+
+				liveOn.set( !liveOn.get() );
+				if(liveOn.get())
+				{
+					liveViewButton.setText( "Stop Live" );
+					liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #e77d8c;");
+					if(studioProperty.get() != null)
+						studioProperty.get().live().setLiveMode( true );
+				} else {
+					liveViewButton.setText( "Live" );
+					liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
+					if(studioProperty.get() != null)
+						studioProperty.get().live().setLiveMode( false );
+				}
+			}
+		} );
+
+		exposureField = createNumberTextField();
+		exposureField.setOnAction(event -> {
+			if (getStudio() != null && getStudio().core() != null) {
+				double exp = Double.parseDouble( exposureField.getText() );
+
+				boolean isOn = getStudio().live().isLiveModeOn();
+				if (isOn) {
+					getStudio().live().setLiveModeOn(false);
+				}
+
+				try {
+					getStudio().core().setExposure( exp );
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+
+				if (isOn) {
+					getStudio().live().setLiveModeOn(true);
+				}
+			}
+		});
+
+		VBox exposureBox = new VBox(new Label("Exposure"), exposureField);
+
 		Button acquireButton = new Button( "Acquire" );
 		acquireButton.setMinSize( 110, 40 );
 		acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #69e760;");
@@ -324,9 +375,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-//		CheckBox antiDriftCheckbox = new CheckBox("Anti-Drift");
-//		antiDrift = antiDriftCheckbox.selectedProperty();
-
+		acquireHBox.getChildren().addAll(liveViewButton, exposureBox, createSpacer(10), acquireButton, pi);
 
 		Spinner<Integer> spinner = new Spinner<>(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 4, 1));
 		spinner.setPrefSize(55, 50);
@@ -361,7 +410,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		antiDriftPane.setSelected(false);
 		antiDrift = antiDriftPane.selectedProperty();
 
-		acquireHBox.getChildren().addAll(acquireButton, pi);
 		spinner.setTooltip(new Tooltip("This channel index will be used for Anti-Drift reference"));
 
 		BorderPane.setMargin(acquireHBox, new Insets(12,12,12,12));
@@ -527,7 +575,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Button acqHelpButton = createHelpButton();
 		acqHelpButton.setOnAction( event -> new HelpWindow().show(HelpType.ACQUISITION));
 
-		LabeledPane acquisitionPane = new LabeledPane( "Acquisition", new VBox(10, acquireHBox, acquisitionTabPane), acqHelpButton, 0 );
+		final TitledPane acqBoxPane = new TitledPane( "Acquisition", acquireHBox );
+		acqBoxPane.setCollapsible( false );
+
+		LabeledPane acquisitionPane = new LabeledPane( "Acquisition", new VBox(10, acquisitionTabPane, acqBoxPane), acqHelpButton, 0 );
 
 
 		SplitPane zStackAcqTabs = new SplitPane(createZStackPane(stagePanel), acquisitionPane);
@@ -545,7 +596,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		// summary
 		SplitPane positionZStackSplit = new SplitPane(timePositionSplit, zStackAcqTabs);
 		positionZStackSplit.setOrientation( Orientation.HORIZONTAL );
-		positionZStackSplit.setDividerPositions( 0.6 );
+		positionZStackSplit.setDividerPositions( 0.5 );
 
 
 		// Two tabs for "Laser Shutter" / "Arduino Shutter"
@@ -790,11 +841,16 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		});
 
+		timePositionSplit.getItems().add(channelSummary);
+		timePositionSplit.setDividerPositions( 0.3, 0.6 );
+		zStackAcqTabs.getItems().add(1, createSaveImagesPane(acqSettingPane));
+		zStackAcqTabs.setDividerPositions( 0.3, 0.7 );
+
 		// Save image options
-		SplitPane channelListSaveImage = new SplitPane(
-				channelSummary,
-				createSaveImagesPane(acqSettingPane)
-		);
+//		SplitPane channelListSaveImage = new SplitPane(
+//				channelSummary,
+//				createSaveImagesPane(acqSettingPane)
+//		);
 //		channelListSaveImage.setDividerPositions( 0.6 );
 
 //		Button imgHelpButton = createHelpButton();
@@ -811,14 +867,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		smartImagingBox.setPadding( new Insets(10) );
 		cylinderSize.bind(smartImagingBox.widthProperty().subtract(15));
 
-		SplitPane content = new SplitPane( positionZStackSplit, smartImagingBox, channelListSaveImage );
+		SplitPane content = new SplitPane( positionZStackSplit, smartImagingBox );
 		content.setOrientation( Orientation.VERTICAL );
-		content.setDividerPositions( 0.5, 0.2 );
+		content.setDividerPositions( 0.9 );
 
 		content.heightProperty().addListener(new ChangeListener<Number>() {
 			@Override
 			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
-				content.setDividerPositions( 0.5, 0.2 );
+				content.setDividerPositions( 0.9 );
 			}
 		});
 
@@ -866,6 +922,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				}
 			}
 		} );
+	}
+
+	private Node createSpacer(int width) {
+		final Region spacer = new Region();
+		spacer.setPrefWidth(width);
+		// Make it always grow or shrink according to the available space
+		VBox.setVgrow(spacer, Priority.ALWAYS);
+		return spacer;
 	}
 
 	Studio getStudio() {
@@ -971,6 +1035,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				if(getSpimSetup() != null && getSpimSetup().getThetaStage() != null) {
 					rotateStepSize.bindBidirectional(getSpimSetup().getThetaStage().stepSizeProperty());
 				}
+
+				exposureField.setText(exposure + "");
 			}
 
 			String acqSettingFile = (( MMStudio ) getStudio()).getSysConfigFile() + ".xml";
@@ -1009,6 +1075,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				laserTab.setContent( viewContent );
 
 				binningOptions.clear();
+
+				exposureField.setText("");
 			}
 		}
 
@@ -1530,6 +1598,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		noteTab.setClosable(false);
 
 		TabPane tabPane = new TabPane(saveOptionTab, noteTab);
+		tabPane.setMinHeight(200);
 
 		VBox vbox = new VBox( 12, tabPane, buttonPane );
 
@@ -1925,6 +1994,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		// create a group
 		zStackGroup = new HBox(10, cube, sliceCube, zStackGridPane );
+		zStackGroup.setPadding(new Insets(20));
 
 		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.ZSTACK));

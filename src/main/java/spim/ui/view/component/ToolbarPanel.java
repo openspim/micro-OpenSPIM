@@ -2,7 +2,6 @@ package spim.ui.view.component;
 
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
@@ -53,7 +52,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 	final Label liveDemoLabel;
 	final Button mmButton;
-	final Button liveViewButton;
+//	final Button liveViewButton;
 	final Button openDatasetButton;
 
 	final SimpleDoubleProperty waitSeconds;
@@ -148,34 +147,34 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		gridpane.addRow( 2, buttonHbox );
 
 
-		SimpleBooleanProperty liveOn = new SimpleBooleanProperty( false );
-		liveViewButton = new Button( "LiveView");
-		liveViewButton.setMinSize( 100, 40 );
-		liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
-		liveViewButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				if(studioProperty.get() == null) {
-					new Alert( Alert.AlertType.WARNING, "MM2 config is not loaded.").show();
-					return;
-				}
-
-				liveOn.set( !liveOn.get() );
-				if(liveOn.get())
-				{
-					liveViewButton.setText( "Stop LiveView" );
-					liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #e77d8c;");
-					if(studioProperty.get() != null)
-						studioProperty.get().live().setLiveMode( true );
-				} else {
-					liveViewButton.setText( "LiveView" );
-					liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
-					if(studioProperty.get() != null)
-						studioProperty.get().live().setLiveMode( false );
-				}
-			}
-		} );
+//		SimpleBooleanProperty liveOn = new SimpleBooleanProperty( false );
+//		liveViewButton = new Button( "LiveView");
+//		liveViewButton.setMinSize( 100, 40 );
+//		liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
+//		liveViewButton.setOnAction( new EventHandler< ActionEvent >()
+//		{
+//			@Override public void handle( ActionEvent event )
+//			{
+//				if(studioProperty.get() == null) {
+//					new Alert( Alert.AlertType.WARNING, "MM2 config is not loaded.").show();
+//					return;
+//				}
+//
+//				liveOn.set( !liveOn.get() );
+//				if(liveOn.get())
+//				{
+//					liveViewButton.setText( "Stop LiveView" );
+//					liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #e77d8c;");
+//					if(studioProperty.get() != null)
+//						studioProperty.get().live().setLiveMode( true );
+//				} else {
+//					liveViewButton.setText( "LiveView" );
+//					liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
+//					if(studioProperty.get() != null)
+//						studioProperty.get().live().setLiveMode( false );
+//				}
+//			}
+//		} );
 
 		openDatasetButton = new Button("Open Dataset");
 		openDatasetButton.setOnAction(new EventHandler<ActionEvent>() {
@@ -314,15 +313,15 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		if(null != studio) {
 			topHbox.getChildren().remove( liveDemoLabel );
 			buttonHbox.getChildren().remove( mmButton );
-			liveViewHbox.getChildren().add( 0, liveViewButton);
-			liveViewHbox.getChildren().add( 1, openDatasetButton);
+//			liveViewHbox.getChildren().add( 0, liveViewButton);
+			liveViewHbox.getChildren().add( openDatasetButton );
 			pixelSizeValue.setText(studio.core().getPixelSizeUm() + "");
 			rotatorStepSizeValue.setText(setup.getThetaStage().getStepSize() + "");
 //			roi = new java.awt.Rectangle(0, 0, 0, 0);
 		} else {
 			topHbox.getChildren().add( liveDemoLabel );
 			buttonHbox.getChildren().add( mmButton );
-			liveViewHbox.getChildren().remove( liveViewButton );
+//			liveViewHbox.getChildren().remove( liveViewButton );
 			liveViewHbox.getChildren().remove( openDatasetButton );
 			pixelSizeValue.setText("N.A.");
 			rotatorStepSizeValue.setText("N.A.");
