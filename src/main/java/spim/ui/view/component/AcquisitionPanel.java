@@ -1084,6 +1084,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 				exposureField.setText("");
 
+				currentTP.set(0);
+
 				timePointItemTableView.getItems().clear();
 				positionItemTableView.getItems().clear();
 				channelItemTableView.getItems().clear();
