@@ -988,7 +988,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	@Override public void setSetup( SPIMSetup setup, Studio studio )
 	{
 		// Automatic Acquisition Setting saving
-		if(getStudio() != null) {
+		if(getStudio() != null && setup == null && studio == null) {
 			String acqSettingFile = (( MMStudio ) getStudio()).getSysConfigFile() + ".xml";
 			acqSettingFile = acqSettingFile.replace( File.separator, "_" );
 			AcquisitionSetting.save( new File(getUserDataDirectory() + acqSettingFile), getAcquisitionSetting() );
@@ -1087,12 +1087,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				timePointItemTableView.getItems().clear();
 				positionItemTableView.getItems().clear();
 				channelItemTableView.getItems().clear();
-				channelItemArduinoTableView.getItems().clear();
 
 				computeTotalTimePoints();
 				computeTotalPositionImages();
 				computeTotalChannels();
 
+				zStart.set(0);
+				zEnd.set(0);
+				zStep.set(1.5);
 			}
 		}
 
@@ -1220,7 +1222,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		enabledSaveImages.set( true );
 		directory.set( "" );
 		filename.set( "Untitled" );
-		savingFormat.set( null );
+		savingFormat.set( "Single Plane TIFF" );
 		saveMIP.set( false );
 		roiRectangle.set( null );
 
@@ -1265,7 +1267,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			return false;
 		}
 
-		if ( !stagePanel.isOn() ) {
+		if ( stagePanel == null || !stagePanel.isOn() ) {
 			new Alert( Alert.AlertType.WARNING, "The stage is offline. Please, turn on the stage first." ).showAndWait();
 			return false;
 		}
