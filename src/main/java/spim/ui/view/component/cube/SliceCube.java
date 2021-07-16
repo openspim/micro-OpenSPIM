@@ -133,28 +133,26 @@ public class SliceCube extends Group {
 	}
 
 	private void updateSlices(DoubleProperty end, DoubleProperty start, DoubleProperty step, Group[] slices, double size, Color posStackColor, double shade, double height) {
-		if (end.intValue() != 0 && start.intValue() != 0) {
-			if(end.intValue() < start.intValue()) {
-				final float num = start.floatValue() - end.floatValue() + step.floatValue() / step.floatValue();
-				final double max = start.get() - end.get();
+		if (end.intValue() != 0 && end.intValue() < start.intValue()) {
+			final float num = start.floatValue() - end.floatValue() + step.floatValue() / step.floatValue();
+			final double max = start.get() - end.get();
 
-				getChildren().remove(slices[0]);
-				slices[0] = new Group();
+			getChildren().remove(slices[0]);
+			slices[0] = new Group();
 
-				for(float i = 0; i < num; i += -step.floatValue()) {
-					slices[0].getChildren().add(
-						RectangleBuilder.create() // top face
-							.width(size).height(0.25*size)
-							.fill(posStackColor.deriveColor(0.0, 1.0, (1 - 0.1*shade), 1.0))
-							.translateX(0)
-							.translateY( i / max * height - 0.75 * size)
-							.transforms( new Shear( -2, 0 ) )
-							.build()
-					);
-				}
-
-				getChildren().add(3, slices[0]);
+			for(float i = 0; i < num; i += -step.floatValue()) {
+				slices[0].getChildren().add(
+					RectangleBuilder.create() // top face
+						.width(size).height(0.25*size)
+						.fill(posStackColor.deriveColor(0.0, 1.0, (1 - 0.1*shade), 1.0))
+						.translateX(0)
+						.translateY( i / max * height - 0.75 * size)
+						.transforms( new Shear( -2, 0 ) )
+						.build()
+				);
 			}
+
+			getChildren().add(3, slices[0]);
 		}
 	}
 }

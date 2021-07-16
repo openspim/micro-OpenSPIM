@@ -375,9 +375,9 @@ public class AcqWrapperEngine implements AcquisitionEngine
 					t_, angle_, cameras_, x, y, theta, mpImages_, processedImages_, currentAntiDrift_, antiDriftReferenceChannel_ );
 
 			sink.start(() -> getAcquisitionEngine2010().stop(), () -> {
-				rlock.tryLock();
+//				rlock.tryLock();
 				generateMIP();
-				rlock.unlock();
+//				rlock.unlock();
 				curStore_.unregisterForEvents(AcqWrapperEngine.this);
 			});
 

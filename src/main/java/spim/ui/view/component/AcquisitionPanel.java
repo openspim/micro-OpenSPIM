@@ -1076,9 +1076,23 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				Node viewContent = createChannelItemTable( channelItemTableView, "Camera-1", "Laser-1", exposure );
 				laserTab.setContent( viewContent );
 
+				filename.setValue("");
+				directory.setValue("");
+				saveMIP.set(false);
+
 				binningOptions.clear();
 
 				exposureField.setText("");
+
+				timePointItemTableView.getItems().clear();
+				positionItemTableView.getItems().clear();
+				channelItemTableView.getItems().clear();
+				channelItemArduinoTableView.getItems().clear();
+
+				computeTotalTimePoints();
+				computeTotalPositionImages();
+				computeTotalChannels();
+
 			}
 		}
 
