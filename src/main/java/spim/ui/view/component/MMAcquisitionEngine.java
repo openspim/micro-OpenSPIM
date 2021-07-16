@@ -547,7 +547,10 @@ public class MMAcquisitionEngine
 						updateWaitTimeProperty( waitSeconds, -1 );
 					} else {
 						core.logMessage("Behind schedule! (next seq in " + wait + "s)");
-						passedTimePoints += tpItem.getIntervalSeconds();
+
+						if(timeSeq < timeSeqs - 1) {
+							passedTimePoints += tpItem.getIntervalSeconds();
+						}
 					}
 					++timePoints;
 
