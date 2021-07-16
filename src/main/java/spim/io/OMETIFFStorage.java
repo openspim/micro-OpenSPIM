@@ -30,6 +30,7 @@ import org.micromanager.internal.utils.ReportingUtils;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -48,7 +49,7 @@ public class OMETIFFStorage implements Storage {
 	private HashMap<Integer, Writer> metadataStreams_;
 	private boolean isDatasetWritable_;
 	private SummaryMetadata summaryMetadata_ = (new DefaultSummaryMetadata.Builder()).build();
-	private HashMap<Coords, String> coordsToFilename_;
+	private ConcurrentHashMap<Coords, String> coordsToFilename_;
 	private HashMap<Integer, String> positionIndexToName_;
 	private ArrayList<String> orderedChannelNames_;
 	private Coords maxIndices_;
@@ -80,7 +81,7 @@ public class OMETIFFStorage implements Storage {
 		// Must be informed of events before traditional consumers, so that we
 		// can provide images on request.
 		store_.registerForEvents(this, 0);
-		coordsToFilename_ = new HashMap<Coords, String>();
+		coordsToFilename_ = new ConcurrentHashMap<Coords, String>();
 		metadataStreams_ = new HashMap<Integer, Writer>();
 		positionIndexToName_ = new HashMap<Integer, String>();
 		orderedChannelNames_ = new ArrayList<String>();
@@ -746,7 +747,7 @@ public class OMETIFFStorage implements Storage {
 		if (coordsToFilename_.isEmpty()) {
 			return null;
 		}
-		Coords coords = new ArrayList<>(coordsToFilename_.keySet()).get(0);
+		Coords coords =  new ArrayList<>(coordsToFilename_.keySet()).get(0);
 		return getImage(coords);
 	}
 
