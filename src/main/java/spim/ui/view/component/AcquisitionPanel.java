@@ -1390,7 +1390,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				engine = null;
 				Platform.runLater( () -> {
 					acquireButton.setText( "Acquire" );
-					acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
+					acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #69e760;");
 				} );
 
 //				Thread.currentThread().setContextClassLoader( getClass().getClassLoader() );
