@@ -40,6 +40,7 @@ import javafx.stage.FileChooser;
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 
+import mmcorej.MMCoreJ;
 import org.apache.commons.io.FileUtils;
 import org.micromanager.Studio;
 
@@ -975,6 +976,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				if(spimSetup.getCamera2() != null) {
 					spimSetup.getCamera2().setBinning(item);
 				}
+
+				// Setting the binning value in multi camera is not possible
+				// [Moon: 2021-07-19]
+//				try {
+//					core.setProperty(currentCamera, MMCoreJ.getG_Keyword_Binning(), binningComboBox.getSelectionModel().getSelectedIndex() );
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
 			} else {
 				if(spimSetup.getCamera1() != null && currentCamera.equals(spimSetup.getCamera1().getLabel()))
 					spimSetup.getCamera1().setBinning(item);
