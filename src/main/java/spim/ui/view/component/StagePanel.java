@@ -508,29 +508,29 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		topHbox.setAlignment( Pos.CENTER_LEFT );
 
 		// Smart rotate
-		CheckBox smartCheckBox = new CheckBox("Smart Rotate");
-		smartRotate = smartCheckBox.selectedProperty();
-
-		TextField xOffsetTextField = new TextField("1");
-		xOffsetTextField.setMaxWidth(50);
-		TextField zOffsetTextField = new TextField("1");
-		zOffsetTextField.setMaxWidth(50);
-		HBox smartBox = new HBox(10, smartCheckBox, new Label("X:"), xOffsetTextField, new Label("Z:"), zOffsetTextField);
-		smartBox.setAlignment( Pos.CENTER_LEFT );
-
-		stageUnitR.targetValueProperty().addListener(new ChangeListener<Number>() {
-			@Override
-			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
-				if(smartRotate.get()) {
-					double xoff = Double.parseDouble(xOffsetTextField.getText());
-					double zoff = Double.parseDouble(zOffsetTextField.getText());
-					if(newValue.doubleValue() > oldValue.doubleValue())
-						goToOffset(xoff, zoff);
-					else
-						goToOffset(-xoff, -zoff);
-				}
-			}
-		});
+//		CheckBox smartCheckBox = new CheckBox("Smart Rotate");
+//		smartRotate = smartCheckBox.selectedProperty();
+//
+//		TextField xOffsetTextField = new TextField("1");
+//		xOffsetTextField.setMaxWidth(50);
+//		TextField zOffsetTextField = new TextField("1");
+//		zOffsetTextField.setMaxWidth(50);
+//		HBox smartBox = new HBox(10, smartCheckBox, new Label("X:"), xOffsetTextField, new Label("Z:"), zOffsetTextField);
+//		smartBox.setAlignment( Pos.CENTER_LEFT );
+//
+//		stageUnitR.targetValueProperty().addListener(new ChangeListener<Number>() {
+//			@Override
+//			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
+//				if(smartRotate.get()) {
+//					double xoff = Double.parseDouble(xOffsetTextField.getText());
+//					double zoff = Double.parseDouble(zOffsetTextField.getText());
+//					if(newValue.doubleValue() > oldValue.doubleValue())
+//						goToOffset(xoff, zoff);
+//					else
+//						goToOffset(-xoff, -zoff);
+//				}
+//			}
+//		});
 
 		Button undoBtn = new Button( "Go back to the last used position" );
 		undoBtn.setStyle("-fx-base: #c1e796;");
@@ -569,7 +569,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 //			}
 //		} );
 
-		VBox controls = new VBox( 10, topHbox, smartBox, angleIndiBox, stageUnitR, stageUnitX, stageUnitY, stageUnitZ, newButton , undoBtn );
+		VBox controls = new VBox( 10, topHbox, angleIndiBox, stageUnitR, stageUnitX, stageUnitY, stageUnitZ, newButton , undoBtn );
 		controls.setPadding( new Insets( 10 ) );
 		return controls;
 	}

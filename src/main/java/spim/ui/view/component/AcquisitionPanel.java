@@ -40,7 +40,6 @@ import javafx.stage.FileChooser;
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 
-import mmcorej.MMCoreJ;
 import org.apache.commons.io.FileUtils;
 import org.micromanager.Studio;
 
@@ -150,6 +149,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 	// Holder for zStep and zEnd
 	double zStackStart, zStackStepSize, zStackEnd;
+	private static DecimalFormat df = new DecimalFormat("0.0");
+	ObservableList<String> zStepList = FXCollections.observableArrayList();
+	double zStepSize = 1.0;
 
 	// For Smart Imaging
 	SimpleDoubleProperty currentTP;
@@ -277,7 +279,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		pi.setMaxSize( 50,50 );
 
 		final HBox acquireHBox = new HBox();
-		acquireHBox.setSpacing(5);
+		acquireHBox.setSpacing(15);
 		acquireHBox.setAlignment( Pos.CENTER_LEFT );
 		acquireHBox.setPadding( new Insets(10) );
 
@@ -311,6 +313,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		} );
 
 		exposureField = createNumberTextField();
+		exposureField.setMaxWidth( 50 );
 		exposureField.setOnAction(event -> {
 			if (getStudio() != null && getStudio().core() != null) {
 				double exp = Double.parseDouble( exposureField.getText() );
@@ -378,7 +381,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		acquireHBox.getChildren().addAll(liveViewButton, exposureBox, createSpacer(10), acquireButton, pi);
+		acquireHBox.getChildren().addAll(exposureBox, liveViewButton, createSpacer(10), pi, acquireButton);
 
 		Spinner<Integer> spinner = new Spinner<>(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 4, 1));
 		spinner.setPrefSize(55, 50);
@@ -546,15 +549,17 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				if(item != null) {
 					Studio studio = getStudio();
 
-					boolean b = studio.live().isLiveModeOn();
+					if(studio != null) {
+						boolean b = studio.live().isLiveModeOn();
 
-					if(b)
-						studio.live().setLiveModeOn(false);
+						if(b)
+							studio.live().setLiveModeOn(false);
 
-					binningItemChanged(item);
+						binningItemChanged(item);
 
-					if(b)
-						studio.live().setLiveModeOn(true);
+						if(b)
+							studio.live().setLiveModeOn(true);
+					}
 				}
 			}
 		} );
@@ -1069,6 +1074,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				e.printStackTrace();
 			}
 
+			this.zStepSize = setup.getZStage().getStepSize();
+
+			for (int i = 0; i < 10; i++) {
+				zStepList.add(df.format(zStepSize * (i + 1)) + " μm");
+			}
 		} else {
 			this.imageWidth = 512;
 			this.imageHeight = 512;
@@ -1106,6 +1116,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				zStart.set(0);
 				zEnd.set(0);
 				zStep.set(1.5);
+
+				zStepList.clear();
 			}
 		}
 
@@ -1896,11 +1908,12 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		sliceCube = new SliceCube(50, cubeHeight, 100, Color.CADETBLUE, 1, zStart, zEnd, zCurrent, zStep );
 
 		zStackGridPane = new GridPane();
-		zStackGridPane.setVgap( 30 );
+		zStackGridPane.setVgap( 5 );
 		zStackGridPane.setHgap( 5 );
 
 		Button startButton = createZStackButton( "Z-start" );
 		TextField zStartField = createNumberTextField();
+		zStartField.setMaxWidth( 50 );
 		zStartField.textProperty().addListener( new ChangeListener< String >()
 		{
 			@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
@@ -1921,21 +1934,40 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		zStackGridPane.addRow( 0, startButton, zStartField );
+		zStackGridPane.addRow( 0, new VBox( startButton, zStartField ) );
 
 		TextField zStepField = createNumberTextField();
-		zStepField.setText( "1.5" );
-		zStepField.textProperty().addListener( new ChangeListener< String >()
+		zStepField.textProperty().addListener(new ChangeListener<String>() {
+			@Override
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+				if(!newValue.isEmpty()) {
+					double o = Double.parseDouble(newValue);
+					double n = o / zStepSize;
+					double ceil = Math.round(n);
+					zStepField.setText( ceil * zStepSize + "");
+				}
+			}
+		});
+
+		Button midButton = createZStackButton( "Go to centre" );
+
+		ComboBox zStepComboBox = new ComboBox<>( zStepList );
+		zStepComboBox.setEditable(true);
+		zStepComboBox.setMaxWidth(80);
+		zStepComboBox.valueProperty().addListener( new ChangeListener< String >()
 		{
 			@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
 			{
 				if(!newValue.isEmpty()) {
-					zStackStepSize = Double.parseDouble( newValue );
+					String n = newValue.replaceAll("μm", "");
+					zStepField.setText(n);
+					zStackStepSize = Double.parseDouble( n );
 					zStep.set( zStackStepSize / maxZStack * cubeHeight );
 				}
 			}
 		} );
-		zStepField.setOnAction( event -> {
+
+		zStepComboBox.setOnAction( event -> {
 			if(currentPosition.get() != null)
 			{
 				currentPosition.get().setZStep( zStackStepSize );
@@ -1944,12 +1976,13 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		Button midButton = createZStackButton( "Go to centre" );
-
-		zStackGridPane.addRow( 1, midButton, zStepField, new Label( "Z-step (\u03BCm)" ) );
+		HBox zCenter = new HBox( 5, zStepComboBox, new Label( "Z-step (μm)" ) );
+		zCenter.setAlignment( Pos.CENTER_LEFT );
+		zStackGridPane.addRow( 1, new VBox( midButton, zCenter ) );
 
 		Button endButton = createZStackButton( "Z-end" );
 		TextField zEndField = createNumberTextField();
+		zEndField.setMaxWidth( 50 );
 		zEndField.textProperty().addListener( new ChangeListener< String >()
 		{
 			@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
@@ -1972,7 +2005,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		setupMouseClickedHandler(startButton, zStartField, endButton, zEndField, midButton);
 
-		zStackGridPane.addRow( 2, endButton, zEndField );
+		zStackGridPane.addRow( 2, new VBox( endButton, zEndField ) );
 
 		currentPosition.addListener( new ChangeListener< PositionItem >()
 		{
@@ -1991,9 +2024,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		} );
 
 		if(stagePanel == null && zSlider != null)
-			zStackGridPane.add( zSlider, 3, 0, 1, 2 );
+			zStackGridPane.add( zSlider, 2, 0, 1, 3 );
 
-		Button newButton = new Button( "Add Z-stack position" );
+		Button newButton = new Button( "Add Z-stack" );
 		newButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -2021,7 +2054,22 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 //				}
 //			}
 //		} );
-		zStackGridPane.addRow( 3, newButton );
+
+		Button clearButton = new Button( "Clear" );
+		clearButton.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				zStartField.setDisable(false);
+				zStartField.setText("");
+				startButton.setDisable(false);
+
+				zEndField.setDisable(false);
+				zEndField.setText("");
+				endButton.setDisable(false);
+			}
+		});
+
+		zStackGridPane.addRow( 3, new HBox( newButton, clearButton ) );
 
 		// create a group
 		HBox b = new HBox(new Label("Stage"));
@@ -2045,7 +2093,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		if(spimSetup != null ) {
 			double r = spimSetup.getThetaStage().getPosition();
 			double x = spimSetup.getXStage().getPosition();
+			x = Math.ceil(x * 100) / 100;
 			double y = spimSetup.getYStage().getPosition();
+			y = Math.ceil(y * 100) / 100;
 
 			if( zStart < 0 && zEnd < 0 ) {
 				double z = spimSetup.getZStage().getPosition();
@@ -2072,15 +2122,21 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				SPIMSetup spimSetup = getSpimSetup();
 				if(spimSetup != null && spimSetup.getZStage() != null) {
 					int currPos = (int) spimSetup.getZStage().getPosition();
-					if(zEndField.getText().isEmpty())
-						zStartField.setText( currPos + "" );
-					else {
+					if(zEndField.getText().isEmpty()) {
+						zStartField.setText(currPos + "");
+						zStartField.setDisable(true);
+						startButton.setDisable(true);
+					} else {
 						int zEnd = Integer.parseInt( zEndField.getText() );
 						if(zEnd < currPos) {
 							zEndField.setText( currPos + "" );
+							zEndField.setDisable(true);
+							endButton.setDisable(true);
 							zStartField.setText( zEnd + "" );
 						} else {
 							zStartField.setText( currPos + "" );
+							zStartField.setDisable(true);
+							startButton.setDisable(true);
 						}
 					}
 				}
@@ -2094,15 +2150,24 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				SPIMSetup spimSetup = getSpimSetup();
 				if(spimSetup != null && spimSetup.getZStage() != null) {
 					int currPos = (int) spimSetup.getZStage().getPosition();
-					if(zStartField.getText().isEmpty())
-						zEndField.setText( currPos + "" );
-					else {
+					if(zStartField.getText().isEmpty()) {
+						zEndField.setText(currPos + "");
+						zEndField.setDisable(true);
+						endButton.setDisable(true);
+					} else {
 						int zStart = Integer.parseInt( zStartField.getText() );
 						if(zStart < currPos) {
 							zEndField.setText( currPos + "" );
+							zEndField.setDisable(true);
+							endButton.setDisable(true);
 						} else {
 							zStartField.setText( currPos + "" );
+							zStartField.setDisable(true);
+							startButton.setDisable(true);
+
 							zEndField.setText( zStart + "" );
+							zEndField.setDisable(true);
+							endButton.setDisable(true);
 						}
 					}
 				}

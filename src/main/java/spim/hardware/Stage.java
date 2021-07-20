@@ -120,10 +120,12 @@ public class Stage extends Device {
 	 */
 	public double getStepSize() {
 		double stepSize;
+
 		if(hasProperty("StepSize"))
 			stepSize = getPropertyDouble("StepSize");
-		else
-			stepSize = 1.0;
+		else if(label.equals( "DStage" ))
+			stepSize = 1.524;
+		else stepSize = 1.0;
 
 		if(stepSize == 1.0) {
 			stepSize = stepSizeProperty.get();

@@ -59,6 +59,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 	final Text pixelSizeValue;
 	final Text rotatorStepSizeValue;
+	final Text zStageStepSizeValue;
 
 	public ToolbarPanel( Studio mmStudio, ObjectProperty< Studio > mmStudioObjectProperty, ObjectProperty<GUIRefreshEvent> refreshEventProperty )
 	{
@@ -220,25 +221,33 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 		Supplier<Text> nl = () -> new Text("\n");
 
+		Font helveticaBold = Font.font("Helvetica", FontWeight.BOLD, 12);
 		Text pixelSizeLabel = new Text("Pixel Size μm: ");
-		pixelSizeLabel.setFont(Font.font("Helvetica", FontWeight.BOLD, 12));
+		pixelSizeLabel.setFont(helveticaBold);
 		pixelSizeValue = new Text("N.A.");
 		pixelSizeValue.setFont(Font.font("Helvetica", 12));
 
 		Text rotatorStepSizeLabel = new Text("Rotator Step Size μm: ");
-		rotatorStepSizeLabel.setFont(Font.font("Helvetica", FontWeight.BOLD, 12));
+		rotatorStepSizeLabel.setFont(helveticaBold);
 		rotatorStepSizeValue = new Text("N.A.");
 		rotatorStepSizeValue.setFont(Font.font("Helvetica", 12));
+
+		Text zStageStepSizeLabel = new Text("Z-Stage Step Size μm: ");
+		zStageStepSizeLabel.setFont(helveticaBold);
+		zStageStepSizeValue = new Text("N.A.");
+		zStageStepSizeValue.setFont(Font.font("Helvetica", 12));
 
 		refreshEventProperty.addListener((observable, oldValue, newValue) -> {
 			if(studioProperty.get() != null) {
 				pixelSizeValue.setText(studioProperty.get().core().getPixelSizeUm() + "");
 				rotatorStepSizeValue.setText(spimSetupObjectProperty.get().getThetaStage().getStepSize() + "");
+				zStageStepSizeValue.setText(spimSetupObjectProperty.get().getZStage().getStepSize() + "");
 			}
 		});
 
 		TextFlow textFlow = new TextFlow(pixelSizeLabel, pixelSizeValue, nl.get(),
-				rotatorStepSizeLabel, rotatorStepSizeValue, nl.get());
+				rotatorStepSizeLabel, rotatorStepSizeValue, nl.get(),
+				zStageStepSizeLabel, zStageStepSizeValue, nl.get());
 
 		gridpane.addRow( 5, textFlow );
 
@@ -317,6 +326,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			liveViewHbox.getChildren().add( openDatasetButton );
 			pixelSizeValue.setText(studio.core().getPixelSizeUm() + "");
 			rotatorStepSizeValue.setText(setup.getThetaStage().getStepSize() + "");
+			zStageStepSizeValue.setText(setup.getZStage().getStepSize() + "");
 //			roi = new java.awt.Rectangle(0, 0, 0, 0);
 		} else {
 			topHbox.getChildren().add( liveDemoLabel );
@@ -325,6 +335,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			liveViewHbox.getChildren().remove( openDatasetButton );
 			pixelSizeValue.setText("N.A.");
 			rotatorStepSizeValue.setText("N.A.");
+			zStageStepSizeValue.setText("N.A.");
 //			roi = new java.awt.Rectangle( 0, 0, 0, 0 );
 		}
 	}

@@ -27,6 +27,7 @@ import org.micromanager.display.internal.displaywindow.imagej.MMVirtualStack;
 import org.micromanager.acquisition.AcquisitionEndedEvent;
 import org.micromanager.acquisition.AcquisitionStartedEvent;
 import org.micromanager.events.*;
+import org.micromanager.events.internal.DefaultGUIRefreshEvent;
 import org.micromanager.events.internal.InternalShutdownCommencingEvent;
 import org.micromanager.internal.MMStudio;
 import org.micromanager.internal.MMVersion;
@@ -122,6 +123,7 @@ public class MicroManager implements PlugIn, CommandListener
 								@Override public void windowClosing( WindowEvent e )
 								{
 									super.windowClosing( e );
+//									mmstudio.events().unregisterForEvents(MicroManager.this);
 									shutdown();
 								}
 							} );
@@ -130,7 +132,7 @@ public class MicroManager implements PlugIn, CommandListener
 						// get the MM core
 						final CMMCore core = getCore();
 
-//						core.registerCallback( new OpenSPIMEventCallback() );
+						core.registerCallback( new OpenSPIMEventCallback() );
 						mmStudioProperty.set( MicroManager.getMMStudio() );
 
 //						ReportingUtils.setCore( core );
@@ -1472,13 +1474,14 @@ public class MicroManager implements PlugIn, CommandListener
 		@Override
 		public void onPropertyChanged(String deviceName, String propName, String propValue)
 		{
-			System.out.println("PropertyChanged:" + deviceName + "-" + propName + " with " + propValue);
-			if(deviceName.equals("Core") && propName.equals("Initialize") && propValue.equals("0")) {
-				mmStudioProperty.set( null );
-			}
+//			System.out.println("PropertyChanged:" + deviceName + "-" + propName + " with " + propValue);
+//			if(deviceName.equals("Core") && propName.equals("Initialize") && propValue.equals("0")) {
+//				mmStudioProperty.set( null );
+//			}
 //			else if(deviceName.equals("Core") && propName.equals("Camera") && propValue == null) {
 //				mmStudioProperty.set( null );
 //			}
+			mmStudioGUIRefreshEventProperty.set(new DefaultGUIRefreshEvent());
 		}
 
 		@Override
