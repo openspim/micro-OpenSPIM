@@ -63,6 +63,7 @@ public class OMETIFFStorage implements Storage {
 	private HashMap<String, Boolean> closedFile_ = new HashMap<>();
 	private HashMap<String, ImageProcessorReader> iprMap_ = new HashMap<>();
 	private HashMap<String, ImageProcessor> cache_ = new HashMap<>();
+	private int lastPosition = 0;
 
 	static {
 		DebugTools.enableLogging( "OFF" );
@@ -342,7 +343,9 @@ public class OMETIFFStorage implements Storage {
 
 				Metadata m = image.getMetadata();
 
+				if(lastPosition != pos) doubleAnnotations = 0;
 				td = doubleAnnotations;
+
 				meta.setUUIDFileName( tiffFileName, pos, td );
 				meta.setUUIDValue( "urn:uuid:" + UUID.nameUUIDFromBytes( tiffFileName.getBytes() ).toString(), pos, td );
 
@@ -416,6 +419,7 @@ public class OMETIFFStorage implements Storage {
 	private int doubleAnnotations = 0;
 	@SuppressWarnings("Duplicates")
 	private int storeDouble(int image, int plane, int n, String name, double val) {
+		lastPosition = image;
 		String key = String.format("%d/%d/%d: %s", image, plane, n, name);
 
 		meta.setDoubleAnnotationID(key, doubleAnnotations);
@@ -521,7 +525,8 @@ public class OMETIFFStorage implements Storage {
 			String coordsKey = "Coords-" + coords;
 
 			// Use 0 for situations where there's no index information.
-			int pos = Math.max(0, image.getCoords().getStagePosition());
+//			int pos = Math.max(0, image.getCoords().getStagePosition());
+			int pos = 0;
 			JsonObject jo = new JsonObject();
 			NonPropertyMapJSONFormats.coords().addToGson(jo,
 					((DefaultCoords) image.getCoords()).toPropertyMap());

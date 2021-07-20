@@ -541,7 +541,8 @@ public class N5MicroManagerStorage implements Storage {
 			String coordsKey = "Coords-" + coords;
 
 			// Use 0 for situations where there's no index information.
-			int pos = Math.max(0, image.getCoords().getStagePosition());
+//			int pos = Math.max(0, image.getCoords().getStagePosition());
+			int pos = 0;
 			JsonObject jo = new JsonObject();
 			NonPropertyMapJSONFormats.coords().addToGson(jo,
 					((DefaultCoords) image.getCoords()).toPropertyMap());
