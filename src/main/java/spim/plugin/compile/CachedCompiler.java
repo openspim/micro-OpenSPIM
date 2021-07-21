@@ -10,20 +10,11 @@ package spim.plugin.compile;
  * @since 9/3/13
  */
 
-import mmcorej.CMMCore;
 import org.apache.commons.logging.LogFactory;
-import spim.SPIMAcq;
 
 import javax.tools.JavaFileObject;
-import javax.tools.ToolProvider;
-
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.nio.CharBuffer;
 import java.util.Arrays;
 import java.util.Map;
 
