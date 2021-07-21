@@ -43,7 +43,6 @@ import mmcorej.DeviceType;
 import org.apache.commons.io.FileUtils;
 import org.micromanager.Studio;
 
-import org.micromanager.events.GUIRefreshEvent;
 import org.micromanager.events.internal.DefaultGUIRefreshEvent;
 import org.micromanager.internal.MMStudio;
 import spim.hardware.Camera;
@@ -956,7 +955,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	private static String getUserDataDirectory()
 	{
 		String path = System.getProperty( "user.home" ) + File.separator
-				+ ".openSpimAcq"
+				+ ".microOpenSPIM"
 				+ File.separator;
 		dirExist( path );
 		return path;

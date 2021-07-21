@@ -68,7 +68,7 @@ public class SPIMSetup {
 			try {
 				return strVecContains(core.getLoadedDevicesOfType(deviceMap.get(type).getMMType()), deviceMap.get(type).getLabel());
 			} catch (Throwable t) {
-				ReportingUtils.logError(t, "SPIMAcquisition checking connection");
+				ReportingUtils.logError(t, "µOpenSPIM checking connection");
 				return false;
 			}
 		} else {

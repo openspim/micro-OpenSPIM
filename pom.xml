@@ -336,7 +336,7 @@
                                 </fileset>
                             </copy>
 
-                            <copy todir="\\fileserver.mpi-cbg.de\openspim\openSPIM\gamma\SPIMAcquisition-1.0.1-SNAPSHOT\runtime\lib">
+                            <copy todir="\\fileserver.mpi-cbg.de\openspim\openSPIM\gamma\µOpenSPIM\runtime\lib">
                                 <fileset dir="C:/Program Files/Zulu/zulu-8/lib">
                                     <include name="tools.jar"/>
                                 </fileset>
