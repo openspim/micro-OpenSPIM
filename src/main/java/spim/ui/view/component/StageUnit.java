@@ -21,9 +21,8 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.util.StringConverter;
-import spim.ui.view.component.iconswitch.IconSwitch;
-import spim.ui.view.component.slider.StageSlider;
+import spim.ui.view.component.widgets.iconswitch.IconSwitch;
+import spim.ui.view.component.widgets.slider.StageSlider;
 
 import java.util.HashMap;
 

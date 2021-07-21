@@ -70,9 +70,9 @@ import org.micromanager.internal.utils.MDUtils;
 import spim.hardware.Camera;
 import spim.hardware.SPIMSetup;
 import spim.model.data.DeviceItem;
-import spim.ui.view.component.pane.CheckboxPane;
-import spim.ui.view.component.slider.StageSlider;
-import spim.ui.view.component.slider.customslider.Slider;
+import spim.ui.view.component.widgets.pane.CheckboxPane;
+import spim.ui.view.component.widgets.slider.StageSlider;
+import spim.ui.view.component.widgets.slider.customslider.Slider;
 import spim.ui.view.component.util.TableViewUtil;
 
 import java.nio.IntBuffer;

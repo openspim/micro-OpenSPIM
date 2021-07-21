@@ -49,7 +49,7 @@ import spim.io.*;
 import spim.model.data.ChannelItem;
 import spim.model.data.PositionItem;
 import spim.model.data.TimePointItem;
-import spim.ui.view.component.acq.AcqWrapperEngine;
+import spim.ui.view.component.acquisition.AcqWrapperEngine;
 import spim.util.SystemInfo;
 
 import java.awt.*;

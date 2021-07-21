@@ -20,8 +20,8 @@ import javafx.scene.text.Font;
 import org.micromanager.Studio;
 import spim.hardware.Laser;
 import spim.hardware.SPIMSetup;
-import spim.ui.view.component.rbg.RadialBargraph;
-import spim.ui.view.component.rbg.RadialBargraphBuilder;
+import spim.ui.view.component.widgets.rbg.RadialBargraph;
+import spim.ui.view.component.widgets.rbg.RadialBargraphBuilder;
 
 import java.util.ArrayList;
 import java.util.List;

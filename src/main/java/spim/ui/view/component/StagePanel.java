@@ -26,7 +26,7 @@ import javafx.scene.paint.Color;
 import javafx.util.StringConverter;
 import org.micromanager.Studio;
 import spim.hardware.SPIMSetup;
-import spim.ui.view.component.iconswitch.IconSwitch;
+import spim.ui.view.component.widgets.iconswitch.IconSwitch;
 
 import java.beans.XMLDecoder;
 import java.beans.XMLEncoder;

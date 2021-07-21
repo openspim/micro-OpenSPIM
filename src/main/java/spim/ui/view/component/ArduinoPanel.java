@@ -20,7 +20,7 @@ import org.micromanager.Studio;
 import spim.hardware.Arduino;
 import spim.hardware.SPIMSetup;
 import spim.model.data.PinItem;
-import spim.ui.view.component.slider.StageSlider;
+import spim.ui.view.component.widgets.slider.StageSlider;
 import spim.ui.view.component.util.TableViewUtil;
 
 import java.io.File;

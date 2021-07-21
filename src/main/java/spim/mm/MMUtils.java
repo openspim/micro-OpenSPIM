@@ -9,7 +9,7 @@ import javafx.stage.Stage;
 import mmcorej.TaggedImage;
 import org.micromanager.acquisition.internal.TaggedImageQueue;
 import org.micromanager.internal.ConfigGroupPad;
-import spim.SlimOpenSPIM;
+import spim.microOpenSPIM;
 
 import java.awt.Desktop;
 import java.beans.XMLDecoder;
@@ -484,7 +484,7 @@ public class MMUtils
 		dirExist( getUserDataDirectory() );
 
 		if(!new File(fileName).exists()) {
-			return Preferences.userRoot().node( SlimOpenSPIM.class.getName() );
+			return Preferences.userRoot().node( microOpenSPIM.class.getName() );
 		}
 
 		XMLDecoder e = null;

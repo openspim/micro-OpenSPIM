@@ -13,7 +13,7 @@
     <name>µOpenSPIM</name>
 
 	<properties>
-        <mainClass>spim.SlimOpenSPIM</mainClass>
+        <mainClass>spim.microOpenSPIM</mainClass>
 		<scijava.jvm.version>1.8</scijava.jvm.version>
         <ij.version>1.52p</ij.version>
         <mmj.jar.path>${project.basedir}/lib/MMJ_.jar</mmj.jar.path>
@@ -224,7 +224,7 @@
                     <version>8.8.4-SNAPSHOT</version>
                     <configuration>
                         <vendor>Scientific Computing Facility</vendor>
-                        <mainClass>spim.SlimOpenSPIM</mainClass>
+                        <mainClass>spim.microOpenSPIM</mainClass>
                         <j2seVersion>1.8+</j2seVersion>
                         <allPermissions>true</allPermissions>
                         <bundleArguments>
