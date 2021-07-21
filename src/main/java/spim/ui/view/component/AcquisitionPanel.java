@@ -43,6 +43,8 @@ import mmcorej.DeviceType;
 import org.apache.commons.io.FileUtils;
 import org.micromanager.Studio;
 
+import org.micromanager.events.GUIRefreshEvent;
+import org.micromanager.events.internal.DefaultGUIRefreshEvent;
 import org.micromanager.internal.MMStudio;
 import spim.hardware.Camera;
 import spim.hardware.SPIMSetup;
@@ -562,6 +564,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 						if(b)
 							studio.live().setLiveModeOn(true);
+
+						studio.events().post(new DefaultGUIRefreshEvent());
 					}
 				}
 			}
@@ -2058,7 +2062,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 //			}
 //		} );
 
-		Button clearButton = new Button( "Clear" );
+		Button clearButton = new Button( "New Z-stack" );
 		clearButton.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {

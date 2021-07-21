@@ -8,6 +8,7 @@ import ij.Macro;
 import ij.plugin.Duplicator;
 import ij.plugin.PlugIn;
 
+import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.scene.control.Alert;
 import javafx.stage.Stage;
@@ -104,7 +105,7 @@ public class MicroManager implements PlugIn, CommandListener
 						setSysConfFile.invoke(null, sysConfigFile);
 
 						mmstudio = new MMStudio( true, profileNameAutoStart );
-						mmstudio.events().registerForEvents( this );
+						mmstudio.events().registerForEvents( MicroManager.this );
 
 						ReportingUtils.setCore( null );
 
@@ -134,7 +135,7 @@ public class MicroManager implements PlugIn, CommandListener
 						// get the MM core
 						final CMMCore core = getCore();
 
-						core.registerCallback( new OpenSPIMEventCallback() );
+//						core.registerCallback( new OpenSPIMEventCallback() );
 						mmStudioProperty.set( MicroManager.getMMStudio() );
 
 //						ReportingUtils.setCore( core );
@@ -1373,8 +1374,8 @@ public class MicroManager implements PlugIn, CommandListener
 
 	@Subscribe
 	public void onGUIRefresh(GUIRefreshEvent event) {
-		System.out.println("Refreshed.....");
-		mmStudioGUIRefreshEventProperty.set(event);
+//		System.out.println("Refreshed.....");
+		Platform.runLater(() -> mmStudioGUIRefreshEventProperty.set( event ));
 	}
 
 //	private static class LiveListenerThread extends Thread
@@ -1476,14 +1477,13 @@ public class MicroManager implements PlugIn, CommandListener
 		@Override
 		public void onPropertyChanged(String deviceName, String propName, String propValue)
 		{
-//			System.out.println("PropertyChanged:" + deviceName + "-" + propName + " with " + propValue);
+			System.out.println("PropertyChanged:" + deviceName + "-" + propName + " with " + propValue);
 //			if(deviceName.equals("Core") && propName.equals("Initialize") && propValue.equals("0")) {
 //				mmStudioProperty.set( null );
 //			}
 //			else if(deviceName.equals("Core") && propName.equals("Camera") && propValue == null) {
 //				mmStudioProperty.set( null );
 //			}
-			mmStudioGUIRefreshEventProperty.set(new DefaultGUIRefreshEvent());
 		}
 
 		@Override
