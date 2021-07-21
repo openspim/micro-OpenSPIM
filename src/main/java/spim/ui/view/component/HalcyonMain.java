@@ -23,11 +23,14 @@ import org.micromanager.events.GUIRefreshEvent;
 import spim.hardware.SPIMSetup;
 import spim.hardware.VersaLase;
 import spim.ui.view.component.console.StdOutCaptureConsole;
+import spim.ui.view.component.util.ResourceUtil;
 
 import java.io.InputStream;
 import java.util.ArrayList;
 
 /**
+ * Description: µOpenSPIM application main class
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: October 2018

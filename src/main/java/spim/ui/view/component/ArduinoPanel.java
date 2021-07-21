@@ -1,7 +1,6 @@
 package spim.ui.view.component;
 
 import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.Property;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.value.ChangeListener;
@@ -30,12 +29,12 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Properties;
 
 /**
+ * Description: Arduino panel shows all the properties regarding Arduino in Micro-Manager.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: May 2019

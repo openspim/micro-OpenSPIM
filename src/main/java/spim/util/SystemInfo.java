@@ -4,6 +4,10 @@ package spim.util;
 import mmcorej.CMMCore;
 
 /**
+ * Description: SystemInfo logs the memory footage every acquisition
+ * in order to check the memory status.
+ * This code is from PhysicalMemoryInfoSection class written by Mark Tsuchida
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: April 2021

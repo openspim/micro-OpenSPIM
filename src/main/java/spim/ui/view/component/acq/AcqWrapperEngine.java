@@ -54,6 +54,7 @@ import spim.ui.view.component.MMAcquisitionEngine;
 /**
  * This is the modified version of AcquisitionWrapperEngine.java
  * The original source is located in https://github.com/nicost/micro-manager/blob/ViewerPlusCV/mmstudio/src/main/java/org/micromanager/acquisition/internal/AcquisitionWrapperEngine.java
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: October 2019

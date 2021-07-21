@@ -19,6 +19,10 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 /**
+ * Description: Metadata class for N5 data. It is experimental yet.
+ * It has conflicts of loading the original data with this version of metadata.
+ * There might a issue with storing metadata. We do not use this class for now.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: June 2021

@@ -16,6 +16,8 @@ import javafx.scene.transform.Rotate;
 import spim.model.data.TimePointItem;
 
 /**
+ * Description: CylinderProgress is used in Preview of imaging session in Acquisition panel.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: April 2020

@@ -5,6 +5,14 @@ import java.util.Collection;
 
 import mmcorej.CMMCore;
 
+/**
+ * Description: Generic Rotator device for µOpenSPIM
+ *
+ * Author: Johannes Schindelin
+ * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
+ * Organization: MPI-CBG Dresden
+ * Date: March 2019
+ */
 public class GenericRotator extends Stage {
 	static {
 		Device.installFactory(new Factory() {

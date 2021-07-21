@@ -38,6 +38,8 @@ import java.util.Optional;
 import java.util.prefs.Preferences;
 
 /**
+ * Description: Utility class for Micro-Manager 2.0
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: March 2020

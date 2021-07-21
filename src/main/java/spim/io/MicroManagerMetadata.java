@@ -6,6 +6,8 @@ import org.micromanager.PropertyMap;
 import java.io.IOException;
 
 /**
+ * Description: MicroManagerMetadata interface for N5 storage.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: June 2021

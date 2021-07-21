@@ -4,6 +4,8 @@ import javafx.event.Event;
 import javafx.event.EventType;
 
 /**
+ * Description: All the control events for event driven execution.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: April 2019

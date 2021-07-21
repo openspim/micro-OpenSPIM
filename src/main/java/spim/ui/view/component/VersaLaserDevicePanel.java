@@ -11,6 +11,9 @@ import java.util.Arrays;
 import java.util.Objects;
 
 /**
+ * Description: VersaLase Device Panel consists of four lasers embedded in one box
+ * Sub modular lasers can be accessed by "LASER_A_", "LASER_B_", "LASER_C_" and "LASER_D_".
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: April 2019

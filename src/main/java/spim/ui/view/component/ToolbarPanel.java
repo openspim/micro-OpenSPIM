@@ -37,6 +37,9 @@ import java.util.function.Supplier;
 
 
 /**
+ * Description: Basic tool bar panel contains Micro-Manager start button as well as
+ * the important property values, e.g. Pixel Size μm, Rotator Step Size μm and Z-Stage Step Size μm.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: October 2018

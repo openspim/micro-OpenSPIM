@@ -46,6 +46,8 @@ import static java.lang.Math.abs;
 import static java.lang.Math.signum;
 
 /**
+ * Description: StagePanel shows all the stage units which can be controlled in Micro-Manager.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: September 2018

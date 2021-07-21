@@ -28,18 +28,20 @@ import spim.ui.view.component.slider.StageSlider;
 import java.util.HashMap;
 
 /**
+ * Description: StageUnit is a component for each stage unit, e.g. X, Y, Z, R
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: September 2018
  */
 public class StageUnit extends Region
 {
-	enum Stage
+	public enum Stage
 	{
 		R, X, Y, Z
 	}
 
-	enum BooleanState
+	public enum BooleanState
 	{
 		Enable, Ready, Homing, Stop, Reset
 	}

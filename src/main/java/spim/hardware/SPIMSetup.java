@@ -13,6 +13,14 @@ import mmcorej.DeviceType;
 import mmcorej.StrVector;
 import org.micromanager.internal.utils.ReportingUtils;
 
+/**
+ * Description: SPIMSetup containing essential devices for µOpenSPIM
+ *
+ * Author: Johannes Schindelin
+ * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
+ * Organization: MPI-CBG Dresden
+ * Date: March 2019
+ */
 public class SPIMSetup {
 	public static enum SPIMDevice {
 		STAGE_X ("X Stage"),

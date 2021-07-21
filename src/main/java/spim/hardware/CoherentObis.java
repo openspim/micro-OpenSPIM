@@ -2,6 +2,14 @@ package spim.hardware;
 
 import mmcorej.CMMCore;
 
+/**
+ * Description: CoherentObis device for µOpenSPIM
+ *
+ * Author: Johannes Schindelin
+ * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
+ * Organization: MPI-CBG Dresden
+ * Date: March 2019
+ */
 public class CoherentObis extends Laser {
     static {
         Device.installFactory(new Factory() {

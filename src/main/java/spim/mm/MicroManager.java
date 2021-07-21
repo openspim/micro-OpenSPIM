@@ -51,6 +51,8 @@ import java.util.prefs.Preferences;
 import static javax.swing.WindowConstants.HIDE_ON_CLOSE;
 
 /**
+ * Description: Manages Micro-Manager 2.0 instance for µOpenSPIM.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: March 2020

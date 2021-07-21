@@ -1,4 +1,4 @@
-package spim.ui.view.component;
+package spim.ui.view.component.experimental;
 
 import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
@@ -18,6 +18,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.stage.Screen;
+import spim.ui.view.component.StageUnit;
 import spim.ui.view.component.slider.StageSlider;
 import spim.ui.view.component.xyzr3d.CubeScene;
 import spim.ui.view.component.xyzr3d.SnapshotView;
@@ -34,11 +35,14 @@ import static java.lang.Math.abs;
 import static java.lang.Math.signum;
 
 /**
+ * Description: 3D Stage Control panel shows the stage controller in 3D perspective.
+ * This is experimental for later development.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: October 2018
  */
-public class Stage3DPanel  extends BorderPane
+public class Stage3DPanel extends BorderPane
 {
 	private SPIMSetup spimSetup;
 	private Pane background1Pane = null;
@@ -49,7 +53,7 @@ public class Stage3DPanel  extends BorderPane
 	private SnapshotView fourthView = null;
 	private AnimationTimer viewTimer = null;
 
-	private HashMap< StageUnit.Stage, StageUnit > stageMap = null;
+	private HashMap<StageUnit.Stage, StageUnit > stageMap = null;
 
 	public Stage3DPanel()
 	{

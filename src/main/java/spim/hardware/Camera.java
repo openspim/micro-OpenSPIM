@@ -4,6 +4,14 @@ import mmcorej.*;
 import org.micromanager.internal.utils.ReportingUtils;
 import spim.mm.StringUtil;
 
+/**
+ * Description: Camera device for µOpenSPIM
+ *
+ * Author: Johannes Schindelin
+ * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
+ * Organization: MPI-CBG Dresden
+ * Date: March 2019
+ */
 public class Camera extends Device {
 	static {
 		Device.installFactory(new Factory() {

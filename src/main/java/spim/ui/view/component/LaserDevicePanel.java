@@ -33,6 +33,8 @@ import static java.lang.Math.abs;
 import static java.lang.Math.signum;
 
 /**
+ * Description: Generic laser device panel with WaveLength color.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: October 2018

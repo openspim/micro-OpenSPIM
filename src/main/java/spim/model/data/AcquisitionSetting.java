@@ -17,6 +17,8 @@ import java.io.FileOutputStream;
 import java.util.ArrayList;
 
 /**
+ * Description: AcquisitionSetting holder for serialization.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: March 2019

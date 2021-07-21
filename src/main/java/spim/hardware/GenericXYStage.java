@@ -11,6 +11,14 @@ import spim.hardware.Device.Factory;
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 
+/**
+ * Description: Generic XYStage device for µOpenSPIM
+ *
+ * Author: Johannes Schindelin
+ * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
+ * Organization: MPI-CBG Dresden
+ * Date: March 2019
+ */
 public class GenericXYStage {
 	static {
 		Factory factX = new Factory() {

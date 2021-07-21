@@ -4,6 +4,7 @@ import mmcorej.CMMCore;
 import org.micromanager.internal.utils.ReportingUtils;
 
 /**
+ * Description: AndorsCMOS camera device for µOpenSPIM
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: December 2018

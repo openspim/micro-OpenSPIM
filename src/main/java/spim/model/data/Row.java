@@ -1,4 +1,4 @@
-package spim.acquisition;
+package spim.model.data;
 
 import java.text.NumberFormat;
 import java.text.ParseException;
@@ -8,6 +8,14 @@ import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
 import spim.hardware.SPIMSetup.SPIMDevice;
 
+/**
+ * Description: Row data structure in Position table
+ *
+ * Author: Johannes Schindelin
+ * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
+ * Organization: MPI-CBG Dresden
+ * Date: March 2019
+ */
 public class Row
 {
 	public class DeviceValueSet {

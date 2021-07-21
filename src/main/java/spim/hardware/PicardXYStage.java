@@ -1,13 +1,18 @@
 package spim.hardware;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.micromanager.internal.utils.ReportingUtils;
 
 import mmcorej.CMMCore;
 import spim.hardware.Device.Factory;
 
+/**
+ * Description: PicardXYStage device for µOpenSPIM
+ *
+ * Author: Johannes Schindelin
+ * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
+ * Organization: MPI-CBG Dresden
+ * Date: March 2019
+ */
 public class PicardXYStage extends GenericXYStage {
 	static {
 		instance = new PicardXYStage();

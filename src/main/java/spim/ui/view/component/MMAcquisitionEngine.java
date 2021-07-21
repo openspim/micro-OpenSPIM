@@ -1,6 +1,5 @@
 package spim.ui.view.component;
 
-import ij.process.ImageProcessor;
 import javafx.application.Platform;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.LongProperty;
@@ -39,7 +38,7 @@ import org.micromanager.acquisition.AcquisitionStartedEvent;
 
 import org.micromanager.internal.MMStudio;
 
-import spim.acquisition.Row;
+import spim.model.data.Row;
 import spim.algorithm.AntiDrift;
 import spim.algorithm.DefaultAntiDrift;
 import spim.hardware.Device;
@@ -62,6 +61,8 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
+ * Description: AcquisitionEngine for Micro-Manager is used for µOpenSPIM.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: June 2019
@@ -87,10 +88,6 @@ public class MMAcquisitionEngine
 
 	public void stop() {
 		stopRequest = true;
-	}
-
-	public void scheduledAcquisition() {
-		// setup OEMTIFFHandler or HDF5OutputHandler
 	}
 
 	/**

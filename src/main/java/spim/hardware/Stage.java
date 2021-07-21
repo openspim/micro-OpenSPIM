@@ -14,6 +14,14 @@ import spim.hardware.SPIMSetup.SPIMDevice;
 import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 
+/**
+ * Description: VersaLase device interface for µOpenSPIM
+ *
+ * Author: Johannes Schindelin
+ * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
+ * Organization: MPI-CBG Dresden
+ * Date: March 2019
+ */
 public class Stage extends Device {
 	static {
 		Device.installFactory(new Factory() {

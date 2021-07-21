@@ -39,6 +39,8 @@ import org.micromanager.internal.utils.ReportingUtils;
 import org.micromanager.data.DataProviderHasNewSummaryMetadataEvent;
 
 /**
+ * Description: SinglePlane Tiff Series for µOpenSPIM
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: October 2020

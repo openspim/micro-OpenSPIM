@@ -3,6 +3,8 @@ package spim.hardware;
 import mmcorej.CMMCore;
 
 /**
+ * Description: PCOCamera device for µOpenSPIM
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: July 2021

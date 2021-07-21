@@ -4,6 +4,7 @@ import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 
 /**
+ * Description: Arduino device for µOpenSPIM
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: March 2019

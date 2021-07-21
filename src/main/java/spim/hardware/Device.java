@@ -12,6 +12,14 @@ import mmcorej.DeviceType;
 import mmcorej.StrVector;
 import org.micromanager.internal.utils.ReportingUtils;
 
+/**
+ * Description: Device interface for µOpenSPIM
+ *
+ * Author: Johannes Schindelin
+ * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
+ * Organization: MPI-CBG Dresden
+ * Date: March 2019
+ */
 public abstract class Device {
 	protected CMMCore core;
 	protected String label;

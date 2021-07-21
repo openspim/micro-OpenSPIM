@@ -3,6 +3,9 @@ package spim.mm.patch;
 import spim.mm.ClassPatcher;
 
 /**
+ * Description: there was a problem of crash checking window position. This class resolves the crash.
+ * Also, it is used for loading our chosen configuration file during Micro-Manager 2.0 loading.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: March 2020

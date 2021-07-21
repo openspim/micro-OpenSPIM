@@ -1,4 +1,4 @@
-package spim.ui.view.component;
+package spim.ui.view.component.util;
 
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;

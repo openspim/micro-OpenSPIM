@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
+ * Description: MultiAcquisition is used for Camera panel when people want to check the alignment of images.
+ * It supports multi camera mode.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: December 2018

@@ -1,6 +1,8 @@
 package spim.model.data;
 
 /**
+ * Description: PositionItem is used for position table.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: March 2019

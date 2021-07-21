@@ -31,6 +31,9 @@ import java.util.Optional;
 import java.util.prefs.Preferences;
 
 /**
+ * Description: Loading window for Micro-Manager configuration file inspired by
+ * icy micro-manager plugin (http://icy.bioimageanalysis.org/plugin/micro-manager-for-icy/).
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: March 2020

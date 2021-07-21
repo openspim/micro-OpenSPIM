@@ -6,6 +6,7 @@ package spim.mm;
  * Each digit should not exceed 99.
  *
  * @author Stephane
+ * origin: https://github.com/Icy-imaging/Icy-Kernel/blob/master/icy/common/Version.java
  */
 public class Version implements Comparable<Version>
 {

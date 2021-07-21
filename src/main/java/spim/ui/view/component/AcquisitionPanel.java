@@ -57,6 +57,7 @@ import spim.ui.view.component.cube.SliceCube;
 import spim.ui.view.component.cube.StackCube;
 import spim.ui.view.component.pane.CheckboxPane;
 import spim.ui.view.component.pane.LabeledPane;
+import spim.ui.view.component.util.ResourceUtil;
 import spim.ui.view.component.util.TableViewUtil;
 import spim.ui.view.component.viewer.HelpType;
 import spim.ui.view.component.viewer.HelpWindow;
@@ -73,6 +74,8 @@ import java.util.stream.Collectors;
 import static spim.ui.view.component.util.TableViewUtil.createTimePointItemDataView;
 
 /**
+ * Description: Acquisition panel for all the settings for start acquisition.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: March 2019

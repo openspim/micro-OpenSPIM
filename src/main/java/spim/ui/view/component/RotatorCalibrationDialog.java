@@ -25,6 +25,8 @@ import static java.lang.Math.abs;
 import static java.lang.Math.signum;
 
 /**
+ * Description: RotatorCalibrationDialog calibrates the rotator for 360 degree.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: May 2020

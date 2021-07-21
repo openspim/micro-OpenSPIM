@@ -4,6 +4,14 @@ import mmcorej.CMMCore;
 import mmcorej.DeviceType;
 import org.micromanager.internal.utils.ReportingUtils;
 
+/**
+ * Description: Laser device for µOpenSPIM
+ *
+ * Author: Johannes Schindelin
+ * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
+ * Organization: MPI-CBG Dresden
+ * Date: March 2019
+ */
 public class Laser extends Device {
 	static {
 		Device.installFactory(new Factory() {

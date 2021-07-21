@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
+ * Description: Overriding class of existing WindowPosition.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: March 2020

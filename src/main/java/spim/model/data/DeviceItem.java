@@ -1,6 +1,8 @@
 package spim.model.data;
 
 /**
+ * Description: Holding the device name and value for property table.
+ *
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
  * Date: June 2020
