@@ -2,6 +2,8 @@ The [OpenSPIM](http://openspim.org/) project is a collaboration between multiple
 labs to establish an accessible, easily adjustable light sheet microscope
 system.
 
+[![DOI:21.11101/0000-0007-F040-1](https://zenodo.org/badge/doi/21.11101/0000-0007-F040-1.svg)](https://doi.org/21.11101/0000-0007-F040-1)
+
 The *µOpenSPIM* application for [Micro Manager](https://micro-manager.org) is
 the primary means to acquire image stacks with the OpenSPIM setups.
 
