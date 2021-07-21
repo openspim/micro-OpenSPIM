@@ -1946,7 +1946,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		zStepField.textProperty().addListener(new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-				if(!newValue.isEmpty()) {
+				if(newValue != null && !newValue.isEmpty()) {
 					double o = Double.parseDouble(newValue);
 					double n = o / zStepSize;
 					double ceil = Math.round(n);
@@ -1964,7 +1964,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
 			{
-				if(!newValue.isEmpty()) {
+				if(newValue != null && !newValue.isEmpty()) {
 					String n = newValue.replaceAll("μm", "");
 					zStepField.setText(n);
 					zStackStepSize = Double.parseDouble( n );
@@ -1993,7 +1993,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			@Override public void changed( ObservableValue< ? extends String > observable, String oldValue, String newValue )
 			{
-				if(!newValue.isEmpty()) {
+				if(newValue != null && !newValue.isEmpty()) {
 					zStackEnd = Double.parseDouble( newValue );
 					if(zStackEnd <= maxZStack)
 						zEnd.set( zStackEnd / maxZStack * cubeHeight );
@@ -2017,7 +2017,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			@Override public void changed( ObservableValue< ? extends PositionItem > observable, PositionItem oldValue, PositionItem newValue )
 			{
-				if(newValue != null) {
+				if(newValue != null && newValue != null) {
 					zStartField.setText( (int)newValue.getZStart() + "" );
 					zStepField.setText( newValue.getZStep() + "");
 					zEndField.setText( (int)newValue.getZEnd() + "");
