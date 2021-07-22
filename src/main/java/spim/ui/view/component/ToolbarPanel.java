@@ -31,6 +31,7 @@ import spim.hardware.SPIMSetup;
 import spim.io.*;
 import spim.mm.MMUtils;
 import spim.mm.MicroManager;
+import spim.model.event.ControlEvent;
 
 import java.io.File;
 import java.io.IOException;
@@ -143,6 +144,8 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 						MicroManager.init( stage, mmStudioObjectProperty, refreshEventProperty );
 					}
+
+					if(halcyonMain != null) halcyonMain.show();
 				} else {
 					MicroManager.getInstance().show();
 				}
@@ -273,6 +276,17 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 //		btn = new Button("488");
 //		btn.setStyle("-fx-background-color: #0FAFF0");
 //		box.getChildren().add(btn);
+
+		addEventHandler( ControlEvent.MM, new EventHandler< ControlEvent >()
+		{
+			@Override public void handle( ControlEvent event )
+			{
+				if(event.getEventType().equals( ControlEvent.MM_OPEN )) {
+					halcyonMain = (HalcyonMain) event.getParam()[0];
+					mmButton.fire();
+				}
+			}
+		} );
 	}
 
 	public void loadData() throws IOException {

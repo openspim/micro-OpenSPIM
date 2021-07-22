@@ -27,6 +27,8 @@ public class ControlEvent extends Event
 
 	public static final EventType<ControlEvent> SHUTTER = new EventType<>( ANY, "SHUTTER" );
 
+	public static final EventType<ControlEvent> MM = new EventType<>( ANY, "MM" );
+
 	// Stage specific events
 	public static final EventType<ControlEvent> STAGE_MOVE = new EventType<>( STAGE, "STAGE_MOVE" );
 
@@ -41,6 +43,9 @@ public class ControlEvent extends Event
 	// Shutter specific events
 	public static final EventType<ControlEvent> SHUTTER_OPEN = new EventType<>( SHUTTER, "SHUTTER_OPEN" );
 	public static final EventType<ControlEvent> SHUTTER_CLOSE = new EventType<>( SHUTTER, "SHUTTER_CLOSE" );
+
+	// MM Start events
+	public static final EventType<ControlEvent> MM_OPEN = new EventType<>( MM, "MM_OPEN" );
 
 	final private EventType<ControlEvent> eventType;
 	final private Object[] param;

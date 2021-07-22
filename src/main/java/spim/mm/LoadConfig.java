@@ -6,6 +6,8 @@ import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -17,11 +19,17 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextArea;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import spim.ui.view.component.ToolbarPanel;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -92,6 +100,7 @@ public class LoadConfig extends Application
 		detailSplitPane.getItems().addAll( devicePane, configPane );
 
 		BorderPane filesPane = new BorderPane();
+		filesPane.setStyle("-fx-border-color : #c8c8c8; -fx-border-width : 1");
 		//		filesPane.prefWidth( 200 );
 		fileList = new ListView<>();
 		fileList.setPrefWidth( 400 );
@@ -148,7 +157,26 @@ public class LoadConfig extends Application
 		summaryBox.setPrefWidth( 400 );
 		filesPane.setBottom( summaryBox );
 
+		// Top pane
+		VBox welcomeBox = new VBox(20);
+		Text welcomeLabel = new Text("Welcome to ");
+		welcomeLabel.setFont( Font.font( "Helvetica", FontWeight.BOLD, 20 ) );
+
+		Image logoImg = new javafx.scene.image.Image( ToolbarPanel.class.getResourceAsStream( "uOS-logo.png" ) );
+		ImageView iv = new ImageView(logoImg);
+		iv.setPreserveRatio(true);
+		iv.setFitWidth(130);
+
+		Text chooseText = new Text("Please, choose your μManager configuration file:");
+		chooseText.setFont( Font.font("Helvetica", FontWeight.BOLD, 13) );
+
+		HBox welcomeLabelBox = new HBox(5, welcomeLabel, iv);
+		welcomeLabelBox.setAlignment( Pos.CENTER_LEFT );
+		welcomeBox.getChildren().addAll(welcomeLabelBox, chooseText);
+		welcomeBox.setPadding(new Insets(10));
+
 		BorderPane main = new BorderPane();
+		main.setTop( welcomeBox );
 		main.setCenter( filesPane );
 		main.setRight( detailSplitPane );
 

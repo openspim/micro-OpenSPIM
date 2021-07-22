@@ -11,6 +11,7 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.event.Event;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
@@ -22,6 +23,7 @@ import org.micromanager.Studio;
 import org.micromanager.events.GUIRefreshEvent;
 import spim.hardware.SPIMSetup;
 import spim.hardware.VersaLase;
+import spim.model.event.ControlEvent;
 import spim.ui.view.component.console.StdOutCaptureConsole;
 import spim.ui.view.component.util.ResourceUtil;
 
@@ -41,6 +43,7 @@ public class HalcyonMain extends HalcyonFrame
 	private ObjectProperty<GUIRefreshEvent> mmStudioGUIRefreshEventProperty = new SimpleObjectProperty<>();
 	private BooleanProperty terminated = new SimpleBooleanProperty();
 	AcquisitionPanel acquisitionPanel;
+	ToolbarPanel toolbarPanel;
 
 	public HalcyonMain() {
 		super("µOpenSPIM", ResourceUtil.getString("app.icon"),
@@ -73,7 +76,9 @@ public class HalcyonMain extends HalcyonFrame
 		// TODO: support other type of devices
 		BorderPane borderPane = createHalcyonBorderPane( primaryStage, gui );
 
-		super.show( borderPane );
+		super.show( borderPane, false );
+
+		Event.fireEvent( toolbarPanel, new ControlEvent( ControlEvent.MM_OPEN, this ) );
 	}
 
 	private BorderPane createHalcyonBorderPane( Stage primaryStage, Studio studio )
@@ -140,11 +145,11 @@ public class HalcyonMain extends HalcyonFrame
 		addNode( arduino );
 
 		// Custom Toolbar provided here
-		ToolbarPanel lToolbar = new ToolbarPanel( studio, mmStudioProperty, mmStudioGUIRefreshEventProperty );
-		lToolbar.setPrefSize(300, 200);
-		addToolbar(lToolbar);
+		toolbarPanel = new ToolbarPanel( studio, mmStudioProperty, mmStudioGUIRefreshEventProperty );
+		toolbarPanel.setPrefSize(300, 200);
+		addToolbar(toolbarPanel);
 
-		acquisitionPanel = new AcquisitionPanel( spimSetup, studio, null, arduinoPanel.getPinItemTableView(), lToolbar.waitSecondsProperty() );
+		acquisitionPanel = new AcquisitionPanel( spimSetup, studio, null, arduinoPanel.getPinItemTableView(), toolbarPanel.waitSecondsProperty() );
 		stagePanel.setAcquisitionPanel( acquisitionPanel );
 		final HalcyonNode control1 = HalcyonNode.wrap( "Acquisition",
 				SpimHalcyonNodeType.CONTROL,
@@ -213,7 +218,7 @@ public class HalcyonMain extends HalcyonFrame
 							}
 
 							cameraDevicePanel.setSetup( spimSetup, studio );
-							lToolbar.setSetup( spimSetup, studio );
+							toolbarPanel.setSetup( spimSetup, studio );
 							javaEditor.setSetup(spimSetup, studio);
 							arduinoPanel.setSetup(spimSetup, studio);
 							acquisitionPanel.setSetup( spimSetup, studio );
@@ -233,7 +238,7 @@ public class HalcyonMain extends HalcyonFrame
 
 						   stagePanel.setSetup( null, studio );
 						   cameraDevicePanel.setSetup( null, studio );
-						   lToolbar.setSetup( null, studio );
+						   toolbarPanel.setSetup( null, studio );
 						   javaEditor.setSetup( null, studio );
 						   arduinoPanel.setSetup( null, studio );
 						   acquisitionPanel.setSetup( null, studio );

@@ -589,7 +589,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Button acqHelpButton = createHelpButton();
 		acqHelpButton.setOnAction( event -> new HelpWindow().show(HelpType.ACQUISITION));
 
-		final TitledPane acqBoxPane = new TitledPane( "Acquisition", acquireHBox );
+		final TitledPane acqBoxPane = new TitledPane( "", acquireHBox );
 		acqBoxPane.setCollapsible( false );
 
 		LabeledPane acquisitionPane = new LabeledPane( "Acquisition", new VBox(10, acquisitionTabPane, acqBoxPane), acqHelpButton, 0 );
@@ -780,7 +780,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		acqSettings.getChildren().addAll( saveButton, loadButton, clearButton );
 		BorderPane.setMargin(acqSettings, new Insets(12,12,12,12));
 
-		final TitledPane acqSettingPane = new TitledPane( "Acquisition Settings", acqSettings );
+		final TitledPane acqSettingPane = new TitledPane( "Save/Load Settings", acqSettings );
 		acqSettingPane.setCollapsible( false );
 
 
@@ -1634,7 +1634,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		CheckboxPane pane = new CheckboxPane( "Save Images", gridpane, helpButton, 12 );
 		enabledSaveImages = pane.selectedProperty();
 
-		Tab saveOptionTab = new Tab("Save option", pane);
+		Tab saveOptionTab = new Tab("Saving option", pane);
 		saveOptionTab.setClosable(false);
 
 		TextArea textArea = new TextArea();
