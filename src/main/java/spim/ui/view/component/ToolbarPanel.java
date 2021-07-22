@@ -1,5 +1,6 @@
 package spim.ui.view.component;
 
+import ij.IJ;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleDoubleProperty;
@@ -63,6 +64,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 	final Text pixelSizeValue;
 	final Text rotatorStepSizeValue;
 	final Text zStageStepSizeValue;
+	HalcyonMain halcyonMain;
 
 	public ToolbarPanel( Studio mmStudio, ObjectProperty< Studio > mmStudioObjectProperty, ObjectProperty<GUIRefreshEvent> refreshEventProperty )
 	{
@@ -96,19 +98,20 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 		gridpane.addRow( 1, topHbox );
 
-//		Button ijButton = new Button( "Open Fiji" );
-//		ijButton.setOnAction( new EventHandler< ActionEvent >()
-//		{
-//			@Override public void handle( ActionEvent event )
-//			{
-//				if(null == IJ.getInstance() ) {
-//					ij.ImageJ ij = new ImageJ( );
-//					ij.show();
-//				} else {
-//					IJ.getInstance().show();
-//				}
-//			}
-//		} );
+		Button ijButton = new Button( "Fiji" );
+		ijButton.setStyle("-fx-font: 18 arial; -fx-base: #8bb5e7;");
+		ijButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(null == IJ.getInstance() ) {
+					ij.ImageJ ij = new ij.ImageJ();
+					ij.show();
+				} else {
+					IJ.getInstance().show();
+				}
+			}
+		} );
 
 		mmButton = new Button( "µManager");
 		mmButton.setStyle("-fx-font: 18 arial; -fx-base: #e7e45d;");
@@ -146,7 +149,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			}
 		} );
 
-		buttonHbox = new HBox(3, mmButton);
+		buttonHbox = new HBox(3, ijButton, mmButton);
 		buttonHbox.setAlignment( Pos.CENTER );
 		gridpane.addRow( 2, buttonHbox );
 
