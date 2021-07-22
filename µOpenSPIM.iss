@@ -8,7 +8,7 @@ UninstallDisplayIcon={app}\µOpenSPIM.exe
 Compression=lzma2
 UsePreviousAppDir=no
 SolidCompression=yes
-OutputBaseFilename=setup
+OutputBaseFilename=µOpenSPIM_setup
 OutputDir=userdocs:µOpenSPIM Output
 
 [Files]
