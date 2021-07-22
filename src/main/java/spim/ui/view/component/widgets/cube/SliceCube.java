@@ -153,6 +153,8 @@ public class SliceCube extends Group {
 			}
 
 			getChildren().add(3, slices[0]);
+		} else {
+			getChildren().remove(slices[0]);
 		}
 	}
 }

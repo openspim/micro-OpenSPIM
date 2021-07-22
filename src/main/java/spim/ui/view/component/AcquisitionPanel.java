@@ -2032,20 +2032,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		if(stagePanel == null && zSlider != null)
 			zStackGridPane.add( zSlider, 2, 0, 1, 3 );
 
-		Button newButton = new Button( "Add Z-stack" );
-		newButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				if(zStartField.getText().isEmpty()) {
-					addNewPosition( -1, -1, Double.parseDouble( zStepField.getText() ) );
-				} else {
-					addNewPosition( Integer.parseInt( zStartField.getText() ),
-							Integer.parseInt( zEndField.getText() ), Double.parseDouble( zStepField.getText() ) );
-				}
-			}
-		} );
-
 //		Button updateButton = new Button("Update");
 //		updateButton.setOnAction( new EventHandler< ActionEvent >()
 //		{
@@ -2072,8 +2058,27 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				zEndField.setDisable(false);
 				zEndField.setText("");
 				endButton.setDisable(false);
+
+				zStart.set( 0 );
+				zEnd.set( 0 );
 			}
 		});
+
+		Button newButton = new Button( "Add Z-stack" );
+		newButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(zStartField.getText().isEmpty()) {
+					addNewPosition( -1, -1, Double.parseDouble( zStepField.getText() ) );
+				} else {
+					addNewPosition( Integer.parseInt( zStartField.getText() ),
+							Integer.parseInt( zEndField.getText() ), Double.parseDouble( zStepField.getText() ) );
+				}
+
+				clearButton.fire();
+			}
+		} );
 
 		zStackGridPane.addRow( 3, new HBox( newButton, clearButton ) );
 
