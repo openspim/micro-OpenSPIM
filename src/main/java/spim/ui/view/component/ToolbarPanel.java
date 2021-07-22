@@ -187,6 +187,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 //		} );
 
 		openDatasetButton = new Button("Open Dataset");
+		openDatasetButton.setStyle("-fx-font: 14 arial; -fx-base: #e7e45d;");
 		openDatasetButton.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
