@@ -2,10 +2,11 @@
 AppName=µOpenSPIM
 AppVersion=1.0
 WizardStyle=modern
-DefaultDirName={autopf}\OpenSPIM
+DefaultDirName={autopf64}\OpenSPIM
 DefaultGroupName=OpenSPIM
 UninstallDisplayIcon={app}\µOpenSPIM.exe
 Compression=lzma2
+UsePreviousAppDir=no
 SolidCompression=yes
 OutputDir=userdocs:µOpenSPIM Output
 
