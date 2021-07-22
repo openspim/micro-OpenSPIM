@@ -291,7 +291,7 @@ public class MMUtils
 			{
 				String extension = getFileExtension(pathname.getAbsolutePath(), false);
 				return (extension.equalsIgnoreCase("dll") || extension.equalsIgnoreCase("jnilib"))
-						&& !pathname.getName().startsWith("OmicronxXDevices64");
+						&& !pathname.getName().startsWith("OmicronxXDevices64") && !pathname.getName().startsWith("mmgr_dal_");
 			}
 		}, false, false, true));
 
