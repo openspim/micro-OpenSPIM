@@ -128,7 +128,11 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 					{
 						// load micro manager libraries
 						if (!MMUtils.fixSystemLibrairies( stage ))
+						{
+							if(halcyonMain != null)
+								System.exit(0);
 							return;
+						}
 					}
 
 					MicroManager.init( stage, mmStudioObjectProperty, refreshEventProperty );
@@ -139,6 +143,8 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 						{
 							// load micro manager libraries
 							if (!MMUtils.fixSystemLibrairies( stage ))
+								if(halcyonMain != null)
+									System.exit(0);
 								return;
 						}
 

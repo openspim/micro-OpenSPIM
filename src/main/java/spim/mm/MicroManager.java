@@ -28,7 +28,6 @@ import org.micromanager.display.internal.displaywindow.imagej.MMVirtualStack;
 import org.micromanager.acquisition.AcquisitionEndedEvent;
 import org.micromanager.acquisition.AcquisitionStartedEvent;
 import org.micromanager.events.*;
-import org.micromanager.events.internal.DefaultGUIRefreshEvent;
 import org.micromanager.events.internal.InternalShutdownCommencingEvent;
 import org.micromanager.internal.MMStudio;
 import org.micromanager.internal.MMVersion;
