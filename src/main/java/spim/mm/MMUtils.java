@@ -11,7 +11,6 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import mmcorej.TaggedImage;
 import org.micromanager.acquisition.internal.TaggedImageQueue;
-import org.micromanager.internal.ConfigGroupPad;
 import spim.microOpenSPIM;
 
 import java.awt.Desktop;
@@ -24,7 +23,6 @@ import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -33,9 +31,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import java.util.List;
 import java.util.Optional;
@@ -56,8 +52,7 @@ public class MMUtils
 	static String prefFile = getUserDataDirectory()
 			+ "setting.pref";
 
-	private static Preferences prefs = (Preferences) loadCollection(prefFile);
-	private static String microManagerFolder = null;
+	private static final Preferences prefs = (Preferences) loadCollection(prefFile);
 	static File demoConfigFile = null;
 	private static boolean loaded = false;
 	private static boolean cancelled = false;
@@ -72,7 +67,7 @@ public class MMUtils
 		if (loaded)
 			return true;
 
-		microManagerFolder = prefs.get(MM_PATH_ID, "");
+		String microManagerFolder = prefs.get(MM_PATH_ID, "");
 
 		final File microManagerFolderFile = new File( microManagerFolder );
 
@@ -139,30 +134,30 @@ public class MMUtils
 		final String osName = System.getProperty( "os.name" ).toLowerCase();
 
 		if ( osName.startsWith( "win" ) ) {
-			int ret = MyKernel32.INSTANCE.SetCurrentDirectoryW(microManagerFolder.getBytes(StandardCharsets.UTF_16LE));
+			int ret = MyKernel32.INSTANCE.SetCurrentDirectoryA( microManagerFolder );
 
 			if(ret == 0)
 				System.err.println(new Win32Exception(MyKernel32.INSTANCE.GetLastError()));
 
-			byte[] path = new byte[200];
-			MyKernel32.INSTANCE.GetCurrentDirectoryW( 200, path );
-			System.out.println( new String( path, StandardCharsets.UTF_16LE  ) );
+			byte[] path = new byte[1024];
+			MyKernel32.INSTANCE.GetCurrentDirectoryA( path.length, path );
+			System.out.println( new String( path ).trim() );
 		} else {
-			int ret = MyCLibrary.INSTANCE.chdir(microManagerFolder);
+			int ret = MyCLibrary.INSTANCE.chdir( microManagerFolder );
 
 			if(ret != 0)
 				System.err.println("chdir() failed.");
 
-			byte[] path = new byte[200];
-			MyCLibrary.INSTANCE.getwd(path);
-			System.out.println( new String(path) );
+			byte[] path = new byte[1024];
+			MyCLibrary.INSTANCE.getwd( path );
+			System.out.println( new String( path ) );
 		}
 
-		if (!microManagerFolder.endsWith(separator))
+		if ( !microManagerFolder.endsWith(separator) )
 			microManagerFolder += separator;
 
 		loaded = loadJarFrom(new File( microManagerFolder + separator + "plugins" + separator
-				+ "Micro-Manager" + separator));
+				+ "Micro-Manager" + separator ) );
 
 		if (!loaded)
 		{
@@ -172,24 +167,13 @@ public class MMUtils
 		}
 		else
 		{
-			// load DLL - no need
-//			loadDllFrom(new File( microManagerFolder ));
 			// find configuration file
-			File[] cfg = new File( microManagerFolder ).listFiles( new FilenameFilter()
-			{
-
-				@Override
-				public boolean accept(File file, String s)
-				{
-					return s.equalsIgnoreCase("MMConfig_demo.cfg");
-				}
-
-			});
+			File[] cfg = new File( microManagerFolder ).listFiles((file, s) -> s.equalsIgnoreCase("MMConfig_demo.cfg"));
 			if (cfg != null && cfg.length > 0)
 				demoConfigFile = cfg[0];
 
-			prefs.put(MM_PATH_ID, microManagerFolder );
-			System.setProperty("mmcorej.library.path", microManagerFolder );
+			prefs.put( MM_PATH_ID, microManagerFolder );
+			System.setProperty( "mmcorej.library.path", microManagerFolder );
 		}
 
 		return loaded;
@@ -202,10 +186,6 @@ public class MMUtils
 		System.setProperty("mmcorej.library.path", "");
 	}
 
-//	public static void loadDll() {
-//		loadDllFrom(new File( microManagerFolder ));
-//	}
-
 	public static boolean invalidMMPath()
 	{
 		return prefs.get(MM_PATH_ID, "").isEmpty();
@@ -217,145 +197,6 @@ public class MMUtils
 
 	public static void resetCancelled() {
 		cancelled = false;
-	}
-
-	/**
-	 * Returns the selected group name from specified ConfigGroupPad
-	 */
-	public static String getSelectedGroupName( ConfigGroupPad group )
-	{
-		try
-		{
-			return (String) invokeMethod(group, "getGroup", true, new Object[] {});
-		}
-		catch (Exception e1)
-		{
-			try
-			{
-				return (String) invokeMethod(group, "getSelectedGroup", true, new Object[] {});
-			}
-			catch (Exception e2)
-			{
-				return "";
-			}
-		}
-	}
-
-	/**
-	 * Returns the selected preset name from specified ConfigGroupPad
-	 */
-	public static String getSelectedPresetName( ConfigGroupPad group )
-	{
-		try
-		{
-			return (String) invokeMethod(group, "getPreset", true, new Object[] {});
-		}
-		catch (Exception e1)
-		{
-			try
-			{
-				return (String) invokeMethod(group, "getPresetForSelectedGroup", true, new Object[] {});
-			}
-			catch (Exception e2)
-			{
-				return "";
-			}
-		}
-	}
-
-	public static Object invokeMethod(Object object, String methodName, boolean forceAccess, Object... args)
-			throws SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException,
-			InvocationTargetException
-	{
-		final Class<?>[] parameterTypes = new Class<?>[args.length];
-
-		// build parameter types
-		for (int i = 0; i < args.length; i++)
-			parameterTypes[i] = args[i].getClass();
-
-		// get method
-		final Method method = getMethod(object.getClass(), methodName, forceAccess, parameterTypes);
-		// invoke method
-		return method.invoke(object, args);
-	}
-
-	public static Method getMethod(Class<?> objectClass, String methodName, boolean forceAccess,
-			Class<?>... parameterTypes) throws SecurityException, NoSuchMethodException
-	{
-		Class<?> clazz = objectClass;
-		Method result = null;
-
-		while ((clazz != null) && (result == null))
-		{
-			try
-			{
-				result = clazz.getDeclaredMethod(methodName, parameterTypes);
-			}
-			catch (NoSuchMethodException e)
-			{
-				// ignore
-			}
-
-			clazz = clazz.getSuperclass();
-		}
-
-		if (result == null)
-			throw new NoSuchMethodException("Method " + methodName + "(..) not found in class " + objectClass.getName());
-
-		if (forceAccess)
-			result.setAccessible(true);
-
-		return result;
-	}
-
-	private static boolean loadDllFrom(File microManagerDirectory)
-	{
-		final List<File> dll = Arrays.asList(getFiles(microManagerDirectory, new FileFilter()
-		{
-			@Override
-			public boolean accept(File pathname)
-			{
-				String extension = getFileExtension(pathname.getAbsolutePath(), false);
-				return (extension.equalsIgnoreCase("dll") || extension.equalsIgnoreCase("jnilib"))
-						&& !pathname.getName().startsWith("OmicronxXDevices64") && !pathname.getName().startsWith("mmgr_dal_")
-						&& !pathname.getName().startsWith("MMCoreJ_wrap");
-			}
-		}, false, false, true));
-
-		if (dll.isEmpty())
-			return false;
-
-		int numberOfTry = 0;
-		while (!dll.isEmpty())
-		{
-			numberOfTry++;
-			for (File f : dll)
-			{
-				try
-				{
-					loadLibrary(f.getAbsolutePath());
-				}
-				catch (UnsatisfiedLinkError e)
-				{
-					// ignore
-				}
-			}
-
-			if (numberOfTry > 1)
-				break;
-		}
-
-		return true;
-	}
-
-	static void loadLibrary(String pathname)
-	{
-		final File file = new File(pathname);
-
-		if (file.exists())
-			System.load(file.getAbsolutePath());
-		else
-			System.loadLibrary(pathname);
 	}
 
 	private static boolean loadJarFrom(File microManagerDirectoryPath)
@@ -426,19 +267,6 @@ public class MMUtils
 			return finalPath.substring(indexDot);
 
 		return finalPath.substring(indexDot + 1);
-	}
-
-	public static String[] getFiles(String directory, FileFilter filter, boolean recursive, boolean wantDirectory,
-			boolean wantHidden)
-	{
-		final File[] files = getFiles(new File(getGenericPath(directory)), filter, recursive, wantDirectory,
-				wantHidden);
-		final String[] result = new String[files.length];
-
-		for (int i = 0; i < files.length; i++)
-			result[i] = files[i].getPath();
-
-		return result;
 	}
 
 	public static File[] getFiles(File directory, FileFilter filter, boolean recursive, boolean wantDirectory,
@@ -567,19 +395,18 @@ public class MMUtils
 
 	// JNA Interface for Windows
 	interface MyKernel32 extends Library {
-		MyKernel32 INSTANCE = Native.loadLibrary("Kernel32", MyKernel32.class);
+		MyKernel32 INSTANCE = Native.loadLibrary( "Kernel32", MyKernel32.class );
 
-		int SetCurrentDirectoryW(byte[] pathName);
-		long GetCurrentDirectoryW( long len, byte[] path);
+		int SetCurrentDirectoryA( String pathName );
+		long GetCurrentDirectoryA( long len, byte[] path);
 		int GetLastError();
 	}
 
 	// JNA Interface for Linux & Mac
 	private interface MyCLibrary extends Library {
-		MyCLibrary INSTANCE = (MyCLibrary) Native.loadLibrary("c", MyCLibrary.class);
+		MyCLibrary INSTANCE = Native.loadLibrary( "c", MyCLibrary.class );
 
-		/** int chdir(const char *path); */
 		int chdir( String path );
-		String getwd(byte[] buffer);
+		String getwd( byte[] buffer );
 	}
 }
