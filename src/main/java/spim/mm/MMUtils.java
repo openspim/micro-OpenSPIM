@@ -1,5 +1,8 @@
 package spim.mm;
 
+import com.sun.jna.Library;
+import com.sun.jna.Native;
+import com.sun.jna.platform.win32.Win32Exception;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
@@ -30,6 +33,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -132,6 +136,28 @@ public class MMUtils
 		// Set working directory with the give uManager folder
 		System.setProperty("user.dir", microManagerFolder );
 
+		final String osName = System.getProperty( "os.name" ).toLowerCase();
+
+		if ( osName.startsWith( "win" ) ) {
+			int ret = MyKernel32.INSTANCE.SetCurrentDirectoryW(microManagerFolder.getBytes(StandardCharsets.UTF_16LE));
+
+			if(ret == 0)
+				System.err.println(new Win32Exception(MyKernel32.INSTANCE.GetLastError()));
+
+			byte[] path = new byte[200];
+			MyKernel32.INSTANCE.GetCurrentDirectoryW( 200, path );
+			System.out.println( new String( path, StandardCharsets.UTF_16LE  ) );
+		} else {
+			int ret = MyCLibrary.INSTANCE.chdir(microManagerFolder);
+
+			if(ret != 0)
+				System.err.println("chdir() failed.");
+
+			byte[] path = new byte[200];
+			MyCLibrary.INSTANCE.getwd(path);
+			System.out.println( new String(path) );
+		}
+
 		if (!microManagerFolder.endsWith(separator))
 			microManagerFolder += separator;
 
@@ -147,7 +173,7 @@ public class MMUtils
 		else
 		{
 			// load DLL - no need
-			loadDllFrom(new File( microManagerFolder ));
+//			loadDllFrom(new File( microManagerFolder ));
 			// find configuration file
 			File[] cfg = new File( microManagerFolder ).listFiles( new FilenameFilter()
 			{
@@ -291,7 +317,8 @@ public class MMUtils
 			{
 				String extension = getFileExtension(pathname.getAbsolutePath(), false);
 				return (extension.equalsIgnoreCase("dll") || extension.equalsIgnoreCase("jnilib"))
-						&& !pathname.getName().startsWith("OmicronxXDevices64") && !pathname.getName().startsWith("mmgr_dal_");
+						&& !pathname.getName().startsWith("OmicronxXDevices64") && !pathname.getName().startsWith("mmgr_dal_")
+						&& !pathname.getName().startsWith("MMCoreJ_wrap");
 			}
 		}, false, false, true));
 
@@ -536,5 +563,23 @@ public class MMUtils
 				return true;
 
 		return false;
+	}
+
+	// JNA Interface for Windows
+	interface MyKernel32 extends Library {
+		MyKernel32 INSTANCE = Native.loadLibrary("Kernel32", MyKernel32.class);
+
+		int SetCurrentDirectoryW(byte[] pathName);
+		long GetCurrentDirectoryW( long len, byte[] path);
+		int GetLastError();
+	}
+
+	// JNA Interface for Linux & Mac
+	private interface MyCLibrary extends Library {
+		MyCLibrary INSTANCE = (MyCLibrary) Native.loadLibrary("c", MyCLibrary.class);
+
+		/** int chdir(const char *path); */
+		int chdir( String path );
+		String getwd(byte[] buffer);
 	}
 }
