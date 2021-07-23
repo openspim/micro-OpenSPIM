@@ -315,7 +315,7 @@ public class MMUtils
 	public static String getUserDataDirectory()
 	{
 		return System.getProperty("user.home") + File.separator
-				+ ".slimOpenSPIM"
+				+ ".microOpenSPIM"
 				+ File.separator
 				+ getApplicationVersionString()
 				+ File.separator;
