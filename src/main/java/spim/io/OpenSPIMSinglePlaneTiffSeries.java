@@ -553,6 +553,8 @@ public class OpenSPIMSinglePlaneTiffSeries implements Storage {
 			summary = summary.copyBuilder().startDate(time.split(" ")[0]).build();
 		}
 
+		summary = summary.copyBuilder().zStepUm(image.getMetadata().getUserData().getDouble("Z-Step-um")).build();
+
 		PropertyMap.Builder b = PropertyMaps.builder()
 				.putInteger("Width", image.getWidth())
 				.putInteger("Height", image.getHeight());
