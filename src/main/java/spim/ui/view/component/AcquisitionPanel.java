@@ -1553,7 +1553,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		for(PositionItem item : positionItemTableView.getItems())
 		{
 			if(item.getZEnd() > item.getZStart()) {
-				totalImages += (item.getZEnd() - item.getZStart() + item.getZStep()) / item.getZStep();
+				totalImages += item.getNumberOfSlices();
 			}
 		}
 

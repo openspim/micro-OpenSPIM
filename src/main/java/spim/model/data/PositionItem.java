@@ -104,6 +104,10 @@ public class PositionItem
 		this.zStep = zStep;
 	}
 
+	public int getNumberOfSlices() {
+		return (int) ((int) (getZEnd() - getZStart() + getZStep()) / getZStep());
+	}
+
 	@Override public String toString()
 	{
 		StringBuilder sb = new StringBuilder(  );
