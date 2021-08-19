@@ -474,8 +474,6 @@ public class N5MicroManagerStorage implements Storage {
 			summary = summary.copyBuilder().startDate(time.split(" ")[0]).build();
 		}
 
-		summary = summary.copyBuilder().zStepUm(image.getMetadata().getUserData().getDouble("Z-Step-um")).build();
-
 		width = image.getWidth();
 		height = image.getWidth();
 		PropertyMap.Builder b = PropertyMaps.builder()
