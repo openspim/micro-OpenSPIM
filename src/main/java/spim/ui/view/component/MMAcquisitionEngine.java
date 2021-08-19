@@ -238,15 +238,15 @@ public class MMAcquisitionEngine
 		}
 
 		smb = smb.channelNames(channelNames).
-				zStepUm( core.getPixelSizeUm() ).
-				prefix(acqFilenamePrefix).
-				stagePositions(multiStagePositions).
-				startDate((new Date()).toString());
+				zStepUm( positionItems.get(0).getZStep() ).
+				prefix( acqFilenamePrefix ).
+				stagePositions( multiStagePositions ).
+				startDate( (new Date() ).toString() );
 
 		smb = smb.intendedDimensions( Coordinates.builder().
-				channel(channelItems.size()).
-				z(timeSeqs).
-				t(timeSeqs).
+				channel( channelItems.size() ).
+				z( positionItems.get(0).getNumberOfSlices() ).
+				t( timeSeqs ).
 				stagePosition(acqRows.length).
 				build());
 
