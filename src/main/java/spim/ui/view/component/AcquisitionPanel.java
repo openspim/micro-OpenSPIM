@@ -1464,7 +1464,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				double x = spimSetup.getXStage().getPosition();
 				double y = spimSetup.getYStage().getPosition();
 				double z = spimSetup.getZStage().getPosition();
-				positionItemTableView.getItems().add( new PositionItem( x, y, r, z, z, 6 ) );
+				positionItemTableView.getItems().add( new PositionItem( x, y, r, z, z, zStackStepSize ) );
 			}
 			else {
 				positionItemTableView.getItems().add( new PositionItem( 10, 20, 30, 20, 50, 10 ) );
@@ -2019,8 +2019,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			{
 				if(newValue != null && newValue != null) {
 					zStartField.setText( (int)newValue.getZStart() + "" );
-					zStepField.setText( newValue.getZStep() + "");
-					zEndField.setText( (int)newValue.getZEnd() + "");
+					zStepComboBox.valueProperty().set( newValue.getZStep() + " μm" );
+					zEndField.setText( (int)newValue.getZEnd() + "" );
 
 					zStart.set( newValue.getZStart() / maxZStack * cubeHeight );
 					zEnd.set( newValue.getZEnd() / maxZStack * cubeHeight );
@@ -2069,6 +2069,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			@Override public void handle( ActionEvent event )
 			{
+				if(zStepField.getText().isEmpty()) {
+					zStepComboBox.getSelectionModel().select(0);
+				}
+
 				if(zStartField.getText().isEmpty()) {
 					addNewPosition( -1, -1, Double.parseDouble( zStepField.getText() ) );
 				} else {
