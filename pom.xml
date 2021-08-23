@@ -186,6 +186,12 @@
         </dependency>
 
         <dependency>
+            <groupId>net.haesleinhuepf</groupId>
+            <artifactId>clijx_</artifactId>
+            <version>0.32.1.1</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.dockfx</groupId>
             <artifactId>DockFX</artifactId>
             <version>0.1.12</version>
@@ -201,12 +207,6 @@
             <groupId>ome</groupId>
             <artifactId>bioformats_package</artifactId>
             <version>5.5.2</version>
-        </dependency>
-
-        <dependency>
-            <groupId>net.haesleinhuepf</groupId>
-            <artifactId>clij2_</artifactId>
-            <version>2.1.1.0</version>
         </dependency>
     </dependencies>
 
