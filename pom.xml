@@ -29,18 +29,6 @@
             <id>local-repo</id>
             <url>file://${basedir}/local-repo</url>
         </repository>
-        <repository>
-            <id>bintray-micro-manager</id>
-            <name>bintray</name>
-            <url>http://dl.bintray.com/micro-manager/micro-manager</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>clij</id>
-            <url>http://dl.bintray.com/haesleinhuepf/clij</url>
-        </repository>
 	</repositories>
 
 	<dependencies>
@@ -207,6 +195,12 @@
             <groupId>ome</groupId>
             <artifactId>bioformats_package</artifactId>
             <version>5.5.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>jdk.tools</groupId>
+            <artifactId>jdk.tools</artifactId>
+            <version>1.8</version>
         </dependency>
     </dependencies>
 
