@@ -87,8 +87,8 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 			@Override public void changed( ObservableValue< ? extends Scene > observable, Scene oldValue, Scene newValue )
 			{
 				if(newValue != null) {
-					initialize( stage );
-					observable.removeListener( this );
+					initialize();
+					sceneProperty().removeListener( this );
 				}
 			}
 		} );
@@ -99,25 +99,20 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 		this.studio = studio;
 	}
 
-	public void initialize(Stage aModalStage) {
-		modalStage = aModalStage;
-
+	public void initialize() {
 		// We need JavaScript support
 		editorView.getEngine().setJavaScriptEnabled(true);
-		editorView.getEngine().getLoadWorker().stateProperty().addListener((observable, oldValue, newValue) -> {
-			if (newValue == Worker.State.SUCCEEDED) {
-				initializeHTML();
-			}
-		});
+
 		// The build in ACE context menu does not work because
 		// JavaScript Clipboard interaction is disabled by security.
 		// We have to do this by ourselfs.
 		editorView.setContextMenuEnabled(false);
 
-		// Load the bootstrap html
-		// It will trigger the initializeHTML() method by the above registered state change listener
-		// after the everything was loaded
-		editorView.getEngine().load( getClass().getResource("ace/editor.html").toExternalForm());
+		SequentialWebEngineLoader.load(editorView.getEngine(), getClass().getResource("ace/editor.html").toExternalForm(), (observable, oldValue, newValue) -> {
+			if (newValue == Worker.State.SUCCEEDED) {
+				initializeHTML();
+			}
+		});
 
 		// Copy & Paste Clipboard support
 		final KeyCombination theCombinationCopy = new KeyCodeCombination( KeyCode.C, KeyCombination.SHORTCUT_DOWN);
