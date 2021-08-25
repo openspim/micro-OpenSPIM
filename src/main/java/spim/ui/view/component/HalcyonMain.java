@@ -140,6 +140,13 @@ public class HalcyonMain extends HalcyonFrame
 
 		addNode(editor1);
 
+		BeanshellEditor beanshellEditor = new BeanshellEditor( primaryStage, spimSetup, studio );
+		final HalcyonNode editor2 = HalcyonNode.wrap( "Beanshell",
+				SpimHalcyonNodeType.EDITOR,
+				beanshellEditor );
+
+		addNode(editor2);
+
 		ArduinoPanel arduinoPanel = new ArduinoPanel( spimSetup );
 		final HalcyonNode arduino = HalcyonNode.wrap( "ArduinoUno", SpimHalcyonNodeType.SHUTTER, arduinoPanel );
 		addNode( arduino );
