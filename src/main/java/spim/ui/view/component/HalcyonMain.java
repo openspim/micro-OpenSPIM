@@ -227,6 +227,7 @@ public class HalcyonMain extends HalcyonFrame
 							cameraDevicePanel.setSetup( spimSetup, studio );
 							toolbarPanel.setSetup( spimSetup, studio );
 							javaEditor.setSetup(spimSetup, studio);
+							beanshellEditor.setSetup(spimSetup, studio);
 							arduinoPanel.setSetup(spimSetup, studio);
 							acquisitionPanel.setSetup( spimSetup, studio );
 							acquisitionPanel.setStagePanel( stagePanel );
@@ -247,6 +248,7 @@ public class HalcyonMain extends HalcyonFrame
 						   cameraDevicePanel.setSetup( null, studio );
 						   toolbarPanel.setSetup( null, studio );
 						   javaEditor.setSetup( null, studio );
+						   beanshellEditor.setSetup( null, studio);
 						   arduinoPanel.setSetup( null, studio );
 						   acquisitionPanel.setSetup( null, studio );
 						   acquisitionPanel.setStagePanel( null );

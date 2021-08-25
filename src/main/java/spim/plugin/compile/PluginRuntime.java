@@ -1,5 +1,7 @@
 package spim.plugin.compile;
 
+import java.io.File;
+
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
  * Organization: MPI-CBG Dresden
@@ -23,4 +25,15 @@ public class PluginRuntime {
 
 		return pluginClass;
 	}
+
+	public void saveClass(String className, String code, File classDir)
+			throws
+			ClassNotFoundException, IllegalAccessException, InstantiationException
+	{
+		CachedCompiler cc = CompilerUtils.CACHED_COMPILER;
+		cc.setClassDir(classDir);
+		Class pluginClass = cc.loadFromJava(className, code);
+		cc.setClassDir(null);
+	}
+
 }

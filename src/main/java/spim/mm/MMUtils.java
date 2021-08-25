@@ -141,7 +141,7 @@ public class MMUtils
 
 			byte[] path = new byte[1024];
 			MyKernel32.INSTANCE.GetCurrentDirectoryA( path.length, path );
-			System.out.println( new String( path ).trim() );
+//			System.out.println( new String( path ).trim() );
 		} else {
 			int ret = MyCLibrary.INSTANCE.chdir( microManagerFolder );
 
@@ -150,7 +150,7 @@ public class MMUtils
 
 			byte[] path = new byte[1024];
 			MyCLibrary.INSTANCE.getwd( path );
-			System.out.println( new String( path ) );
+//			System.out.println( new String( path ) );
 		}
 
 		if ( !microManagerFolder.endsWith(separator) )

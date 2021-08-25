@@ -23,8 +23,12 @@ import org.micromanager.Studio;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import spim.hardware.SPIMSetup;
+import spim.mm.MMUtils;
+import spim.mm.MicroManager;
 import spim.plugin.compile.PluginRuntime;
+import spim.ui.view.component.util.SequentialWebEngineLoader;
 
+import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.regex.Matcher;
@@ -41,7 +45,6 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 {
 	WebView editorView;
 
-	private Stage modalStage;
 	private Studio studio;
 	private SPIMSetup setup;
 
@@ -79,8 +82,16 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 			}
 		});
 
+		Button generatePlugin = new Button("Generate");
+		generatePlugin.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent actionEvent) {
+				onPlugin();
+			}
+		});
+
 		setCenter( editorView );
-		setBottom( new HBox( 10, copyBtn, pasteBtn, okBtn )  );
+		setBottom( new HBox( 10, copyBtn, pasteBtn, okBtn, generatePlugin )  );
 
 		sceneProperty().addListener( new ChangeListener< Scene >()
 		{
@@ -117,13 +128,17 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 		// Copy & Paste Clipboard support
 		final KeyCombination theCombinationCopy = new KeyCodeCombination( KeyCode.C, KeyCombination.SHORTCUT_DOWN);
 		final KeyCombination theCombinationPaste = new KeyCodeCombination(KeyCode.V, KeyCombination.SHORTCUT_DOWN);
+		final KeyCombination theCombinationRun = new KeyCodeCombination(KeyCode.R, KeyCombination.SHORTCUT_DOWN);
 
-		aModalStage.getScene().addEventFilter( KeyEvent.KEY_PRESSED, aEvent -> {
+		editorView.addEventFilter( KeyEvent.KEY_PRESSED, aEvent -> {
 			if (theCombinationCopy.match(aEvent)) {
 				onCopy();
 			}
 			if (theCombinationPaste.match(aEvent)) {
 				onPaste();
+			}
+			if (theCombinationRun.match(aEvent)) {
+				onOk();
 			}
 		});
 	}
@@ -198,8 +213,6 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 				+ "                System.out.println(\"Test\");\n"
 				+ "                CLIJx clijx = CLIJx.getInstance();\n"
 				+ "                System.out.println(clijx.clinfo());\n"
-				+ "                ij.ImageJ ij = new ImageJ();\n"
-				+ "                ij.show();\n"
 				+ "            } catch(Exception e)\n"
 				+ "            {\n"
 				+ "                e.printStackTrace();\n"
@@ -326,13 +339,52 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 		compileRun( theContent );
 	}
 
+	public void onPlugin() {
+		String code = (String) editorView.getEngine().executeScript("getvalue()");
+
+		PluginRuntime runtime = new PluginRuntime();
+
+		if(code.trim().isEmpty()) {
+			System.out.println("No code is provided.");
+			return;
+		}
+
+		// Remove package declaration
+		Pattern pkg = Pattern.compile("[\\s]*package (.*?);");
+		Matcher pkgMatcher = pkg.matcher(code);
+		boolean isPkg = pkgMatcher.find();
+		String pkgName = "";
+
+		if(isPkg)
+			pkgName = pkgMatcher.group(1);
+
+		// Find a plugin class name
+		Pattern pattern = Pattern.compile("[\\s]*public class (.*?) ");
+		Matcher m = pattern.matcher(code);
+
+		m.find();
+		String className = m.group(1);
+
+		if(isPkg)
+			className = pkgName + "." + className;
+
+		if(runtime.compile(className, code))
+		{
+			try {
+				runtime.saveClass(className, code, new File(System.getProperty( "mmcorej.library.path" ) + "mmplugins"));
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+			} catch (InstantiationException e) {
+				e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+			}
+		}
+	}
+
 	public void onTest() {
 		String theContent = (String) editorView.getEngine().executeScript("getvalue()");
 //		Script theNewScript = new Script(theContent);
 //		test(theContent);
-	}
-
-	public void performEditing() {
-		modalStage.show();
 	}
 }

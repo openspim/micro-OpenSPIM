@@ -14,6 +14,10 @@ import org.apache.commons.logging.LogFactory;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.jar.Attributes;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 
 public class IOUtils {
 	private static final Log LOG = LogFactory.getLog(IOUtils.class);
@@ -146,5 +150,57 @@ public class IOUtils {
 				throw new FileNotFoundException("Unable to derive the directory required from " + path);
 			file = new File(path2.substring(pos + 1));
 		} while (true);
+	}
+
+	static void createJar(String inputDir, String output) throws IOException {
+		Manifest manifest = new Manifest();
+		manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+		JarOutputStream target = new JarOutputStream(new FileOutputStream(output), manifest);
+		addFileJar(inputDir, new File(inputDir), target);
+		target.close();
+	}
+
+	private static void addFileJar(String root, File source, JarOutputStream target) throws IOException
+	{
+		BufferedInputStream in = null;
+		try
+		{
+			if (source.isDirectory())
+			{
+				String name = source.getPath().replace(root, "").replace("\\", "/");
+				if (!name.isEmpty())
+				{
+					if (!name.endsWith("/"))
+						name += "/";
+					JarEntry entry = new JarEntry(name);
+					entry.setTime(source.lastModified());
+					target.putNextEntry(entry);
+					target.closeEntry();
+				}
+				for (File nestedFile: source.listFiles())
+					addFileJar(root, nestedFile, target);
+				return;
+			}
+
+			JarEntry entry = new JarEntry(source.getPath().replace(root, "").replace("\\", "/"));
+			entry.setTime(source.lastModified());
+			target.putNextEntry(entry);
+			in = new BufferedInputStream(new FileInputStream(source));
+
+			byte[] buffer = new byte[1024];
+			while (true)
+			{
+				int count = in.read(buffer);
+				if (count == -1)
+					break;
+				target.write(buffer, 0, count);
+			}
+			target.closeEntry();
+		}
+		finally
+		{
+			if (in != null)
+				in.close();
+		}
 	}
 }

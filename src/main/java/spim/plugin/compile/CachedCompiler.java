@@ -10,6 +10,7 @@ package spim.plugin.compile;
  * @since 9/3/13
  */
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.LogFactory;
 
 import javax.tools.JavaFileObject;
@@ -21,7 +22,7 @@ import java.util.Map;
 @SuppressWarnings({"StaticNonFinalField"})
 public class CachedCompiler {
 	private final File sourceDir;
-	private final File classDir;
+	private File classDir;
 //	private final Writer writer;
 
 	public CachedCompiler(File sourceDir, File classDir) {
@@ -111,15 +112,27 @@ public class CachedCompiler {
 			byte[] bytes = entry.getValue();
 			if (classDir != null) {
 				String filename = className2.replaceAll("\\.", '\\' + File.separator) + ".class";
-				boolean changed = IOUtils.writeBytes(new File(classDir, filename), bytes);
+				boolean changed = IOUtils.writeBytes(new File(System.getProperty("user.dir") + "file:" + System.getProperty("user.dir"), filename), bytes);
 				if (changed)
-					LogFactory.getLog(CachedCompiler.class).info("Updated " + className2 + " in " + classDir);
+					LogFactory.getLog(CachedCompiler.class).info("Updated " + className2 + " in " + System.getProperty("user.dir"));
 			}
 			CompilerUtils.defineClass(classLoader, className2, bytes);
+		}
+
+		if(classDir != null) {
+			try {
+				IOUtils.createJar(System.getProperty("user.dir") + "file:" + System.getProperty("user.dir"), classDir + "/" + className + ".jar");
+				FileUtils.cleanDirectory( new File(System.getProperty("user.dir") + "file:") );
+				new File(System.getProperty("user.dir") + "file:").delete();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 		CompilerUtils.s_fileManager.clearBuffers();
 		return classLoader.loadClass(className);
 	}
+
+
 
 	public static void close() {
 		try {
@@ -127,6 +140,10 @@ public class CachedCompiler {
 		} catch (IOException e) {
 			throw new AssertionError(e);
 		}
+	}
+
+	public void setClassDir(File classDir) {
+		this.classDir = classDir;
 	}
 }
 
