@@ -167,6 +167,7 @@ public class IOUtils {
 		{
 			if (source.isDirectory())
 			{
+				System.out.println(root);
 				String name = source.getPath().replace("\\", "/").replace(root, "");
 				if (!name.isEmpty())
 				{
