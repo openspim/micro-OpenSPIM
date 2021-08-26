@@ -36,4 +36,16 @@ public class PluginRuntime {
 		cc.setClassDir(null);
 	}
 
+	public boolean compile(String className, String code, File classDir)
+	{
+		CachedCompiler cc = CompilerUtils.CACHED_COMPILER;
+
+		new File( CachedCompiler.getPluginTempPath() ).mkdirs();
+
+		cc.setClassDir(classDir);
+		boolean ret = cc.compileCheckFromJava(className, code);
+		cc.setClassDir(null);
+
+		return ret;
+	}
 }

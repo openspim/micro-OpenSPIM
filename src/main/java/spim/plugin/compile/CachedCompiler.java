@@ -86,7 +86,11 @@ public class CachedCompiler {
 			compilationUnits = Arrays.asList(new JavaSourceFromString(className, javaCode));
 		}
 		// reuse the same file manager to allow caching of jar files
-		CompilerUtils.s_compiler.getTask(null, CompilerUtils.s_fileManager, null, null, null, compilationUnits);
+		if(classDir != null) {
+			CompilerUtils.s_compiler.getTask(null, CompilerUtils.s_fileManager, null, Arrays.asList( "-d", getPluginTempPath() ), null, compilationUnits);
+		} else {
+			CompilerUtils.s_compiler.getTask(null, CompilerUtils.s_fileManager, null, null, null, compilationUnits);
+		}
 
 		return CompilerUtils.s_fileManager.getAllBuffers();
 	}
@@ -101,9 +105,16 @@ public class CachedCompiler {
 		} else {
 			compilationUnits = Arrays.asList(new JavaSourceFromString(className, javaCode));
 		}
-		// reuse the same file manager to allow caching of jar files
 
-		return CompilerUtils.s_compiler.getTask(null, CompilerUtils.s_fileManager, null, null, null, compilationUnits).call();
+		// reuse the same file manager to allow caching of jar files
+		boolean ret = false;
+		if(classDir != null) {
+			ret = CompilerUtils.s_compiler.getTask(null, CompilerUtils.s_fileManager, null, Arrays.asList( "-d", getPluginTempPath() ), null, compilationUnits).call();
+		} else {
+			ret = CompilerUtils.s_compiler.getTask(null, CompilerUtils.s_fileManager, null, null, null, compilationUnits).call();
+		}
+
+		return ret;
 	}
 
 	public Class loadFromJava(ClassLoader classLoader, String className, String javaCode) throws ClassNotFoundException {
@@ -112,18 +123,18 @@ public class CachedCompiler {
 			byte[] bytes = entry.getValue();
 			if (classDir != null) {
 				String filename = className2.replaceAll("\\.", '\\' + File.separator) + ".class";
-				boolean changed = IOUtils.writeBytes(new File(System.getProperty("user.dir") + "file:" + System.getProperty("user.dir"), filename), bytes);
+				boolean changed = IOUtils.writeBytes(new File(getPluginTempPath(), filename), bytes);
 				if (changed)
-					LogFactory.getLog(CachedCompiler.class).info("Updated " + className2 + " in " + System.getProperty("user.dir"));
+					LogFactory.getLog(CachedCompiler.class).info("Updated " + className2 + " in " + getPluginTempPath());
 			}
 			CompilerUtils.defineClass(classLoader, className2, bytes);
 		}
 
 		if(classDir != null) {
 			try {
-				IOUtils.createJar(System.getProperty("user.dir") + "file:" + System.getProperty("user.dir"), classDir + "/" + className + ".jar");
-				FileUtils.cleanDirectory( new File(System.getProperty("user.dir") + "file:") );
-				new File(System.getProperty("user.dir") + "file:").delete();
+				IOUtils.createJar(getPluginTempPath(), classDir + "/" + className + ".jar");
+				FileUtils.cleanDirectory( new File( getPluginTempPath() ) );
+				new File( getPluginTempPath() ).delete();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -142,8 +153,12 @@ public class CachedCompiler {
 		}
 	}
 
-	public void setClassDir(File classDir) {
+	void setClassDir(File classDir) {
 		this.classDir = classDir;
+	}
+
+	static String getPluginTempPath() {
+		return System.getProperty("user.dir") + ".tmp";
 	}
 }
 

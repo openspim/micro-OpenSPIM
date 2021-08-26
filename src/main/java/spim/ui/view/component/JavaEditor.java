@@ -368,7 +368,7 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 		if(isPkg)
 			className = pkgName + "." + className;
 
-		if(runtime.compile(className, code))
+		if(runtime.compile(className, code, new File(System.getProperty( "mmcorej.library.path" ) + "mmplugins")))
 		{
 			try {
 				runtime.saveClass(className, code, new File(System.getProperty( "mmcorej.library.path" ) + "mmplugins"));
