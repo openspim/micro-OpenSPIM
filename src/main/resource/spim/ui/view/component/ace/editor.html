@@ -50,6 +50,11 @@
     function pastevalue(aValue) {
         editor.insert(aValue);
     }
+
+    function setContent(content) {
+        editor.setValue(content);
+        editor.clearSelection();
+    }
 </script>
 </body>
 </html>

@@ -11,6 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.swing.JOptionPane;
 
 import javafx.beans.property.LongProperty;
+import javafx.event.Event;
 import mmcorej.CMMCore;
 import mmcorej.Configuration;
 import mmcorej.PropertySetting;
@@ -49,6 +50,7 @@ import spim.hardware.VersaLase;
 import spim.io.OpenSPIMSinglePlaneTiffSeries;
 import spim.model.data.ChannelItem;
 import spim.model.data.PositionItem;
+import spim.model.event.ControlEvent;
 import spim.ui.view.component.MMAcquisitionEngine;
 
 /**
@@ -1167,5 +1169,9 @@ public class AcqWrapperEngine implements AcquisitionEngine
 				event.cancelShutdown();
 			}
 		}
+	}
+
+	void onImageReceived( TaggedImage image ) {
+		Event.fireEvent( spimSetup_, new ControlEvent( ControlEvent.MM_IMAGE_CAPTURED, image ));
 	}
 }

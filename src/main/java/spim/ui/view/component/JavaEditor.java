@@ -1,5 +1,7 @@
 package spim.ui.view.component;
 
+import ij.ImageStack;
+import ij.process.ImageProcessor;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Worker;
@@ -17,12 +19,14 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.web.WebView;
-import javafx.stage.Stage;
+
+import mmcorej.TaggedImage;
 import netscape.javascript.JSObject;
 import org.micromanager.Studio;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import spim.hardware.SPIMSetup;
+import spim.model.event.ControlEvent;
 import spim.plugin.compile.PluginRuntime;
 import spim.ui.view.component.util.SequentialWebEngineLoader;
 
@@ -47,6 +51,155 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 	private SPIMSetup setup;
 
 	protected Class plugin;
+	protected Method compiledMethod;
+
+	static String scriptExample = "import org.micromanager.data.Coords;\n" +
+			"import org.micromanager.data.Image;\n" +
+			"import org.micromanager.data.Datastore;\n" +
+			"import org.micromanager.display.DisplayWindow;\n" +
+			"import org.micromanager.Studio;\n" +
+			"import org.micromanager.internal.utils.imageanalysis.ImageUtils;\n" +
+			"import mmcorej.TaggedImage;\n" +
+			"import ij.IJ;\n" +
+			"import ij.ImageJ;\n" +
+			"import ij.process.ImageProcessor;\n" +
+			"import ij.ImageStack;\n" +
+			"import ij.ImagePlus;\n" +
+			"import mmcorej.TaggedImage;\n" +
+			"import mmcorej.CMMCore;\n" +
+			"import spim.hardware.SPIMSetup;\n" +
+			"import javax.swing.SwingUtilities;\n" +
+			"import net.haesleinhuepf.clijx.CLIJx;\n" +
+			"import mmcorej.org.json.JSONException;\n" +
+			"\n" +
+			"public class Script {\n" +
+			"    static ImageStack stack1;\n" +
+			"    static ImageStack stack2;\n" +
+			"    public static void main(String[] args, SPIMSetup setup, Studio mm, mmcorej.TaggedImage tagged)\n" +
+			"    {\n" +
+			"        // Check clijx instance\n" +
+			"        System.out.println(\"Test\");\n" +
+			"        CLIJx clijx = CLIJx.getInstance();\n" +
+			"        System.out.println(clijx.clinfo());\n" +
+			"\n" +
+			"        // On receiving TaggedImage during acquisition\n" +
+			"        if(tagged != null) {\n" +
+			"            try {\n" +
+			"                // To check all the tags in the image, uncomment the below\n" +
+			"                // System.out.println(tagged.tags.toString( 2 ));\n" +
+			"                int slice = tagged.tags.getInt(\"SliceIndex\");\n" +
+			"                double exp = tagged.tags.getInt( \"Exposure-ms\" );\n" +
+			"                double zPos = tagged.tags.getDouble( \"ZPositionUm\" );\n" +
+			"                double xPos = tagged.tags.getDouble( \"XPositionUm\" );\n" +
+			"                double yPos = tagged.tags.getDouble( \"YPositionUm\" );\n" +
+			"                int ch = tagged.tags.getInt( \"ChannelIndex\" );\n" +
+			"                String cam = tagged.tags.getString( \"Camera\" );\n" +
+			"                int slices = tagged.tags.getJSONObject( \"Summary\" ).getInt( \"Slices\" );\n" +
+			"                int channels = tagged.tags.getJSONObject( \"Summary\" ).getInt( \"Channels\" );\n" +
+			"                System.out.println( slice + \"/\" + slices);\n" +
+			"\n" +
+			"                ImageProcessor image = ImageUtils.makeProcessor(tagged);\n" +
+			"                if(slice == 0) {\n" +
+			"                    if(ch == 0) stack1 = new ImageStack(image.getWidth(), image.getHeight());\n" +
+			"                    else stack2 = new ImageStack(image.getWidth(), image.getHeight());\n" +
+			"                }\n" +
+			"                if(ch == 0) stack1.addSlice(image);\n" +
+			"                else stack2.addSlice(image);\n" +
+			"                \n" +
+			"                if(slice == slices - 1) {\n" +
+			"                    if(ch == 0) new ImagePlus(\"0\", stack1).show();\n" +
+			"                    else new ImagePlus(\"1\", stack2).show();\n" +
+			"                }\n" +
+			"            } catch(JSONException es) {\n" +
+			"            }\n" +
+			"        }\n" +
+			"    }\n" +
+			"}\n";
+
+	static String pluginExample = "import com.google.common.eventbus.Subscribe;\n" +
+			"\n" +
+			"import org.micromanager.data.ProcessorConfigurator;\n" +
+			"import org.micromanager.data.ProcessorPlugin;\n" +
+			"import org.micromanager.data.ProcessorFactory;\n" +
+			"\n" +
+			"import org.micromanager.data.Image;\n" +
+			"import org.micromanager.data.Metadata;\n" +
+			"import org.micromanager.data.Processor;\n" +
+			"import org.micromanager.data.ProcessorContext;\n" +
+			"\n" +
+			"import org.micromanager.PropertyMap;\n" +
+			"import org.micromanager.Studio;\n" +
+			"\n" +
+			"import org.scijava.plugin.Plugin;\n" +
+			"import org.scijava.plugin.SciJavaPlugin;\n" +
+			"\n" +
+			"@Plugin(type = ProcessorPlugin.class)\n" +
+			"public class MoonPlugin implements ProcessorPlugin, SciJavaPlugin {\n" +
+			"   private Studio studio_;\n" +
+			"\n" +
+			"   @Override\n" +
+			"   public void setContext(Studio studio) {\n" +
+			"      studio_ = studio;\n" +
+			"   }\n" +
+			"\n" +
+			"   @Override\n" +
+			"   public ProcessorConfigurator createConfigurator(PropertyMap settings) {\n" +
+			"      return null;\n" +
+			"   }\n" +
+			"\n" +
+			"   @Override\n" +
+			"   public ProcessorFactory createFactory(PropertyMap settings) {\n" +
+			"      return new MoonFactory(settings, studio_);\n" +
+			"   }\n" +
+			"\n" +
+			"   @Override\n" +
+			"   public String getName() {\n" +
+			"      return \"Moon Plugin\";\n" +
+			"   }\n" +
+			"\n" +
+			"   @Override\n" +
+			"   public String getHelpText() {\n" +
+			"      return \"Rotates and/or mirrors images coming from the selected camera\";\n" +
+			"   }\n" +
+			"\n" +
+			"   @Override\n" +
+			"   public String getVersion() {\n" +
+			"      return \"Version 1.0\";\n" +
+			"   }\n" +
+			"\n" +
+			"   @Override\n" +
+			"   public String getCopyright() {\n" +
+			"      return \"Copyright University of California San Francisco, 2015\";\n" +
+			"   }\n" +
+			"\n" +
+			"    public class MoonFactory implements ProcessorFactory {\n" +
+			"       private PropertyMap settings_;\n" +
+			"       private Studio studio_;\n" +
+			"    \n" +
+			"       public MoonFactory(PropertyMap settings, Studio studio) {\n" +
+			"          settings_ = settings;\n" +
+			"          studio_ = studio;\n" +
+			"       }\n" +
+			"    \n" +
+			"       @Override\n" +
+			"       public Processor createProcessor() {\n" +
+			"          return new MoonProcessor(studio_);\n" +
+			"       }\n" +
+			"    }\n" +
+			"    \n" +
+			"    public class MoonProcessor implements Processor {\n" +
+			"       private Studio studio_;\n" +
+			"\n" +
+			"       public MoonProcessor(Studio studio) {\n" +
+			"          studio_ = studio;\n" +
+			"       }\n" +
+			"\n" +
+			"       @Override\n" +
+			"       public void processImage(Image image, ProcessorContext context) {\n" +
+			"          context.outputImage(image);\n" +
+			"       }\n" +
+			"    }\n" +
+			"}";
 
 	public JavaEditor( SPIMSetup setup, Studio studio ) {
 		this.setup = setup;
@@ -80,7 +233,23 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 			}
 		});
 
-		Button generatePlugin = new Button("Generate");
+		Button loadScriptExample = new Button("Load a Script example");
+		loadScriptExample.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent actionEvent) {
+				onLoadScriptExample();
+			}
+		});
+
+		Button loadPluginExample = new Button("Load a Plugin example");
+		loadPluginExample.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent actionEvent) {
+				onLoadPluginExample();
+			}
+		});
+
+		Button generatePlugin = new Button("Generate on-the-fly Plugin");
 		generatePlugin.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent actionEvent) {
@@ -89,7 +258,7 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 		});
 
 		setCenter( editorView );
-		setBottom( new HBox( 10, copyBtn, pasteBtn, okBtn, generatePlugin )  );
+		setBottom( new HBox( 10, copyBtn, pasteBtn, okBtn, loadScriptExample, loadPluginExample, generatePlugin )  );
 
 		sceneProperty().addListener( new ChangeListener< Scene >()
 		{
@@ -106,6 +275,27 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 	@Override public void setSetup( SPIMSetup setup, Studio studio ) {
 		this.setup = setup;
 		this.studio = studio;
+
+		if(this.setup != null) {
+			this.setup.addEventHandler(ControlEvent.MM, new EventHandler<ControlEvent>() {
+				@Override
+				public void handle(ControlEvent event) {
+					if(event.getEventType().equals( ControlEvent.MM_IMAGE_CAPTURED )) {
+						TaggedImage tagged = (TaggedImage) event.getParam()[0];
+
+						if(compiledMethod != null) {
+							try {
+								compiledMethod.invoke(null, new String[1], setup, studio, tagged);
+							} catch (IllegalAccessException e) {
+								e.printStackTrace();
+							} catch (InvocationTargetException e) {
+								e.printStackTrace();
+							}
+						}
+					}
+				}
+			});
+		}
 	}
 
 	public void initialize() {
@@ -159,7 +349,7 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 
 		// Get the content from the clipboard
 		Clipboard theClipboard = Clipboard.getSystemClipboard();
-		String theContent = (String) theClipboard.getContent( DataFormat.PLAIN_TEXT);
+		String theContent = (String) theClipboard.getContent( DataFormat.PLAIN_TEXT );
 		if (theContent != null) {
 			// And put it in the editor
 			// We do a Java2JavaScript downcall here
@@ -171,55 +361,17 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 
 	private void initializeHTML() {
 		// Initialize the editor
-		// and fill it with the LUA script taken from our editing action
 		Document theDocument = editorView.getEngine().getDocument();
 		Element theEditorElement = theDocument.getElementById("editor");
+		theEditorElement.setTextContent(scriptExample);
 
-//		+ "                Datastore store = mm.data().createRAMDatastore();\n"
-//		+ "                DisplayWindow display = mm.displays().createDisplay(store);\n"
-//		+ "                mm.core().snapImage();\n"
-//		+ "                TaggedImage tmp = mm.core().getTaggedImage();\n"
-//		+ "                Image image1 = mm.data().convertTaggedImage(tmp);\n"
-//		+ "                image1 = image1.copyAtCoords(image1.getCoords().copy().channel(0).build());\n"
-//		+ "                mm.core().snapImage();\n"
-//		+ "                tmp = mm.core().getTaggedImage();\n"
-//		+ "                Image image2 = mm.data().convertTaggedImage(tmp);\n"
-//		+ "                image2 = image2.copyAtCoords(image1.getCoords().copy().channel(1).build());\n"
-//		+ "                store.putImage(image1);\n"
-//		+ "                store.putImage(image2);\n"
-//		+ "                //store.save(display.getAsWindow());\n"
-
-//		theEditorElement.setTextContent(action.scriptProperty().get().script);
-		theEditorElement.setTextContent("import org.micromanager.data.Coords;\n"
-				+ "import org.micromanager.data.Image;\n"
-				+ "import org.micromanager.data.Datastore;\n"
-				+ "import org.micromanager.display.DisplayWindow;\n"
-				+ "import org.micromanager.Studio;\n"
-				+ "import ij.IJ;\n"
-				+ "import ij.ImageJ;\n"
-				+ "import mmcorej.TaggedImage;\n"
-				+ "import mmcorej.CMMCore;\n"
-				+ "import spim.hardware.SPIMSetup;\n"
-				+ "import javax.swing.SwingUtilities;\n"
-				+ "import net.haesleinhuepf.clijx.CLIJx;\n"
-				+ "\n"
-				+ "public class Script {\n"
-				+ "        public static void main(String[] args, SPIMSetup setup, Studio mm)\n"
-				+ "        {\n"
-				+ "            SwingUtilities.invokeLater(() -> {\n"
-				+ "            try {\n"
-				+ "                System.out.println(\"Test\");\n"
-				+ "                CLIJx clijx = CLIJx.getInstance();\n"
-				+ "                System.out.println(clijx.clinfo());\n"
-				+ "            } catch(Exception e)\n"
-				+ "            {\n"
-				+ "                e.printStackTrace();\n"
-				+ "            }\n"
-				+ "            });\n"
-				+ "        }\n"
-				+ "}\n");
-
+		// and fill it with the LUA script taken from our editing action
 		editorView.getEngine().executeScript("initeditor()");
+	}
+
+	private void setTextContent(String content) {
+		JSObject theWindow = (JSObject) editorView.getEngine().executeScript("window");
+		theWindow.call("setContent", content);
 	}
 
 	private void compileRun( String code ) {
@@ -316,8 +468,8 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 		Method method = null;
 
 		try {
-			method = clazz.getMethod("main", String[].class, SPIMSetup.class, Studio.class);
-			method.invoke(null, new String[1], setup, studio);
+			method = clazz.getMethod("main", String[].class, SPIMSetup.class, Studio.class, TaggedImage.class);
+			method.invoke(null, new String[1], setup, studio, null);
 		} catch (NoSuchMethodException e) {
 			e.printStackTrace();
 		} catch (IllegalAccessException e) {
@@ -325,6 +477,8 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 		} catch ( InvocationTargetException e) {
 			e.printStackTrace();
 		}
+
+		if(method != null) compiledMethod = method;
 	}
 
 	public void onOk() {
@@ -378,6 +532,15 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 				e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
 			}
 		}
+	}
+
+
+	private void onLoadPluginExample() {
+		setTextContent(pluginExample);
+	}
+
+	private void onLoadScriptExample() {
+		setTextContent(scriptExample);
 	}
 
 	public void onTest() {

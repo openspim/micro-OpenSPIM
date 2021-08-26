@@ -1,11 +1,23 @@
 package spim.hardware;
 
+import com.sun.javafx.scene.NodeEventDispatcher;
 import ij.IJ;
 
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.EnumMap;
 
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.event.Event;
+import javafx.event.EventDispatchChain;
+import javafx.event.EventDispatcher;
+import javafx.event.EventHandler;
+import javafx.event.EventTarget;
+import javafx.event.EventType;
+import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.input.MouseEvent;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
 import mmcorej.CMMCore;
@@ -21,7 +33,8 @@ import org.micromanager.internal.utils.ReportingUtils;
  * Organization: MPI-CBG Dresden
  * Date: March 2019
  */
-public class SPIMSetup {
+public class SPIMSetup implements EventTarget {
+
 	public static enum SPIMDevice {
 		STAGE_X ("X Stage"),
 		STAGE_Y ("Y Stage"),
@@ -426,5 +439,69 @@ public class SPIMSetup {
 				return true;
 
 		return false;
+	}
+
+	@Override
+	public EventDispatchChain buildEventDispatchChain(EventDispatchChain eventDispatchChain) {
+		if (this.eventDispatcher != null) {
+			EventDispatcher dispatcher = this.eventDispatcher.get();
+			if (dispatcher != null) {
+				eventDispatchChain = eventDispatchChain.prepend(dispatcher);
+			}
+		}
+
+		return eventDispatchChain;
+	}
+
+	private ObjectProperty<EventDispatcher> eventDispatcher;
+	private NodeEventDispatcher internalEventDispatcher;
+
+	public final void setEventDispatcher(EventDispatcher var1) {
+		this.eventDispatcherProperty().set(var1);
+	}
+
+	public final EventDispatcher getEventDispatcher() {
+		return (EventDispatcher)this.eventDispatcherProperty().get();
+	}
+
+	public final ObjectProperty<EventDispatcher> eventDispatcherProperty() {
+		this.initializeInternalEventDispatcher();
+		return this.eventDispatcher;
+	}
+
+	private NodeEventDispatcher createInternalEventDispatcher() {
+		return new NodeEventDispatcher(this);
+	}
+
+	public final <T extends Event> void addEventHandler(EventType<T> var1, EventHandler<? super T> var2) {
+		this.getInternalEventDispatcher().getEventHandlerManager().addEventHandler(var1, var2);
+	}
+
+	public final <T extends Event> void removeEventHandler(EventType<T> var1, EventHandler<? super T> var2) {
+		this.getInternalEventDispatcher().getEventHandlerManager().removeEventHandler(var1, var2);
+	}
+
+	public final <T extends Event> void addEventFilter(EventType<T> var1, EventHandler<? super T> var2) {
+		this.getInternalEventDispatcher().getEventHandlerManager().addEventFilter(var1, var2);
+	}
+
+	public final <T extends Event> void removeEventFilter(EventType<T> var1, EventHandler<? super T> var2) {
+		this.getInternalEventDispatcher().getEventHandlerManager().removeEventFilter(var1, var2);
+	}
+
+	protected final <T extends Event> void setEventHandler(EventType<T> var1, EventHandler<? super T> var2) {
+		this.getInternalEventDispatcher().getEventHandlerManager().setEventHandler(var1, var2);
+	}
+
+	private NodeEventDispatcher getInternalEventDispatcher() {
+		this.initializeInternalEventDispatcher();
+		return this.internalEventDispatcher;
+	}
+
+	private void initializeInternalEventDispatcher() {
+		if (this.internalEventDispatcher == null) {
+			this.internalEventDispatcher = this.createInternalEventDispatcher();
+			this.eventDispatcher = new SimpleObjectProperty(this, "eventDispatcher", this.internalEventDispatcher);
+		}
 	}
 }

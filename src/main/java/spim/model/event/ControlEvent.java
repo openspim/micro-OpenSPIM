@@ -47,6 +47,9 @@ public class ControlEvent extends Event
 	// MM Start events
 	public static final EventType<ControlEvent> MM_OPEN = new EventType<>( MM, "MM_OPEN" );
 
+	// Acquisition events
+	public static final EventType<ControlEvent> MM_IMAGE_CAPTURED = new EventType<>( MM, "MM_IMAGE_CAPTURED" );
+
 	final private EventType<ControlEvent> eventType;
 	final private Object[] param;
 

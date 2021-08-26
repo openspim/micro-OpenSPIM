@@ -15,7 +15,6 @@ import ij.process.ImageProcessor;
 import javafx.beans.property.LongProperty;
 import mmcorej.TaggedImage;
 import org.micromanager.PropertyMap;
-import org.micromanager.acquisition.internal.AcquisitionEngine;
 import org.micromanager.acquisition.internal.TaggedImageQueue;
 import org.micromanager.data.Coordinates;
 import org.micromanager.data.Coords;
@@ -49,7 +48,7 @@ public class TaggedImageSink {
 	private final BlockingQueue<TaggedImage> imageProducingQueue_;
 	private final Datastore store_;
 	private final Pipeline pipeline_;
-	private final AcquisitionEngine engine_;
+	private final AcqWrapperEngine engine_;
 	private final EventManager studioEvents_;
 	private final int t_;
 	private final int angle_;
@@ -65,7 +64,7 @@ public class TaggedImageSink {
 	public TaggedImageSink(BlockingQueue<TaggedImage> queue,
 						   Pipeline pipeline,
 						   Datastore store,
-						   AcquisitionEngine engine,
+						   AcqWrapperEngine engine,
 						   EventManager studioEvents,
 						   int t, int angle,
 						   List<String> cameras, double x, double y, double theta,
@@ -135,6 +134,8 @@ public class TaggedImageSink {
 							}
 							try {
 								++imageCount;
+
+								engine_.onImageReceived(tagged);
 								// dumpJSON(tagged, System.out);
 
 //								System.out.println(tagged.tags.toString( 2 ));
