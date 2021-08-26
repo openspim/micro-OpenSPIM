@@ -28,7 +28,11 @@ import spim.ui.view.component.util.SequentialWebEngineLoader;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FilterReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -137,11 +141,56 @@ public class BeanshellEditor extends BorderPane implements SPIMSetupInjectable
 		});
 	}
 
-	public final void createBeanshellREPL() {
-		// Create console and REPL interpreter:
-		cons_ = new JConsole();
+	class CommandLineReader extends FilterReader {
+		static final int normal = 0;
+		static final int lastCharNL = 1;
+		static final int sentSemi = 2;
+		int state = 1;
 
-		beanshellREPLint_ = new Interpreter(cons_);
+		public CommandLineReader(Reader in) {
+			super(in);
+		}
+
+		public int read() throws IOException {
+			if (this.state == 2) {
+				this.state = 1;
+				return 10;
+			} else {
+				int b;
+				while((b = this.in.read()) == 13) {
+				}
+
+				if (b == 10) {
+					if (this.state == 1) {
+						b = 59;
+						this.state = 2;
+					} else {
+						this.state = 1;
+					}
+				} else {
+					this.state = 0;
+				}
+
+				return b;
+			}
+		}
+
+		public int read(char[] buff, int off, int len) throws IOException {
+			int b = this.read();
+			if (b == -1) {
+				return -1;
+			} else {
+				buff[off] = (char)b;
+				return 1;
+			}
+		}
+	}
+
+	final void createBeanshellREPL() {
+		Reader in = new CommandLineReader(new InputStreamReader((InputStream)System.in));
+
+		// Create console and REPL interpreter:
+		beanshellREPLint_ = new Interpreter(in, System.out, System.err, true);
 
 		new Thread(beanshellREPLint_, "BeanShell interpreter").start();
 
@@ -372,6 +421,7 @@ public class BeanshellEditor extends BorderPane implements SPIMSetupInjectable
 			return;
 		}
 		String theContent = (String) editorView.getEngine().executeScript("getvalue()");
+
 		runCode( theContent );
 	}
 }
