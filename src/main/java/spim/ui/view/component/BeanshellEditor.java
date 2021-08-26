@@ -4,7 +4,6 @@ import bsh.EvalError;
 import bsh.Interpreter;
 import bsh.ParseException;
 import bsh.TargetError;
-import bsh.util.JConsole;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Worker;
@@ -12,6 +11,7 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.TextField;
 import javafx.scene.input.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -30,8 +30,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FilterReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.PipedReader;
+import java.io.PipedWriter;
 import java.io.Reader;
 
 /**
@@ -47,12 +47,26 @@ public class BeanshellEditor extends BorderPane implements SPIMSetupInjectable
 	private SPIMSetup setup;
 
 	private Interpreter beanshellREPLint_;
-	private JConsole cons_;
-
+	private TextField commandField;
+	private PipedWriter commandWriter;
 
 	public BeanshellEditor( Stage stage, SPIMSetup setup, Studio studio ) {
 		this.setup = setup;
 		this.studio = studio;
+
+		commandWriter = new PipedWriter();
+
+		commandField = new TextField();
+		commandField.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent actionEvent) {
+				try {
+					commandWriter.write(commandField.getText());
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		});
 
 		editorView = new WebView();
 		editorView.setMinHeight( 180 );
@@ -82,6 +96,7 @@ public class BeanshellEditor extends BorderPane implements SPIMSetupInjectable
 			}
 		});
 
+		setTop( commandField );
 		setCenter( editorView );
 		setBottom( new HBox( 10, copyBtn, pasteBtn, okBtn )  );
 
@@ -187,7 +202,14 @@ public class BeanshellEditor extends BorderPane implements SPIMSetupInjectable
 	}
 
 	final void createBeanshellREPL() {
-		Reader in = new CommandLineReader(new InputStreamReader((InputStream)System.in));
+
+//		Reader in = new CommandLineReader(new InputStreamReader((InputStream)System.in));
+		Reader in = null;
+		try {
+			in = new CommandLineReader(new PipedReader(commandWriter));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 		// Create console and REPL interpreter:
 		beanshellREPLint_ = new Interpreter(in, System.out, System.err, true);
