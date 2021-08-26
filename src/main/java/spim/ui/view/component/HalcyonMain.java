@@ -133,14 +133,14 @@ public class HalcyonMain extends HalcyonFrame
 		addNode(lCamera);
 		addNode(lStage);
 
-		JavaEditor javaEditor = new JavaEditor( primaryStage, spimSetup, studio );
+		JavaEditor javaEditor = new JavaEditor( spimSetup, studio );
 		final HalcyonNode editor1 = HalcyonNode.wrap( "Java",
 				SpimHalcyonNodeType.EDITOR,
 				javaEditor );
 
 		addNode(editor1);
 
-		BeanshellEditor beanshellEditor = new BeanshellEditor( primaryStage, spimSetup, studio );
+		BeanshellEditor beanshellEditor = new BeanshellEditor( spimSetup, studio );
 		final HalcyonNode editor2 = HalcyonNode.wrap( "Beanshell",
 				SpimHalcyonNodeType.EDITOR,
 				beanshellEditor );

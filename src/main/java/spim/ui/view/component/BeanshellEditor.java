@@ -50,7 +50,7 @@ public class BeanshellEditor extends BorderPane implements SPIMSetupInjectable
 	private TextField commandField;
 	private PipedWriter commandWriter;
 
-	public BeanshellEditor( Stage stage, SPIMSetup setup, Studio studio ) {
+	public BeanshellEditor( SPIMSetup setup, Studio studio ) {
 		this.setup = setup;
 		this.studio = studio;
 

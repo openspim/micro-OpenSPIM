@@ -23,8 +23,6 @@ import org.micromanager.Studio;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import spim.hardware.SPIMSetup;
-import spim.mm.MMUtils;
-import spim.mm.MicroManager;
 import spim.plugin.compile.PluginRuntime;
 import spim.ui.view.component.util.SequentialWebEngineLoader;
 
@@ -50,7 +48,7 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 
 	protected Class plugin;
 
-	public JavaEditor( Stage stage, SPIMSetup setup, Studio studio ) {
+	public JavaEditor( SPIMSetup setup, Studio studio ) {
 		this.setup = setup;
 		this.studio = studio;
 
