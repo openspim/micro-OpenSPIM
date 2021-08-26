@@ -156,7 +156,7 @@ public class IOUtils {
 		Manifest manifest = new Manifest();
 		manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
 		JarOutputStream target = new JarOutputStream(new FileOutputStream(output), manifest);
-		addFileJar(inputDir, new File(inputDir), target);
+		addFileJar(inputDir.replace("\\", "/"), new File(inputDir), target);
 		target.close();
 	}
 
@@ -167,7 +167,7 @@ public class IOUtils {
 		{
 			if (source.isDirectory())
 			{
-				String name = source.getPath().replace(root, "").replace("\\", "/");
+				String name = source.getPath().replace("\\", "/").replace(root, "");
 				if (!name.isEmpty())
 				{
 					if (!name.endsWith("/"))
@@ -182,7 +182,7 @@ public class IOUtils {
 				return;
 			}
 
-			JarEntry entry = new JarEntry(source.getPath().replace(root, "").replace("\\", "/"));
+			JarEntry entry = new JarEntry(source.getPath().replace("\\", "/").replace(root, ""));
 			entry.setTime(source.lastModified());
 			target.putNextEntry(entry);
 			in = new BufferedInputStream(new FileInputStream(source));

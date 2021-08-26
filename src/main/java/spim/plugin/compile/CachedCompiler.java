@@ -87,7 +87,7 @@ public class CachedCompiler {
 		}
 		// reuse the same file manager to allow caching of jar files
 		if(classDir != null) {
-			CompilerUtils.s_compiler.getTask(null, CompilerUtils.s_fileManager, null, Arrays.asList( "-d", getPluginTempPath() ), null, compilationUnits);
+			CompilerUtils.s_compiler.getTask(null, CompilerUtils.s_fileManager, null, Arrays.asList("-d", getPluginTempPath()), null, compilationUnits);
 		} else {
 			CompilerUtils.s_compiler.getTask(null, CompilerUtils.s_fileManager, null, null, null, compilationUnits);
 		}
@@ -105,8 +105,8 @@ public class CachedCompiler {
 		} else {
 			compilationUnits = Arrays.asList(new JavaSourceFromString(className, javaCode));
 		}
-
 		// reuse the same file manager to allow caching of jar files
+
 		boolean ret = false;
 		if(classDir != null) {
 			ret = CompilerUtils.s_compiler.getTask(null, CompilerUtils.s_fileManager, null, Arrays.asList( "-d", getPluginTempPath() ), null, compilationUnits).call();
@@ -125,14 +125,14 @@ public class CachedCompiler {
 				String filename = className2.replaceAll("\\.", '\\' + File.separator) + ".class";
 				boolean changed = IOUtils.writeBytes(new File(getPluginTempPath(), filename), bytes);
 				if (changed)
-					LogFactory.getLog(CachedCompiler.class).info("Updated " + className2 + " in " + getPluginTempPath());
+					LogFactory.getLog(CachedCompiler.class).info("Updated " + className2 + " in " + getPluginTempPath() );
 			}
 			CompilerUtils.defineClass(classLoader, className2, bytes);
 		}
 
 		if(classDir != null) {
 			try {
-				IOUtils.createJar(getPluginTempPath(), classDir + "/" + className + ".jar");
+				IOUtils.createJar(System.getProperty("user.dir") + "tmp/", classDir + "/" + className + ".jar");
 				FileUtils.cleanDirectory( new File( getPluginTempPath() ) );
 				new File( getPluginTempPath() ).delete();
 			} catch (IOException e) {
@@ -158,7 +158,7 @@ public class CachedCompiler {
 	}
 
 	static String getPluginTempPath() {
-		return System.getProperty("user.dir") + ".tmp";
+		return System.getProperty("user.dir") + "tmp";
 	}
 }
 
