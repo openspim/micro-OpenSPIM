@@ -502,7 +502,7 @@ public class JavaEditor extends Editor
 		});
 
 		MenuItem loadClijxMaxfusionDogExample = new MenuItem("Load clijx max-fusion DoG example");
-		loadScriptExample.setOnAction(new EventHandler<ActionEvent>() {
+		loadClijxMaxfusionDogExample.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent actionEvent) {
 				onLoadMaxFusionDogExample();
@@ -510,7 +510,7 @@ public class JavaEditor extends Editor
 		});
 
 		MenuItem loadClijxTenengradFusionExample = new MenuItem("Load clijx tenengrad fusion example");
-		loadPluginExample.setOnAction(new EventHandler<ActionEvent>() {
+		loadClijxTenengradFusionExample.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent actionEvent) {
 				onLoadTenengradFusionExample();
