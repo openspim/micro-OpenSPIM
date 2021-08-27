@@ -47,6 +47,12 @@
         return editor.getCopyText();
     }
 
+    function cutselection() {
+      var text = editor.getCopyText();
+      editor.execCommand("cut");
+      return text;
+    }
+
     function pastevalue(aValue) {
         editor.insert(aValue);
     }

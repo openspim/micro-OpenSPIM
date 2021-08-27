@@ -4,27 +4,19 @@ import bsh.EvalError;
 import bsh.Interpreter;
 import bsh.ParseException;
 import bsh.TargetError;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
-import javafx.concurrent.Worker;
+
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
-import javafx.scene.input.*;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.web.WebView;
-import javafx.stage.Stage;
-import netscape.javascript.JSObject;
+
 import org.micromanager.Studio;
 import org.micromanager.internal.utils.MMScriptException;
 import org.micromanager.internal.utils.ReportingUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import spim.hardware.SPIMSetup;
-import spim.ui.view.component.util.SequentialWebEngineLoader;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -39,37 +31,28 @@ import java.io.Reader;
  * Organization: MPI-CBG Dresden
  * Date: August 2021
  */
-public class BeanshellEditor extends BorderPane implements SPIMSetupInjectable
+public class BeanshellEditor extends Editor
 {
-	WebView editorView;
-
-	private Studio studio;
-	private SPIMSetup setup;
-
 	private Interpreter beanshellREPLint_;
 	private TextField commandField;
 	private PipedWriter commandWriter;
+	private Thread beanshellThread;
 
 	public BeanshellEditor( SPIMSetup setup, Studio studio ) {
-		this.setup = setup;
-		this.studio = studio;
-
-		commandWriter = new PipedWriter();
+		super(setup, studio);
 
 		commandField = new TextField();
 		commandField.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent actionEvent) {
 				try {
-					commandWriter.write(commandField.getText());
+					if(commandWriter != null)
+						commandWriter.write(commandField.getText());
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
 		});
-
-		editorView = new WebView();
-		editorView.setMinHeight( 180 );
 
 		Button okBtn = new Button( "Run" );
 		okBtn.setOnAction( new EventHandler<ActionEvent>()
@@ -97,19 +80,7 @@ public class BeanshellEditor extends BorderPane implements SPIMSetupInjectable
 		});
 
 		setTop( commandField );
-		setCenter( editorView );
 		setBottom( new HBox( 10, copyBtn, pasteBtn, okBtn )  );
-
-		sceneProperty().addListener( new ChangeListener<Scene>()
-		{
-			@Override public void changed(ObservableValue< ? extends Scene > observable, Scene oldValue, Scene newValue )
-			{
-				if(newValue != null) {
-					initialize();
-					sceneProperty().removeListener( this );
-				}
-			}
-		} );
 	}
 
 	@Override
@@ -120,40 +91,22 @@ public class BeanshellEditor extends BorderPane implements SPIMSetupInjectable
 		if(setup != null) {
 			createBeanshellREPL();
 			initializeInterpreter();
+		} else {
+			if(beanshellThread != null) {
+				try {
+					commandWriter.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				commandWriter = null;
+				beanshellThread.stop();
+			}
+			beanshellThread = null;
 		}
 	}
 
-	public void initialize() {
-		// We need JavaScript support
-		editorView.getEngine().setJavaScriptEnabled(true);
-
-		// The build in ACE context menu does not work because
-		// JavaScript Clipboard interaction is disabled by security.
-		// We have to do this by ourselfs.
-		editorView.setContextMenuEnabled(false);
-
-		SequentialWebEngineLoader.load(editorView.getEngine(), getClass().getResource("ace/beanshell.html").toExternalForm(), (observable, oldValue, newValue) -> {
-			if (newValue == Worker.State.SUCCEEDED) {
-				initializeHTML();
-			}
-		});
-
-		// Copy & Paste Clipboard support
-		final KeyCombination theCombinationCopy = new KeyCodeCombination( KeyCode.C, KeyCombination.SHORTCUT_DOWN);
-		final KeyCombination theCombinationPaste = new KeyCodeCombination(KeyCode.V, KeyCombination.SHORTCUT_DOWN);
-		final KeyCombination theCombinationRun = new KeyCodeCombination(KeyCode.R, KeyCombination.SHORTCUT_DOWN);
-
-		editorView.addEventFilter( KeyEvent.KEY_PRESSED, aEvent -> {
-			if (theCombinationCopy.match(aEvent)) {
-				onCopy();
-			}
-			if (theCombinationPaste.match(aEvent)) {
-				onPaste();
-			}
-			if (theCombinationRun.match(aEvent)) {
-				onOk();
-			}
-		});
+	protected String getEditorHtml() {
+		return "ace/beanshell.html";
 	}
 
 	class CommandLineReader extends FilterReader {
@@ -204,6 +157,7 @@ public class BeanshellEditor extends BorderPane implements SPIMSetupInjectable
 	final void createBeanshellREPL() {
 
 //		Reader in = new CommandLineReader(new InputStreamReader((InputStream)System.in));
+		commandWriter = new PipedWriter();
 		Reader in = null;
 		try {
 			in = new CommandLineReader(new PipedReader(commandWriter));
@@ -214,7 +168,8 @@ public class BeanshellEditor extends BorderPane implements SPIMSetupInjectable
 		// Create console and REPL interpreter:
 		beanshellREPLint_ = new Interpreter(in, System.out, System.err, true);
 
-		new Thread(beanshellREPLint_, "BeanShell interpreter").start();
+		beanshellThread = new Thread(beanshellREPLint_, "BeanShell interpreter");
+		beanshellThread.start();
 
 		running_ = false;
 		evalThd_ = new EvalThread("");
@@ -274,55 +229,28 @@ public class BeanshellEditor extends BorderPane implements SPIMSetupInjectable
 		ReportingUtils.showError(e);
 	}
 
-	private void onCopy() {
-
-		// Get the selected content from the editor
-		// We to a Java2JavaScript downcall here
-		// For details, take a look at the function declaration in editor.html
-		String theContentAsText = (String) editorView.getEngine().executeScript("copyselection()");
-
-		// And put it to the clipboard
-		Clipboard theClipboard = Clipboard.getSystemClipboard();
-		ClipboardContent theContent = new ClipboardContent();
-		theContent.putString(theContentAsText);
-		theClipboard.setContent(theContent);
-	}
-
-	private void onPaste() {
-
-		// Get the content from the clipboard
-		Clipboard theClipboard = Clipboard.getSystemClipboard();
-		String theContent = (String) theClipboard.getContent( DataFormat.PLAIN_TEXT);
-		if (theContent != null) {
-			// And put it in the editor
-			// We do a Java2JavaScript downcall here
-			// For details, take a look at the function declaration in editor.html
-			JSObject theWindow = (JSObject) editorView.getEngine().executeScript("window");
-			theWindow.call("pastevalue", theContent);
-		}
-	}
-
-	private void initializeHTML() {
+	protected void initializeHTML() {
 		// Initialize the editor
 		// and fill it with the LUA script taken from our editing action
 		Document theDocument = editorView.getEngine().getDocument();
 		Element theEditorElement = theDocument.getElementById("editor");
 
-		theEditorElement.setTextContent("import org.micromanager.data.Coordinates;\n"
-				+ "cb = Coordinates.builder();\n"
-				+ "print(cb.c(2).build());\n"
-				+ "inspect(cb);\n");
+		theEditorElement.setTextContent("//  \"Ctrl+R\" on Windows and \"Meta+R\" on Mac runs your code.\n" +
+				"import org.micromanager.data.Coordinates;\n" +
+				"cb = Coordinates.builder();\n" +
+				"print(cb.c(2).build());\n" +
+				"inspect(cb);\n");
 
 		editorView.getEngine().executeScript("initeditor()");
 	}
 
-	public void joinEvalThread() throws InterruptedException {
+	private void joinEvalThread() throws InterruptedException {
 		if (evalThd_.isAlive()) {
 			evalThd_.join();
 		}
 	}
 
-	public void evaluateAsync(String script) throws MMScriptException {
+	private void evaluateAsync(String script) throws MMScriptException {
 		if (evalThd_.isAlive())
 			throw new MMScriptException("Another script execution in progress!");
 
@@ -436,6 +364,7 @@ public class BeanshellEditor extends BorderPane implements SPIMSetupInjectable
 		}
 	}
 
+	@Override
 	public void onOk() {
 		// We need to sace the edited script to the game model.
 		if(setup == null) {

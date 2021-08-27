@@ -1,34 +1,19 @@
 package spim.ui.view.component;
 
-import ij.ImageStack;
-import ij.process.ImageProcessor;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
-import javafx.concurrent.Worker;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.input.Clipboard;
-import javafx.scene.input.ClipboardContent;
-import javafx.scene.input.DataFormat;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
-import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.BorderPane;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
 import javafx.scene.layout.HBox;
-import javafx.scene.web.WebView;
 
 import mmcorej.TaggedImage;
-import netscape.javascript.JSObject;
 import org.micromanager.Studio;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import spim.hardware.SPIMSetup;
 import spim.model.event.ControlEvent;
 import spim.plugin.compile.PluginRuntime;
-import spim.ui.view.component.util.SequentialWebEngineLoader;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
@@ -43,15 +28,10 @@ import java.util.regex.Pattern;
  * Organization: MPI-CBG Dresden
  * Date: October 2018
  */
-public class JavaEditor extends BorderPane implements SPIMSetupInjectable
+public class JavaEditor extends Editor
 {
-	WebView editorView;
-
-	private Studio studio;
-	private SPIMSetup setup;
-
-	protected Class plugin;
-	protected Method compiledMethod;
+	private Class plugin;
+	private Method compiledMethod;
 
 	static String scriptExample = "import org.micromanager.data.Coords;\n" +
 			"import org.micromanager.data.Image;\n" +
@@ -72,16 +52,30 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 			"import net.haesleinhuepf.clijx.CLIJx;\n" +
 			"import mmcorej.org.json.JSONException;\n" +
 			"\n" +
+			"/***\n" +
+			" * \"Ctrl+R\" on Windows and \"Meta+R\" on Mac runs your code.\n" +
+			" * You can design any processes based on the images.\n" +
+			" */\n" +
 			"public class Script {\n" +
 			"    static ImageStack stack1;\n" +
 			"    static ImageStack stack2;\n" +
-			"    public static void main(String[] args, SPIMSetup setup, Studio mm, mmcorej.TaggedImage tagged)\n" +
+			"    \n" +
+			"    /***\n" +
+			"     * This main method runs by clicking \"Run\" button.\n" +
+			"     */\n" +
+			"    public static void main(String[] args, SPIMSetup setup, Studio mm)\n" +
 			"    {\n" +
 			"        // Check clijx instance\n" +
 			"        System.out.println(\"Test\");\n" +
 			"        CLIJx clijx = CLIJx.getInstance();\n" +
 			"        System.out.println(clijx.clinfo());\n" +
-			"\n" +
+			"    }\n" +
+			"    \n" +
+			"    /***\n" +
+			"     * process method runs whenever the new image is received during acquisition.\n" +
+			"     */\n" +
+			"    public static void process(String[] args, mmcorej.TaggedImage tagged)\n" +
+			"    {\n" +
 			"        // On receiving TaggedImage during acquisition\n" +
 			"        if(tagged != null) {\n" +
 			"            try {\n" +
@@ -118,95 +112,139 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 
 	static String pluginExample = "import com.google.common.eventbus.Subscribe;\n" +
 			"\n" +
-			"import org.micromanager.data.ProcessorConfigurator;\n" +
-			"import org.micromanager.data.ProcessorPlugin;\n" +
-			"import org.micromanager.data.ProcessorFactory;\n" +
-			"\n" +
+			"import java.awt.*;\n" +
+			"import java.awt.event.*;\n" +
+			"import javax.swing.*;\n" +
+			"import org.micromanager.data.*;\n" +
 			"import org.micromanager.data.Image;\n" +
-			"import org.micromanager.data.Metadata;\n" +
-			"import org.micromanager.data.Processor;\n" +
-			"import org.micromanager.data.ProcessorContext;\n" +
 			"\n" +
-			"import org.micromanager.PropertyMap;\n" +
-			"import org.micromanager.Studio;\n" +
+			"import org.micromanager.*;\n" +
+			"import org.micromanager.data.ProcessorConfigurator;\n" +
+			"import org.micromanager.propertymap.MutablePropertyMapView;\n" +
 			"\n" +
 			"import org.scijava.plugin.Plugin;\n" +
 			"import org.scijava.plugin.SciJavaPlugin;\n" +
 			"\n" +
+			"/***\n" +
+			" * \"Ctrl+R\" on Windows and \"Meta+R\" on Mac runs your code.\n" +
+			" * This example shows how to implement on-the-fly Processor in Micro-Manager.\n" +
+			" * Please, refer https://github.com/micro-manager/micro-manager/tree/master/plugins/ImageFlipper\n" +
+			" * if you want to see the actual example.\n" +
+			" * \n" +
+			" * Clicking \"Generate an on-the-fly Plugin\" button generates \"MoonPlugin.jar\" in the plugin folder.\n" +
+			" */\n" +
 			"@Plugin(type = ProcessorPlugin.class)\n" +
 			"public class MoonPlugin implements ProcessorPlugin, SciJavaPlugin {\n" +
-			"   private Studio studio_;\n" +
+			"    private Studio studio_;\n" +
 			"\n" +
-			"   @Override\n" +
-			"   public void setContext(Studio studio) {\n" +
-			"      studio_ = studio;\n" +
-			"   }\n" +
+			"    @Override\n" +
+			"    public void setContext(Studio studio) {\n" +
+			"        studio_ = studio;\n" +
+			"    }\n" +
 			"\n" +
-			"   @Override\n" +
-			"   public ProcessorConfigurator createConfigurator(PropertyMap settings) {\n" +
-			"      return null;\n" +
-			"   }\n" +
+			"    @Override\n" +
+			"    public ProcessorConfigurator createConfigurator(PropertyMap settings) {\n" +
+			"        return new MoonConfigurator(settings, studio_);\n" +
+			"    }\n" +
 			"\n" +
-			"   @Override\n" +
-			"   public ProcessorFactory createFactory(PropertyMap settings) {\n" +
-			"      return new MoonFactory(settings, studio_);\n" +
-			"   }\n" +
+			"    @Override\n" +
+			"    public ProcessorFactory createFactory(PropertyMap settings) {\n" +
+			"        return new MoonFactory(settings, studio_);\n" +
+			"    }\n" +
 			"\n" +
-			"   @Override\n" +
-			"   public String getName() {\n" +
-			"      return \"Moon Plugin\";\n" +
-			"   }\n" +
+			"    @Override\n" +
+			"    public String getName() {\n" +
+			"        return \"Moon Plugin\";\n" +
+			"    }\n" +
 			"\n" +
-			"   @Override\n" +
-			"   public String getHelpText() {\n" +
-			"      return \"Rotates and/or mirrors images coming from the selected camera\";\n" +
-			"   }\n" +
+			"    @Override\n" +
+			"    public String getHelpText() {\n" +
+			"        return \"An example on-the-fly processor\";\n" +
+			"    }\n" +
 			"\n" +
-			"   @Override\n" +
-			"   public String getVersion() {\n" +
-			"      return \"Version 1.0\";\n" +
-			"   }\n" +
+			"    @Override\n" +
+			"    public String getVersion() {\n" +
+			"        return \"Version 1.0\";\n" +
+			"    }\n" +
 			"\n" +
-			"   @Override\n" +
-			"   public String getCopyright() {\n" +
-			"      return \"Copyright University of California San Francisco, 2015\";\n" +
-			"   }\n" +
+			"    @Override\n" +
+			"    public String getCopyright() {\n" +
+			"        return \"Copyright (c) <year> <copyright holder>. All rights reserved.\";\n" +
+			"    }\n" +
+			"\n" +
+			"    public class MoonConfigurator extends JFrame implements ProcessorConfigurator {\n" +
+			"        private final Studio studio_;\n" +
+			"        private final MutablePropertyMapView defaults_;\n" +
+			"\n" +
+			"        public MoonConfigurator(PropertyMap settings, Studio studio) {\n" +
+			"           studio_ = studio;\n" +
+			"           defaults_ = studio_.profile().getSettings(this.getClass());\n" +
+			"        }\n" +
+			"        \n" +
+			"        @Override\n" +
+			"        public void showGUI() {\n" +
+			"            Dialog d = new Dialog(this, \"Dialog Example\", true);  \n" +
+			"            d.setLayout( new FlowLayout() );  \n" +
+			"            Button b = new Button (\"OK\");  \n" +
+			"            b.addActionListener ( new ActionListener()  \n" +
+			"            {  \n" +
+			"                public void actionPerformed( ActionEvent e )  \n" +
+			"                {  \n" +
+			"                    d.setVisible(false);  \n" +
+			"                }  \n" +
+			"            });  \n" +
+			"            d.add( new Label (\"Click button to continue.\"));\n" +
+			"            d.add(b);   \n" +
+			"            d.setSize(300,300);    \n" +
+			"            d.setVisible(true);  \n" +
+			"        }\n" +
+			"        \n" +
+			"        @Override\n" +
+			"        public void cleanup() {\n" +
+			"        }\n" +
+			"       \n" +
+			"        @Override\n" +
+			"        public PropertyMap getSettings() {\n" +
+			"            PropertyMap.Builder builder = PropertyMaps.builder(); \n" +
+			"            builder.putString(\"shape\", \"full\");\n" +
+			"            builder.putInteger(\"radian-integer\", 6);\n" +
+			"            builder.putDouble(\"radian-double\", 6.283);\n" +
+			"            builder.putBoolean(\"full\", true);\n" +
+			"            return builder.build();\n" +
+			"        }\n" +
+			"    }\n" +
 			"\n" +
 			"    public class MoonFactory implements ProcessorFactory {\n" +
-			"       private PropertyMap settings_;\n" +
-			"       private Studio studio_;\n" +
+			"        private PropertyMap settings_;\n" +
+			"        private Studio studio_;\n" +
 			"    \n" +
-			"       public MoonFactory(PropertyMap settings, Studio studio) {\n" +
-			"          settings_ = settings;\n" +
-			"          studio_ = studio;\n" +
-			"       }\n" +
+			"        public MoonFactory(PropertyMap settings, Studio studio) {\n" +
+			"            settings_ = settings;\n" +
+			"            studio_ = studio;\n" +
+			"        }\n" +
 			"    \n" +
-			"       @Override\n" +
-			"       public Processor createProcessor() {\n" +
-			"          return new MoonProcessor(studio_);\n" +
-			"       }\n" +
+			"        @Override\n" +
+			"        public Processor createProcessor() {\n" +
+			"            return new MoonProcessor(studio_);\n" +
+			"        }\n" +
 			"    }\n" +
-			"    \n" +
+			"\n" +
 			"    public class MoonProcessor implements Processor {\n" +
-			"       private Studio studio_;\n" +
+			"        private Studio studio_;\n" +
 			"\n" +
-			"       public MoonProcessor(Studio studio) {\n" +
-			"          studio_ = studio;\n" +
-			"       }\n" +
+			"        public MoonProcessor(Studio studio) {\n" +
+			"            studio_ = studio;\n" +
+			"        }\n" +
 			"\n" +
-			"       @Override\n" +
-			"       public void processImage(Image image, ProcessorContext context) {\n" +
-			"          context.outputImage(image);\n" +
-			"       }\n" +
+			"        @Override\n" +
+			"        public void processImage(Image image, ProcessorContext context) {\n" +
+			"            context.outputImage(image);\n" +
+			"        }\n" +
 			"    }\n" +
 			"}";
 
 	public JavaEditor( SPIMSetup setup, Studio studio ) {
-		this.setup = setup;
-		this.studio = studio;
-
-		editorView = new WebView();
-		editorView.setMinHeight( 180 );
+		super(setup, studio);
 
 		Button okBtn = new Button( "Run" );
 		okBtn.setOnAction( new EventHandler< ActionEvent >()
@@ -233,7 +271,10 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 			}
 		});
 
-		Button loadScriptExample = new Button("Load a Script example");
+		MenuButton loadExamples = new MenuButton("Load Examples");
+		loadExamples.setStyle("-fx-base: #8bb9e7;");
+
+		MenuItem loadScriptExample = new MenuItem("Load a Script example");
 		loadScriptExample.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent actionEvent) {
@@ -241,7 +282,7 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 			}
 		});
 
-		Button loadPluginExample = new Button("Load a Plugin example");
+		MenuItem loadPluginExample = new MenuItem("Load a Plugin example");
 		loadPluginExample.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent actionEvent) {
@@ -249,27 +290,17 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 			}
 		});
 
-		Button generatePlugin = new Button("Generate on-the-fly Plugin");
+		loadExamples.getItems().addAll( loadScriptExample, loadPluginExample );
+
+		Button generatePlugin = new Button("Generate an on-the-fly Plugin");
 		generatePlugin.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent actionEvent) {
-				onPlugin();
+				onPluginGenerated();
 			}
 		});
 
-		setCenter( editorView );
-		setBottom( new HBox( 10, copyBtn, pasteBtn, okBtn, loadScriptExample, loadPluginExample, generatePlugin )  );
-
-		sceneProperty().addListener( new ChangeListener< Scene >()
-		{
-			@Override public void changed( ObservableValue< ? extends Scene > observable, Scene oldValue, Scene newValue )
-			{
-				if(newValue != null) {
-					initialize();
-					sceneProperty().removeListener( this );
-				}
-			}
-		} );
+		setBottom( new HBox( 10, copyBtn, pasteBtn, okBtn, loadExamples, generatePlugin )  );
 	}
 
 	@Override public void setSetup( SPIMSetup setup, Studio studio ) {
@@ -285,7 +316,7 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 
 						if(compiledMethod != null) {
 							try {
-								compiledMethod.invoke(null, new String[1], setup, studio, tagged);
+								compiledMethod.invoke(null, new String[1], tagged);
 							} catch (IllegalAccessException e) {
 								e.printStackTrace();
 							} catch (InvocationTargetException e) {
@@ -298,68 +329,11 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 		}
 	}
 
-	public void initialize() {
-		// We need JavaScript support
-		editorView.getEngine().setJavaScriptEnabled(true);
-
-		// The build in ACE context menu does not work because
-		// JavaScript Clipboard interaction is disabled by security.
-		// We have to do this by ourselfs.
-		editorView.setContextMenuEnabled(false);
-
-		SequentialWebEngineLoader.load(editorView.getEngine(), getClass().getResource("ace/editor.html").toExternalForm(), (observable, oldValue, newValue) -> {
-			if (newValue == Worker.State.SUCCEEDED) {
-				initializeHTML();
-			}
-		});
-
-		// Copy & Paste Clipboard support
-		final KeyCombination theCombinationCopy = new KeyCodeCombination( KeyCode.C, KeyCombination.SHORTCUT_DOWN);
-		final KeyCombination theCombinationPaste = new KeyCodeCombination(KeyCode.V, KeyCombination.SHORTCUT_DOWN);
-		final KeyCombination theCombinationRun = new KeyCodeCombination(KeyCode.R, KeyCombination.SHORTCUT_DOWN);
-
-		editorView.addEventFilter( KeyEvent.KEY_PRESSED, aEvent -> {
-			if (theCombinationCopy.match(aEvent)) {
-				onCopy();
-			}
-			if (theCombinationPaste.match(aEvent)) {
-				onPaste();
-			}
-			if (theCombinationRun.match(aEvent)) {
-				onOk();
-			}
-		});
+	protected String getEditorHtml() {
+		return "ace/editor.html";
 	}
 
-	private void onCopy() {
-
-		// Get the selected content from the editor
-		// We to a Java2JavaScript downcall here
-		// For details, take a look at the function declaration in editor.html
-		String theContentAsText = (String) editorView.getEngine().executeScript("copyselection()");
-
-		// And put it to the clipboard
-		Clipboard theClipboard = Clipboard.getSystemClipboard();
-		ClipboardContent theContent = new ClipboardContent();
-		theContent.putString(theContentAsText);
-		theClipboard.setContent(theContent);
-	}
-
-	private void onPaste() {
-
-		// Get the content from the clipboard
-		Clipboard theClipboard = Clipboard.getSystemClipboard();
-		String theContent = (String) theClipboard.getContent( DataFormat.PLAIN_TEXT );
-		if (theContent != null) {
-			// And put it in the editor
-			// We do a Java2JavaScript downcall here
-			// For details, take a look at the function declaration in editor.html
-			JSObject theWindow = (JSObject) editorView.getEngine().executeScript("window");
-			theWindow.call("pastevalue", theContent);
-		}
-	}
-
-	private void initializeHTML() {
+	protected void initializeHTML() {
 		// Initialize the editor
 		Document theDocument = editorView.getEngine().getDocument();
 		Element theEditorElement = theDocument.getElementById("editor");
@@ -367,11 +341,6 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 
 		// and fill it with the LUA script taken from our editing action
 		editorView.getEngine().executeScript("initeditor()");
-	}
-
-	private void setTextContent(String content) {
-		JSObject theWindow = (JSObject) editorView.getEngine().executeScript("window");
-		theWindow.call("setContent", content);
 	}
 
 	private void compileRun( String code ) {
@@ -421,46 +390,6 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 			if(null != plugin)
 				load(plugin);
 		}
-
-
-//		try {
-//
-//			// We only want to test on a clone
-			//// so the test does not change enything
-//			GameScene theClone = persistenceManager.cloneSceneForPreview(gameScene);
-//
-//			// Execute a single run for verification
-//			GameObject theObject = new GameObject(theClone, "dummy");
-//			GameObjectInstance theInstance = theClone.createFrom(theObject);
-//			theEngine = theClone.getRuntime().getScriptEngineFactory().createNewEngine(theClone, aScript);
-//			theEngine.registerObject("instance", theInstance);
-//			theEngine.registerObject("scene", theClone);
-//			theEngine.registerObject("game", theClone.getGame());
-//
-//			Object theResult = theEngine.proceedGame(100, 16);
-//			if (theResult == null) {
-//				throw new RuntimeException("Got NULL as a response, expected " + GameProcess.ProceedResult.STOPPED+" or " + GameProcess.ProceedResult.CONTINUE_RUNNING);
-//			}
-//
-//			GameProcess.ProceedResult theResultAsEnum = GameProcess.ProceedResult.valueOf(theResult.toString());
-//
-//			theEngine.shutdown();
-//
-//			System.err.println("Got response : " + "blah~");
-//
-//			return true;
-//		} catch (Exception e) {
-//
-//			StringWriter theWriter = new StringWriter();
-//			e.printStackTrace(new PrintWriter(theWriter));
-//
-//			System.err.println("Exception : " + theWriter);
-//		} finally {
-//			if (theEngine != null) {
-//				theEngine.shutdown();
-//			}
-//		}
-//		return false;
 	}
 
 	protected void load(Class clazz)
@@ -468,8 +397,12 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 		Method method = null;
 
 		try {
-			method = clazz.getMethod("main", String[].class, SPIMSetup.class, Studio.class, TaggedImage.class);
-			method.invoke(null, new String[1], setup, studio, null);
+			method = clazz.getMethod("main", String[].class, SPIMSetup.class, Studio.class);
+			method.invoke(null, new String[1], setup, studio);
+
+			if(method != null) {
+				compiledMethod = clazz.getMethod("process", String[].class, TaggedImage.class);
+			}
 		} catch (NoSuchMethodException e) {
 			e.printStackTrace();
 		} catch (IllegalAccessException e) {
@@ -477,21 +410,16 @@ public class JavaEditor extends BorderPane implements SPIMSetupInjectable
 		} catch ( InvocationTargetException e) {
 			e.printStackTrace();
 		}
-
-		if(method != null) compiledMethod = method;
 	}
 
+	@Override
 	public void onOk() {
-		// We need to sace the edited script to the game model.
+		// We need to compile and run the edited script.
 		String theContent = (String) editorView.getEngine().executeScript("getvalue()");
-//		Script theNewScript = new Script(theContent);
-//
-//		action.scriptProperty().set(theNewScript);
-//		modalStage.close();
 		compileRun( theContent );
 	}
 
-	public void onPlugin() {
+	public void onPluginGenerated() {
 		String code = (String) editorView.getEngine().executeScript("getvalue()");
 
 		PluginRuntime runtime = new PluginRuntime();

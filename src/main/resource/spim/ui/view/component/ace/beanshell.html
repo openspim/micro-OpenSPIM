@@ -48,8 +48,19 @@
     return editor.getCopyText();
   }
 
+  function cutselection() {
+    var text = editor.getCopyText();
+    editor.execCommand("cut");
+    return text;
+  }
+
   function pastevalue(aValue) {
     editor.insert(aValue);
+  }
+
+  function setContent(content) {
+    editor.setValue(content);
+    editor.clearSelection();
   }
 </script>
 </body>
