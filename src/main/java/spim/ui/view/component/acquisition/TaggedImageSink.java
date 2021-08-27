@@ -135,7 +135,6 @@ public class TaggedImageSink {
 							try {
 								++imageCount;
 
-								engine_.onImageReceived(tagged);
 								// dumpJSON(tagged, System.out);
 
 //								System.out.println(tagged.tags.toString( 2 ));
@@ -169,6 +168,7 @@ public class TaggedImageSink {
 
 								Coords.Builder cb = Coordinates.builder();
 								Coords coord = cb.p(angle_).t(t_).c(channel).z(slice).index("view", cameras_.indexOf( cam )).build();
+								engine_.onImageReceived(coord, tagged);
 								Image img = image;
 								Metadata md = img.getMetadata();
 								Metadata.Builder mdb = md.copyBuilderPreservingUUID();

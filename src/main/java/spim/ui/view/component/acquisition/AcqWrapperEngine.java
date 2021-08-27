@@ -1171,7 +1171,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		}
 	}
 
-	void onImageReceived( TaggedImage image ) {
-		Event.fireEvent( spimSetup_, new ControlEvent( ControlEvent.MM_IMAGE_CAPTURED, image ));
+	void onImageReceived( Coords coord, TaggedImage image ) {
+		Event.fireEvent( spimSetup_, new ControlEvent( ControlEvent.MM_IMAGE_CAPTURED, coord, image ));
 	}
 }

@@ -9,6 +9,7 @@ import javafx.scene.layout.HBox;
 
 import mmcorej.TaggedImage;
 import org.micromanager.Studio;
+import org.micromanager.data.Coords;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import spim.hardware.SPIMSetup;
@@ -36,6 +37,7 @@ public class JavaEditor extends Editor
 	static String scriptExample = "import org.micromanager.data.Coords;\n" +
 			"import org.micromanager.data.Image;\n" +
 			"import org.micromanager.data.Datastore;\n" +
+			"import org.micromanager.data.Coords;\n" +
 			"import org.micromanager.display.DisplayWindow;\n" +
 			"import org.micromanager.Studio;\n" +
 			"import org.micromanager.internal.utils.imageanalysis.ImageUtils;\n" +
@@ -57,9 +59,6 @@ public class JavaEditor extends Editor
 			" * You can design any processes based on the images.\n" +
 			" */\n" +
 			"public class Script {\n" +
-			"    static ImageStack stack1;\n" +
-			"    static ImageStack stack2;\n" +
-			"    \n" +
 			"    /***\n" +
 			"     * This main method runs by clicking \"Run\" button.\n" +
 			"     */\n" +
@@ -74,35 +73,36 @@ public class JavaEditor extends Editor
 			"    /***\n" +
 			"     * process method runs whenever the new image is received during acquisition.\n" +
 			"     */\n" +
-			"    public static void process(String[] args, mmcorej.TaggedImage tagged)\n" +
+			"    static ImageStack[] stacks = new ImageStack[2];    \n" +
+			"    public static void process(Coords coords, mmcorej.TaggedImage tagged)\n" +
 			"    {\n" +
 			"        // On receiving TaggedImage during acquisition\n" +
 			"        if(tagged != null) {\n" +
 			"            try {\n" +
+			"                System.out.println( coords );\n" +
 			"                // To check all the tags in the image, uncomment the below\n" +
 			"                // System.out.println(tagged.tags.toString( 2 ));\n" +
-			"                int slice = tagged.tags.getInt(\"SliceIndex\");\n" +
-			"                double exp = tagged.tags.getInt( \"Exposure-ms\" );\n" +
-			"                double zPos = tagged.tags.getDouble( \"ZPositionUm\" );\n" +
-			"                double xPos = tagged.tags.getDouble( \"XPositionUm\" );\n" +
-			"                double yPos = tagged.tags.getDouble( \"YPositionUm\" );\n" +
-			"                int ch = tagged.tags.getInt( \"ChannelIndex\" );\n" +
-			"                String cam = tagged.tags.getString( \"Camera\" );\n" +
+			"                // int slice = tagged.tags.getInt(\"SliceIndex\");\n" +
+			"                // double exp = tagged.tags.getInt( \"Exposure-ms\" );\n" +
+			"                // double zPos = tagged.tags.getDouble( \"ZPositionUm\" );\n" +
+			"                // double xPos = tagged.tags.getDouble( \"XPositionUm\" );\n" +
+			"                // double yPos = tagged.tags.getDouble( \"YPositionUm\" );\n" +
+			"                // int ch = tagged.tags.getInt( \"ChannelIndex\" );\n" +
+			"                // String cam = tagged.tags.getString( \"Camera\" );\n" +
 			"                int slices = tagged.tags.getJSONObject( \"Summary\" ).getInt( \"Slices\" );\n" +
-			"                int channels = tagged.tags.getJSONObject( \"Summary\" ).getInt( \"Channels\" );\n" +
-			"                System.out.println( slice + \"/\" + slices);\n" +
+			"                // int channels = tagged.tags.getJSONObject( \"Summary\" ).getInt( \"Channels\" );\n" +
+			"                System.out.println( coords.getZ() + \"/\" + slices );\n" +
 			"\n" +
 			"                ImageProcessor image = ImageUtils.makeProcessor(tagged);\n" +
-			"                if(slice == 0) {\n" +
-			"                    if(ch == 0) stack1 = new ImageStack(image.getWidth(), image.getHeight());\n" +
-			"                    else stack2 = new ImageStack(image.getWidth(), image.getHeight());\n" +
+			"                int c = coords.getC();\n" +
+			"                if(coords.getZ() == 0) {\n" +
+			"                    stacks[c] = new ImageStack(image.getWidth(), image.getHeight());\n" +
 			"                }\n" +
-			"                if(ch == 0) stack1.addSlice(image);\n" +
-			"                else stack2.addSlice(image);\n" +
 			"                \n" +
-			"                if(slice == slices - 1) {\n" +
-			"                    if(ch == 0) new ImagePlus(\"0\", stack1).show();\n" +
-			"                    else new ImagePlus(\"1\", stack2).show();\n" +
+			"                stacks[c].addSlice(image);\n" +
+			"\n" +
+			"                if(coords.getZ() == slices - 1) {\n" +
+			"                    new ImagePlus(c + \"\", stacks[c]).show();\n" +
 			"                }\n" +
 			"            } catch(JSONException es) {\n" +
 			"            }\n" +
@@ -312,11 +312,12 @@ public class JavaEditor extends Editor
 				@Override
 				public void handle(ControlEvent event) {
 					if(event.getEventType().equals( ControlEvent.MM_IMAGE_CAPTURED )) {
-						TaggedImage tagged = (TaggedImage) event.getParam()[0];
+						Coords coord = (Coords) event.getParam()[0];
+						TaggedImage tagged = (TaggedImage) event.getParam()[1];
 
 						if(compiledMethod != null) {
 							try {
-								compiledMethod.invoke(null, new String[1], tagged);
+								compiledMethod.invoke(null, coord, tagged);
 							} catch (IllegalAccessException e) {
 								e.printStackTrace();
 							} catch (InvocationTargetException e) {
@@ -401,7 +402,7 @@ public class JavaEditor extends Editor
 			method.invoke(null, new String[1], setup, studio);
 
 			if(method != null) {
-				compiledMethod = clazz.getMethod("process", String[].class, TaggedImage.class);
+				compiledMethod = clazz.getMethod("process", Coords.class, TaggedImage.class);
 			}
 		} catch (NoSuchMethodException e) {
 			e.printStackTrace();
