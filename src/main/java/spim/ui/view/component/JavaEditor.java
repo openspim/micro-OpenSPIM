@@ -95,13 +95,14 @@ public class JavaEditor extends Editor
 			"\n" +
 			"                ImageProcessor image = ImageUtils.makeProcessor(tagged);\n" +
 			"                int c = coords.getC();\n" +
-			"                if(coords.getZ() == 0) {\n" +
+			"                int z = coords.getZ();\n" +
+			"                if(z == 0) {\n" +
 			"                    stacks[c] = new ImageStack(image.getWidth(), image.getHeight());\n" +
 			"                }\n" +
 			"                \n" +
 			"                stacks[c].addSlice(image);\n" +
 			"\n" +
-			"                if(coords.getZ() == slices - 1) {\n" +
+			"                if(z == slices - 1) {\n" +
 			"                    new ImagePlus(c + \"\", stacks[c]).show();\n" +
 			"                }\n" +
 			"            } catch(JSONException es) {\n" +
