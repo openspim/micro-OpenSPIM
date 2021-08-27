@@ -179,6 +179,13 @@
             <version>0.32.1.1</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.apache-extras.beanshell/bsh -->
+        <dependency>
+            <groupId>org.apache-extras.beanshell</groupId>
+            <artifactId>bsh</artifactId>
+            <version>2.0b6</version>
+        </dependency>
+
         <dependency>
             <groupId>org.dockfx</groupId>
             <artifactId>DockFX</artifactId>
