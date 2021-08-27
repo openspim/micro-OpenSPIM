@@ -111,6 +111,216 @@ public class JavaEditor extends Editor
 			"    }\n" +
 			"}\n";
 
+	static String clijxMaxfusionDog = "import org.micromanager.data.Coords;\n" +
+			"import org.micromanager.data.Image;\n" +
+			"import org.micromanager.data.Datastore;\n" +
+			"import org.micromanager.data.Coords;\n" +
+			"import org.micromanager.display.DisplayWindow;\n" +
+			"import org.micromanager.Studio;\n" +
+			"import org.micromanager.internal.utils.imageanalysis.ImageUtils;\n" +
+			"import mmcorej.TaggedImage;\n" +
+			"import ij.IJ;\n" +
+			"import ij.ImageJ;\n" +
+			"import ij.process.ImageProcessor;\n" +
+			"import ij.ImageStack;\n" +
+			"import ij.ImagePlus;\n" +
+			"import mmcorej.TaggedImage;\n" +
+			"import mmcorej.CMMCore;\n" +
+			"import spim.hardware.SPIMSetup;\n" +
+			"import javax.swing.SwingUtilities;\n" +
+			"import net.haesleinhuepf.clijx.CLIJx;\n" +
+			"import net.haesleinhuepf.clij.converters.implementations.ClearCLBufferToImagePlusConverter;\n" +
+			"import net.haesleinhuepf.clij.converters.implementations.ImagePlusToClearCLBufferConverter;\n" +
+			"import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;\n" +
+			"import mmcorej.org.json.JSONException;\n" +
+			"\n" +
+			"/***\n" +
+			" * \"Ctrl+R\" on Windows and \"Meta+R\" on Mac runs your code.\n" +
+			" * You can design any processes based on the images.\n" +
+			" */\n" +
+			"public class Script {\n" +
+			"    /***\n" +
+			"     * This main method runs by clicking \"Run\" button.\n" +
+			"     */\n" +
+			"    public static void main(String[] args, SPIMSetup setup, Studio mm)\n" +
+			"    {\n" +
+			"        // Check clijx instance\n" +
+			"        System.out.println(\"Compiling done.\");\n" +
+			"        CLIJx clijx = CLIJx.getInstance();\n" +
+			"        System.out.println(clijx.clinfo());\n" +
+			"    }\n" +
+			"    \n" +
+			"    /***\n" +
+			"     * process method runs whenever the new image is received during acquisition.\n" +
+			"     */\n" +
+			"    static ImageStack[] stacks = new ImageStack[2];    \n" +
+			"    public static void process(Coords coords, mmcorej.TaggedImage tagged)\n" +
+			"    {\n" +
+			"        // On receiving TaggedImage during acquisition\n" +
+			"        if(tagged != null) {\n" +
+			"            try {\n" +
+			"                System.out.println( coords );\n" +
+			"                // To check all the tags in the image, uncomment the below\n" +
+			"                // System.out.println(tagged.tags.toString( 2 ));\n" +
+			"                int slices = tagged.tags.getJSONObject( \"Summary\" ).getInt( \"Slices\" );\n" +
+			"                int channels = tagged.tags.getJSONObject( \"Summary\" ).getInt( \"Channels\" );\n" +
+			"                System.out.println( coords.getZ() + \"/\" + slices );\n" +
+			"\n" +
+			"                ImageProcessor image = ImageUtils.makeProcessor(tagged);\n" +
+			"                int c = coords.getC();\n" +
+			"                int z = coords.getZ();\n" +
+			"                if(z == 0) {\n" +
+			"                    stacks[c] = new ImageStack(image.getWidth(), image.getHeight());\n" +
+			"                }\n" +
+			"                \n" +
+			"                stacks[c].addSlice(image);\n" +
+			"\n" +
+			"                if(z == slices - 1 && channels == c + 1) {\n" +
+			"                    CLIJx clijx = CLIJx.getInstance();\n" +
+			"                    ClearCLBuffer gpu_input1 = clijx.push(new ImagePlus(\"gpu_input\", stacks[0]));\n" +
+			"                    ClearCLBuffer gpu_input2 = clijx.push(new ImagePlus(\"gpu_input\", stacks[1]));\n" +
+			"                    \n" +
+			"                    // create an image with correct size and type on GPU for output\n" +
+			"                    ClearCLBuffer gpu_output = clijx.create(gpu_input1);\n" +
+			"    \n" +
+			"                    clijx.maximumImages(gpu_input1, gpu_input2, gpu_output);\n" +
+			"    \n" +
+			"                    ClearCLBuffer background_substrackted_image = clijx.create(gpu_input1);\n" +
+			"                    float sigma1x = 1.0f;\n" +
+			"                    float sigma1y = 1.0f;\n" +
+			"                    float sigma1z = 1.0f;\n" +
+			"                    float sigma2x = 5.0f;\n" +
+			"                    float sigma2y = 5.0f;\n" +
+			"                    float sigma2z = 5.0f;\n" +
+			"                    clijx.differenceOfGaussian3D(gpu_output, background_substrackted_image, sigma1x, sigma1y, sigma1z, sigma2x, sigma2y, sigma2z);\n" +
+			"    \n" +
+			"                    ClearCLBuffer maximum_projected_image = clijx.create(new long[]{background_substrackted_image.getWidth(),background_substrackted_image.getHeight()}, clijx.UnsignedShort);\n" +
+			"                    clijx.maximumZProjection(background_substrackted_image, maximum_projected_image);\n" +
+			"                    \n" +
+			"                    clijx.saveAsTIF(background_substrackted_image, \"output/background_substrackted_image.tiff\");\n" +
+			"                    clijx.saveAsTIF(gpu_output, \"output/gpu_output.tiff\");\n" +
+			"                    clijx.saveAsTIF(maximum_projected_image, \"output/maximum_projected_image.tiff\");\n" +
+			"                    \n" +
+			"                    ImagePlus imp_output = clijx.pull(gpu_output);\n" +
+			"                    imp_output.getProcessor().resetMinAndMax();\n" +
+			"                    imp_output.show();\n" +
+			"        \n" +
+			"                    // clean up memory on the GPU\n" +
+			"                    gpu_input1.close();\n" +
+			"                    gpu_input2.close();\n" +
+			"                    gpu_output.close();\n" +
+			"                    background_substrackted_image.close();\n" +
+			"                    maximum_projected_image.close();\n" +
+			"                    System.out.println(\"Finished\");\n" +
+			"                }\n" +
+			"            } catch(JSONException es) {\n" +
+			"            }\n" +
+			"        }\n" +
+			"    }\n" +
+			"}\n";
+
+	static String clijxTenengradFusionExample = "import org.micromanager.data.Coords;\n" +
+			"import org.micromanager.data.Image;\n" +
+			"import org.micromanager.data.Datastore;\n" +
+			"import org.micromanager.data.Coords;\n" +
+			"import org.micromanager.display.DisplayWindow;\n" +
+			"import org.micromanager.Studio;\n" +
+			"import org.micromanager.internal.utils.imageanalysis.ImageUtils;\n" +
+			"import mmcorej.TaggedImage;\n" +
+			"import ij.IJ;\n" +
+			"import ij.ImageJ;\n" +
+			"import ij.process.ImageProcessor;\n" +
+			"import ij.ImageStack;\n" +
+			"import ij.ImagePlus;\n" +
+			"import mmcorej.TaggedImage;\n" +
+			"import mmcorej.CMMCore;\n" +
+			"import spim.hardware.SPIMSetup;\n" +
+			"import javax.swing.SwingUtilities;\n" +
+			"import net.haesleinhuepf.clijx.CLIJx;\n" +
+			"import net.haesleinhuepf.clij.converters.implementations.ClearCLBufferToImagePlusConverter;\n" +
+			"import net.haesleinhuepf.clij.converters.implementations.ImagePlusToClearCLBufferConverter;\n" +
+			"import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;\n" +
+			"import mmcorej.org.json.JSONException;\n" +
+			"\n" +
+			"/***\n" +
+			" * \"Ctrl+R\" on Windows and \"Meta+R\" on Mac runs your code.\n" +
+			" * You can design any processes based on the images.\n" +
+			" */\n" +
+			"public class Script {\n" +
+			"    /***\n" +
+			"     * This main method runs by clicking \"Run\" button.\n" +
+			"     */\n" +
+			"    public static void main(String[] args, SPIMSetup setup, Studio mm)\n" +
+			"    {\n" +
+			"        // Check clijx instance\n" +
+			"        System.out.println(\"Compiling done.\");\n" +
+			"        CLIJx clijx = CLIJx.getInstance();\n" +
+			"        System.out.println(clijx.clinfo());\n" +
+			"    }\n" +
+			"    \n" +
+			"    /***\n" +
+			"     * process method runs whenever the new image is received during acquisition.\n" +
+			"     */\n" +
+			"    static ImageStack[] stacks = new ImageStack[2];    \n" +
+			"    public static void process(Coords coords, mmcorej.TaggedImage tagged)\n" +
+			"    {\n" +
+			"        // On receiving TaggedImage during acquisition\n" +
+			"        if(tagged != null) {\n" +
+			"            try {\n" +
+			"                System.out.println( coords );\n" +
+			"                // To check all the tags in the image, uncomment the below\n" +
+			"                // System.out.println(tagged.tags.toString( 2 ));\n" +
+			"                int slices = tagged.tags.getJSONObject( \"Summary\" ).getInt( \"Slices\" );\n" +
+			"                int channels = tagged.tags.getJSONObject( \"Summary\" ).getInt( \"Channels\" );\n" +
+			"                System.out.println( coords.getZ() + \"/\" + slices );\n" +
+			"\n" +
+			"                ImageProcessor image = ImageUtils.makeProcessor(tagged);\n" +
+			"                int c = coords.getC();\n" +
+			"                int z = coords.getZ();\n" +
+			"                if(z == 0) {\n" +
+			"                    stacks[c] = new ImageStack(image.getWidth(), image.getHeight());\n" +
+			"                }\n" +
+			"                \n" +
+			"                stacks[c].addSlice(image.convertToFloatProcessor());\n" +
+			"\n" +
+			"                if(z == slices - 1 && channels == c + 1) {\n" +
+			"                    CLIJx clijx = CLIJx.getInstance();\n" +
+			"                    \n" +
+			"                    for(int i = 0; i < stacks[1].size(); i++) {\n" +
+			"                        stacks[0].addSlice(stacks[1].getProcessor(i + 1));\n" +
+			"                    }\n" +
+			"                    ClearCLBuffer gpu_input = clijx.push(new ImagePlus(\"gpu_input\", stacks[0]));\n" +
+			"                    \n" +
+			"                    // create an image with correct size and type on GPU for output\n" +
+			"                    ClearCLBuffer gpu_output = clijx.create(new long[]{gpu_input.getWidth(), gpu_input.getHeight(), 1}, gpu_input.getNativeType());\n" +
+			"    \n" +
+			"                    // setup fusion parameters\n" +
+			"                    int number_of_substacks = 2;\n" +
+			"                    int sigmaX = 2;\n" +
+			"                    int sigmaY = 2;\n" +
+			"                    int sigmaZ = 0;\n" +
+			"                    int exponent = 2;\n" +
+			"        \n" +
+			"                    clijx.tenengradFusion(gpu_input, gpu_output, number_of_substacks, sigmaX, sigmaY, sigmaZ, exponent);\n" +
+			"                    \n" +
+			"                    clijx.saveAsTIF(gpu_output, \"output/tenengrad_fused_image.tiff\");\n" +
+			"        \n" +
+			"                    // get the fusion result back from the GPU and display\n" +
+			"                    ImagePlus imp_output = clijx.pull(gpu_output);\n" +
+			"                    imp_output.getProcessor().resetMinAndMax();\n" +
+			"                    imp_output.show();\n" +
+			"                    \n" +
+			"                    // clean up memory on the GPU\n" +
+			"                    gpu_input.close();\n" +
+			"                    gpu_output.close();\n" +
+			"                    System.out.println(\"Finished\");\n" +
+			"                }\n" +
+			"            } catch(JSONException es) {\n" +
+			"            }\n" +
+			"        }\n" +
+			"    }\n" +
+			"}\n";
+
 	static String pluginExample = "import com.google.common.eventbus.Subscribe;\n" +
 			"\n" +
 			"import java.awt.*;\n" +
@@ -291,7 +501,23 @@ public class JavaEditor extends Editor
 			}
 		});
 
-		loadExamples.getItems().addAll( loadScriptExample, loadPluginExample );
+		MenuItem loadClijxMaxfusionDogExample = new MenuItem("Load clijx max-fusion DoG example");
+		loadScriptExample.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent actionEvent) {
+				onLoadMaxFusionDogExample();
+			}
+		});
+
+		MenuItem loadClijxTenengradFusionExample = new MenuItem("Load clijx tenengrad fusion example");
+		loadPluginExample.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent actionEvent) {
+				onLoadTenengradFusionExample();
+			}
+		});
+
+		loadExamples.getItems().addAll( loadScriptExample, loadClijxMaxfusionDogExample, loadClijxTenengradFusionExample, loadPluginExample );
 
 		Button generatePlugin = new Button("Generate an on-the-fly Plugin");
 		generatePlugin.setOnAction(new EventHandler<ActionEvent>() {
@@ -471,6 +697,14 @@ public class JavaEditor extends Editor
 
 	private void onLoadScriptExample() {
 		setTextContent(scriptExample);
+	}
+
+	private void onLoadMaxFusionDogExample() {
+		setTextContent(clijxMaxfusionDog);
+	}
+
+	private void onLoadTenengradFusionExample() {
+		setTextContent(clijxTenengradFusionExample);
 	}
 
 	public void onTest() {
