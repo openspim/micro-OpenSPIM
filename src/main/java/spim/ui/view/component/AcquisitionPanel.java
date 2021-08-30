@@ -682,9 +682,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			@Override public void handle( ActionEvent event )
 			{
 				final FileChooser fileChooser = new FileChooser();
-				fileChooser.setTitle( "OpenSPIM AcquisitionSetting file" );
+				fileChooser.setTitle( "µOpenSPIM AcquisitionSetting file" );
 				fileChooser.getExtensionFilters().addAll(
-						new FileChooser.ExtensionFilter( "OpenSPIM AcquisitionSetting file", "*.xml" )
+						new FileChooser.ExtensionFilter( "µOpenSPIM AcquisitionSetting file", "*.xml" )
 				);
 
 				File file = fileChooser.showSaveDialog( getScene().getWindow() );
@@ -703,9 +703,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			@Override public void handle( ActionEvent event )
 			{
 				final FileChooser fileChooser = new FileChooser();
-				fileChooser.setTitle( "OpenSPIM AcquisitionSetting file" );
+				fileChooser.setTitle( "µOpenSPIM AcquisitionSetting file" );
 				fileChooser.getExtensionFilters().addAll(
-						new FileChooser.ExtensionFilter( "OpenSPIM AcquisitionSetting file", "*.xml" )
+						new FileChooser.ExtensionFilter( "µOpenSPIM AcquisitionSetting file", "*.xml" )
 				);
 
 				File file = fileChooser.showOpenDialog( getScene().getWindow() );

@@ -9,8 +9,12 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
+import javafx.scene.input.DragEvent;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.HBox;
 
+import javafx.stage.FileChooser;
 import org.micromanager.Studio;
 import org.micromanager.internal.utils.MMScriptException;
 import org.micromanager.internal.utils.ReportingUtils;
@@ -79,8 +83,28 @@ public class BeanshellEditor extends Editor
 			}
 		});
 
+		Button saveBtn = new Button("Save");
+		saveBtn.setStyle("-fx-base: #69e760;");
+		saveBtn.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				onSave();
+			}
+		} );
+
+		Button loadBtn = new Button("Load");
+		loadBtn.setStyle("-fx-base: #e7e45d;");
+		loadBtn.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				onLoad();
+			}
+		} );
+
 		setTop( commandField );
-		setBottom( new HBox( 10, copyBtn, pasteBtn, okBtn )  );
+		setBottom( new HBox( 10, okBtn, saveBtn, loadBtn )  );
 	}
 
 	@Override
@@ -374,5 +398,15 @@ public class BeanshellEditor extends Editor
 		String theContent = (String) editorView.getEngine().executeScript("getvalue()");
 
 		runCode( theContent );
+	}
+
+	@Override
+	String getFileDescription() {
+		return "Beanshell";
+	}
+
+	@Override
+	String getFileExtension() {
+		return "bsh";
 	}
 }

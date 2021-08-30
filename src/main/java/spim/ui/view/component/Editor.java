@@ -3,21 +3,31 @@ package spim.ui.view.component;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Worker;
+import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
+import javafx.scene.input.DragEvent;
+import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.web.WebView;
+import javafx.stage.FileChooser;
 import netscape.javascript.JSObject;
 import org.micromanager.Studio;
 
 import spim.hardware.SPIMSetup;
 import spim.ui.view.component.util.SequentialWebEngineLoader;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -38,6 +48,36 @@ public abstract class Editor extends BorderPane implements SPIMSetupInjectable {
 		editorView.setMinHeight( 180 );
 
 		setCenter( editorView );
+
+		getCenter().setOnDragOver(event -> {
+			Dragboard db = event.getDragboard();
+			if ( db.hasFiles() && db.getFiles().size() == 1 )
+			{
+				event.acceptTransferModes( TransferMode.COPY );
+			}
+			else
+			{
+				event.consume();
+			}
+		});
+
+		getCenter().setOnDragDropped(event -> {
+			Dragboard db = event.getDragboard();
+			boolean success = false;
+			if ( db.hasFiles() && db.getFiles().size() == 1 )
+			{
+				if(db.getFiles().get(0).isFile()) {
+					final File file = db.getFiles().get(0);
+
+					if(file != null) {
+						loadFile(file);
+					}
+				}
+			}
+
+			event.setDropCompleted( success );
+			event.consume();
+		});
 
 		sceneProperty().addListener( new ChangeListener<Scene>()
 		{
@@ -140,5 +180,49 @@ public abstract class Editor extends BorderPane implements SPIMSetupInjectable {
 		// We need to sace the edited script to the game model.
 		String theContent = (String) editorView.getEngine().executeScript("getvalue()");
 		System.out.println( theContent );
+	}
+
+	abstract String getFileDescription();
+	abstract String getFileExtension();
+
+	private FileChooser getFileChooser() {
+		final FileChooser fileChooser = new FileChooser();
+		fileChooser.setTitle( "µOpenSPIM " + getFileDescription() + " file" );
+		fileChooser.getExtensionFilters().addAll(
+				new FileChooser.ExtensionFilter( "µOpenSPIM " + getFileDescription() + " file", "*." + getFileExtension() )
+		);
+
+		return fileChooser;
+	}
+
+	protected void loadFile(File file) {
+		if ( file != null )
+		{
+			String data = null;
+			try {
+				data = new String(Files.readAllBytes(Paths.get(file.getPath())));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			setTextContent(data);
+		}
+	}
+
+	protected void onLoad() {
+		File file = getFileChooser().showOpenDialog( getScene().getWindow() );
+		loadFile(file);
+	}
+
+	protected void onSave() {
+		File file = getFileChooser().showSaveDialog( getScene().getWindow() );
+		if ( file != null )
+		{
+			String theContent = (String) editorView.getEngine().executeScript("getvalue()");
+			try {
+				Files.write(Paths.get(file.getPath()), theContent.getBytes());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }

@@ -15,9 +15,6 @@ import javafx.event.EventDispatcher;
 import javafx.event.EventHandler;
 import javafx.event.EventTarget;
 import javafx.event.EventType;
-import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.input.MouseEvent;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
 import mmcorej.CMMCore;

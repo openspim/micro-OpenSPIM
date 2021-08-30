@@ -5,6 +5,7 @@ import javafx.event.EventHandler;
 import javafx.scene.control.Button;
 import javafx.scene.control.MenuButton;
 import javafx.scene.control.MenuItem;
+import javafx.scene.input.DragEvent;
 import javafx.scene.layout.HBox;
 
 import mmcorej.TaggedImage;
@@ -482,7 +483,7 @@ public class JavaEditor extends Editor
 			}
 		});
 
-		MenuButton loadExamples = new MenuButton("Load Examples");
+		MenuButton loadExamples = new MenuButton("Examples");
 		loadExamples.setStyle("-fx-base: #8bb9e7;");
 
 		MenuItem loadScriptExample = new MenuItem("Load a Script example");
@@ -517,9 +518,29 @@ public class JavaEditor extends Editor
 			}
 		});
 
+		Button saveBtn = new Button("Save");
+		saveBtn.setStyle("-fx-base: #69e760;");
+		saveBtn.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				onSave();
+			}
+		} );
+
+		Button loadBtn = new Button("Load");
+		loadBtn.setStyle("-fx-base: #e7e45d;");
+		loadBtn.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				onLoad();
+			}
+		} );
+
 		loadExamples.getItems().addAll( loadScriptExample, loadClijxMaxfusionDogExample, loadClijxTenengradFusionExample, loadPluginExample );
 
-		Button generatePlugin = new Button("Generate an on-the-fly Plugin");
+		Button generatePlugin = new Button("Plugin");
 		generatePlugin.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent actionEvent) {
@@ -527,7 +548,7 @@ public class JavaEditor extends Editor
 			}
 		});
 
-		setBottom( new HBox( 10, copyBtn, pasteBtn, okBtn, loadExamples, generatePlugin )  );
+		setBottom( new HBox( 10, okBtn, generatePlugin, saveBtn, loadBtn, loadExamples )  );
 	}
 
 	@Override public void setSetup( SPIMSetup setup, Studio studio ) {
@@ -711,5 +732,15 @@ public class JavaEditor extends Editor
 		String theContent = (String) editorView.getEngine().executeScript("getvalue()");
 //		Script theNewScript = new Script(theContent);
 //		test(theContent);
+	}
+
+	@Override
+	String getFileDescription() {
+		return "Java";
+	}
+
+	@Override
+	String getFileExtension() {
+		return "java";
 	}
 }
