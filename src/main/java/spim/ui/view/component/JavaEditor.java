@@ -153,7 +153,9 @@ public class JavaEditor extends Editor
 			"    /***\n" +
 			"     * process method runs whenever the new image is received during acquisition.\n" +
 			"     */\n" +
-			"    static ImageStack[] stacks = new ImageStack[2];    \n" +
+			"    // Specify the number of channels\n" +
+			"    static int numberOfChannel = 2;\n" +
+			"    static ImageStack[] stacks = new ImageStack[numberOfChannel];\n" +
 			"    public static void process(Coords coords, mmcorej.TaggedImage tagged)\n" +
 			"    {\n" +
 			"        // On receiving TaggedImage during acquisition\n" +
@@ -173,7 +175,7 @@ public class JavaEditor extends Editor
 			"                    stacks[c] = new ImageStack(image.getWidth(), image.getHeight());\n" +
 			"                }\n" +
 			"                \n" +
-			"                stacks[c].addSlice(image);\n" +
+			"                stacks[c % numberOfChannel].addSlice(image);\n" +
 			"\n" +
 			"                if(z == slices - 1 && channels == c + 1) {\n" +
 			"                    CLIJx clijx = CLIJx.getInstance();\n" +
@@ -261,7 +263,9 @@ public class JavaEditor extends Editor
 			"    /***\n" +
 			"     * process method runs whenever the new image is received during acquisition.\n" +
 			"     */\n" +
-			"    static ImageStack[] stacks = new ImageStack[2];    \n" +
+			"    // Specify the number of channels\n" +
+			"    static int numberOfChannel = 2;\n" +
+			"    static ImageStack[] stacks = new ImageStack[numberOfChannel];\n" +
 			"    public static void process(Coords coords, mmcorej.TaggedImage tagged)\n" +
 			"    {\n" +
 			"        // On receiving TaggedImage during acquisition\n" +
@@ -281,7 +285,7 @@ public class JavaEditor extends Editor
 			"                    stacks[c] = new ImageStack(image.getWidth(), image.getHeight());\n" +
 			"                }\n" +
 			"                \n" +
-			"                stacks[c].addSlice(image.convertToFloatProcessor());\n" +
+			"                stacks[c % numberOfChannel].addSlice(image.convertToFloatProcessor());\n" +
 			"\n" +
 			"                if(z == slices - 1 && channels == c + 1) {\n" +
 			"                    CLIJx clijx = CLIJx.getInstance();\n" +
