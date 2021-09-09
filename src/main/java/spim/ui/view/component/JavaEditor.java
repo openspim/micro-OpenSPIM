@@ -489,7 +489,7 @@ public class JavaEditor extends Editor
 		MenuButton loadExamples = new MenuButton("Examples");
 		loadExamples.setStyle("-fx-base: #8bb9e7;");
 
-		MenuItem loadScriptExample = new MenuItem("Load a Script example");
+		MenuItem loadScriptExample = new MenuItem("Load StackPerChannel example");
 		loadScriptExample.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent actionEvent) {
@@ -505,7 +505,7 @@ public class JavaEditor extends Editor
 			}
 		});
 
-		MenuItem loadClijxMaxfusionDogExample = new MenuItem("Load clijx max-fusion DoG example");
+		MenuItem loadClijxMaxfusionDogExample = new MenuItem("Load ClijxMaxFusionDoG example");
 		loadClijxMaxfusionDogExample.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent actionEvent) {
@@ -541,7 +541,8 @@ public class JavaEditor extends Editor
 			}
 		} );
 
-		loadExamples.getItems().addAll( loadScriptExample, loadClijxMaxfusionDogExample, loadClijxTenengradFusionExample, loadPluginExample );
+//		loadExamples.getItems().addAll( loadScriptExample, loadClijxMaxfusionDogExample, loadClijxTenengradFusionExample, loadPluginExample );
+		loadExamples.getItems().addAll( loadScriptExample, loadClijxMaxfusionDogExample );
 
 		Button generatePlugin = new Button("Plugin");
 		generatePlugin.setOnAction(new EventHandler<ActionEvent>() {
