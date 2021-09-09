@@ -73,7 +73,7 @@ public class JavaEditor extends Editor
 			"    /***\n" +
 			"     * process method runs whenever the new image is received during acquisition.\n" +
 			"     */\n" +
-			"    static ImageStack[] stacks = new ImageStack[2];    \n" +
+			"    static ImageStack[] stacks;\n" +
 			"    public static void process(Coords coords, mmcorej.TaggedImage tagged)\n" +
 			"    {\n" +
 			"        // On receiving TaggedImage during acquisition\n" +
@@ -97,6 +97,10 @@ public class JavaEditor extends Editor
 			"                int c = coords.getC();\n" +
 			"                int z = coords.getZ();\n" +
 			"                if(z == 0) {\n" +
+			"                    if(c == 0) {\n" +
+			"                        int channels = tagged.tags.getJSONObject( \"Summary\" ).getInt( \"Channels\" );\n" +
+			"                        stacks = new ImageStack[channels];\n" +
+			"                    }" +
 			"                    stacks[c] = new ImageStack(image.getWidth(), image.getHeight());\n" +
 			"                }\n" +
 			"                \n" +
