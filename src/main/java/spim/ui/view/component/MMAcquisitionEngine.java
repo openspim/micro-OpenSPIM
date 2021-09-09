@@ -137,6 +137,8 @@ public class MMAcquisitionEngine
 			if(bSave) {
 				DefaultDatastore result = new DefaultDatastore(frame);
 
+				store = result;
+
 				if(savingFormatValue.equals( "Single Plane TIFF" ))
 					result.setStorage(new OpenSPIMSinglePlaneTiffSeries(result, output.getAbsolutePath(), acqFilenamePrefix, true));
 				else if(savingFormatValue.equals( "OMETIFF Image stack" ))
@@ -144,9 +146,7 @@ public class MMAcquisitionEngine
 				else if(savingFormatValue.equals( "N5 format" ))
 					result.setStorage(new N5MicroManagerStorage(result, output.getAbsolutePath(), acqFilenamePrefix, timeSeqs, true));
 				else if(savingFormatValue.equals( "On-the-fly" ))
-					result.setStorage(new StorageRAM(result));
-
-				store = result;
+					store = frame.data().createRewritableRAMDatastore();
 			} else {
 				store = frame.data().createRewritableRAMDatastore();
 			}

@@ -23,6 +23,7 @@ import org.micromanager.data.Image;
 import org.micromanager.data.Metadata;
 import org.micromanager.data.Pipeline;
 import org.micromanager.data.PipelineErrorException;
+import org.micromanager.data.RewritableDatastore;
 import org.micromanager.data.internal.DefaultImage;
 import org.micromanager.events.EventManager;
 import org.micromanager.acquisition.internal.DefaultAcquisitionEndedEvent;
@@ -174,8 +175,13 @@ public class TaggedImageSink {
 								Coords coord = cb.p(angle_).t(t_).c(channel).z(slice).index("view", cameras_.indexOf( cam )).build();
 
 								// Calling the OnTheFly processor
-								if(onTheFly_)
+								if(onTheFly_) {
 									engine_.onImageReceived(dirName_, coord, tagged);
+									if(store_ instanceof RewritableDatastore) {
+										if (slice == 0) ((RewritableDatastore)store_).deleteAllImages();
+										coord = cb.p(angle_).t(0).c(channel).z(slice).index("view", cameras_.indexOf( cam )).build();
+									}
+								}
 
 								Image img = image;
 								Metadata md = img.getMetadata();
