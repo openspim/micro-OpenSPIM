@@ -583,7 +583,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Tab binningTab = new Tab("Binning", binningHBox);
 		binningTab.setClosable(false);
 
-		TabPane acquisitionTabPane = new TabPane( antiDriftTab, roiTab, binningTab );
+		TabPane acquisitionTabPane = new TabPane( antiDriftTab, binningTab, roiTab );
 		acquisitionTabPane.setMinHeight(120);
 
 		Button acqHelpButton = createHelpButton();
@@ -654,7 +654,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		arduinoTab.setContent( createChannelItemArduinoTable( channelItemArduinoTableView, pinItemTableView, exposure ) );
 		arduinoTab.setClosable( false );
 
-		channelTabPane = new TabPane( laserTab, arduinoTab );
+		channelTabPane = new TabPane( arduinoTab, laserTab );
 		channelTabPane.getSelectionModel().selectedIndexProperty().addListener( new ChangeListener< Number >()
 		{
 			@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
