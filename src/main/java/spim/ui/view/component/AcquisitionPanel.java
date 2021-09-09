@@ -1274,7 +1274,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		enabledZStacks.set( true );
 		acquisitionOrder.set( "Time > Position > Slice > Channel" );
 		enabledChannels.set( true );
-		channelTabPane.getSelectionModel().select( 0 );
+		channelTabPane.getSelectionModel().select( 1 );
 
 		enabledSaveImages.set( true );
 		directory.set( "" );
@@ -1413,7 +1413,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		List<ChannelItem> channelItemList;
 
-		final boolean arduinoSelected = channelTabPane.getSelectionModel().isSelected( 1 );
+		final boolean arduinoSelected = channelTabPane.getSelectionModel().isSelected( 0 );
 
 		if(arduinoSelected)
 			channelItemList = channelItemArduinoTableView.getItems().stream().filter( c -> c.getSelected() ).collect( Collectors.toList() );
@@ -1796,13 +1796,16 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	private void computeTotalChannels() {
 		int totalChannels;
 
-		if(channelTabPane.getSelectionModel().isSelected( 0 )) {
+		// Check the software controlled and arduino controlled
+		if(channelTabPane.getSelectionModel().isSelected( 1 )) {
+			// Software controlled
 			int multi = (int) channelItemTableView.getItems().stream().filter( c -> c.getSelected() && c.getName().startsWith("Multi") ).count() * 2;
 
 			totalChannels = (int) channelItemTableView.getItems().stream().filter( c -> c.getSelected() && !c.getName().startsWith("Multi")).count() + multi;
 			propertyMap.get("cams").setValue( 1 + "" );
 		}
 		else {
+			// Arduino controlled
 			totalChannels = (int) channelItemArduinoTableView.getItems().stream().filter( c -> c.getSelected() ).count();
 			propertyMap.get("cams").setValue( 2 + "" );
 		}
