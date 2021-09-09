@@ -1353,15 +1353,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		File folder = new File(directory.getValue());
 		if ( enabledSaveImages.get() )
 		{
-			if(folder != null && null != folder.listFiles()) {
-				boolean found = false;
-
-				for(File file: Objects.requireNonNull( folder.listFiles() ) ) {
-					if(file.getName().startsWith( filename.getValue() )) {
-						found = true;
-						break;
-					}
-				}
+			if(null != folder.listFiles()) {
+				boolean found = folder.exists();
 
 				if(found) {
 					Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The filename already exists. All files with the same name will be replaced. Do you want to proceed?\nPress No to create another folder and keep all files.",
@@ -1680,7 +1673,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		gridpane.addRow( 1, new Label( "File name:" ), textField );
 
 		ComboBox c = new ComboBox<>( FXCollections.observableArrayList(
-				"Single Plane TIFF", "OMETIFF Image stack", "N5 format" ) );
+				"Single Plane TIFF", "OMETIFF Image stack", "N5 format", "On-the-fly" ) );
 
 		c.valueProperty().setValue("Single Plane TIFF");
 

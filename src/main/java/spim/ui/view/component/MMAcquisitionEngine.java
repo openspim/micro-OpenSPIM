@@ -31,6 +31,7 @@ import org.micromanager.data.RewritableDatastore;
 import org.micromanager.data.internal.DefaultDatastore;
 import org.micromanager.data.internal.DefaultSummaryMetadata;
 import org.micromanager.data.internal.PropertyKey;
+import org.micromanager.data.internal.StorageRAM;
 import org.micromanager.display.*;
 import org.micromanager.display.internal.DefaultDisplaySettings;
 import org.micromanager.acquisition.AcquisitionEndedEvent;
@@ -142,6 +143,8 @@ public class MMAcquisitionEngine
 					result.setStorage(new OMETIFFStorage(result, output.getAbsolutePath(), acqFilenamePrefix, true));
 				else if(savingFormatValue.equals( "N5 format" ))
 					result.setStorage(new N5MicroManagerStorage(result, output.getAbsolutePath(), acqFilenamePrefix, timeSeqs, true));
+				else if(savingFormatValue.equals( "On-the-fly" ))
+					result.setStorage(new StorageRAM(result));
 
 				store = result;
 			} else {
