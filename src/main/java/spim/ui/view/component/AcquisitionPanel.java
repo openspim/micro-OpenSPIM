@@ -73,6 +73,8 @@ import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static spim.ui.view.component.util.TableViewUtil.createTimePointItemDataView;
@@ -1348,10 +1350,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		}
 
 		// Check if the specified file name exists
+		File folder = new File(directory.getValue());
 		if ( enabledSaveImages.get() )
 		{
-			File folder = new File(directory.getValue());
-
 			if(folder != null && null != folder.listFiles()) {
 				boolean found = false;
 
@@ -1363,13 +1364,46 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				}
 
 				if(found) {
-					Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The given filename exists. \nDo you want delete them?", ButtonType.YES, ButtonType.CANCEL).showAndWait();
+					Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The given filename exists. Do you want delete them?\nIf you want to delete them, click Yes.\nIf you want to create another folder, click No.", ButtonType.YES, ButtonType.NO, ButtonType.CANCEL).showAndWait();
 
-					if( results.isPresent() && results.get() == ButtonType.YES) {
-						try {
-							FileUtils.cleanDirectory(folder);
-						} catch (IOException e) {
-							System.err.println(e.getMessage());
+					if( results.isPresent() ) {
+						if (results.get() == ButtonType.YES) {
+							try {
+								FileUtils.cleanDirectory(folder);
+							} catch (IOException e) {
+								System.err.println(e.getMessage());
+							}
+						} else if( results.get() == ButtonType.NO ) {
+							int maxNumber = 0;
+							for (File acqDir : Objects.requireNonNull( folder.getParentFile().listFiles() ) ) {
+								String theName = acqDir.getName();
+								int number;
+								if (theName.startsWith(folder.getName())) {
+									try {
+										//e.g.: "blah_32.ome.tiff"
+										Pattern p = Pattern.compile("\\Q" + folder.getName() + "_\\E" + "(\\d+)");
+										Matcher m = p.matcher(theName);
+										if (m.matches()) {
+											number = Integer.parseInt(m.group(1));
+											if (number >= maxNumber) {
+												maxNumber = number;
+											}
+										}
+									} catch (NumberFormatException e) {
+									} // Do nothing.
+								}
+							}
+
+							folder = new File(directory.get() + "_" + (maxNumber + 1));
+							try {
+								FileUtils.forceMkdir(folder);
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+
+						} else if( results.get() == ButtonType.CANCEL ) {
+							System.err.println("Acquisition stopped by user cancellation.");
+							return false;
 						}
 					} else {
 						System.err.println("Acquisition stopped by user cancellation.");
@@ -1403,7 +1437,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		// Write the experiment note
 		try {
-			writeNote();
+			writeNote(folder);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -1425,6 +1459,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		Platform.runLater( () -> processedImages.set( 0 ) );
 
+		File finalFolder = folder;
 		acquisitionThread = new Thread(() ->
 		{
 			Thread.currentThread().setContextClassLoader( HalcyonMain.class.getClassLoader() );
@@ -1433,7 +1468,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			{
 				engine.performAcquisition( getStudio(), getSpimSetup(), stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp,
 						timePointItemTableView.getItems(), currentTP, waitSeconds,
-						arduinoSelected, new File(directory.getValue()), filename.getValue(),
+						arduinoSelected, finalFolder, filename.getValue(),
 						positionItemTableView.getItems(), channelItemList, processedImages,
 						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), antiDrift.getValue(), experimentNote.getValue(),
 						antiDriftLog, antiDriftRefCh.get(), antiDriftTypeToggle, onTheFly.getValue() );
@@ -1463,9 +1498,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		return true;
 	}
 
-	private void writeNote() throws IOException {
+	private void writeNote(File folder) throws IOException {
 		if(!experimentNote.getValue().isEmpty()) {
-			Writer noteStream = new BufferedWriter(new FileWriter(directory.getValue() + "/" + filename.getValue() + "_note.txt"));
+			Writer noteStream = new BufferedWriter(new FileWriter(folder.getAbsolutePath() + "/" + filename.getValue() + "_note.txt"));
 			noteStream.write(experimentNote.getValue());
 			noteStream.close();
 		}
