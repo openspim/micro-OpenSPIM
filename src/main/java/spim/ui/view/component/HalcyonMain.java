@@ -97,13 +97,13 @@ public class HalcyonMain extends HalcyonFrame
 		ArrayList< HalcyonNodeType > nodeTypeList =
 				new ArrayList<>();
 
+		nodeTypeList.add(SpimHalcyonNodeType.CONTROL);
 		nodeTypeList.add(SpimHalcyonNodeType.SHUTTER);
+		nodeTypeList.add(SpimHalcyonNodeType.CONSOLE);
+		nodeTypeList.add(SpimHalcyonNodeType.EDITOR);
 //		nodeTypeList.add(SpimHalcyonNodeType.CAMERA);
 		nodeTypeList.add(SpimHalcyonNodeType.LASER);
-		nodeTypeList.add(SpimHalcyonNodeType.EDITOR);
 		nodeTypeList.add(SpimHalcyonNodeType.STAGE);
-		nodeTypeList.add(SpimHalcyonNodeType.CONSOLE);
-		nodeTypeList.add(SpimHalcyonNodeType.CONTROL);
 
 		TreePanel lTreePanel = new TreePanel("Configurations",
 				"OpenSPIM",
