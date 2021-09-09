@@ -74,12 +74,13 @@ public class JavaEditor extends Editor
 			"     * process method runs whenever the new image is received during acquisition.\n" +
 			"     */\n" +
 			"    static ImageStack[] stacks;\n" +
-			"    public static void process(Coords coords, mmcorej.TaggedImage tagged)\n" +
+			"    public static void process(String output, Coords coords, mmcorej.TaggedImage tagged)\n" +
 			"    {\n" +
 			"        // On receiving TaggedImage during acquisition\n" +
 			"        if(tagged != null) {\n" +
 			"            try {\n" +
 			"                System.out.println( coords );\n" +
+			"                System.out.println( output );\n" +
 			"                // To check all the tags in the image, uncomment the below\n" +
 			"                // System.out.println(tagged.tags.toString( 2 ));\n" +
 			"                // int slice = tagged.tags.getInt(\"SliceIndex\");\n" +
@@ -160,7 +161,7 @@ public class JavaEditor extends Editor
 			"    // Specify the number of channels\n" +
 			"    static int numberOfChannel = 2;\n" +
 			"    static ImageStack[] stacks = new ImageStack[numberOfChannel];\n" +
-			"    public static void process(Coords coords, mmcorej.TaggedImage tagged)\n" +
+			"    public static void process(String output, Coords coords, mmcorej.TaggedImage tagged)\n" +
 			"    {\n" +
 			"        // On receiving TaggedImage during acquisition\n" +
 			"        if(tagged != null) {\n" +
@@ -270,7 +271,7 @@ public class JavaEditor extends Editor
 			"    // Specify the number of channels\n" +
 			"    static int numberOfChannel = 2;\n" +
 			"    static ImageStack[] stacks = new ImageStack[numberOfChannel];\n" +
-			"    public static void process(Coords coords, mmcorej.TaggedImage tagged)\n" +
+			"    public static void process(String output, Coords coords, mmcorej.TaggedImage tagged)\n" +
 			"    {\n" +
 			"        // On receiving TaggedImage during acquisition\n" +
 			"        if(tagged != null) {\n" +
@@ -568,12 +569,13 @@ public class JavaEditor extends Editor
 				@Override
 				public void handle(ControlEvent event) {
 					if(event.getEventType().equals( ControlEvent.MM_IMAGE_CAPTURED )) {
-						Coords coord = (Coords) event.getParam()[0];
-						TaggedImage tagged = (TaggedImage) event.getParam()[1];
+						String outputFolder = (String) event.getParam()[0];
+						Coords coord = (Coords) event.getParam()[1];
+						TaggedImage tagged = (TaggedImage) event.getParam()[2];
 
 						if(compiledMethod != null) {
 							try {
-								compiledMethod.invoke(null, coord, tagged);
+								compiledMethod.invoke(null, outputFolder, coord, tagged);
 							} catch (IllegalAccessException e) {
 								e.printStackTrace();
 							} catch (InvocationTargetException e) {
@@ -658,7 +660,7 @@ public class JavaEditor extends Editor
 			method.invoke(null, new String[1], setup, studio);
 
 			if(method != null) {
-				compiledMethod = clazz.getMethod("process", Coords.class, TaggedImage.class);
+				compiledMethod = clazz.getMethod("process", String.class, Coords.class, TaggedImage.class);
 			}
 		} catch (NoSuchMethodException e) {
 			e.printStackTrace();

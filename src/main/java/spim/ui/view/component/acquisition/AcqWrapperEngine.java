@@ -129,6 +129,8 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		curStore_ = store;
 
 		cameras_ = cameras;
+		dirName_ = outFolder != null ? outFolder.getAbsolutePath() : null;
+
 		channelItems_ = channelItems;
 		arduinoSelected_ = arduinoSelected;
 		processedImages_ = processedImages;
@@ -377,7 +379,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			// Start pumping images through the pipeline and into the datastore.
 			sink = new TaggedImageSink(
 					engineOutputQueue, curPipeline_, curStore_, this, studio_.events(),
-					t_, angle_, cameras_, x, y, theta, mpImages_, processedImages_, currentAntiDrift_, antiDriftReferenceChannel_, onTheFly_ );
+					t_, angle_, cameras_, x, y, theta, mpImages_, processedImages_, currentAntiDrift_, antiDriftReferenceChannel_, dirName_, onTheFly_ );
 
 			sink.start(() -> getAcquisitionEngine2010().stop(), () -> {
 				rlock.lock();
@@ -1173,7 +1175,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		}
 	}
 
-	void onImageReceived( Coords coord, TaggedImage image ) {
-		Event.fireEvent( spimSetup_, new ControlEvent( ControlEvent.MM_IMAGE_CAPTURED, coord, image ));
+	void onImageReceived( String outputFolder, Coords coord, TaggedImage image ) {
+		Event.fireEvent( spimSetup_, new ControlEvent( ControlEvent.MM_IMAGE_CAPTURED, outputFolder, coord, image ));
 	}
 }

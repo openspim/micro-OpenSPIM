@@ -59,6 +59,7 @@ public class TaggedImageSink {
 	private final LongProperty processedImages_;
 	private final DefaultAntiDrift antiDrift_;
 	private final Integer antiDriftRefChannel_;
+	private final String dirName_;
 	private final Boolean onTheFly_;
 	Thread savingThread;
 
@@ -72,7 +73,7 @@ public class TaggedImageSink {
 						   TreeMap<Integer, Image>[] mpImages,
 						   LongProperty processedImages,
 						   DefaultAntiDrift antiDrift,
-						   Integer antiDriftReferenceChannel, Boolean onTheFly) {
+						   Integer antiDriftReferenceChannel, String dirName, Boolean onTheFly) {
 		imageProducingQueue_ = queue;
 		pipeline_ = pipeline;
 		store_ = store;
@@ -85,6 +86,7 @@ public class TaggedImageSink {
 		processedImages_ = processedImages;
 		antiDrift_ = antiDrift;
 		antiDriftRefChannel_ = antiDriftReferenceChannel - 1;
+		dirName_ = dirName;
 		onTheFly_ = onTheFly;
 
 		camChannels_ = new HashMap<>( cameras_
@@ -173,7 +175,7 @@ public class TaggedImageSink {
 
 								// Calling the OnTheFly processor
 								if(onTheFly_)
-									engine_.onImageReceived(coord, tagged);
+									engine_.onImageReceived(dirName_, coord, tagged);
 
 								Image img = image;
 								Metadata md = img.getMetadata();
