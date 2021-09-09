@@ -69,7 +69,7 @@ public class JavaEditor extends Editor
 			"        CLIJx clijx = CLIJx.getInstance();\n" +
 			"        System.out.println(clijx.clinfo());\n" +
 			"    }\n" +
-			"    \n" +
+			"\n" +
 			"    /***\n" +
 			"     * process method runs whenever the new image is received during acquisition.\n" +
 			"     */\n" +
@@ -104,10 +104,13 @@ public class JavaEditor extends Editor
 			"                    }" +
 			"                    stacks[c] = new ImageStack(image.getWidth(), image.getHeight());\n" +
 			"                }\n" +
-			"                \n" +
+			"\n" +
 			"                stacks[c].addSlice(image);\n" +
 			"\n" +
 			"                if(z == slices - 1) {\n" +
+			"                    if(output != null) {\n" +
+			"                        IJ.save(new ImagePlus(c + \"\", stacks[c]), output + \"/Stack-ch-\" + c + \".tif\");\n" +
+			"                    }\n" +
 			"                    new ImagePlus(c + \"\", stacks[c]).show();\n" +
 			"                }\n" +
 			"            } catch(JSONException es) {\n" +
@@ -154,7 +157,7 @@ public class JavaEditor extends Editor
 			"        CLIJx clijx = CLIJx.getInstance();\n" +
 			"        System.out.println(clijx.clinfo());\n" +
 			"    }\n" +
-			"    \n" +
+			"\n" +
 			"    /***\n" +
 			"     * process method runs whenever the new image is received during acquisition.\n" +
 			"     */\n" +
@@ -179,19 +182,19 @@ public class JavaEditor extends Editor
 			"                if(z == 0) {\n" +
 			"                    stacks[c] = new ImageStack(image.getWidth(), image.getHeight());\n" +
 			"                }\n" +
-			"                \n" +
+			"\n" +
 			"                stacks[c % numberOfChannel].addSlice(image);\n" +
 			"\n" +
 			"                if(z == slices - 1 && channels == c + 1) {\n" +
 			"                    CLIJx clijx = CLIJx.getInstance();\n" +
 			"                    ClearCLBuffer gpu_input1 = clijx.push(new ImagePlus(\"gpu_input\", stacks[0]));\n" +
 			"                    ClearCLBuffer gpu_input2 = clijx.push(new ImagePlus(\"gpu_input\", stacks[1]));\n" +
-			"                    \n" +
+			"\n" +
 			"                    // create an image with correct size and type on GPU for output\n" +
 			"                    ClearCLBuffer gpu_output = clijx.create(gpu_input1);\n" +
-			"    \n" +
+			"\n" +
 			"                    clijx.maximumImages(gpu_input1, gpu_input2, gpu_output);\n" +
-			"    \n" +
+			"\n" +
 			"                    ClearCLBuffer background_substrackted_image = clijx.create(gpu_input1);\n" +
 			"                    float sigma1x = 1.0f;\n" +
 			"                    float sigma1y = 1.0f;\n" +
@@ -200,18 +203,20 @@ public class JavaEditor extends Editor
 			"                    float sigma2y = 5.0f;\n" +
 			"                    float sigma2z = 5.0f;\n" +
 			"                    clijx.differenceOfGaussian3D(gpu_output, background_substrackted_image, sigma1x, sigma1y, sigma1z, sigma2x, sigma2y, sigma2z);\n" +
-			"    \n" +
+			"\n" +
 			"                    ClearCLBuffer maximum_projected_image = clijx.create(new long[]{background_substrackted_image.getWidth(),background_substrackted_image.getHeight()}, clijx.UnsignedShort);\n" +
 			"                    clijx.maximumZProjection(background_substrackted_image, maximum_projected_image);\n" +
 			"                    \n" +
-			"                    clijx.saveAsTIF(background_substrackted_image, \"output/background_substrackted_image.tiff\");\n" +
-			"                    clijx.saveAsTIF(gpu_output, \"output/gpu_output.tiff\");\n" +
-			"                    clijx.saveAsTIF(maximum_projected_image, \"output/maximum_projected_image.tiff\");\n" +
-			"                    \n" +
+			"                    if(output != null) {\n" +
+			"                        clijx.saveAsTIF(background_substrackted_image, output + \"/output/background_substrackted_image.tiff\");\n" +
+			"                        clijx.saveAsTIF(gpu_output, output + \"/output/gpu_output.tiff\");\n" +
+			"                        clijx.saveAsTIF(maximum_projected_image, output + \"/output/maximum_projected_image.tiff\");\n" +
+			"                    }\n" +
+			"\n" +
 			"                    ImagePlus imp_output = clijx.pull(gpu_output);\n" +
 			"                    imp_output.getProcessor().resetMinAndMax();\n" +
 			"                    imp_output.show();\n" +
-			"        \n" +
+			"\n" +
 			"                    // clean up memory on the GPU\n" +
 			"                    gpu_input1.close();\n" +
 			"                    gpu_input2.close();\n" +
@@ -581,6 +586,8 @@ public class JavaEditor extends Editor
 							} catch (InvocationTargetException e) {
 								e.printStackTrace();
 							}
+						} else {
+							System.err.println("The process() is not ready. Please, click \"Run\" in Java editor first.");
 						}
 					}
 				}
