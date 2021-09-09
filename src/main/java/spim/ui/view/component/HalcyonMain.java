@@ -98,7 +98,7 @@ public class HalcyonMain extends HalcyonFrame
 				new ArrayList<>();
 
 		nodeTypeList.add(SpimHalcyonNodeType.SHUTTER);
-		nodeTypeList.add(SpimHalcyonNodeType.CAMERA);
+//		nodeTypeList.add(SpimHalcyonNodeType.CAMERA);
 		nodeTypeList.add(SpimHalcyonNodeType.LASER);
 		nodeTypeList.add(SpimHalcyonNodeType.EDITOR);
 		nodeTypeList.add(SpimHalcyonNodeType.STAGE);
@@ -120,9 +120,9 @@ public class HalcyonMain extends HalcyonFrame
 				SpimHalcyonNodeType.LASER,
 				new LaserDevicePanel( null, 561 ));
 
-		CameraDevicePanel cameraDevicePanel = new CameraDevicePanel( spimSetup, null );
-		final HalcyonNode lCamera = HalcyonNode.wrap("Camera",
-				SpimHalcyonNodeType.CAMERA, cameraDevicePanel );
+//		CameraDevicePanel cameraDevicePanel = new CameraDevicePanel( spimSetup, null );
+//		final HalcyonNode lCamera = HalcyonNode.wrap("Camera",
+//				SpimHalcyonNodeType.CAMERA, cameraDevicePanel );
 
 		StagePanel stagePanel = new StagePanel(null);
 		final HalcyonNode lStage = HalcyonNode.wrap("Stage",
@@ -131,7 +131,7 @@ public class HalcyonMain extends HalcyonFrame
 
 		addNode(lLaser1);
 		addNode(lLaser2);
-		addNode(lCamera);
+//		addNode(lCamera);
 		addNode(lStage);
 
 		JavaEditor javaEditor = new JavaEditor( spimSetup, studio );
@@ -225,7 +225,7 @@ public class HalcyonMain extends HalcyonFrame
 								stagePanel.setSetup(spimSetup, studio);
 							}
 
-							cameraDevicePanel.setSetup( spimSetup, studio );
+//							cameraDevicePanel.setSetup( spimSetup, studio );
 							toolbarPanel.setSetup( spimSetup, studio );
 							javaEditor.setSetup(spimSetup, studio);
 							beanshellEditor.setSetup(spimSetup, studio);
@@ -246,7 +246,7 @@ public class HalcyonMain extends HalcyonFrame
 					   	   if(lasers[1] != null) lasers[1].setSetup( null, studio );
 
 						   stagePanel.setSetup( null, studio );
-						   cameraDevicePanel.setSetup( null, studio );
+//						   cameraDevicePanel.setSetup( null, studio );
 						   toolbarPanel.setSetup( null, studio );
 						   javaEditor.setSetup( null, studio );
 						   beanshellEditor.setSetup( null, studio);
