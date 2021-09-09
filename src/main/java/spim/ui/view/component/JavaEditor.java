@@ -179,6 +179,7 @@ public class JavaEditor extends Editor
 			"                ImageProcessor image = ImageUtils.makeProcessor(tagged);\n" +
 			"                int c = coords.getC();\n" +
 			"                int z = coords.getZ();\n" +
+			"                int t = coords.getT();\n" +
 			"                if(z == 0) {\n" +
 			"                    stacks[c] = new ImageStack(image.getWidth(), image.getHeight());\n" +
 			"                }\n" +
@@ -209,14 +210,15 @@ public class JavaEditor extends Editor
 			"                        clijx.maximumZProjection(background_substrackted_image, maximum_projected_image);\n" +
 			"                        \n" +
 			"                        if(output != null) {\n" +
-			"                            clijx.saveAsTIF(background_substrackted_image, output + \"/output/\" + i + \"background_substrackted_image.tiff\");\n" +
-			"                            clijx.saveAsTIF(gpu_output, output + \"/output/\" + i + \"gpu_output.tiff\");\n" +
-			"                            clijx.saveAsTIF(maximum_projected_image, output + \"/output/\" + i + \"maximum_projected_image.tiff\");\n" +
+			"                            clijx.saveAsTIF(background_substrackted_image, output + \"/output/background_substrackted_image_t\" + t + \"_c\" + i + \".tiff\");\n" +
+			"                            clijx.saveAsTIF(gpu_output, output + \"/output/gpu_output_t\" + t + \"_c\" + i + \".tiff\");\n" +
+			"                            clijx.saveAsTIF(maximum_projected_image, output + \"/output/maximum_projected_image_t\" + t + \"_c\" + i + \".tiff\");\n" +
 			"                        }\n" +
 			"\n" +
-			"                        ImagePlus imp_output = clijx.pull(gpu_output);\n" +
-			"                        imp_output.getProcessor().resetMinAndMax();\n" +
-			"                        imp_output.show();\n" +
+			"                        // uncomment the below if you want to see the result\n" +
+			"                        // ImagePlus imp_output = clijx.pull(gpu_output);\n" +
+			"                        // imp_output.getProcessor().resetMinAndMax();\n" +
+			"                        // imp_output.show();\n" +
 			"\n" +
 			"                        // clean up memory on the GPU\n" +
 			"                        gpu_input1.close();\n" +
