@@ -59,6 +59,7 @@ public class TaggedImageSink {
 	private final LongProperty processedImages_;
 	private final DefaultAntiDrift antiDrift_;
 	private final Integer antiDriftRefChannel_;
+	private final Boolean onTheFly_;
 	Thread savingThread;
 
 	public TaggedImageSink(BlockingQueue<TaggedImage> queue,
@@ -71,7 +72,7 @@ public class TaggedImageSink {
 						   TreeMap<Integer, Image>[] mpImages,
 						   LongProperty processedImages,
 						   DefaultAntiDrift antiDrift,
-						   Integer antiDriftReferenceChannel) {
+						   Integer antiDriftReferenceChannel, Boolean onTheFly) {
 		imageProducingQueue_ = queue;
 		pipeline_ = pipeline;
 		store_ = store;
@@ -84,6 +85,7 @@ public class TaggedImageSink {
 		processedImages_ = processedImages;
 		antiDrift_ = antiDrift;
 		antiDriftRefChannel_ = antiDriftReferenceChannel - 1;
+		onTheFly_ = onTheFly;
 
 		camChannels_ = new HashMap<>( cameras_
 				.stream().collect( Collectors.toMap( Function.identity(), c -> 0 ) ) );
@@ -168,7 +170,11 @@ public class TaggedImageSink {
 
 								Coords.Builder cb = Coordinates.builder();
 								Coords coord = cb.p(angle_).t(t_).c(channel).z(slice).index("view", cameras_.indexOf( cam )).build();
-								engine_.onImageReceived(coord, tagged);
+
+								// Calling the OnTheFly processor
+								if(onTheFly_)
+									engine_.onImageReceived(coord, tagged);
+
 								Image img = image;
 								Metadata md = img.getMetadata();
 								Metadata.Builder mdb = md.copyBuilderPreservingUUID();

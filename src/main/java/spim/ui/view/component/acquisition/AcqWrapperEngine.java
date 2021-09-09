@@ -108,6 +108,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	private HashMap< PositionItem, DefaultAntiDrift> driftCompMap_;
 	private DefaultAntiDrift currentAntiDrift_;
 	private Integer antiDriftReferenceChannel_;
+	private Boolean onTheFly_;
 
 	final String channelGroupName = "OpenSPIM-channels";
 
@@ -119,11 +120,11 @@ public class AcqWrapperEngine implements AcquisitionEngine
 
 	private static final Color[] DEFAULT_COLORS = {new Color(160, 32, 240), Color.red, Color.green, Color.blue, Color.yellow, Color.pink };
 
-	public AcqWrapperEngine( SPIMSetup setup, final Studio frame, Datastore store,
-			String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix,
-			List< ChannelItem > channelItems,
-			boolean arduinoSelected,
-			LongProperty processedImages, HashMap< PositionItem, DefaultAntiDrift> driftCompMap, Integer adReferenceChannel) throws Exception
+	public AcqWrapperEngine(SPIMSetup setup, final Studio frame, Datastore store,
+							String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix,
+							List<ChannelItem> channelItems,
+							boolean arduinoSelected,
+							LongProperty processedImages, HashMap<PositionItem, DefaultAntiDrift> driftCompMap, Integer adReferenceChannel, Boolean onTheFly) throws Exception
 	{
 		curStore_ = store;
 
@@ -152,6 +153,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		settingsListeners_ = new ArrayList<AcqSettingsListener>();
 		posList_ = new PositionList();
 		antiDriftReferenceChannel_ = adReferenceChannel;
+		onTheFly_ = onTheFly;
 
 		// Initial setting
 
@@ -375,7 +377,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			// Start pumping images through the pipeline and into the datastore.
 			sink = new TaggedImageSink(
 					engineOutputQueue, curPipeline_, curStore_, this, studio_.events(),
-					t_, angle_, cameras_, x, y, theta, mpImages_, processedImages_, currentAntiDrift_, antiDriftReferenceChannel_ );
+					t_, angle_, cameras_, x, y, theta, mpImages_, processedImages_, currentAntiDrift_, antiDriftReferenceChannel_, onTheFly_ );
 
 			sink.start(() -> getAcquisitionEngine2010().stop(), () -> {
 				rlock.lock();

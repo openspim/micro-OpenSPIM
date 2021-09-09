@@ -23,6 +23,7 @@ import org.micromanager.Studio;
 import org.micromanager.events.GUIRefreshEvent;
 import spim.hardware.SPIMSetup;
 import spim.hardware.VersaLase;
+import spim.mm.MicroManager;
 import spim.model.event.ControlEvent;
 import spim.ui.view.component.console.StdOutCaptureConsole;
 import spim.ui.view.component.util.ResourceUtil;
@@ -156,7 +157,7 @@ public class HalcyonMain extends HalcyonFrame
 		toolbarPanel.setPrefSize(300, 200);
 		addToolbar(toolbarPanel);
 
-		acquisitionPanel = new AcquisitionPanel( spimSetup, studio, null, arduinoPanel.getPinItemTableView(), toolbarPanel.waitSecondsProperty() );
+		acquisitionPanel = new AcquisitionPanel( spimSetup, studio, null, arduinoPanel.getPinItemTableView(), toolbarPanel.waitSecondsProperty(), getHostServices() );
 		stagePanel.setAcquisitionPanel( acquisitionPanel );
 		final HalcyonNode control1 = HalcyonNode.wrap( "Acquisition",
 				SpimHalcyonNodeType.CONTROL,

@@ -1,6 +1,8 @@
 package spim.ui.view.component;
 
+import com.sun.javafx.application.HostServicesDelegate;
 import ij.gui.Roi;
+import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
@@ -48,6 +50,7 @@ import org.micromanager.internal.MMStudio;
 import spim.hardware.Camera;
 import spim.hardware.SPIMSetup;
 import spim.hardware.VersaLase;
+import spim.mm.MicroManager;
 import spim.model.data.AcquisitionSetting;
 import spim.model.data.ChannelItem;
 import spim.model.data.PinItem;
@@ -193,7 +196,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	final ObservableList<String> binningOptions =
 			FXCollections.observableArrayList();
 
-	public AcquisitionPanel( SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView< PinItem > pinItemTableView, SimpleDoubleProperty waitSeconds ) {
+	// On-the-fly
+	BooleanProperty onTheFly;
+
+	public AcquisitionPanel(SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView<PinItem> pinItemTableView,
+							SimpleDoubleProperty waitSeconds, HostServices hostServices) {
 		this.studioProperty = new SimpleObjectProperty<>( studio );
 		this.spimSetupProperty = new SimpleObjectProperty<>( setup );
 		this.propertyMap = new HashMap<>();
@@ -574,6 +581,22 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		binningHBox.setAlignment( Pos.CENTER_LEFT );
 		binningHBox.setPadding(new Insets(5));
 
+		CheckBox onTheFlyCheckBox = new CheckBox("on-the-fly processing (based on clij)");
+		onTheFly = onTheFlyCheckBox.selectedProperty();
+
+		Hyperlink clijHyperlink = new Hyperlink("https://clij.github.io/");
+		clijHyperlink.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent actionEvent) {
+				if(hostServices != null)
+					hostServices.showDocument("https://clij.github.io/");
+			}
+		});
+
+		HBox onTheFlyHBox = new HBox(3, onTheFlyCheckBox, clijHyperlink);
+		onTheFlyHBox.setAlignment( Pos.CENTER_LEFT );
+		onTheFlyHBox.setPadding(new Insets(5));
+
 		Tab antiDriftTab = new Tab("Anti-drift", new VBox(2, antiDriftPane, chBox));
 		antiDriftTab.setClosable(false);
 
@@ -583,7 +606,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Tab binningTab = new Tab("Binning", binningHBox);
 		binningTab.setClosable(false);
 
-		TabPane acquisitionTabPane = new TabPane( antiDriftTab, binningTab, roiTab );
+		Tab onTheFlyTab = new Tab("On-the-fly", onTheFlyHBox);
+
+		TabPane acquisitionTabPane = new TabPane( antiDriftTab, binningTab, onTheFlyTab, roiTab );
 		acquisitionTabPane.setMinHeight(120);
 
 		Button acqHelpButton = createHelpButton();
@@ -1219,6 +1244,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		// Experiment Note
 		experimentNote.set(setting.getExperimentNote());
+
+		// OnTheFly
+		onTheFly.set(setting.getOnTheFly());
 	}
 
 	private AcquisitionSetting getAcquisitionSetting() {
@@ -1231,7 +1259,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				enabledPositions, positionItems, enabledZStacks, acquisitionOrder,
 				enabledChannels, channelTabPane.getSelectionModel().selectedIndexProperty().get(), channelItems,
 				channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveMIP, roiRectangle, rotateStepSize,
-				experimentNote );
+				experimentNote, onTheFly );
 	}
 
 	private void clearAcquisitionSetting() {
@@ -1257,6 +1285,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		rotateStepSize.set(1);
 		experimentNote.set( "" );
+		onTheFly.set( false );
 	}
 
 	public void stopAcquisition()
@@ -1406,7 +1435,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 						arduinoSelected, new File(directory.getValue()), filename.getValue(),
 						positionItemTableView.getItems(), channelItemList, processedImages,
 						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), antiDrift.getValue(), experimentNote.getValue(),
-						antiDriftLog, antiDriftRefCh.get(), antiDriftTypeToggle );
+						antiDriftLog, antiDriftRefCh.get(), antiDriftTypeToggle, onTheFly.getValue() );
 
 //				new MMAcquisitionRunner().runAcquisition();
 
