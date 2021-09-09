@@ -163,7 +163,7 @@ public class JavaEditor extends Editor
 			"     */\n" +
 			"    // Specify the number of channels\n" +
 			"    static int numberOfChannel = 2;\n" +
-			"    static ImageStack[] stacks = new ImageStack[numberOfChannel];\n" +
+			"    static ImageStack[] stacks = new ImageStack[numberOfChannel * 2];\n" +
 			"    public static void process(String output, Coords coords, mmcorej.TaggedImage tagged)\n" +
 			"    {\n" +
 			"        // On receiving TaggedImage during acquisition\n" +
@@ -183,47 +183,49 @@ public class JavaEditor extends Editor
 			"                    stacks[c] = new ImageStack(image.getWidth(), image.getHeight());\n" +
 			"                }\n" +
 			"\n" +
-			"                stacks[c % numberOfChannel].addSlice(image);\n" +
+			"                stacks[c].addSlice(image);\n" +
 			"\n" +
 			"                if(z == slices - 1 && channels == c + 1) {\n" +
-			"                    CLIJx clijx = CLIJx.getInstance();\n" +
-			"                    ClearCLBuffer gpu_input1 = clijx.push(new ImagePlus(\"gpu_input\", stacks[0]));\n" +
-			"                    ClearCLBuffer gpu_input2 = clijx.push(new ImagePlus(\"gpu_input\", stacks[1]));\n" +
+			"                    for(int i = 0; i < numberOfChannel; i++) {\n" +
+			"                        CLIJx clijx = CLIJx.getInstance();\n" +
+			"                        ClearCLBuffer gpu_input1 = clijx.push(new ImagePlus(\"gpu_input\", stacks[i]));\n" +
+			"                        ClearCLBuffer gpu_input2 = clijx.push(new ImagePlus(\"gpu_input\", stacks[numberOfChannel + i]));\n" +
 			"\n" +
-			"                    // create an image with correct size and type on GPU for output\n" +
-			"                    ClearCLBuffer gpu_output = clijx.create(gpu_input1);\n" +
+			"                        // create an image with correct size and type on GPU for output\n" +
+			"                        ClearCLBuffer gpu_output = clijx.create(gpu_input1);\n" +
 			"\n" +
-			"                    clijx.maximumImages(gpu_input1, gpu_input2, gpu_output);\n" +
+			"                        clijx.maximumImages(gpu_input1, gpu_input2, gpu_output);\n" +
 			"\n" +
-			"                    ClearCLBuffer background_substrackted_image = clijx.create(gpu_input1);\n" +
-			"                    float sigma1x = 1.0f;\n" +
-			"                    float sigma1y = 1.0f;\n" +
-			"                    float sigma1z = 1.0f;\n" +
-			"                    float sigma2x = 5.0f;\n" +
-			"                    float sigma2y = 5.0f;\n" +
-			"                    float sigma2z = 5.0f;\n" +
-			"                    clijx.differenceOfGaussian3D(gpu_output, background_substrackted_image, sigma1x, sigma1y, sigma1z, sigma2x, sigma2y, sigma2z);\n" +
+			"                        ClearCLBuffer background_substrackted_image = clijx.create(gpu_input1);\n" +
+			"                        float sigma1x = 1.0f;\n" +
+			"                        float sigma1y = 1.0f;\n" +
+			"                        float sigma1z = 1.0f;\n" +
+			"                        float sigma2x = 5.0f;\n" +
+			"                        float sigma2y = 5.0f;\n" +
+			"                        float sigma2z = 5.0f;\n" +
+			"                        clijx.differenceOfGaussian3D(gpu_output, background_substrackted_image, sigma1x, sigma1y, sigma1z, sigma2x, sigma2y, sigma2z);\n" +
+			"    \n" +
+			"                        ClearCLBuffer maximum_projected_image = clijx.create(new long[]{background_substrackted_image.getWidth(),background_substrackted_image.getHeight()}, clijx.UnsignedShort);\n" +
+			"                        clijx.maximumZProjection(background_substrackted_image, maximum_projected_image);\n" +
+			"                        \n" +
+			"                        if(output != null) {\n" +
+			"                            clijx.saveAsTIF(background_substrackted_image, output + \"/output/\" + i + \"background_substrackted_image.tiff\");\n" +
+			"                            clijx.saveAsTIF(gpu_output, output + \"/output/\" + i + \"gpu_output.tiff\");\n" +
+			"                            clijx.saveAsTIF(maximum_projected_image, output + \"/output/\" + i + \"maximum_projected_image.tiff\");\n" +
+			"                        }\n" +
 			"\n" +
-			"                    ClearCLBuffer maximum_projected_image = clijx.create(new long[]{background_substrackted_image.getWidth(),background_substrackted_image.getHeight()}, clijx.UnsignedShort);\n" +
-			"                    clijx.maximumZProjection(background_substrackted_image, maximum_projected_image);\n" +
-			"                    \n" +
-			"                    if(output != null) {\n" +
-			"                        clijx.saveAsTIF(background_substrackted_image, output + \"/output/background_substrackted_image.tiff\");\n" +
-			"                        clijx.saveAsTIF(gpu_output, output + \"/output/gpu_output.tiff\");\n" +
-			"                        clijx.saveAsTIF(maximum_projected_image, output + \"/output/maximum_projected_image.tiff\");\n" +
+			"                        ImagePlus imp_output = clijx.pull(gpu_output);\n" +
+			"                        imp_output.getProcessor().resetMinAndMax();\n" +
+			"                        imp_output.show();\n" +
+			"\n" +
+			"                        // clean up memory on the GPU\n" +
+			"                        gpu_input1.close();\n" +
+			"                        gpu_input2.close();\n" +
+			"                        gpu_output.close();\n" +
+			"                        background_substrackted_image.close();\n" +
+			"                        maximum_projected_image.close();\n" +
+			"                        System.out.println(\"Finished\");   \n" +
 			"                    }\n" +
-			"\n" +
-			"                    ImagePlus imp_output = clijx.pull(gpu_output);\n" +
-			"                    imp_output.getProcessor().resetMinAndMax();\n" +
-			"                    imp_output.show();\n" +
-			"\n" +
-			"                    // clean up memory on the GPU\n" +
-			"                    gpu_input1.close();\n" +
-			"                    gpu_input2.close();\n" +
-			"                    gpu_output.close();\n" +
-			"                    background_substrackted_image.close();\n" +
-			"                    maximum_projected_image.close();\n" +
-			"                    System.out.println(\"Finished\");\n" +
 			"                }\n" +
 			"            } catch(JSONException es) {\n" +
 			"            }\n" +
