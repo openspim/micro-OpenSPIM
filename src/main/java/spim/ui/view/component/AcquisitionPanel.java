@@ -1364,7 +1364,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				}
 
 				if(found) {
-					Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The given filename exists. Do you want delete them?\nIf you want to delete them, click Yes.\nIf you want to create another folder, click No.", ButtonType.YES, ButtonType.NO, ButtonType.CANCEL).showAndWait();
+					Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The filename already exists. All files with the same name will be replaced. Do you want to proceed?\nPress No to create another folder and keep all files.",
+							ButtonType.YES, ButtonType.NO, ButtonType.CANCEL).showAndWait();
 
 					if( results.isPresent() ) {
 						if (results.get() == ButtonType.YES) {
