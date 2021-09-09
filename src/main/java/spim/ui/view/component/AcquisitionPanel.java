@@ -607,6 +607,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		binningTab.setClosable(false);
 
 		Tab onTheFlyTab = new Tab("On-the-fly", onTheFlyHBox);
+		onTheFlyTab.setClosable(false);
 
 		TabPane acquisitionTabPane = new TabPane( antiDriftTab, binningTab, onTheFlyTab, roiTab );
 		acquisitionTabPane.setMinHeight(120);
