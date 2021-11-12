@@ -1,6 +1,5 @@
 package spim.ui.view.component;
 
-import com.sun.javafx.application.HostServicesDelegate;
 import ij.gui.Roi;
 import javafx.application.HostServices;
 import javafx.application.Platform;
@@ -50,7 +49,6 @@ import org.micromanager.internal.MMStudio;
 import spim.hardware.Camera;
 import spim.hardware.SPIMSetup;
 import spim.hardware.VersaLase;
-import spim.mm.MicroManager;
 import spim.model.data.AcquisitionSetting;
 import spim.model.data.ChannelItem;
 import spim.model.data.PinItem;
@@ -78,6 +76,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static spim.ui.view.component.util.TableViewUtil.createTimePointItemDataView;
+import static spim.ui.view.component.widgets.viewer.HelpViewer.createHelpButton;
 
 /**
  * Description: Acquisition panel for all the settings for start acquisition.
@@ -895,13 +894,13 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 //		);
 //		channelListSaveImage.setDividerPositions( 0.6 );
 
-//		Button imgHelpButton = createHelpButton();
-//		imgHelpButton.setOnAction( event -> new HelpWindow().show(HelpType.IMAGING));
+		Button imgHelpButton = createHelpButton();
+		imgHelpButton.setOnAction( event -> new HelpWindow().show(HelpType.IMAGING));
 
 		Text label = new Text("Preview of imaging session");
 		label.setFont( Font.font("Verdana", FontWeight.BOLD, 13) );
 
-		HBox imgHBox = new HBox(10, new TextFlow( label ));
+		HBox imgHBox = new HBox(10, new TextFlow( label ), imgHelpButton);
 		imgHBox.setAlignment(Pos.BASELINE_LEFT);
 
 		VBox smartImagingBox = new VBox( 10, imgHBox, smartImagingCylinder );
@@ -1884,7 +1883,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		label2.textProperty().bind( propertyMap.get("order") );
 		gridpane.addRow( 3, new Label("No. of channels: "), label, new Label("Order: "), label2 );
 
-		return new LabeledPane( "Summary", gridpane, null, 12 );
+		Button helpButton = createHelpButton();
+		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.SUMMARY));
+
+		return new LabeledPane( "Summary", gridpane, helpButton, 12 );
 	}
 
 	private void computeTotal() {
@@ -1936,20 +1938,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		button.setMinHeight( 22 );
 		button.setAlignment( Pos.BASELINE_CENTER );
 		button.setStyle("-fx-text-fill: white; -fx-base: #43a5e7;");
-		return button;
-	}
-
-	private Button createHelpButton() {
-		Button button = new Button("?");
-		button.setStyle("-fx-background-radius: 5em; " +
-						"-fx-font-size: 10px;" +
-						"-fx-min-width: 20px; " +
-						"-fx-min-height: 20px; " +
-						"-fx-max-width: 20px; " +
-						"-fx-max-height: 20px; " +
-						"-fx-font-weight: bold; " +
-						"-fx-text-fill: white; " +
-						"-fx-base: #3e8cd6;");
 		return button;
 	}
 

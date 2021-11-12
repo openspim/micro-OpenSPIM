@@ -33,36 +33,26 @@
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<h2>SELECT CHANNELS/PINS</h2>
+<h2>Channels</h2>
 <p>
-    This is the place to add or activate one or more channels such as various laser lines or other hardware components of the OpenSPIM system. There are two ways to do this: Software controlled (without an ArduinoUNO microcontroller) and Arduino Controlled (with an ArduinoUNO microcontroller).
+    A typical channel is a laser of a given wavelength illuminating the sample during acquisition. In case an Arduino UNO is in control of one or several lasers, they all must be wired to one of the digital output pins. It is possible that a channel represents a different device other than a laser. Alternatively, lasers can also be controlled by the Software, which in our case is µManager. Do find out more about Software versus Hardware controlled imaging, click <a href="https://openspim.org/micro-openspim_softwarevshardware" target="_blank">here</a>.
 </p>
-<h3>Software controlled versus hardware controlled image acquisition</h3>
-<p>
-    “Software controlled” indicates that during image acquisition the software alone controls all hardware components of the microscope, such as camera exposure times and laser shutters. In this case images cannot be acquired as fast as in microscopes where some or most of the hardware components are controlled via triggering signals coming e.g. from an ArduinoUNO microcontroller, i.e. “hardware controlled”.
-    However, if the intention is to capture slow developmental processes with acquisition speed playing a subordinate role, software-controlled acquisition should be sufficient.
-</p>
-<p>
-    An ArduinoUno board allows to speed up acquisition speed by connecting the board’s pins to certain hardware components of the OpenSPIM system. As shown in the figure below one can e.g. connect two of the Arduino pins directly to two separate laser lines whereby the Arduino shutter takes over and triggers the respective lasers. As a result, the lasers will fire faster benefitting acquisition speed.
-    It is important to note that the OpenSPIM plugin assumes that the camera will be connected to the Arduino board and therefore provides the initial 5V TTL-trigger-pulse.
-</p>
-<h3>Set up a “Software Controlled” imaging session</h3>
-<p>
-    Select the “Software Controlled” tab within the “Select Channels/Pins” panel.
-    Click on “Add a channel” to add one or several laser lines. Changes can also be made in the drop-down menus. The exposure time for each channel during the acquisition is also set here.
-</p>
-<h3>Set up an “Arduino controlled” imaging session</h3>
-<p>
-    Select the “Arduino Controlled” tab within the “Select Channels/Pins” panel.
-    In order to initially access this tab, the ArduinoUNO has to be configured at least once in the OpenSPIM Configurations menu, located on the very left of the GUI; double click on ArduinoUno and - if necessary - follow the help guide. Save the plugin to skip this step next time you start the OpenSPIM pugin.
-</p>
-<p>
-    In order to trigger the six individual output pins of the ArduinoUNO board (Pin 9-13). Every hardware component that is connected to and triggered by these pins, such as lasers or other light sources, can be considered also as channels. Channels of each corresponding pin can be added to the acquisition simply by ticking the individual checkboxes. Tick the “simultaneous triggering” box to trigger the selected channels at the same time.
-    Note that the moment you go into LIVE mode, all ticked channels/pins will already provide the 5V-trigger-pulse. If a laser is already connected and correctly set to receive the trigger-pulse it will now fire in accordance with the current exposure value of the camera. However, for the image acquisition itself only the exposure time specified next to the Channel name will be considered.
-</p>
-<h3></h3>
-<p>
 
+<h3>Software controlled</h3>
+<p>
+    Click <span style="color: dodgerblue"><b>Add channel</b></span> to add a new channel to the table. Several channels can be added to the table.
+    <ul>
+        <li>Click into the drop-down menus to change Camera and the correct Shutter for the intended laser line.
+        <li>Double click on the exposure value of any added channel to change it.
+    </ul>
+</p>
+
+<h3>Arduino Controlled</h3>
+<p>
+    Simply select one or several of the available channels (<b>Pin8</b> to <b>Pin13</b>) that are under the control of the Arduino-Shutter. Channel Names can be changed in the Arduino UNO configuration table.
+    <ul>
+        <li>Double click on the exposure value of any added channel to change it.
+    </ul>
 </p>
 
 </body>

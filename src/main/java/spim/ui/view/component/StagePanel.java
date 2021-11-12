@@ -26,6 +26,8 @@ import javafx.util.StringConverter;
 import org.micromanager.Studio;
 import spim.hardware.SPIMSetup;
 import spim.ui.view.component.widgets.iconswitch.IconSwitch;
+import spim.ui.view.component.widgets.viewer.HelpType;
+import spim.ui.view.component.widgets.viewer.HelpWindow;
 
 import java.beans.XMLDecoder;
 import java.beans.XMLEncoder;
@@ -43,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 
 import static java.lang.Math.abs;
 import static java.lang.Math.signum;
+import static spim.ui.view.component.widgets.viewer.HelpViewer.createHelpButton;
 
 /**
  * Description: StagePanel shows all the stage units which can be controlled in Micro-Manager.
@@ -344,6 +347,9 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 
 	private VBox createControls()
 	{
+		Button helpButton = createHelpButton();
+		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.STAGE));
+
 		switchAll = new IconSwitch();
 		switchAll.setSymbolType( SymbolType.THUNDERSTORM );
 		switchAll.setSymbolColor( Color.web( "#ffffff" ) );
@@ -500,7 +506,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		HBox angleIndiBox = new HBox( new Label( "Indicate angles: " ), spinner );
 		angleIndiBox.setAlignment( Pos.CENTER_LEFT );
 
-		HBox topHbox = new HBox( 10, new Label( "All On/Off: " ), switchAll, saveCurrentLocation, loadLocation );
+		HBox topHbox = new HBox( 10, new Label( "All On/Off: " ), switchAll, saveCurrentLocation, loadLocation, helpButton );
 		topHbox.setAlignment( Pos.CENTER_LEFT );
 
 		// Smart rotate

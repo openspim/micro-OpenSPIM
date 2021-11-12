@@ -31,3 +31,13 @@ body
     margin-left:10px;
     padding: 20px;
 }
+dl dd
+{
+    padding-top: 5px;
+}
+dl dt
+{
+    padding-top: 10px;
+    color: #0066FF;
+    font-weight: bold;
+}

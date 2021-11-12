@@ -33,11 +33,37 @@
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<h2>DEFINE Z-STACKS</h2>
+<h2>Define Z-stacks</h2>
 <p>
-    To define a new z-stack, first find and centre your sample and then use the Z stage to navigate through its volume along the detection axis until you reach the starting point of your sample. Lock this z position (the beginning of a new stack) by pressing the “Z-start” button. Then navigate in z through to your sample and press the “Z-end” button where the stack is intended to finish. In this way a 3-dimensional stack is specified.
-    The z-values will appear next to the buttons once the beginning or the end of a z-stack has been specified.
-    It is recommended to add extra slices before and after the end of your volume of interest.
+    Here the beginning and the end of a new stack together with its Z step size can be specified using the Z stage. One has to first find the sample and a centre it in the field of view. By navigating through the sample along the z-axis the beginning and end of a z-stack is specified.
+</p>
+
+
+<dl>
+    <dt>Z-start</dt>
+    <dd>Clicking this button will mark the current z stepper motor position as the beginning of a desired z-stack.</dd>
+
+    <dt>Z-end</dt>
+    <dd>Clicking this button will mark the current z stepper motor position as the end of a desired z-stack.</dd>
+
+    <dt>Go to centre</dt>
+    <dd>Clicking this button will move the stage Z into the centre of the defined z-stack.</dd>
+
+    <dt>Add Z-stack</dt>
+    <dd>Clicking this button will add a row to the end of the positions table that will include the X, Y, and R positions together with the two z-stack positions (Z-start and Z-end) and the Z step size value.</dd>
+
+    <dd><li>It is possible to manually change any positional values by double-clicking on one of the positional entries. Note that this can be done during an ongoing imaging session.</dd>
+
+
+    <dt>New Z-stack</dt>
+    <dd>Clicking this button will clear all previously locked Z-stack values in order to define a new Z-stack.</dd>
+
+    <dd><li>It is possible to manually change any positional values by double-clicking on one of the positional entries. Note that this can be done during an ongoing imaging session.</dd>
+
+</dl>
+
+<p>
+    In order to overwrite all positional values with the current positions of the stepper motors simply select any previously created position entry and press the “Update position” button.
 </p>
 
 </body>

@@ -2,11 +2,16 @@ package spim.ui.view.component.console;
 
 import halcyon.view.ConsolePane;
 import halcyon.view.console.TextAppender;
+import javafx.scene.control.Button;
 import javafx.scene.layout.BorderPane;
+import spim.ui.view.component.widgets.viewer.HelpType;
+import spim.ui.view.component.widgets.viewer.HelpWindow;
 
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
+
+import static spim.ui.view.component.widgets.viewer.HelpViewer.createHelpButton;
 
 /**
  * Standard Output and Error capture console
@@ -20,7 +25,10 @@ public class StdOutCaptureConsole extends BorderPane
 	 */
 	public StdOutCaptureConsole()
 	{
-		consolePane = new ConsolePane();
+		Button helpButton = createHelpButton();
+		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.CONSOLE));
+
+		consolePane = new ConsolePane(helpButton);
 		setCenter( consolePane );
 
 		try

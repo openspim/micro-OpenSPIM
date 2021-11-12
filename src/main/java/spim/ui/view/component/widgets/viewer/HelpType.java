@@ -7,7 +7,7 @@ package spim.ui.view.component.widgets.viewer;
  */
 public enum HelpType
 {
-	ACQUISITION, ZSTACK, POSITION, IMAGING, SAVEIMAGE, CHANNEL, TIMEPOINT;
+	ACQUISITION, ZSTACK, POSITION, IMAGING, SAVEIMAGE, CHANNEL, TIMEPOINT, STAGE, CONSOLE, SUMMARY;
 
 	public String getHtml()
 	{

@@ -33,25 +33,41 @@
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<h2>Positions</h2>
-
+<h2>Stage</h2>
 <p>
-    This table shows the list of predefined positions, which will be acquired at each time point. There might be multiple positions or just one. A position is defined by the location where the four motorized stepper motors (X, Y, Z, and R) will move before acquiring an image or stack at a given time point.
+    Here you can move the four stepper motors of the 4D-stage Stages (X, Y, Z, R), calibrate the rotational stepper size (R Stage), save and load current positions and inverse the axis of the x and y stage, which might be crucial for the Anti-Drift to work correctly.
 </p>
-
-<p>
-    In case of an 3-dimensional stack, the Z stage will have three location values: Z start and Z end location values, both defining the total volume of the stack, and the Z step size value, which specifies the total amount of slices within this volume, whereby each slice is one image.
-</p>
-
 <dl>
-    <dt>Add current position</dt>
-    <dd>Clicking this button will add a row to the end of the table with the current X, Y, Z and R coordinates.</dd>
+    <dt>Save current position</dt>
+    <dd>Click this button to save the current position of the stage. It will be added to a list.</dd>
 
-    <dt>Delete position</dt>
-    <dd>Clicking this will remove a highlighted row from the table. You can click and drag rows and move them up and down by using the arrows at the end of the row.</dd>
+    <dt>Load location</dt>
+    <dd>Click this button to Load a previously saved stage position from a list.</dd>
 
-    <dt>Update position</dt>
-    <dd>Clicking this button will update the selected position according to the current 4D-stage positions (X, Y, Z, R).</dd>
+    <dt style="color: black">Indicate angles</dt>
+    <dd>Indicate here the number of angles you wish to acquire during a single time-point. The angles will then be indicated above the rotational stage (Stage R).
+        <li>Click <span style="color: dodgerblue">Homing</span> on one of the four Stages to move the stepper motor back to its home position.
+        <li>Click <span style="color: dodgerblue">Stop</span> to immediately stop a stepper motor.
+    </dd>
+
+    <dt>Calibrate</dt>
+    <dd>
+        Click this button to calibrate the R Stage in case the 360 degrees do not correspond to a full revolution of the sample holder.
+    </dd>
+
+    <dt>
+        Add Pos.
+    </dt>
+    <dd>
+        Clicking this button will add a row to the end of the Position table using the current X, Y, Z and R coordinates.
+    </dd>
+
+    <dt>
+        Go back to the last used position
+    </dt>
+    <dd>
+        Clicking this button will move the stage to the previous position.
+    </dd>
 </dl>
 
 </body>

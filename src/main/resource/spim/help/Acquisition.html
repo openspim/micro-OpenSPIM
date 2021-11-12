@@ -33,19 +33,29 @@
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<h2>ACQUISITION</h2>
+<h2>Acquisition</h2>
 <p>
-    Press the “Acquire” button to start the image acquisition.
+    After all positions and number of time points have been specified, it's almost time to start imaging. However, there are still a few options worth considering before starting the acquisition process such as ROI, Anti-Drift and Binning. It's also worth checking one more time if the correct saving format has been chosen and whether Maximum Intensity Projections should be generated on the fly.
 </p>
-<h3>Using the Anti-drift option</h3>
+<h3>Anti-Drift</h3>
 <p>
-    To use the implemented Anti-drift function during image acquisition, tick “Anti-Drift”. As soon as the “Acquire” button is pressed the plugin will ask you to select the channel used by the Anti-drift function.
-    The compensational changes of the stage can be looked up in the Anti-Drift logs tab.
-    Note that the Anti-drift logic uses the PhaseCorrelation source code created by Stephan Preibisch and therefore works in x, y, and z.
+    Click the Anti-drift tab to enable it with the aim to prevent the sample from leaving its initial predefined position. One can choose between Phase Correlation (whereby entire volume of a 3d-stack is taken into account) or Centre of Mass (whereby drifts are only corrected in x, y but not in z). Note that high concentrations of fluorescent beads surrounding the sample may disarrange the Anti-Drift functionality.
 </p>
-<h3></h3>
+<h3>ROI</h3>
 <p>
-
+    Within this tab a region of interest (ROI) can be specified and applied to the field of view of the camera. The region is specified in the preview window of µManager. Select the Rectangle tool and create a selection inside the preview window. The window will open up by clicking Live view. When the ROI is specified, click the <span style="color: dodgerblue">Apply</span> button.
+</p>
+<h3>Binning</h3>
+<p>
+    Different binning options can be selected before acquisition, e.g. <b>2x2</b> or <b>3x3</b> binning. Higher Binning settings combines the charge of more pixels, which increases the signal to noise ratio (SNR) and results in higher camera frame rates but on the expanse of pixel resolution.
+</p>
+<h3 style="color: dodgerblue">Live</h3>
+<p>
+    Clicking this button will toggle the camera into live view. The exposure values can be changed below.
+</p>
+<h3 style="color: dodgerblue">Acquire</h3>
+<p>
+    Clicking this button will start the currently set up imaging session.
 </p>
 
 </body>

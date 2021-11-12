@@ -33,19 +33,33 @@
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<h2>SAVE IMAGES</h2>
-<p>
-    In this panel the directory is chosen where the acquisition data is saved. We recommend saving on solid state discs (SSD) rather than hard drive discs (HDD) to avoid acquisition delays caused by ongoing writing processes to the disc.
-    The saving format can be chosen as xxx
-</p>
-<p>
-    Maximum Intensity Projections (MIPs) of each time-point including all channels can be saved in a separate folder during image acquisition which will happen on the fly. To do so, tick the “Save MIP projection of each time point”.
-    To save maximum intensity projections and also show them during image acquisition, thick the “Save and show MIP of each TP”.
-</p>
-<h3></h3>
-<p>
+<h2>Saving options</h2>
 
-</p>
+<dl>
+    <dt>Save images</dt>
+    <dd>If ticked acquired images will be saved to the hard disk.</dd>
+
+    <dt>Saving format</dt>
+    <dd>
+        <li>Choose Single Plane TIFF to save every image individually.
+        <li>Select OMETIFF Image stack to save every time-point as an individual stack including all channels as an ometiff file.
+        <li>Select N5 format to save your acquired data in the N5 format, which allows images to be available in multiple resolutions and can be written in parallel. More info on N5 can be found <a href="https://github.com/saalfeldlab/n5" target="_blank">here</a>.
+    </dd>
+
+    <dt>Show/save Maximum intensity Projections of each TP</dt>
+    <dd>
+        We advise to tick this option for long time-lapse recordings. It can be very useful to have a first impression of how well an imaging session goes or went, particularly if large SPIM data is acquired where generating MIPs after imaging is completed can be very time-consuming.
+        Here notes can be written down, which will be saved as an additional Note.txt file into the Output directory.
+    </dd>
+
+    <dt>Save/Load settings</dt>
+    <dd>
+        All input settings created by the user including Positions, Time points and Channels can be saved here and loaded again at a later time point.
+        <li>Click <span style="color: green">SAVE</span> to save all acquisition settings as an .xml file.
+        <li>Click <span style="color: orange">LOAD</span> to load previously saved acquisition settings.
+        <li>Click <span style="color: hotpink">CLEAR</span> to clear the Acquisition panel from all settings and tables.
+    </dd>
+</dl>
 
 </body>
 </html>
