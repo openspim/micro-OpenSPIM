@@ -7,6 +7,15 @@ system.
 The *µOpenSPIM* application for [Micro Manager](https://micro-manager.org) is
 the primary means to acquire image stacks with the OpenSPIM setups.
 
+## Our [publication](https://onlinelibrary.wiley.com/doi/10.1002/adbi.202101182) is out
+
+If you find µOpenSPIM useful, please consider citing our publication.
+
+> *"Time to Upgrade: A New OpenSPIM Guide to Build and Operate Advanced OpenSPIM Configurations"*<br/>
+> Johannes Girstmair, HongKee Moon, Charlène Brillard, Robert Haase, Pavel Tomancak<br/>
+> **Advanced Biology** (2021) doi: 10.1002/adbi.202101182
+
+
 # Where to get the latest development build
 
 This project is built and tested by the ImageJ Jenkins server:
