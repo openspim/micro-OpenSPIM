@@ -1,6 +1,6 @@
 [Setup]
 AppName=µOpenSPIM
-AppVersion=1.0.3
+AppVersion=1.0.4
 WizardStyle=modern
 DefaultDirName={autopf64}\OpenSPIM
 DefaultGroupName=OpenSPIM
