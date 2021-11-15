@@ -15,6 +15,7 @@ import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.SplitPane;
@@ -25,8 +26,10 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
+import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import spim.ui.view.component.ToolbarPanel;
@@ -35,6 +38,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Optional;
 import java.util.prefs.Preferences;
 
@@ -167,18 +172,47 @@ public class LoadConfig extends Application
 		iv.setPreserveRatio(true);
 		iv.setFitWidth(130);
 
+		Text pleaseText = new Text(" If you find µOpenSPIM useful, please consider citing our publication.\n\n");
+		Text authorText = new Text("\n Johannes Girstmair, HongKee Moon, Charlène Brillard, Robert Haase, Pavel Tomancak");
+		Text journal = new Text("\n Advanced Biology");
+		journal.setFont(Font.font( "Helvetica", FontWeight.BOLD, 13 ));
+		Text yearDoi = new Text(" (2021) doi: 10.1002/adbi.202101182");
+		Hyperlink title = new Hyperlink("\"Time to Upgrade: A New OpenSPIM Guide to Build and Operate Advanced OpenSPIM Configurations\"");
+		title.setUnderline(true);
+		title.setFont(Font.font( "Helvetica", FontPosture.ITALIC, 13 ));
+
+		title.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent actionEvent) {
+				URI uri = null;
+				try {
+					uri = new URI("https://onlinelibrary.wiley.com/doi/10.1002/adbi.202101182");
+					java.awt.Desktop.getDesktop().browse(uri);
+				} catch (URISyntaxException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		});
+
+		TextFlow citing = new TextFlow(pleaseText, title, authorText, journal, yearDoi);
+		citing.setStyle("-fx-border-color: black; -fx-border-radius: 8 8 8 8;");
+		citing.setPadding( new Insets( 5 ) );
+
 		Text chooseText = new Text("Please, choose your μManager configuration file:");
 		chooseText.setFont( Font.font("Helvetica", FontWeight.BOLD, 13) );
 
 		HBox welcomeLabelBox = new HBox(5, welcomeLabel, iv);
 		welcomeLabelBox.setAlignment( Pos.CENTER_LEFT );
 		welcomeBox.getChildren().addAll(welcomeLabelBox, chooseText);
-		welcomeBox.setPadding(new Insets(10));
+		welcomeBox.setPadding(new Insets(5));
 
 		BorderPane main = new BorderPane();
 		main.setTop( welcomeBox );
 		main.setCenter( filesPane );
 		main.setRight( detailSplitPane );
+		main.setBottom( citing );
 
 		dialogPane.setContent( main );
 		dialog.setResizable( true );
