@@ -2109,7 +2109,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 //			}
 //		} );
 
-		Button clearButton = new Button( "New Z-stack" );
+		Button clearButton = new Button( "Define new Z-stack" );
+		clearButton.setStyle("-fx-base: #ffbec4;");
 		clearButton.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
@@ -2146,7 +2147,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		zStackGridPane.addRow( 3, new HBox( newButton, clearButton ) );
+		zStackGridPane.addRow( 3, new VBox( newButton, clearButton ) );
 
 		// create a group
 		HBox b = new HBox(new Label("Stage"));
@@ -2160,7 +2161,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.ZSTACK));
 
-		CheckboxPane pane = new CheckboxPane( "Define Z-stacks", zStackGroup, helpButton );
+		CheckboxPane pane = new CheckboxPane( "Z-stacks", zStackGroup, helpButton );
 		enabledZStacks = pane.selectedProperty();
 		return pane;
 	}
