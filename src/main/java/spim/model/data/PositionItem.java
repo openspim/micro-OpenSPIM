@@ -3,6 +3,8 @@ package spim.model.data;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 
 /**
  * Description: PositionItem is used for position table.
@@ -20,6 +22,7 @@ public class PositionItem
 	private double zEnd;
 	private double zStep;
 	private final BooleanProperty selected = new SimpleBooleanProperty();
+	private final StringProperty name = new SimpleStringProperty();
 
 	public PositionItem()
 	{
@@ -33,6 +36,7 @@ public class PositionItem
 		this.zStart = zStart;
 		this.zEnd = zEnd;
 		this.zStep = zStep;
+		this.name.set("");
 		selectedProperty().addListener( observable -> invalidationListener.invalidated( observable ) );
 	}
 
@@ -80,6 +84,12 @@ public class PositionItem
 			return String.format( "%.0f", zStart );
 	}
 
+	public String getName() {
+		return name.getValue();
+	}
+
+	public StringProperty getNameProperty() { return name; }
+
 	public void setX( double x )
 	{
 		this.x = x;
@@ -122,6 +132,10 @@ public class PositionItem
 
 	public void setSelected(boolean selected) {
 		this.selected.set( selected );
+	}
+
+	public void setName(String name) {
+		this.name.set(name);
 	}
 
 	@Override public String toString()
