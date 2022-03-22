@@ -1,6 +1,9 @@
 package spim.algorithm;
 
 import ij.ImageStack;
+import ij.plugin.filter.Convolver;
+import ij.plugin.filter.GaussianBlur;
+import ij.plugin.filter.RankFilters;
 import ij.process.*;
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
 
@@ -18,6 +21,14 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 	 */
 	private final double sigma;
 	private final AntiDrift.Type type;
+	private final GaussianBlur gaussianBlur = new GaussianBlur();
+	private final Convolver convolver = new Convolver();
+	private final RankFilters filters = new RankFilters();
+	private final float[] kernel = new float[]{-1, -1, -1, -1, -1,
+			-1, -1, -1, -1, -1,
+			-1, -1, 24, -1, -1,
+			-1, -1, -1, -1, -1,
+			-1, -1, -1, -1, -1,};
 
 	public DefaultAntiDrift(double sigmaValue)
 	{
@@ -49,6 +60,9 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 	@Override public void addXYSlice( ImageProcessor ip )
 	{
 		ImageProcessor copy = ip.duplicate();
+		gaussianBlur.blurGaussian( copy, sigma );
+		convolver.convolve( copy, kernel, 5, 5 );
+		filters.rank( copy, 2, 2 );
 
 		switch (type) {
 			case CenterOfMass:
@@ -56,7 +70,6 @@ public class DefaultAntiDrift extends AbstractAntiDrift
 				stack.addSlice( copy );
 				break;
 			case PhaseCorrelation:
-				copy.blurGaussian( sigma );
 				latest.addXYSlice( copy );
 				break;
 		}

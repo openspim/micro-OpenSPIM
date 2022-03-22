@@ -389,6 +389,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
 			{
+//				System.out.println(String.format("%f / %d", newValue.doubleValue(), totalImages.getValue()));
 				pi.setProgress( newValue.doubleValue() / totalImages.getValue() );
 			}
 		} );
@@ -1207,6 +1208,13 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		positionItems = setting.getPositionItems();
 		positionItemTableView.getItems().setAll( positionItems );
 
+		InvalidationListener invalidationListener = observable -> computeTotalPositionImages();
+		for(int i = 0; i < positionItems.size(); i++) {
+//			positionItems.get( i ).setValue( positionItems.get(i).getValue() );
+//			positionItems.get( i ).setSelected( positionItems.get(i).getSelected() );
+			positionItems.get( i ).selectedProperty().addListener( observable -> invalidationListener.invalidated( observable ) );
+		}
+
 		// 3. Z-Stack panel
 		enabledZStacks.set( setting.getEnabledZStacks() );
 
@@ -1353,7 +1361,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		if ( enabledSaveImages.get() )
 		{
 			if(null != folder.listFiles()) {
-				boolean found = folder.exists();
+				boolean found = folder.exists() && folder.listFiles().length > 1;
 
 				if(found) {
 					Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The filename already exists. All files with the same name will be replaced. Do you want to proceed?\nPress No to create another folder and keep all files.",
@@ -1462,7 +1470,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				engine.performAcquisition( getStudio(), getSpimSetup(), stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp,
 						timePointItemTableView.getItems(), currentTP, waitSeconds,
 						arduinoSelected, finalFolder, filename.getValue(),
-						positionItemTableView.getItems(), channelItemList, processedImages,
+						positionItemTableView.getItems().filtered(p -> p.getSelected()), channelItemList, processedImages,
 						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), antiDrift.getValue(), experimentNote.getValue(),
 						antiDriftLog, antiDriftRefCh.get(), antiDriftTypeToggle, onTheFly.getValue() );
 
@@ -1515,6 +1523,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	private Node createPositionListPane( TableView< PositionItem > positionItemTableView ) {
 		positionItemTableView.setEditable( true );
 
+		InvalidationListener invalidationListener = observable -> computeTotalPositionImages();
+
 		EventHandler newEventHandler = ( EventHandler< ActionEvent > ) event -> {
 			SPIMSetup spimSetup = getSpimSetup();
 			if(spimSetup != null ) {
@@ -1522,10 +1532,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				double x = spimSetup.getXStage().getPosition();
 				double y = spimSetup.getYStage().getPosition();
 				double z = spimSetup.getZStage().getPosition();
-				positionItemTableView.getItems().add( new PositionItem( x, y, r, z, z, zStackStepSize ) );
+				positionItemTableView.getItems().add( new PositionItem( x, y, r, z, z, zStackStepSize, invalidationListener ) );
 			}
 			else {
-				positionItemTableView.getItems().add( new PositionItem( 10, 20, 30, 20, 50, 10 ) );
+				positionItemTableView.getItems().add( new PositionItem( 10, 20, 30, 20, 50, 10, invalidationListener ) );
 			}
 		};
 
@@ -1610,12 +1620,12 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		long totalImages = 0;
 		for(PositionItem item : positionItemTableView.getItems())
 		{
-			if(item.getZEnd() > item.getZStart()) {
+			if(item.getSelected() && item.getZEnd() > item.getZStart()) {
 				totalImages += item.getNumberOfSlices();
 			}
 		}
 
-		propertyMap.get("positions").setValue( positionItemTableView.getItems().size() + "" );
+		propertyMap.get("positions").setValue( positionItemTableView.getItems().filtered(p -> p.getSelected()).size() + "" );
 		propertyMap.get("slices").setValue( totalImages + "" );
 	}
 
@@ -1852,6 +1862,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Label label = new Label();
 		label.textProperty().bind( propertyMap.get("positions") );
 		label.textProperty().addListener( observable -> computeTotal() );
+
+		propertyMap.get("slices").addListener( observable -> computeTotal() );
 
 		Label label2 = new Label();
 		label2.textProperty().bind( propertyMap.get("totalImages") );
@@ -2097,7 +2109,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 //			}
 //		} );
 
-		Button clearButton = new Button( "New Z-stack" );
+		Button clearButton = new Button( "Define new Z-stack" );
+		clearButton.setStyle("-fx-base: #ffbec4;");
 		clearButton.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
@@ -2134,7 +2147,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		zStackGridPane.addRow( 3, new HBox( newButton, clearButton ) );
+		zStackGridPane.addRow( 3, new VBox( newButton, clearButton ) );
 
 		// create a group
 		HBox b = new HBox(new Label("Stage"));
@@ -2148,13 +2161,15 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.ZSTACK));
 
-		CheckboxPane pane = new CheckboxPane( "Define Z-stacks", zStackGroup, helpButton );
+		CheckboxPane pane = new CheckboxPane( "Z-stacks", zStackGroup, helpButton );
 		enabledZStacks = pane.selectedProperty();
 		return pane;
 	}
 
 	private void addNewPosition( int zStart, int zEnd, double zStep ) {
 		SPIMSetup spimSetup = getSpimSetup();
+		InvalidationListener invalidationListener = observable -> computeTotalPositionImages();
+
 		if(spimSetup != null ) {
 			double r = spimSetup.getThetaStage().getPosition();
 			double x = spimSetup.getXStage().getPosition();
@@ -2164,13 +2179,13 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 			if( zStart < 0 && zEnd < 0 ) {
 				double z = spimSetup.getZStage().getPosition();
-				positionItemTableView.getItems().add(new PositionItem(x, y, r, z, z, zStep));
+				positionItemTableView.getItems().add(new PositionItem(x, y, r, z, z, zStep, invalidationListener));
 			} else {
-				positionItemTableView.getItems().add(new PositionItem(x, y, r, zStart, zEnd, zStep));
+				positionItemTableView.getItems().add(new PositionItem(x, y, r, zStart, zEnd, zStep, invalidationListener));
 			}
 		}
 		else {
-			positionItemTableView.getItems().add( new PositionItem( 10, 20, 30, zStart, zEnd, zStep ) );
+			positionItemTableView.getItems().add( new PositionItem( 10, 20, 30, zStart, zEnd, zStep, invalidationListener ) );
 		}
 	}
 

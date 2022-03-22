@@ -39,6 +39,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -431,10 +432,20 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 				for(String str : stack.getList()) {
 					MenuItem newItem = new MenuItem( str );
 					String[] tokens = str.split( ":" );
-					double r = Double.parseDouble( tokens[0] );
-					double x = Double.parseDouble( tokens[1] );
-					double y = Double.parseDouble( tokens[2] );
-					double z = Double.parseDouble( tokens[3] );
+
+					double r, x, y, z;
+
+					if(tokens.length == 5) {
+						r = Double.parseDouble( tokens[1] );
+						x = Double.parseDouble( tokens[2] );
+						y = Double.parseDouble( tokens[3] );
+						z = Double.parseDouble( tokens[4] );
+					} else {
+						r = Double.parseDouble( tokens[0] );
+						x = Double.parseDouble( tokens[1] );
+						y = Double.parseDouble( tokens[2] );
+						z = Double.parseDouble( tokens[3] );
+					}
 
 					newItem.setOnAction( event -> {
 						stageUnitR.setCurrentPos(r);
@@ -473,11 +484,24 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 				double y = stageUnitY.getCurrentValue();
 				double z = stageUnitZ.getCurrentValue();
 
-				System.out.println(String.format( "Saved location - R: %.1f, X: %.1f, Y: %.1f, Z: %.1f",
-						r, x, y, z));
+				// create a text input dialog
+				TextInputDialog td = new TextInputDialog("Enter name for position");
+				String returnedName = "";
 
-				String newLocation = String.format( "%.1f:%.1f:%.1f:%.1f",
-						r, x, y, z);
+				// setHeaderText
+				td.setHeaderText("Enter the position name");
+
+				// show the dialog and wait for the name
+				Optional<String> result = td.showAndWait();
+				if (result.isPresent()) {
+					returnedName = td.getEditor().getText().replace(":", "");
+				}
+
+				System.out.println(String.format( "Saved location - Name: %s, R: %.1f, X: %.1f, Y: %.1f, Z: %.1f",
+						returnedName, r, x, y, z));
+
+				String newLocation = String.format( "%s:%.1f:%.1f:%.1f:%.1f",
+						returnedName, r, x, y, z);
 
 				stack.add( newLocation );
 			}

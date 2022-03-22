@@ -134,7 +134,7 @@ public class TaggedImageSink {
 						if (tagged != null) {
 							if ( TaggedImageQueue.isPoison(tagged)) {
 								// Acquisition has ended. Clean up under "finally"
-								System.out.println("IsPoison");
+//								System.out.println("IsPoison");
 								break;
 							}
 							try {
