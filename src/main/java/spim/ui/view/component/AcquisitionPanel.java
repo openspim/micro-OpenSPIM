@@ -1361,7 +1361,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		if ( enabledSaveImages.get() )
 		{
 			if(null != folder.listFiles()) {
-				boolean found = folder.exists();
+				boolean found = folder.exists() && folder.listFiles().length > 1;
 
 				if(found) {
 					Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The filename already exists. All files with the same name will be replaced. Do you want to proceed?\nPress No to create another folder and keep all files.",
