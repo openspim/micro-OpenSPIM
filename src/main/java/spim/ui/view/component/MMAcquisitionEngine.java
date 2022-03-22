@@ -387,6 +387,8 @@ public class MMAcquisitionEngine
 
 		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, channelItems, arduinoSelected, processedImages, driftCompMap, adReferenceChannel, onTheFly);
 
+		SystemInfo.dumpMemoryStatusToLog(core);
+
 		mainLoop:
 		for(TimePointItem tpItem : timePointItems ) {
 			if(tpItem.getType().equals( TimePointItem.Type.Acq ))
@@ -397,8 +399,6 @@ public class MMAcquisitionEngine
 					final double acqBegan = System.nanoTime() / 1e9;
 
 					int step = 0;
-
-					SystemInfo.dumpMemoryStatusToLog(core);
 
 					for ( PositionItem positionItem : positionItems )
 					{
@@ -482,7 +482,7 @@ public class MMAcquisitionEngine
 						}
 
 						core.logMessage("MMAcquisition started");
-						System.out.println("MMAcquisition started");
+//						System.out.println("MMAcquisition started");
 						engine.startAcquire( timePoints, step, positionItem );
 
 						while(engine.isAcquisitionRunning()) {
@@ -498,7 +498,7 @@ public class MMAcquisitionEngine
 						}
 
 						core.logMessage("MMAcquisition finished");
-						System.out.println("MMAcquisition finished");
+//						System.out.println("MMAcquisition finished");
 
 						if(setup.getArduino1() != null)
 							setup.getArduino1().setSwitchState( "0" );
@@ -593,6 +593,8 @@ public class MMAcquisitionEngine
 				}
 			}
 		}
+
+		SystemInfo.dumpMemoryStatusToLog(core);
 
 		engine.exit();
 		store.freeze();

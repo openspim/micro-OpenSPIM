@@ -389,6 +389,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			@Override public void changed( ObservableValue< ? extends Number > observable, Number oldValue, Number newValue )
 			{
+//				System.out.println(String.format("%f / %d", newValue.doubleValue(), totalImages.getValue()));
 				pi.setProgress( newValue.doubleValue() / totalImages.getValue() );
 			}
 		} );

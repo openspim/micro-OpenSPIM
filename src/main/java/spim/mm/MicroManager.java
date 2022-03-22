@@ -1331,14 +1331,14 @@ public class MicroManager implements PlugIn, CommandListener
 
 	@Subscribe
 	public void onAcquisitionStart( AcquisitionStartedEvent ae) {
-		System.out.println("Acquisition started");
+//		System.out.println("Acquisition started");
 //		store_ = ae.getDatastore();
 	}
 
 
 	@Subscribe
 	public void onAcquisitionEnd( AcquisitionEndedEvent ae) {
-		System.out.println("Acquisition stopped");
+//		System.out.println("Acquisition stopped");
 //		store_ = null;
 	}
 
@@ -1349,7 +1349,7 @@ public class MicroManager implements PlugIn, CommandListener
 
 	@Subscribe
 	public void onStagePositionChanged(StagePositionChangedEvent event) {
-		System.out.println("Stage changed");
+//		System.out.println("Stage changed");
 	}
 
 	@Subscribe
