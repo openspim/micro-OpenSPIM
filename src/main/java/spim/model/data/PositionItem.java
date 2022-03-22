@@ -1,5 +1,9 @@
 package spim.model.data;
 
+import javafx.beans.InvalidationListener;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+
 /**
  * Description: PositionItem is used for position table.
  *
@@ -15,12 +19,13 @@ public class PositionItem
 	private double zStart;
 	private double zEnd;
 	private double zStep;
+	private final BooleanProperty selected = new SimpleBooleanProperty();
 
 	public PositionItem()
 	{
 	}
 
-	public PositionItem( double x, double y, double r, double zStart, double zEnd, double zStep )
+	public PositionItem( double x, double y, double r, double zStart, double zEnd, double zStep, InvalidationListener invalidationListener )
 	{
 		this.x = x;
 		this.y = y;
@@ -28,6 +33,7 @@ public class PositionItem
 		this.zStart = zStart;
 		this.zEnd = zEnd;
 		this.zStep = zStep;
+		selectedProperty().addListener( observable -> invalidationListener.invalidated( observable ) );
 	}
 
 	public double getX()
@@ -106,6 +112,16 @@ public class PositionItem
 
 	public int getNumberOfSlices() {
 		return (int) ((int) (getZEnd() - getZStart() + getZStep()) / getZStep());
+	}
+
+	public BooleanProperty selectedProperty() { return selected; }
+
+	public boolean getSelected() {
+		return selected.get();
+	}
+
+	public void setSelected(boolean selected) {
+		this.selected.set( selected );
 	}
 
 	@Override public String toString()

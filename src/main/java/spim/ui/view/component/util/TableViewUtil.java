@@ -118,6 +118,12 @@ public class TableViewUtil
 						return cell;
 					}
 				};
+		TableColumn<PositionItem, Boolean> booleanColumn = new TableColumn<>("");
+		booleanColumn.setPrefWidth( 20 );
+		booleanColumn.setCellValueFactory( new PropertyValueFactory<>( "selected" ) );
+		booleanColumn.setCellFactory( tc -> new CheckBoxTableCell<>() );
+		booleanColumn.setOnEditCommit( event -> event.getRowValue().setSelected( event.getNewValue() ) );
+		tv.getColumns().add( booleanColumn );
 
 		TableColumn<PositionItem, Number> numberColumn = new TableColumn<>( "#" );
 		numberColumn.setPrefWidth( 20 );
