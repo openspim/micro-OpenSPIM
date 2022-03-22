@@ -228,7 +228,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		channels_ = channels;
 		setChannelGroup( channelGroupName );
 
-		if ( outFolder != null ) {
+		if ( outFolder != null && acqFilenamePrefix != null ) {
 			File saveDir = new File(outFolder, acqFilenamePrefix + "-MIP");
 
 			if (!outFolder.exists() && !outFolder.mkdirs()) {
