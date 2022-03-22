@@ -111,7 +111,7 @@ public class PositionItem
 	}
 
 	public int getNumberOfSlices() {
-		return (int) ((int) (getZEnd() - getZStart() + getZStep()) / getZStep());
+		return (int) ((int) (getZEnd() - getZStart() + getZStep()) / getZStep() + 1);
 	}
 
 	public BooleanProperty selectedProperty() { return selected; }
