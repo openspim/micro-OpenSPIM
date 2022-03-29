@@ -2143,6 +2143,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 							Integer.parseInt( zEndField.getText() ), Double.parseDouble( zStepField.getText() ) );
 				}
 
+				positionItemTableView.getSelectionModel().select( positionItemTableView.getItems().size() - 1 );
+				positionItemTableView.requestFocus();
+
 				clearButton.fire();
 			}
 		} );
