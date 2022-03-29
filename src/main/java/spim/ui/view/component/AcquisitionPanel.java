@@ -88,6 +88,7 @@ import static spim.ui.view.component.widgets.viewer.HelpViewer.createHelpButton;
 public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 {
 	final private TableView< PositionItem > positionItemTableView;
+	final private TableView< PositionItem > currentPositionItemTableView;
 	private TableView< ChannelItem > channelItemTableView;
 	final private TableView< ChannelItem > channelItemArduinoTableView;
 	final private HashMap< String, StringProperty > propertyMap;
@@ -200,6 +201,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	// On-the-fly
 	BooleanProperty onTheFly;
 
+	// Current Position Index
+	IntegerProperty currentPositionIndex;
+
 	public AcquisitionPanel(SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView<PinItem> pinItemTableView,
 							SimpleDoubleProperty waitSeconds, HostServices hostServices) {
 		this.studioProperty = new SimpleObjectProperty<>( studio );
@@ -284,6 +288,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		this.bufferSize = this.imageWidth * this.imageHeight * this.imageDepth / 8;
 
 		positionItemTableView = TableViewUtil.createPositionItemDataView(this);
+		currentPositionIndex = new SimpleIntegerProperty(0);
+		currentPositionItemTableView = TableViewUtil.createCurrentPositionItemDataView(this, currentPositionIndex);
 
 		// Buttons
 		final ProgressIndicator pi = new ProgressIndicator(0);
@@ -435,7 +441,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		// listbox for Position list
 		SplitPane timePositionSplit = new SplitPane(
-				createPositionListPane(positionItemTableView),
+				createPositionListPane(positionItemTableView, currentPositionItemTableView),
 				createTimePointsPane() );
 		timePositionSplit.setOrientation( Orientation.VERTICAL );
 		timePositionSplit.setDividerPositions( 0.5 );
@@ -1520,8 +1526,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		return unit;
 	}
 
-	private Node createPositionListPane( TableView< PositionItem > positionItemTableView ) {
+	private Node createPositionListPane( TableView< PositionItem > positionItemTableView, TableView< PositionItem > currentPositionItemTableView ) {
 		positionItemTableView.setEditable( true );
+		currentPositionItemTableView.setEditable( true );
 
 		InvalidationListener invalidationListener = observable -> computeTotalPositionImages();
 
@@ -1585,6 +1592,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			@Override public void changed( ObservableValue< ? extends PositionItem > observable, PositionItem oldValue, PositionItem newValue )
 			{
 				currentPosition.set( newValue );
+				currentPositionIndex.set( positionItemTableView.getSelectionModel().getSelectedIndex() + 1 );
+				currentPositionItemTableView.getItems().clear();
+				currentPositionItemTableView.getItems().add( newValue );
 			}
 		} );
 
@@ -1598,7 +1608,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		CheckboxPane pane = new CheckboxPane( "Positions", new VBox( hbox, positionItemTableView ), helpButton );
+		currentPositionItemTableView.setMaxHeight( 320 );
+		CheckboxPane pane = new CheckboxPane( "Positions", new VBox( hbox, positionItemTableView, currentPositionItemTableView ), helpButton );
 		enabledPositions = pane.selectedProperty();
 
 //		Tab positionTab = new Tab("Position", pane);
