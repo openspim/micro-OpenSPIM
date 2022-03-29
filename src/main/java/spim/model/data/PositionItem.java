@@ -37,6 +37,7 @@ public class PositionItem
 		this.zEnd = zEnd;
 		this.zStep = zStep;
 		this.name.set("");
+		setSelected( true );
 		selectedProperty().addListener( observable -> invalidationListener.invalidated( observable ) );
 	}
 
