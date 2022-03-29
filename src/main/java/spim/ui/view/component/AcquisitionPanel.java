@@ -1421,10 +1421,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			return false;
 		}
 
-		if(positionItemTableView.getItems().size() < 1) {
-			new Alert( Alert.AlertType.WARNING, "Please, add positions for the acquisition.").showAndWait();
+		if(positionItemTableView.getItems().filtered(p -> p.getSelected()).size() < 1) {
+			new Alert( Alert.AlertType.WARNING, "Please, select at least one Position from the Position list.").showAndWait();
 
-			System.err.println("Acquisition stopped due to no positions specified.");
+			System.err.println("Acquisition stopped due to no positions selected.");
 			return false;
 		}
 
