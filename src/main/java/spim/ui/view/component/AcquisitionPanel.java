@@ -1470,7 +1470,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				engine.performAcquisition( getStudio(), getSpimSetup(), stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp,
 						timePointItemTableView.getItems(), currentTP, waitSeconds,
 						arduinoSelected, finalFolder, filename.getValue(),
-						positionItemTableView.getItems().filtered(p -> p.getSelected()), channelItemList, processedImages,
+						positionItemTableView.getItems().filtered(p -> p.getSelected()), channelItemList, processedImages, totalImages.getValue(),
 						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), antiDrift.getValue(), experimentNote.getValue(),
 						antiDriftLog, antiDriftRefCh.get(), antiDriftTypeToggle, onTheFly.getValue() );
 

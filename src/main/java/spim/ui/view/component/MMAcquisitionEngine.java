@@ -107,6 +107,7 @@ public class MMAcquisitionEngine
 	 * @param positionItems the position items
 	 * @param channelItems the channel items
 	 * @param processedImages the processed images
+	 * @param totalImages the total images
 	 * @param bSave the b save
 	 * @param savingFormatValue the value set from { "Single Plane TIFF", "OMETIFF Image stack", "N5 format" }
 	 * @param saveMIP Save Maximum Intensity Projection or not
@@ -119,7 +120,7 @@ public class MMAcquisitionEngine
 	 * @throws Exception the exception
 	 */
 	@SuppressWarnings("Duplicates")
-	public void performAcquisition(Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, ObservableList<TimePointItem> timePointItems, DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList<PositionItem> positionItems, List<ChannelItem> channelItems, LongProperty processedImages, boolean bSave, Object savingFormatValue, boolean saveMIP, boolean antiDrift, String experimentNote, StringProperty antiDriftLog, Integer antiDriftReferenceChannel, ReadOnlyObjectProperty<Toggle> antiDriftTypeToggle, Boolean onTheFly) throws Exception
+	public void performAcquisition(Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, ObservableList<TimePointItem> timePointItems, DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList<PositionItem> positionItems, List<ChannelItem> channelItems, LongProperty processedImages, long totalImages, boolean bSave, Object savingFormatValue, boolean saveMIP, boolean antiDrift, String experimentNote, StringProperty antiDriftLog, Integer antiDriftReferenceChannel, ReadOnlyObjectProperty<Toggle> antiDriftTypeToggle, Boolean onTheFly) throws Exception
 	{
 		final Studio frame = studio;
 
@@ -337,20 +338,20 @@ public class MMAcquisitionEngine
 
 		if(!saveMIP) acqFilenamePrefix = null;
 
-		executeNormalAcquisition(setup, frame, store, stagePanel, currentCamera, cameras, output, acqFilenamePrefix, timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, acqBegan, antiDrift, antiDriftLog, antiDriftReferenceChannel, antiDriftTypeToggle, onTheFly);
+		executeNormalAcquisition(setup, frame, store, stagePanel, currentCamera, cameras, output, acqFilenamePrefix, timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, totalImages, acqBegan, antiDrift, antiDriftLog, antiDriftReferenceChannel, antiDriftTypeToggle, onTheFly);
 	}
 
 	private void executeNormalAcquisition(SPIMSetup setup, final Studio frame, Datastore store,
 										  StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix,
 										  ObservableList<TimePointItem> timePointItems, ObservableList<PositionItem> positionItems, List<ChannelItem> channelItems,
 										  DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
-										  LongProperty processedImages, final double acqBegan, final boolean antiDrift, StringProperty antiDriftLog, Integer adReferenceChannel, ReadOnlyObjectProperty<Toggle> antiDriftTypeToggle, Boolean onTheFly) throws Exception
+										  LongProperty processedImages, long totalImages, final double acqBegan, final boolean antiDrift, StringProperty antiDriftLog, Integer adReferenceChannel, ReadOnlyObjectProperty<Toggle> antiDriftTypeToggle, Boolean onTheFly) throws Exception
 	{
 
 		// Dynamic timeline
 		runNormalSmartImagingMMAcq(setup, frame, store, stagePanel, currentCamera, cameras,
 				outFolder, acqFilenamePrefix,
-				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, antiDrift, antiDriftLog, adReferenceChannel, antiDriftTypeToggle, onTheFly);
+				timePointItems, positionItems, channelItems, currentTP, waitSeconds, arduinoSelected, processedImages, totalImages, antiDrift, antiDriftLog, adReferenceChannel, antiDriftTypeToggle, onTheFly);
 
 		finalize(true, setup, currentCamera, cameras, frame, 0, 0, store);
 	}
@@ -359,7 +360,7 @@ public class MMAcquisitionEngine
 											StagePanel stagePanel, String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix,
 											ObservableList<TimePointItem> timePointItems, ObservableList<PositionItem> positionItems, List<ChannelItem> channelItems,
 											DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected,
-											LongProperty processedImages, final boolean antiDrift, StringProperty antiDriftLog, Integer adReferenceChannel, ReadOnlyObjectProperty<Toggle> antiDriftTypeToggle, Boolean onTheFly) throws Exception
+											LongProperty processedImages, long totalImages, final boolean antiDrift, StringProperty antiDriftLog, Integer adReferenceChannel, ReadOnlyObjectProperty<Toggle> antiDriftTypeToggle, Boolean onTheFly) throws Exception
 	{
 
 		final CMMCore core = frame.core();
@@ -598,6 +599,8 @@ public class MMAcquisitionEngine
 
 		engine.exit();
 		store.freeze();
+
+		processedImages.set( totalImages );
 		System.err.println("AcquisitionEngine exited.");
 		core.logMessage("AcquisitionEngine exited.");
 	}
