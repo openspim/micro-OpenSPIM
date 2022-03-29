@@ -206,7 +206,7 @@ public class TableViewUtil
 		numberColumn.setEditable( true );
 		tv.getColumns().add(numberColumn);
 
-		TableColumn<PositionItem, String> textColumn = new TableColumn<>("Name");
+		TableColumn<PositionItem, String> textColumn = new TableColumn<>("Position Name");
 		textColumn.setPrefWidth(100);
 		textColumn.setCellValueFactory( param -> param.getValue().getNameProperty() );
 		textColumn.setCellFactory( TextFieldTableCell.forTableColumn() );
