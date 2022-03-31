@@ -1594,7 +1594,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				currentPosition.set( newValue );
 				currentPositionIndex.set( positionItemTableView.getSelectionModel().getSelectedIndex() + 1 );
 				currentPositionItemTableView.getItems().clear();
-				currentPositionItemTableView.getItems().add( newValue );
+				if(newValue != null)
+					currentPositionItemTableView.getItems().add( newValue );
 			}
 		} );
 

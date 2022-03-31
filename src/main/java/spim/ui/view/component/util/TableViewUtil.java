@@ -2,12 +2,11 @@ package spim.ui.view.component.util;
 
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
-import javafx.beans.binding.Bindings;
+
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.ReadOnlyDoubleWrapper;
 import javafx.beans.property.ReadOnlyIntegerWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
-import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -16,7 +15,6 @@ import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 
-import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContentDisplay;
@@ -63,6 +61,7 @@ public class TableViewUtil
 	public static TableView< PositionItem > createCurrentPositionItemDataView(AcquisitionPanel acquisitionPanel, IntegerProperty currentPositionIndex)
 	{
 		TableView<PositionItem> tv = new TableView<>();
+		tv.setPlaceholder( new Label("") );
 
 		TableColumn<PositionItem, Number> numberColumn = new TableColumn<>( "#" );
 		numberColumn.setPrefWidth( 20 );
@@ -72,7 +71,9 @@ public class TableViewUtil
 
 		TableColumn<PositionItem, String> textColumn = new TableColumn<>("Position Name");
 		textColumn.setPrefWidth(100);
-		textColumn.setCellValueFactory( param -> param.getValue().getNameProperty() );
+		textColumn.setCellValueFactory( param ->
+				new ReadOnlyStringWrapper(param.getValue().getName())
+		);
 		textColumn.setCellFactory( TextFieldTableCell.forTableColumn() );
 		textColumn.setOnEditCommit( event -> event.getRowValue().setName( event.getNewValue() ) );
 		tv.getColumns().add(textColumn);
