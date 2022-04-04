@@ -1626,7 +1626,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		currentPositionItemTableView.setMaxHeight( 320 );
+		currentPositionItemTableView.setMaxHeight( 60 );
+		currentPositionItemTableView.setMinHeight( 60 );
 		CheckboxPane pane = new CheckboxPane( "Positions", new VBox( hbox, positionItemTableView, currentPositionItemTableView ), helpButton );
 		enabledPositions = pane.selectedProperty();
 
