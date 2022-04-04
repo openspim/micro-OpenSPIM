@@ -3,10 +3,7 @@ package spim.ui.view.component.util;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIcon;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
 
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.ReadOnlyDoubleWrapper;
-import javafx.beans.property.ReadOnlyIntegerWrapper;
-import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.beans.property.*;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -154,7 +151,7 @@ public class TableViewUtil
 		return tv;
 	}
 
-	public static TableView< PositionItem > createPositionItemDataView( AcquisitionPanel acquisitionPanel )
+	public static TableView< PositionItem > createPositionItemDataView(AcquisitionPanel acquisitionPanel, BooleanProperty isShowAllPositions)
 	{
 		TableView<PositionItem> tv = new TableView<>();
 
@@ -230,76 +227,81 @@ public class TableViewUtil
 		numberColumn.setSortable(false);
 		tv.getColumns().add(numberColumn);
 
-//		numberColumn = new TableColumn<>("X");
-//		numberColumn.setPrefWidth(50);
-//		numberColumn.setCellValueFactory( (param) ->
-//				new ReadOnlyDoubleWrapper( param.getValue().getX() )
-//		);
-//		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter( ) ) );
-//		numberColumn.setOnEditCommit( event -> event.getRowValue().setX( event.getNewValue().doubleValue() ) );
-//		numberColumn.setEditable( true );
-//		tv.getColumns().add(numberColumn);
-//
-//		numberColumn = new TableColumn<>("Y");
-//		numberColumn.setPrefWidth(50);
-//		numberColumn.setCellValueFactory( (param) ->
-//				new ReadOnlyDoubleWrapper( param.getValue().getY() )
-//		);
-//		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
-//		numberColumn.setOnEditCommit( event -> event.getRowValue().setY( event.getNewValue().doubleValue() ) );
-//		numberColumn.setEditable( true );
-//		tv.getColumns().add(numberColumn);
-//
-//		TableColumn<PositionItem, String> column = new TableColumn<>("Z");
-//		column.setPrefWidth(90);
-//		column.setCellValueFactory( (param) ->
-//				new ReadOnlyStringWrapper( param.getValue().getZString() )
-//		);
-//		column.setCellFactory( StackPositionTableCell.forTableColumn() );
-//		column.setOnEditCommit( event -> {
-//			String zString = event.getNewValue();
-//			String[] tokens = zString.split( "-" );
-//
-//			if(tokens.length == 2) {
-//				event.getRowValue().setZStart( Double.parseDouble( tokens[0] ) );
-//				event.getRowValue().setZEnd( Double.parseDouble( tokens[1] ) );
-////				event.getTableColumn().setStyle( "-fx-background-color: -fx-background; -fx-background: #e0ffe4;" );
-//			} else if(tokens.length == 1) {
-//				event.getRowValue().setZStart( Double.parseDouble( tokens[0] ) );
-//				event.getRowValue().setZStep( 1 );
-//				event.getRowValue().setZEnd( Double.parseDouble( tokens[0] ) );
-////				event.getTableColumn().setStyle( "-fx-background-color: -fx-background; -fx-background: #ffecea;" );
-//			}
-//			event.getTableView().refresh();
-//
-//			// invoke selected item changed!
-//			cascadeUpdatedValues( acquisitionPanel, tv );
-//		} );
-//		column.setEditable( true );
-//		tv.getColumns().add(column);
-//
-//		numberColumn = new TableColumn<>("Z-Step");
-//		numberColumn.setPrefWidth(50);
-//		numberColumn.setCellValueFactory( (param) ->
-//				new ReadOnlyDoubleWrapper( param.getValue().getZStep() )
-//		);
-//		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
-//		numberColumn.setOnEditCommit( event -> {
-//			event.getRowValue().setZStep( event.getNewValue().doubleValue() );
-//			cascadeUpdatedValues( acquisitionPanel, tv );
-//		});
-//		numberColumn.setEditable( true );
-//		tv.getColumns().add(numberColumn);
-//
-//		numberColumn = new TableColumn<>("R");
-//		numberColumn.setPrefWidth(50);
-//		numberColumn.setCellValueFactory( (param) ->
-//				new ReadOnlyDoubleWrapper( param.getValue().getR() )
-//		);
-//		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
-//		numberColumn.setOnEditCommit( event -> event.getRowValue().setR( event.getNewValue().doubleValue() ) );
-//		numberColumn.setEditable( true );
-//		tv.getColumns().add(numberColumn);
+		numberColumn = new TableColumn<>("X");
+		numberColumn.setPrefWidth(50);
+		numberColumn.setCellValueFactory( (param) ->
+				new ReadOnlyDoubleWrapper( param.getValue().getX() )
+		);
+		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter( ) ) );
+		numberColumn.setOnEditCommit( event -> event.getRowValue().setX( event.getNewValue().doubleValue() ) );
+		numberColumn.setEditable( true );
+		numberColumn.visibleProperty().bindBidirectional( isShowAllPositions );
+		tv.getColumns().add(numberColumn);
+
+		numberColumn = new TableColumn<>("Y");
+		numberColumn.setPrefWidth(50);
+		numberColumn.setCellValueFactory( (param) ->
+				new ReadOnlyDoubleWrapper( param.getValue().getY() )
+		);
+		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
+		numberColumn.setOnEditCommit( event -> event.getRowValue().setY( event.getNewValue().doubleValue() ) );
+		numberColumn.setEditable( true );
+		numberColumn.visibleProperty().bindBidirectional( isShowAllPositions );
+		tv.getColumns().add(numberColumn);
+
+		TableColumn<PositionItem, String> column = new TableColumn<>("Z");
+		column.setPrefWidth(90);
+		column.setCellValueFactory( (param) ->
+				new ReadOnlyStringWrapper( param.getValue().getZString() )
+		);
+		column.setCellFactory( StackPositionTableCell.forTableColumn() );
+		column.setOnEditCommit( event -> {
+			String zString = event.getNewValue();
+			String[] tokens = zString.split( "-" );
+
+			if(tokens.length == 2) {
+				event.getRowValue().setZStart( Double.parseDouble( tokens[0] ) );
+				event.getRowValue().setZEnd( Double.parseDouble( tokens[1] ) );
+				event.getTableColumn().setStyle( "-fx-background-color: -fx-background; -fx-background: #e0ffe4;" );
+			} else if(tokens.length == 1) {
+				event.getRowValue().setZStart( Double.parseDouble( tokens[0] ) );
+				event.getRowValue().setZStep( 1 );
+				event.getRowValue().setZEnd( Double.parseDouble( tokens[0] ) );
+				event.getTableColumn().setStyle( "-fx-background-color: -fx-background; -fx-background: #ffecea;" );
+			}
+			event.getTableView().refresh();
+
+			// invoke selected item changed!
+			cascadeUpdatedValues( acquisitionPanel, tv );
+		} );
+		column.setEditable( true );
+		column.visibleProperty().bindBidirectional( isShowAllPositions );
+		tv.getColumns().add(column);
+
+		numberColumn = new TableColumn<>("Z-Step");
+		numberColumn.setPrefWidth(50);
+		numberColumn.setCellValueFactory( (param) ->
+				new ReadOnlyDoubleWrapper( param.getValue().getZStep() )
+		);
+		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
+		numberColumn.setOnEditCommit( event -> {
+			event.getRowValue().setZStep( event.getNewValue().doubleValue() );
+			cascadeUpdatedValues( acquisitionPanel, tv );
+		});
+		numberColumn.setEditable( true );
+		numberColumn.visibleProperty().bindBidirectional( isShowAllPositions );
+		tv.getColumns().add(numberColumn);
+
+		numberColumn = new TableColumn<>("R");
+		numberColumn.setPrefWidth(50);
+		numberColumn.setCellValueFactory( (param) ->
+				new ReadOnlyDoubleWrapper( param.getValue().getR() )
+		);
+		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
+		numberColumn.setOnEditCommit( event -> event.getRowValue().setR( event.getNewValue().doubleValue() ) );
+		numberColumn.setEditable( true );
+		numberColumn.visibleProperty().bindBidirectional( isShowAllPositions );
+		tv.getColumns().add(numberColumn);
 
 		TableColumn<PositionItem, String> textColumn = new TableColumn<>("Position Name");
 		textColumn.setPrefWidth(100);

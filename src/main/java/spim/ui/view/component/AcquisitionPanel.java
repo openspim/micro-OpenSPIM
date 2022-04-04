@@ -203,6 +203,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 	// Current Position Index
 	IntegerProperty currentPositionIndex;
+	BooleanProperty isShowAllPositions;
 
 	public AcquisitionPanel(SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView<PinItem> pinItemTableView,
 							SimpleDoubleProperty waitSeconds, HostServices hostServices) {
@@ -287,7 +288,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		this.bufferSize = this.imageWidth * this.imageHeight * this.imageDepth / 8;
 
-		positionItemTableView = TableViewUtil.createPositionItemDataView(this);
+		isShowAllPositions = new SimpleBooleanProperty( false );
+		positionItemTableView = TableViewUtil.createPositionItemDataView(this, isShowAllPositions);
 		currentPositionIndex = new SimpleIntegerProperty(0);
 		currentPositionItemTableView = TableViewUtil.createCurrentPositionItemDataView(this, currentPositionIndex);
 
@@ -1572,6 +1574,21 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 					currentPosition.get().setZEnd( zStackEnd );
 					computeTotalPositionImages();
 					positionItemTableView.refresh();
+					currentPositionItemTableView.refresh();
+				}
+			}
+		} );
+
+		Button showAllPositionsButton = new Button("Show all positions");
+		showAllPositionsButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event ) {
+				if(isShowAllPositions.get()) {
+					isShowAllPositions.setValue(false);
+					showAllPositionsButton.setText("Show all positions");
+				} else {
+					isShowAllPositions.setValue(true);
+					showAllPositionsButton.setText("Hide all positions");
 				}
 			}
 		} );
@@ -1582,7 +1599,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.POSITION));
 
-		HBox hbox = new HBox( 5, newButton, deleteButton, updateButton );
+		HBox hbox = new HBox( 5, newButton, deleteButton, updateButton, showAllPositionsButton );
 
 		// If it gives the confusion changing position values without intention,
 		// Remove the currentPosition change event handler,
