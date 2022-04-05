@@ -2188,8 +2188,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 				positionItemTableView.getSelectionModel().select( positionItemTableView.getItems().size() - 1 );
 				positionItemTableView.requestFocus();
-
-				clearButton.fire();
 			}
 		} );
 
