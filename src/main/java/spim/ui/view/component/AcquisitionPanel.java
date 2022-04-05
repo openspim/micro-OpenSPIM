@@ -1563,7 +1563,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Button deleteButton = new Button("Delete position");
 		deleteButton.setOnAction( deleteEventHandler );
 
-		Button updateButton = new Button("Update position");
+		Button updateButton = new Button("Update\nPosition");
+		updateButton.setStyle("-fx-base: #64e792;");
 		updateButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -1599,7 +1600,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.POSITION));
 
-		HBox hbox = new HBox( 5, newButton, deleteButton, updateButton, showAllPositionsButton );
+		HBox hbox = new HBox( 5, newButton, deleteButton, showAllPositionsButton );
 
 		// If it gives the confusion changing position values without intention,
 		// Remove the currentPosition change event handler,
@@ -1626,9 +1627,13 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		currentPositionItemTableView.setMaxHeight( 60 );
-		currentPositionItemTableView.setMinHeight( 60 );
-		CheckboxPane pane = new CheckboxPane( "Positions", new VBox( hbox, positionItemTableView, currentPositionItemTableView ), helpButton );
+		currentPositionItemTableView.setMaxHeight( 57 );
+		currentPositionItemTableView.setMinHeight( 57 );
+		currentPositionItemTableView.setMaxWidth( 416 );
+		currentPositionItemTableView.setMinWidth( 416 );
+		HBox currentPositionHBox = new HBox( 5, currentPositionItemTableView, updateButton );
+		currentPositionHBox.setAlignment(Pos.CENTER_LEFT);
+		CheckboxPane pane = new CheckboxPane( "Positions", new VBox( hbox, positionItemTableView, currentPositionHBox ), helpButton );
 		enabledPositions = pane.selectedProperty();
 
 //		Tab positionTab = new Tab("Position", pane);
