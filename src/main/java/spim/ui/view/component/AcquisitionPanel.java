@@ -291,7 +291,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		isShowAllPositions = new SimpleBooleanProperty( false );
 		positionItemTableView = TableViewUtil.createPositionItemDataView(this, isShowAllPositions);
 		currentPositionIndex = new SimpleIntegerProperty(0);
-		currentPositionItemTableView = TableViewUtil.createCurrentPositionItemDataView(this, currentPositionIndex);
+		currentPositionItemTableView = TableViewUtil.createCurrentPositionItemDataView(this, positionItemTableView, currentPositionIndex);
 
 		// Buttons
 		final ProgressIndicator pi = new ProgressIndicator(0);
@@ -2029,6 +2029,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				currentPosition.get().setZStart( zStackStart );
 				computeTotalPositionImages();
 				positionItemTableView.refresh();
+				currentPositionItemTableView.refresh();
 			}
 		} );
 
@@ -2071,6 +2072,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				currentPosition.get().setZStep( zStackStepSize );
 				computeTotalPositionImages();
 				positionItemTableView.refresh();
+				currentPositionItemTableView.refresh();
 			}
 		} );
 
@@ -2098,6 +2100,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				currentPosition.get().setZEnd( zStackEnd );
 				computeTotalPositionImages();
 				positionItemTableView.refresh();
+				currentPositionItemTableView.refresh();
 			}
 		} );
 
@@ -2109,7 +2112,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			@Override public void changed( ObservableValue< ? extends PositionItem > observable, PositionItem oldValue, PositionItem newValue )
 			{
-				if(newValue != null && newValue != null) {
+				if(newValue != null) {
+					startButton.setDisable(true);
+					endButton.setDisable(true);
+					midButton.setDisable(true);
+
 					zStartField.setText( (int)newValue.getZStart() + "" );
 					zStepComboBox.valueProperty().set( newValue.getZStep() + " μm" );
 					zEndField.setText( (int)newValue.getZEnd() + "" );
@@ -2117,6 +2124,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 					zStart.set( newValue.getZStart() / maxZStack * cubeHeight );
 					zEnd.set( newValue.getZEnd() / maxZStack * cubeHeight );
 					zStep.set( newValue.getZStep() / maxZStack * cubeHeight );
+				} else {
+					startButton.setDisable(false);
+					endButton.setDisable(false);
+					midButton.setDisable(false);
 				}
 			}
 		} );
@@ -2151,6 +2162,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				zEndField.setDisable(false);
 				zEndField.setText("");
 				endButton.setDisable(false);
+
+				midButton.setDisable(false);
 
 				zStart.set( 0 );
 				zEnd.set( 0 );

@@ -55,7 +55,7 @@ public class TableViewUtil
 {
 	private static final DataFormat SERIALIZED_MIME_TYPE = new DataFormat("application/x-java-serialized-object");
 
-	public static TableView< PositionItem > createCurrentPositionItemDataView(AcquisitionPanel acquisitionPanel, IntegerProperty currentPositionIndex)
+	public static TableView< PositionItem > createCurrentPositionItemDataView(AcquisitionPanel acquisitionPanel, TableView positionItemTableView, IntegerProperty currentPositionIndex)
 	{
 		TableView<PositionItem> tv = new TableView<>();
 		tv.setPlaceholder( new Label("") );
@@ -118,7 +118,7 @@ public class TableViewUtil
 			event.getTableView().refresh();
 
 			// invoke selected item changed!
-			cascadeUpdatedValues( acquisitionPanel, tv );
+			cascadeUpdatedValues( acquisitionPanel, positionItemTableView );
 		} );
 		column.setEditable( true );
 		tv.getColumns().add(column);
@@ -131,7 +131,7 @@ public class TableViewUtil
 		numberColumn.setCellFactory( NumberFieldTableCell.forTableColumn( new NumberStringConverter() ) );
 		numberColumn.setOnEditCommit( event -> {
 			event.getRowValue().setZStep( event.getNewValue().doubleValue() );
-			cascadeUpdatedValues( acquisitionPanel, tv );
+			cascadeUpdatedValues( acquisitionPanel, positionItemTableView );
 		});
 		numberColumn.setEditable( true );
 		tv.getColumns().add(numberColumn);

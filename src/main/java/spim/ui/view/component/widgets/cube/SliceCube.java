@@ -134,13 +134,12 @@ public class SliceCube extends Group {
 
 	private void updateSlices(DoubleProperty end, DoubleProperty start, DoubleProperty step, Group[] slices, double size, Color posStackColor, double shade, double height) {
 		if (end.intValue() != 0 && end.intValue() < start.intValue()) {
-			final float num = start.floatValue() - end.floatValue() + step.floatValue() / step.floatValue();
 			final double max = start.get() - end.get();
 
 			getChildren().remove(slices[0]);
 			slices[0] = new Group();
 
-			for(float i = 0; i < num; i += -step.floatValue()) {
+			for(float i = 0; i < max; i += -step.floatValue()) {
 				slices[0].getChildren().add(
 					RectangleBuilder.create() // top face
 						.width(size).height(0.25*size)
