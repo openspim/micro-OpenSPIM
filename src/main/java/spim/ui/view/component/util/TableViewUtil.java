@@ -215,7 +215,8 @@ public class TableViewUtil
 					}
 				};
 		TableColumn<PositionItem, Boolean> booleanColumn = new TableColumn<>("");
-		booleanColumn.setPrefWidth( 20 );
+		booleanColumn.setPrefWidth( 30 );
+		booleanColumn.setStyle( "-fx-alignment: CENTER-RIGHT;");
 		booleanColumn.setCellValueFactory( new PropertyValueFactory<>( "selected" ) );
 		booleanColumn.setCellFactory( tc -> new CheckBoxTableCell<>() );
 		booleanColumn.setOnEditCommit( event -> event.getRowValue().setSelected( event.getNewValue() ) );
@@ -437,7 +438,8 @@ public class TableViewUtil
 		TableView<ChannelItem> tv = new TableView<>();
 
 		TableColumn<ChannelItem, Boolean> booleanColumn = new TableColumn<>("");
-		booleanColumn.setPrefWidth( 50 );
+		booleanColumn.setPrefWidth( 30 );
+		booleanColumn.setStyle( "-fx-alignment: CENTER-RIGHT;");
 		booleanColumn.setCellValueFactory( new PropertyValueFactory<>( "selected" ) );
 		booleanColumn.setCellFactory( tc -> new CheckBoxTableCell<>() );
 		booleanColumn.setOnEditCommit( event -> event.getRowValue().setSelected( event.getNewValue() ) );
@@ -557,7 +559,8 @@ public class TableViewUtil
 		TableView<ChannelItem> tv = new TableView<>();
 
 		TableColumn<ChannelItem, Boolean> booleanColumn = new TableColumn<>("");
-		booleanColumn.setPrefWidth( 50 );
+		booleanColumn.setPrefWidth( 30 );
+		booleanColumn.setStyle( "-fx-alignment: CENTER-RIGHT;");
 		booleanColumn.setCellValueFactory( new PropertyValueFactory<>( "selected" ) );
 		booleanColumn.setCellFactory( tc -> new CheckBoxTableCell<>() );
 		booleanColumn.setOnEditCommit( event -> event.getRowValue().setSelected( event.getNewValue() ) );

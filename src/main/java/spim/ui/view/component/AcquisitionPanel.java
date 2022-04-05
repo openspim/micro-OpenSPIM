@@ -305,8 +305,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		SimpleBooleanProperty liveOn = new SimpleBooleanProperty( false );
 		Button liveViewButton = new Button( "Live");
-		liveViewButton.setMinSize( 100, 40 );
-		liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
+		liveViewButton.setMinSize( 80, 30 );
+		liveViewButton.setStyle("-fx-font: 16 arial; -fx-base: #43a5e7;");
 		liveViewButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -358,8 +358,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		VBox exposureBox = new VBox(new Label("Exposure"), exposureField);
 
 		Button acquireButton = new Button( "Acquire" );
-		acquireButton.setMinSize( 110, 40 );
-		acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #69e760;");
+		acquireButton.setMinSize( 90, 30 );
+		acquireButton.setStyle("-fx-font: 16 arial; -fx-base: #69e760;");
 		acquireButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -711,7 +711,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		acqSettings.setAlignment( Pos.CENTER_LEFT );
 
 		Button saveButton = new Button( "SAVE" );
-		saveButton.setMinSize( 100, 40 );
+		saveButton.setMinSize( 100, 30 );
 		saveButton.setStyle("-fx-font: 12 arial; -fx-base: #69e760;");
 		saveButton.setOnAction( new EventHandler< ActionEvent >()
 		{
@@ -732,7 +732,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		} );
 
 		Button loadButton = new Button( "LOAD" );
-		loadButton.setMinSize( 100, 40 );
+		loadButton.setMinSize( 100, 30 );
 		loadButton.setStyle("-fx-font: 12 arial; -fx-base: #e7e45d;");
 		loadButton.setOnAction( new EventHandler< ActionEvent >()
 		{
@@ -797,7 +797,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		} );
 
 		Button clearButton = new Button( "CLEAR" );
-		clearButton.setMinSize( 100, 40 );
+		clearButton.setMinSize( 100, 30 );
 		clearButton.setStyle("-fx-font: 12 arial; -fx-base: #ffbec4;");
 		clearButton.setOnAction( new EventHandler< ActionEvent >()
 		{
@@ -1558,9 +1558,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		};
 
 		Button newButton = new Button("Add current position");
+		newButton.setMinHeight(30);
 		newButton.setOnAction( newEventHandler );
 
 		Button deleteButton = new Button("Delete position");
+		deleteButton.setMinHeight(30);
 		deleteButton.setOnAction( deleteEventHandler );
 
 		Button updateButton = new Button("Update\nPosition");
@@ -1581,6 +1583,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		} );
 
 		Button showAllPositionsButton = new Button("Show all positions");
+		showAllPositionsButton.setMinHeight(30);
 		showAllPositionsButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event ) {
@@ -1797,9 +1800,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		};
 
 		Button newChannelButton = new Button( "Add a channel" );
+		newChannelButton.setMinHeight( 30 );
 		newChannelButton.setOnAction( newChannelHandler );
 
 		Button deleteChannelButton = new Button( "Delete" );
+		deleteChannelButton.setMinHeight( 30 );
 		deleteChannelButton.setOnAction( deleteChannelHandler );
 
 		MenuItem newItem = new MenuItem( "New" );
@@ -2156,6 +2161,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 //		} );
 
 		Button clearButton = new Button( "Define new Z-stack" );
+		clearButton.setMinHeight( 30 );
 		clearButton.setStyle("-fx-base: #ffbec4;");
 		clearButton.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
@@ -2176,6 +2182,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		});
 
 		Button newButton = new Button( "Add Z-stack" );
+		newButton.setMinHeight( 30 );
 		newButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -2344,6 +2351,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		timePointItemTableView.setEditable( true );
 
 		Button newTPButton = new Button("Add TP");
+		newTPButton.setMinHeight( 30 );
 		newTPButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -2353,6 +2361,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		} );
 
 		Button newWaitButton = new Button("Add Pause");
+		newWaitButton.setMinHeight( 30 );
 		newWaitButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -2362,6 +2371,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		} );
 
 		Button deleteButton = new Button("Delete TP");
+		deleteButton.setMinHeight( 30 );
 		deleteButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
