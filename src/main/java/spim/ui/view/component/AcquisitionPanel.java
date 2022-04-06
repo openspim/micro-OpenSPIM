@@ -1372,7 +1372,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				boolean found = folder.exists() && folder.listFiles().length > 1;
 
 				if(found) {
-					Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The filename already exists. All files with the same name will be replaced. Do you want to proceed?\nPress No to create another folder and keep all files.",
+					Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The folder already exists. All files with the same name will be replaced. Do you want to proceed?\nPress No to create another folder and keep all files.",
 							ButtonType.YES, ButtonType.NO, ButtonType.CANCEL).showAndWait();
 
 					if( results.isPresent() ) {
@@ -1572,6 +1572,15 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			@Override public void handle( ActionEvent event )
 			{
 				if(currentPosition.get() != null) {
+					SPIMSetup spimSetup = getSpimSetup();
+					if(spimSetup != null ) {
+						double r = spimSetup.getThetaStage().getPosition();
+						double x = spimSetup.getXStage().getPosition();
+						double y = spimSetup.getYStage().getPosition();
+						currentPosition.get().setR(r);
+						currentPosition.get().setX(x);
+						currentPosition.get().setY(y);
+					}
 					currentPosition.get().setZStart( zStackStart );
 					currentPosition.get().setZStep( zStackStepSize );
 					currentPosition.get().setZEnd( zStackEnd );
@@ -1630,10 +1639,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		currentPositionItemTableView.setMaxHeight( 57 );
-		currentPositionItemTableView.setMinHeight( 57 );
-		currentPositionItemTableView.setMaxWidth( 416 );
-		currentPositionItemTableView.setMinWidth( 416 );
+		currentPositionItemTableView.setMaxHeight( 62 );
+		currentPositionItemTableView.setMinHeight( 62 );
+//		currentPositionItemTableView.setMaxWidth( 416 );
+//		currentPositionItemTableView.setMinWidth( 416 );
+
 		HBox currentPositionHBox = new HBox( 5, currentPositionItemTableView, updateButton );
 		currentPositionHBox.setAlignment(Pos.CENTER_LEFT);
 		CheckboxPane pane = new CheckboxPane( "Positions", new VBox( hbox, positionItemTableView, currentPositionHBox ), helpButton );
@@ -2076,15 +2086,15 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		zStepComboBox.setOnAction( event -> {
-			if(currentPosition.get() != null)
-			{
-				currentPosition.get().setZStep( zStackStepSize );
-				computeTotalPositionImages();
-				positionItemTableView.refresh();
-				currentPositionItemTableView.refresh();
-			}
-		} );
+//		zStepComboBox.setOnAction( event -> {
+//			if(currentPosition.get() != null)
+//			{
+//				currentPosition.get().setZStep( zStackStepSize );
+//				computeTotalPositionImages();
+//				positionItemTableView.refresh();
+//				currentPositionItemTableView.refresh();
+//			}
+//		} );
 
 		HBox zCenter = new HBox( 5, zStepComboBox, new Label( "Z-step (μm)" ) );
 		zCenter.setAlignment( Pos.CENTER_LEFT );
@@ -2116,6 +2126,37 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		setupMouseClickedHandler(startButton, zStartField, endButton, zEndField, midButton);
 
+
+		Button newButton = new Button( "Add Z-stack" );
+		newButton.setMinHeight( 30 );
+		newButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(zStepField.getText().isEmpty()) {
+					zStepComboBox.getSelectionModel().select(0);
+				}
+
+				if(zStartField.getText().isEmpty()) {
+					addNewPosition( -1, -1, Double.parseDouble( zStepField.getText() ) );
+				} else {
+					addNewPosition( Integer.parseInt( zStartField.getText() ),
+							Integer.parseInt( zEndField.getText() ), Double.parseDouble( zStepField.getText() ) );
+				}
+
+				positionItemTableView.getSelectionModel().select( positionItemTableView.getItems().size() - 1 );
+				positionItemTableView.requestFocus();
+//
+//				zStartField.setDisable(false);
+//				startButton.setDisable(false);
+//
+//				zEndField.setDisable(false);
+//				endButton.setDisable(false);
+//
+//				midButton.setDisable(false);
+			}
+		} );
+
 		zStackGridPane.addRow( 2, new VBox( endButton, zEndField ) );
 
 		currentPosition.addListener( new ChangeListener< PositionItem >()
@@ -2124,8 +2165,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			{
 				if(newValue != null) {
 					startButton.setDisable(true);
+//					zStartField.setDisable(true);
+
 					endButton.setDisable(true);
-					midButton.setDisable(true);
+//					zEndField.setDisable(true);
+
+//					midButton.setDisable(true);
+//					zStepComboBox.setDisable(true);
+//					newButton.setDisable(true);
 
 					zStartField.setText( (int)newValue.getZStart() + "" );
 					zStepComboBox.valueProperty().set( newValue.getZStep() + " μm" );
@@ -2136,8 +2183,15 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 					zStep.set( newValue.getZStep() / maxZStack * cubeHeight );
 				} else {
 					startButton.setDisable(false);
+//					zStartField.setDisable(false);
+
 					endButton.setDisable(false);
-					midButton.setDisable(false);
+//					zEndField.setDisable(false);
+
+//					midButton.setDisable(false);
+//					zStepComboBox.setDisable(false);
+
+//					newButton.setDisable(false);
 				}
 			}
 		} );
@@ -2160,6 +2214,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 //			}
 //		} );
 
+		midButton.disableProperty().bind( zStartField.textProperty().isEmpty().or( zEndField.textProperty().isEmpty() ) );
+
 		Button clearButton = new Button( "Define new Z-stack" );
 		clearButton.setMinHeight( 30 );
 		clearButton.setStyle("-fx-base: #ffbec4;");
@@ -2174,34 +2230,13 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				zEndField.setText("");
 				endButton.setDisable(false);
 
-				midButton.setDisable(false);
+//				midButton.setDisable(false);
+//				zStepComboBox.setDisable(false);
 
 				zStart.set( 0 );
 				zEnd.set( 0 );
 			}
 		});
-
-		Button newButton = new Button( "Add Z-stack" );
-		newButton.setMinHeight( 30 );
-		newButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				if(zStepField.getText().isEmpty()) {
-					zStepComboBox.getSelectionModel().select(0);
-				}
-
-				if(zStartField.getText().isEmpty()) {
-					addNewPosition( -1, -1, Double.parseDouble( zStepField.getText() ) );
-				} else {
-					addNewPosition( Integer.parseInt( zStartField.getText() ),
-							Integer.parseInt( zEndField.getText() ), Double.parseDouble( zStepField.getText() ) );
-				}
-
-				positionItemTableView.getSelectionModel().select( positionItemTableView.getItems().size() - 1 );
-				positionItemTableView.requestFocus();
-			}
-		} );
 
 		zStackGridPane.addRow( 3, new VBox( newButton, clearButton ) );
 

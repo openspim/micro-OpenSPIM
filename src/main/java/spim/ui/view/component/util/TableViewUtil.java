@@ -74,6 +74,7 @@ public class TableViewUtil
 		textColumn.setCellFactory( TextFieldTableCell.forTableColumn() );
 		textColumn.setOnEditCommit( event -> event.getRowValue().setName( event.getNewValue() ) );
 		tv.getColumns().add(textColumn);
+		tv.prefWidthProperty().bind(textColumn.widthProperty().add(316));
 
 		numberColumn = new TableColumn<>("X");
 		numberColumn.setPrefWidth(50);
