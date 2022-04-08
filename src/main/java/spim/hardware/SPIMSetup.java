@@ -267,6 +267,7 @@ public class SPIMSetup implements EventTarget {
 			Class.forName( "spim.hardware.CoherentObis" );
 			Class.forName( "spim.hardware.VersaLase" );
 			Class.forName( "spim.hardware.Arduino" );
+			Class.forName( "spim.hardware.Omicron" );
 
 			for (SPIMDevice dev : SPIMDevice.values())
 			{
@@ -335,6 +336,54 @@ public class SPIMSetup implements EventTarget {
 		for (String s : core.getLoadedDevicesOfType(DeviceType.CameraDevice))
 			System.out.println(s);
 
+		// List up all the devices for checking other devices
+		// This process is necessary for devices which are not marked with proper tags
+		System.out.println("CoreDevice --");
+		for (String s : core.getLoadedDevicesOfType(DeviceType.CoreDevice))
+			System.out.println(s);
+
+		System.out.println("GenericDevice --");
+		for (String s : core.getLoadedDevicesOfType(DeviceType.GenericDevice))
+			System.out.println(s);
+
+		System.out.println("AutoFocusDevice --");
+		for (String s : core.getLoadedDevicesOfType(DeviceType.AutoFocusDevice))
+			System.out.println(s);
+
+		System.out.println("GalvoDevice --");
+		for (String s : core.getLoadedDevicesOfType(DeviceType.GalvoDevice))
+			System.out.println(s);
+
+		System.out.println("HubDevice --");
+		for (String s : core.getLoadedDevicesOfType(DeviceType.HubDevice))
+			System.out.println(s);
+
+		System.out.println("MagnifierDevice --");
+		for (String s : core.getLoadedDevicesOfType(DeviceType.MagnifierDevice))
+			System.out.println(s);
+
+		System.out.println("SerialDevice --");
+		for (String s : core.getLoadedDevicesOfType(DeviceType.SerialDevice))
+			System.out.println(s);
+
+		System.out.println("SLMDevice --");
+		for (String s : core.getLoadedDevicesOfType(DeviceType.SLMDevice))
+			System.out.println(s);
+
+		System.out.println("UnknownType --");
+		for (String s : core.getLoadedDevicesOfType(DeviceType.UnknownType))
+			System.out.println(s);
+
+		System.out.println("\n* Checking the loaded devices --");
+		for (String s : core.getLoadedDevices())
+		{
+			System.out.println(s + " - Library:" + core.getDeviceLibrary(s) + ", Name:" + core.getDeviceName(s));
+		}
+
+//		System.out.println("AnyType --");
+//		for (String s : core.getLoadedDevicesOfType(DeviceType.AnyType))
+//			System.out.println(s);
+
 //		for (String s : core.getDevicePropertyNames("VLT_VersaLase"))
 			System.out.println(core.getFocusDevice());
 	}
@@ -384,6 +433,18 @@ public class SPIMSetup implements EventTarget {
 		for (String s : core.getLoadedDevicesOfType(DeviceType.ShutterDevice)) {
 			if(s.startsWith( "Arduino" )) continue;
 			list.add( s );
+		}
+
+		// Exception for Omicron since Omicron laser's type is not Shutter
+		// [Moon: 08/04/2022]
+		// TODO: Need to check which type is the Omicron laser and make it restricted.
+		if(list.size() == 0) {
+			for (String s : core.getLoadedDevices()) {
+				if (s.startsWith("Omicron")) {
+					list.add(s);
+					break;
+				}
+			}
 		}
 		if(i > (list.size() - 1)) return null;
 		return list.get(i);
