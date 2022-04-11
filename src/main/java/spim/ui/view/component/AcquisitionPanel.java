@@ -1372,7 +1372,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				boolean found = folder.exists() && folder.listFiles().length > 1;
 
 				if(found) {
-					Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The folder already exists. All files with the same name will be replaced. Do you want to proceed?\nPress No to create another folder and keep all files.",
+					Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The folder already exists. All files within this folder will be replaced. Do you want to proceed?\nPress No to create another folder and keep all files.",
 							ButtonType.YES, ButtonType.NO, ButtonType.CANCEL).showAndWait();
 
 					if( results.isPresent() ) {
@@ -1591,17 +1591,17 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		Button showAllPositionsButton = new Button("Show all positions");
+		Button showAllPositionsButton = new Button("Show X,Y,Z,R");
 		showAllPositionsButton.setMinHeight(30);
 		showAllPositionsButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event ) {
 				if(isShowAllPositions.get()) {
 					isShowAllPositions.setValue(false);
-					showAllPositionsButton.setText("Show all positions");
+					showAllPositionsButton.setText("Show X,Y,Z,R");
 				} else {
 					isShowAllPositions.setValue(true);
-					showAllPositionsButton.setText("Hide all positions");
+					showAllPositionsButton.setText("Hide X,Y,Z,R");
 				}
 			}
 		} );

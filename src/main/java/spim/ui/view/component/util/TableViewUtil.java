@@ -229,6 +229,13 @@ public class TableViewUtil
 		numberColumn.setSortable(false);
 		tv.getColumns().add(numberColumn);
 
+		TableColumn<PositionItem, String> textColumn = new TableColumn<>("Position Name");
+		textColumn.setPrefWidth(100);
+		textColumn.setCellValueFactory( param -> param.getValue().getNameProperty() );
+		textColumn.setCellFactory( TextFieldTableCell.forTableColumn() );
+		textColumn.setOnEditCommit( event -> event.getRowValue().setName( event.getNewValue() ) );
+		tv.getColumns().add(textColumn);
+
 		numberColumn = new TableColumn<>("X");
 		numberColumn.setPrefWidth(50);
 		numberColumn.setCellValueFactory( (param) ->
@@ -304,13 +311,6 @@ public class TableViewUtil
 		numberColumn.setEditable( true );
 		numberColumn.visibleProperty().bindBidirectional( isShowAllPositions );
 		tv.getColumns().add(numberColumn);
-
-		TableColumn<PositionItem, String> textColumn = new TableColumn<>("Position Name");
-		textColumn.setPrefWidth(100);
-		textColumn.setCellValueFactory( param -> param.getValue().getNameProperty() );
-		textColumn.setCellFactory( TextFieldTableCell.forTableColumn() );
-		textColumn.setOnEditCommit( event -> event.getRowValue().setName( event.getNewValue() ) );
-		tv.getColumns().add(textColumn);
 
 		TableColumn<PositionItem, Void> btnColumn = new TableColumn<>("");
 		btnColumn.setPrefWidth(130);
