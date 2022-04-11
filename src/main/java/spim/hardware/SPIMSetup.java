@@ -439,7 +439,7 @@ public class SPIMSetup implements EventTarget {
 		// [Moon: 08/04/2022]
 		// TODO: Need to check which type is the Omicron laser and make it restricted.
 		if(list.size() == 0) {
-			for (String s : core.getLoadedDevices()) {
+			for (String s : core.getLoadedDevicesOfType(DeviceType.GenericDevice)) {
 				if (s.startsWith("Omicron")) {
 					list.add(s);
 					break;

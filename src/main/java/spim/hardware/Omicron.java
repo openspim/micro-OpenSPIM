@@ -42,7 +42,7 @@ public class Omicron extends Laser {
 
 	@Override
 	public double getPower() {
-		return Double.parseDouble( getProperty("Laser Power Status [mW]").replace("[mW]", "").trim() );
+		return Double.parseDouble( getProperty("Laser Power Status [mW]").replace("mW", "").trim() );
 	}
 
 	@Override
@@ -52,7 +52,7 @@ public class Omicron extends Laser {
 
 	@Override
 	public double getMaxPower() {
-		return Double.parseDouble( getProperty("Specified Power [mW]").replace("[mW]", "").trim() );
+		return Double.parseDouble( getProperty("Specified Power [mW]").replace("mW", "").trim() );
 	}
 
 	/**
@@ -63,7 +63,7 @@ public class Omicron extends Laser {
 	@Override
 	public String getWavelength() {
 		if(hasProperty("Wavelength [nm]"))
-			return getProperty("Wavelength [nm]").replace("[nm]", "").trim();
+			return getProperty("Wavelength [nm]").replace("nm", "").trim();
 		else
 			return "488";
 	}
