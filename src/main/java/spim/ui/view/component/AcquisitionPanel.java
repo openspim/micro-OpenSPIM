@@ -88,6 +88,7 @@ import static spim.ui.view.component.widgets.viewer.HelpViewer.createHelpButton;
 public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 {
 	final private TableView< PositionItem > positionItemTableView;
+	final private TableView< PositionItem > currentPositionItemTableView;
 	private TableView< ChannelItem > channelItemTableView;
 	final private TableView< ChannelItem > channelItemArduinoTableView;
 	final private HashMap< String, StringProperty > propertyMap;
@@ -200,6 +201,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	// On-the-fly
 	BooleanProperty onTheFly;
 
+	// Current Position Index
+	IntegerProperty currentPositionIndex;
+	BooleanProperty isShowAllPositions;
+
 	public AcquisitionPanel(SPIMSetup setup, Studio studio, StagePanel stagePanel, TableView<PinItem> pinItemTableView,
 							SimpleDoubleProperty waitSeconds, HostServices hostServices) {
 		this.studioProperty = new SimpleObjectProperty<>( studio );
@@ -283,7 +288,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		this.bufferSize = this.imageWidth * this.imageHeight * this.imageDepth / 8;
 
-		positionItemTableView = TableViewUtil.createPositionItemDataView(this);
+		isShowAllPositions = new SimpleBooleanProperty( false );
+		positionItemTableView = TableViewUtil.createPositionItemDataView(this, isShowAllPositions);
+		currentPositionIndex = new SimpleIntegerProperty(0);
+		currentPositionItemTableView = TableViewUtil.createCurrentPositionItemDataView(this, positionItemTableView, currentPositionIndex);
 
 		// Buttons
 		final ProgressIndicator pi = new ProgressIndicator(0);
@@ -297,8 +305,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		SimpleBooleanProperty liveOn = new SimpleBooleanProperty( false );
 		Button liveViewButton = new Button( "Live");
-		liveViewButton.setMinSize( 100, 40 );
-		liveViewButton.setStyle("-fx-font: 18 arial; -fx-base: #43a5e7;");
+		liveViewButton.setMinSize( 80, 30 );
+		liveViewButton.setStyle("-fx-font: 16 arial; -fx-base: #43a5e7;");
 		liveViewButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -350,8 +358,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		VBox exposureBox = new VBox(new Label("Exposure"), exposureField);
 
 		Button acquireButton = new Button( "Acquire" );
-		acquireButton.setMinSize( 110, 40 );
-		acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #69e760;");
+		acquireButton.setMinSize( 90, 30 );
+		acquireButton.setStyle("-fx-font: 16 arial; -fx-base: #69e760;");
 		acquireButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -435,7 +443,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		// listbox for Position list
 		SplitPane timePositionSplit = new SplitPane(
-				createPositionListPane(positionItemTableView),
+				createPositionListPane(positionItemTableView, currentPositionItemTableView),
 				createTimePointsPane() );
 		timePositionSplit.setOrientation( Orientation.VERTICAL );
 		timePositionSplit.setDividerPositions( 0.5 );
@@ -703,7 +711,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		acqSettings.setAlignment( Pos.CENTER_LEFT );
 
 		Button saveButton = new Button( "SAVE" );
-		saveButton.setMinSize( 100, 40 );
+		saveButton.setMinSize( 100, 30 );
 		saveButton.setStyle("-fx-font: 12 arial; -fx-base: #69e760;");
 		saveButton.setOnAction( new EventHandler< ActionEvent >()
 		{
@@ -724,7 +732,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		} );
 
 		Button loadButton = new Button( "LOAD" );
-		loadButton.setMinSize( 100, 40 );
+		loadButton.setMinSize( 100, 30 );
 		loadButton.setStyle("-fx-font: 12 arial; -fx-base: #e7e45d;");
 		loadButton.setOnAction( new EventHandler< ActionEvent >()
 		{
@@ -789,7 +797,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		} );
 
 		Button clearButton = new Button( "CLEAR" );
-		clearButton.setMinSize( 100, 40 );
+		clearButton.setMinSize( 100, 30 );
 		clearButton.setStyle("-fx-font: 12 arial; -fx-base: #ffbec4;");
 		clearButton.setOnAction( new EventHandler< ActionEvent >()
 		{
@@ -1364,7 +1372,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				boolean found = folder.exists() && folder.listFiles().length > 1;
 
 				if(found) {
-					Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The filename already exists. All files with the same name will be replaced. Do you want to proceed?\nPress No to create another folder and keep all files.",
+					Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The folder already exists. All files within this folder will be replaced. Do you want to proceed?\nPress No to create another folder and keep all files.",
 							ButtonType.YES, ButtonType.NO, ButtonType.CANCEL).showAndWait();
 
 					if( results.isPresent() ) {
@@ -1520,8 +1528,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		return unit;
 	}
 
-	private Node createPositionListPane( TableView< PositionItem > positionItemTableView ) {
+	private Node createPositionListPane( TableView< PositionItem > positionItemTableView, TableView< PositionItem > currentPositionItemTableView ) {
 		positionItemTableView.setEditable( true );
+		currentPositionItemTableView.setEditable( true );
 
 		InvalidationListener invalidationListener = observable -> computeTotalPositionImages();
 
@@ -1549,22 +1558,50 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		};
 
 		Button newButton = new Button("Add current position");
+		newButton.setMinHeight(30);
 		newButton.setOnAction( newEventHandler );
 
 		Button deleteButton = new Button("Delete position");
+		deleteButton.setMinHeight(30);
 		deleteButton.setOnAction( deleteEventHandler );
 
-		Button updateButton = new Button("Update position");
+		Button updateButton = new Button("Update\nPosition");
+		updateButton.setStyle("-fx-base: #64e792;");
 		updateButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
 			{
 				if(currentPosition.get() != null) {
+					SPIMSetup spimSetup = getSpimSetup();
+					if(spimSetup != null ) {
+						double r = spimSetup.getThetaStage().getPosition();
+						double x = spimSetup.getXStage().getPosition();
+						double y = spimSetup.getYStage().getPosition();
+						currentPosition.get().setR(r);
+						currentPosition.get().setX(x);
+						currentPosition.get().setY(y);
+					}
 					currentPosition.get().setZStart( zStackStart );
 					currentPosition.get().setZStep( zStackStepSize );
 					currentPosition.get().setZEnd( zStackEnd );
 					computeTotalPositionImages();
 					positionItemTableView.refresh();
+					currentPositionItemTableView.refresh();
+				}
+			}
+		} );
+
+		Button showAllPositionsButton = new Button("Show X,Y,Z,R");
+		showAllPositionsButton.setMinHeight(30);
+		showAllPositionsButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event ) {
+				if(isShowAllPositions.get()) {
+					isShowAllPositions.setValue(false);
+					showAllPositionsButton.setText("Show X,Y,Z,R");
+				} else {
+					isShowAllPositions.setValue(true);
+					showAllPositionsButton.setText("Hide X,Y,Z,R");
 				}
 			}
 		} );
@@ -1575,7 +1612,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.POSITION));
 
-		HBox hbox = new HBox( 5, newButton, deleteButton, updateButton );
+		HBox hbox = new HBox( 5, newButton, deleteButton, showAllPositionsButton );
 
 		// If it gives the confusion changing position values without intention,
 		// Remove the currentPosition change event handler,
@@ -1585,6 +1622,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			@Override public void changed( ObservableValue< ? extends PositionItem > observable, PositionItem oldValue, PositionItem newValue )
 			{
 				currentPosition.set( newValue );
+				currentPositionIndex.set( positionItemTableView.getSelectionModel().getSelectedIndex() + 1 );
+				currentPositionItemTableView.getItems().clear();
+				if(newValue != null)
+					currentPositionItemTableView.getItems().add( newValue );
 			}
 		} );
 
@@ -1598,7 +1639,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		CheckboxPane pane = new CheckboxPane( "Positions", new VBox( hbox, positionItemTableView ), helpButton );
+		currentPositionItemTableView.setMaxHeight( 62 );
+		currentPositionItemTableView.setMinHeight( 62 );
+//		currentPositionItemTableView.setMaxWidth( 416 );
+//		currentPositionItemTableView.setMinWidth( 416 );
+
+		HBox currentPositionHBox = new HBox( 5, currentPositionItemTableView, updateButton );
+		currentPositionHBox.setAlignment(Pos.CENTER_LEFT);
+		CheckboxPane pane = new CheckboxPane( "Positions", new VBox( hbox, positionItemTableView, currentPositionHBox ), helpButton );
 		enabledPositions = pane.selectedProperty();
 
 //		Tab positionTab = new Tab("Position", pane);
@@ -1762,9 +1810,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		};
 
 		Button newChannelButton = new Button( "Add a channel" );
+		newChannelButton.setMinHeight( 30 );
 		newChannelButton.setOnAction( newChannelHandler );
 
 		Button deleteChannelButton = new Button( "Delete" );
+		deleteChannelButton.setMinHeight( 30 );
 		deleteChannelButton.setOnAction( deleteChannelHandler );
 
 		MenuItem newItem = new MenuItem( "New" );
@@ -1999,6 +2049,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				currentPosition.get().setZStart( zStackStart );
 				computeTotalPositionImages();
 				positionItemTableView.refresh();
+				currentPositionItemTableView.refresh();
 			}
 		} );
 
@@ -2035,14 +2086,15 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		zStepComboBox.setOnAction( event -> {
-			if(currentPosition.get() != null)
-			{
-				currentPosition.get().setZStep( zStackStepSize );
-				computeTotalPositionImages();
-				positionItemTableView.refresh();
-			}
-		} );
+//		zStepComboBox.setOnAction( event -> {
+//			if(currentPosition.get() != null)
+//			{
+//				currentPosition.get().setZStep( zStackStepSize );
+//				computeTotalPositionImages();
+//				positionItemTableView.refresh();
+//				currentPositionItemTableView.refresh();
+//			}
+//		} );
 
 		HBox zCenter = new HBox( 5, zStepComboBox, new Label( "Z-step (μm)" ) );
 		zCenter.setAlignment( Pos.CENTER_LEFT );
@@ -2068,10 +2120,42 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				currentPosition.get().setZEnd( zStackEnd );
 				computeTotalPositionImages();
 				positionItemTableView.refresh();
+				currentPositionItemTableView.refresh();
 			}
 		} );
 
 		setupMouseClickedHandler(startButton, zStartField, endButton, zEndField, midButton);
+
+
+		Button newButton = new Button( "Add Z-stack" );
+		newButton.setMinHeight( 30 );
+		newButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				if(zStepField.getText().isEmpty()) {
+					zStepComboBox.getSelectionModel().select(0);
+				}
+
+				if(zStartField.getText().isEmpty()) {
+					addNewPosition( -1, -1, Double.parseDouble( zStepField.getText() ) );
+				} else {
+					addNewPosition( Integer.parseInt( zStartField.getText() ),
+							Integer.parseInt( zEndField.getText() ), Double.parseDouble( zStepField.getText() ) );
+				}
+
+				positionItemTableView.getSelectionModel().select( positionItemTableView.getItems().size() - 1 );
+				positionItemTableView.requestFocus();
+//
+//				zStartField.setDisable(false);
+//				startButton.setDisable(false);
+//
+//				zEndField.setDisable(false);
+//				endButton.setDisable(false);
+//
+//				midButton.setDisable(false);
+			}
+		} );
 
 		zStackGridPane.addRow( 2, new VBox( endButton, zEndField ) );
 
@@ -2079,7 +2163,17 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			@Override public void changed( ObservableValue< ? extends PositionItem > observable, PositionItem oldValue, PositionItem newValue )
 			{
-				if(newValue != null && newValue != null) {
+				if(newValue != null) {
+					startButton.setDisable(true);
+//					zStartField.setDisable(true);
+
+					endButton.setDisable(true);
+//					zEndField.setDisable(true);
+
+//					midButton.setDisable(true);
+//					zStepComboBox.setDisable(true);
+//					newButton.setDisable(true);
+
 					zStartField.setText( (int)newValue.getZStart() + "" );
 					zStepComboBox.valueProperty().set( newValue.getZStep() + " μm" );
 					zEndField.setText( (int)newValue.getZEnd() + "" );
@@ -2087,6 +2181,17 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 					zStart.set( newValue.getZStart() / maxZStack * cubeHeight );
 					zEnd.set( newValue.getZEnd() / maxZStack * cubeHeight );
 					zStep.set( newValue.getZStep() / maxZStack * cubeHeight );
+				} else {
+					startButton.setDisable(false);
+//					zStartField.setDisable(false);
+
+					endButton.setDisable(false);
+//					zEndField.setDisable(false);
+
+//					midButton.setDisable(false);
+//					zStepComboBox.setDisable(false);
+
+//					newButton.setDisable(false);
 				}
 			}
 		} );
@@ -2109,7 +2214,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 //			}
 //		} );
 
+		midButton.disableProperty().bind( zStartField.textProperty().isEmpty().or( zEndField.textProperty().isEmpty() ) );
+
 		Button clearButton = new Button( "Define new Z-stack" );
+		clearButton.setMinHeight( 30 );
 		clearButton.setStyle("-fx-base: #ffbec4;");
 		clearButton.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
@@ -2122,33 +2230,13 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				zEndField.setText("");
 				endButton.setDisable(false);
 
+//				midButton.setDisable(false);
+//				zStepComboBox.setDisable(false);
+
 				zStart.set( 0 );
 				zEnd.set( 0 );
 			}
 		});
-
-		Button newButton = new Button( "Add Z-stack" );
-		newButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				if(zStepField.getText().isEmpty()) {
-					zStepComboBox.getSelectionModel().select(0);
-				}
-
-				if(zStartField.getText().isEmpty()) {
-					addNewPosition( -1, -1, Double.parseDouble( zStepField.getText() ) );
-				} else {
-					addNewPosition( Integer.parseInt( zStartField.getText() ),
-							Integer.parseInt( zEndField.getText() ), Double.parseDouble( zStepField.getText() ) );
-				}
-
-				positionItemTableView.getSelectionModel().select( positionItemTableView.getItems().size() - 1 );
-				positionItemTableView.requestFocus();
-
-				clearButton.fire();
-			}
-		} );
 
 		zStackGridPane.addRow( 3, new VBox( newButton, clearButton ) );
 
@@ -2298,6 +2386,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		timePointItemTableView.setEditable( true );
 
 		Button newTPButton = new Button("Add TP");
+		newTPButton.setMinHeight( 30 );
 		newTPButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -2307,6 +2396,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		} );
 
 		Button newWaitButton = new Button("Add Pause");
+		newWaitButton.setMinHeight( 30 );
 		newWaitButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -2316,6 +2406,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		} );
 
 		Button deleteButton = new Button("Delete TP");
+		deleteButton.setMinHeight( 30 );
 		deleteButton.setOnAction( new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )

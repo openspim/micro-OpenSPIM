@@ -26,3 +26,25 @@
     -fx-padding: 0;
     -fx-shape: "";
 }
+
+#current-position {
+    -fx-background-color: transparent;
+    -fx-border-color: #64e792;
+    -fx-border-width: 2px;
+    -fx-background-insets: 0;
+}
+
+#current-position .column-header,#current-position .filler {
+    -fx-background-color: #64e792;
+    -fx-border-width: 0;
+}
+
+#current-position .scroll-bar * {
+    -fx-min-width: 0;
+    -fx-pref-width: 0;
+    -fx-max-width: 0;
+
+    -fx-min-height: 0;
+    -fx-pref-height: 0;
+    -fx-max-height: 0;
+}
