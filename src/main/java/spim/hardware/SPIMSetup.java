@@ -435,9 +435,7 @@ public class SPIMSetup implements EventTarget {
 			list.add( s );
 		}
 
-		// Exception for Omicron since Omicron laser's type is not Shutter
-		// [Moon: 08/04/2022]
-		// TODO: Need to check which type is the Omicron laser and make it restricted.
+		// Exception for Omicron since Omicron laser's type is GenericDevice
 		if(list.size() == 0) {
 			for (String s : core.getLoadedDevicesOfType(DeviceType.GenericDevice)) {
 				if (s.startsWith("Omicron")) {
