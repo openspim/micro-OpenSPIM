@@ -381,7 +381,7 @@ public class MMAcquisitionEngine
 				if(toogleGroupValue.equals("Centre of mass")) {
 					driftCompMap.put(positionItem, new DefaultAntiDrift());
 				} else if(toogleGroupValue.equals("Phase correlation")) {
-					driftCompMap.put(positionItem, new DefaultAntiDrift(2));
+					driftCompMap.put(positionItem, new DefaultAntiDrift(10));
 				}
 			}
 		}
