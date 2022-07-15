@@ -119,7 +119,9 @@ public class BeanshellEditor extends Editor
 					e.printStackTrace();
 				}
 				commandWriter = null;
-				beanshellThread.stop();
+				try {
+					beanshellThread.stop();
+				} catch (ThreadDeath e) {}
 			}
 			beanshellThread = null;
 		}
