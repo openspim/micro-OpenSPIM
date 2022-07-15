@@ -1368,6 +1368,23 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		File folder = new File(directory.getValue());
 		if ( enabledSaveImages.get() )
 		{
+			if(!folder.exists()) {
+				Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The folder does not exist. Click Yes to create new folder.", ButtonType.YES, ButtonType.NO).showAndWait();
+
+				if( results.isPresent() ) {
+					if (results.get() == ButtonType.YES) {
+						try {
+							FileUtils.forceMkdir(folder);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+					else if(results.get() == ButtonType.NO)
+					{
+						return false;
+					}
+				}
+			}
 			if(null != folder.listFiles()) {
 				boolean found = folder.exists() && folder.listFiles().length > 1;
 
