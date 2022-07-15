@@ -31,7 +31,6 @@ import org.micromanager.data.RewritableDatastore;
 import org.micromanager.data.internal.DefaultDatastore;
 import org.micromanager.data.internal.DefaultSummaryMetadata;
 import org.micromanager.data.internal.PropertyKey;
-import org.micromanager.data.internal.StorageRAM;
 import org.micromanager.display.*;
 import org.micromanager.display.internal.DefaultDisplaySettings;
 import org.micromanager.acquisition.AcquisitionEndedEvent;
