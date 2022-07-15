@@ -18,7 +18,7 @@ public class StorageOpener {
 					JsonObject sum = data.get("Summary").getAsJsonObject();
 
 					if(sum.has("StorageType")) {
-						System.out.println(sum.get("StorageType"));
+//						System.out.println(sum.get("StorageType"));
 
 						return StorageType.valueOf(sum.get("StorageType").getAsString());
 					}
