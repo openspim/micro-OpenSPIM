@@ -63,6 +63,7 @@ public class N5MicroManagerStorage implements Storage {
 	int width;
 	int height;
 	N5FSWriter writer;
+	N5FSReader reader;
 	GzipCompression compression;
 	ExecutorService exec;
 	ImageStack[] imageStacks;
@@ -114,7 +115,7 @@ public class N5MicroManagerStorage implements Storage {
 			throw new IOException("Unable to find dataset at " + dir_);
 		}
 
-		writer = new N5FSWriter( dir_ + "/" + prefix_ + ".n5" );
+		reader = new N5FSReader( dir_ + "/" + prefix_ + ".n5" );
 		compression = new GzipCompression();
 		exec = Executors.newFixedThreadPool(10);
 
@@ -191,24 +192,40 @@ public class N5MicroManagerStorage implements Storage {
 	@Override
 	public void freeze() throws IOException {
 		closeMetadataStreams();
-		isDatasetWritable_ = false;
 
-//		final N5MicroManagerMetadata metaWriter = new N5MicroManagerMetadata( dir_ + "/" + prefix_ + ".n5" );
+//		if (isDatasetWritable_) {
+//			final N5MicroManagerMetadata metaWriter = new N5MicroManagerMetadata( dir_ + "/" + prefix_ + ".n5" );
+//			PropertyMap map = ((DefaultSummaryMetadata)summaryMetadata_).toPropertyMap();
 //
-//		PropertyMap.Builder pb = PropertyMaps.builder().putAll(((DefaultSummaryMetadata)summaryMetadata_).toPropertyMap())
-//				.putInteger("Width", width)
-//				.putInteger("Height", height)
-//				.putEnumAsString( "Storage", StorageType.N5 );
+//			System.out.println(map.toJSON());
 //
-//		metaWriter.readMetadata( pb.build() );
+//	//		int[] dims = map.getIntegerList("dimensions");
+//	//		System.out.println(Arrays.toString(dims));
 //
-//		for (String name : datasetList ) {
-//			try {
-//				metaWriter.writeMetadata( metaWriter, writer, name );
-//			} catch (Exception e) {
-//				e.printStackTrace();
+//			for (String name : datasetList_.keySet() ) {
+//				final DatasetAttributes attributes = writer.getDatasetAttributes( name );
+//				final long[] dims = attributes.getDimensions();
+//
+//				PropertyMap.Builder pb = PropertyMaps.builder().putAll(map)
+//						.putInteger("Width", width)
+//						.putInteger("Height", height)
+//						.putInteger("Channels", (int) dims[2])
+//						.putInteger("Slices", (int) dims[3])
+//						.putInteger("Frames", (int) dims[4])
+//						.putString("title", name)
+//						.putEnumAsString( "Storage", StorageType.N5 );
+//
+//				metaWriter.readMetadata( pb.build() );
+//
+//				try {
+//					metaWriter.writeMetadata( metaWriter, writer, name );
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
 //			}
 //		}
+
+		isDatasetWritable_ = false;
 
 		if(writer != null) {
 			writer.close();
@@ -311,7 +328,8 @@ public class N5MicroManagerStorage implements Storage {
 					compression);
 
 			String datasetName = makeDatasetName(coords);
-			writer.createDataset(datasetName, attributes);
+
+			if (writer != null) writer.createDataset(datasetName, attributes);
 			datasetList_.put(datasetName, datasetName);
 
 			int time = coords.getT();
@@ -398,17 +416,17 @@ public class N5MicroManagerStorage implements Storage {
 			else if (numComponents == 1 && bytesPerPixel == 1) {
 				// Byte
 				ip = new ByteProcessor(width, height);
-				ip.setPixels((byte[])pixels);
+				ip.setPixels(pixels);
 			}
 			else if (numComponents == 1 && bytesPerPixel == 2) {
 				// Short
 				ip = new ShortProcessor(width, height);
-				ip.setPixels((short[])pixels);
+				ip.setPixels(pixels);
 			}
 			else if (numComponents == 1 && bytesPerPixel == 4) {
 				// Float
 				ip = new FloatProcessor(width, height);
-				ip.setPixels((float[])pixels);
+				ip.setPixels(pixels);
 			}
 			else {
 				throw new IllegalArgumentException(String.format("Unexpected image format with %d bytes per pixel and %d components", bytesPerPixel, numComponents));
@@ -588,7 +606,7 @@ public class N5MicroManagerStorage implements Storage {
 
 		if(!impMap_.containsKey(dataset)) {
 			try {
-				RandomAccessibleInterval rai = N5Utils.open(writer, dataset);
+				RandomAccessibleInterval rai = (writer != null) ? N5Utils.open(writer, dataset) : N5Utils.open(reader, dataset);
 				impMap_.put(dataset, rai);
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -611,7 +629,10 @@ public class N5MicroManagerStorage implements Storage {
 
 		DatasetAttributes attributes = null;
 		try {
-			attributes = writer.getDatasetAttributes(dataset);
+			if(writer != null)
+				attributes = writer.getDatasetAttributes(dataset);
+			else if(reader != null)
+				attributes = reader.getDatasetAttributes(dataset);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
