@@ -142,8 +142,9 @@ public class TaggedImageSink {
 
 								// dumpJSON(tagged, System.out);
 
-//								System.out.println(tagged.tags.toString( 2 ));
+//								System.out.println(tagged.tags.getJSONObject( "Summary" ).toString( 2 ));
 //								System.out.println(imageCount);
+
 								int slice = tagged.tags.getInt("SliceIndex");
 								double exp = tagged.tags.getInt( "Exposure-ms" );
 								double zPos = tagged.tags.getDouble( "ZPositionUm" );
@@ -154,7 +155,10 @@ public class TaggedImageSink {
 								String coreCam = tagged.tags.getString( "Core-Camera" );
 								double zStep = tagged.tags.getJSONObject( "Summary" ).getDouble( "z-step_um" );
 								int slices = tagged.tags.getJSONObject( "Summary" ).getInt( "Slices" );
-								int channels = tagged.tags.getJSONObject( "Summary" ).getInt( "Channels" );
+
+								// Check which information is correct for choosing the number of total channels
+//								int channels = tagged.tags.getJSONObject( "Summary" ).getInt( "Channels" );
+								int channels = camChannels_.size();
 
 								if(ch == 0) {
 									// initialize cam channels
