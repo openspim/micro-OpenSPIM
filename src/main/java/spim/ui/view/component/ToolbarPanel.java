@@ -3,14 +3,13 @@ package spim.ui.view.component;
 import bdv.BigDataViewer;
 import bdv.ViewerImgLoader;
 import bdv.cache.CacheControl;
-import bdv.ij.OpenImagePlusPlugIn;
-import bdv.ij.util.ProgressWriterIJ;
 import bdv.img.imagestack.ImageStackImageLoader;
 import bdv.img.virtualstack.VirtualStackImageLoader;
 import bdv.spimdata.SequenceDescriptionMinimal;
 import bdv.spimdata.SpimDataMinimal;
 import bdv.spimdata.WrapBasicImgLoader;
 import bdv.tools.brightness.ConverterSetup;
+import bdv.util.Prefs;
 import bdv.viewer.ConverterSetups;
 import bdv.viewer.DisplayMode;
 import bdv.viewer.SourceAndConverter;
@@ -21,9 +20,9 @@ import ij.CompositeImage;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
-import ij.WindowManager;
 import ij.measure.Calibration;
 import ij.process.ImageProcessor;
+import ij.process.ImageStatistics;
 import ij.process.LUT;
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
@@ -60,11 +59,6 @@ import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
 import org.dockfx.DockNode;
 
-import org.janelia.saalfeldlab.n5.ij.N5Importer;
-import org.janelia.saalfeldlab.n5.metadata.N5CosemMultiScaleMetadata;
-import org.janelia.saalfeldlab.n5.metadata.N5MetadataParser;
-import org.janelia.saalfeldlab.n5.metadata.N5ViewerMultiscaleMetadataParser;
-import org.janelia.saalfeldlab.n5.ui.DatasetSelectorDialog;
 import org.micromanager.Studio;
 
 import org.micromanager.data.Coordinates;
@@ -86,8 +80,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 
@@ -259,7 +251,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			}
 		});
 
-		openDatasetWithBDV = new Button("Open Dataset with BDV");
+		openDatasetWithBDV = new Button("Show in BDV");
 		openDatasetWithBDV.setStyle("-fx-font: 14 arial; -fx-base: #e7e45d;");
 		openDatasetWithBDV.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
@@ -429,11 +421,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 				setCalibration(iPlus, dp, image);
 			}
 			if (iPlus != null) {
-				iPlus.show();
-            /* I can not figure out how to set zoom programmatically...
-            iPlus.getCanvas().setMagnification(display.getZoom());
-            iPlus.getWindow().pack();
-            */
+				return iPlus;
 			}
 		} else if (dp.getNumImages() > 1) {
 			try {
@@ -479,11 +467,8 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 				}
 				if (setProps && image != null) {
 					setCalibration(ci, dp, image);
-					setCalibration(iPlus, dp, image);
 				}
-				return iPlus;
-				//ci.show();
-				// would like to also copy the zoom....
+				return ci;
 
 			} catch (IOException ex) {
 				// TODO: report
@@ -498,98 +483,46 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 	private void setCalibration(ImagePlus iPlus, DataProvider dp, org.micromanager.data.Image image) {
 		Calibration cal = new Calibration(iPlus);
 		Double pSize = image.getMetadata().getPixelSizeUm();
-		System.out.println(pSize);
-		if (pSize != null) {
+		if (pSize != null && pSize != 0) {
 			cal.pixelWidth = pSize;
 			cal.pixelHeight = pSize;
+		} else {
+			cal.pixelWidth = 1;
+			cal.pixelHeight = 1;
 		}
 		Double zStep = dp.getSummaryMetadata().getZStepUm();
-		System.out.println(zStep);
-		if (zStep != null) {
+		if (zStep != null && zStep != 0) {
 			cal.pixelDepth = zStep;
+		} else {
+			cal.pixelDepth = 1;
 		}
 		Double waitInterval = dp.getSummaryMetadata().getWaitInterval();
 		if (waitInterval != null) {
 			cal.frameInterval = waitInterval / 1000.0;  // MM in ms, IJ in s
 		}
-		cal.setUnit("micron");
+
+		if(pSize != null && pSize != 0) {
+			cal.setUnit("micron");
+		}
+
 		iPlus.setCalibration(cal);
 	}
 
 	@SuppressWarnings("Duplicates")
 	public void loadDataWithBDV() throws IOException {
-		DirectoryChooser d = new DirectoryChooser();
-		File f = d.showDialog(null);
+		Prefs.showScaleBar(true);
+		List<DisplayWindow> displayWindowList = studioProperty.get().displays().getAllImageWindows();
 
-		if(f == null) return;
-
-		File[] list = f.listFiles((file, s) -> s.endsWith("_metadata.txt"));
-
-		if (list.length == 0) return;
-
-		StorageType storageType = null;
-		String prefix = "";
-
-		if (list.length == 1) {
-			prefix = list[0].getName().replaceFirst("_metadata.txt", "");
-			String directory = f.getAbsolutePath();
-			storageType = StorageOpener.checkStorageType(directory, prefix);
-		} else {
-			// List up all the prefix candidates and let the user choose one
+		if(displayWindowList.size() == 0) {
+			new Alert( Alert.AlertType.WARNING, "Please, load a dataset first").showAndWait();
+			System.err.println("There is no dataset to be opened.");
+			return;
 		}
-
-		String directory = f.getAbsolutePath();
-		DefaultDatastore result = new DefaultDatastore(studioProperty.get());
-
-		switch (storageType) {
-			case SinglePlaneTiff: result.setStorage(new OpenSPIMSinglePlaneTiffSeries(result, directory, prefix, false));
-				break;
-			case OMETiff: result.setStorage(new OMETIFFStorage(result, directory, prefix, false));
-				break;
-			case N5: result.setStorage(new N5MicroManagerStorage(result, directory, prefix, 1, false));
-				break;
-		}
-
-		result.setSavePath(directory);
-		result.freeze();
-
-		studioProperty.get().displays().manage(result);
-		List<DisplayWindow> displayWindowList = studioProperty.get().displays().loadDisplays(result);
-//		IJ.run( "Confocal Series (2.2MB)" );
-//		new OpenImagePlusPlugIn().run();
 
 		ArrayList< ImagePlus > inputImgList = new ArrayList<>();
 		inputImgList.add( toImageJ(displayWindowList.get(0)) );
 
-
-//		DirectoryChooser d = new DirectoryChooser();
-//		File f = d.showDialog(null);
-//
-//		if(f == null) return;
-//
-//		File[] list = f.listFiles((file, s) -> s.endsWith("_metadata.txt"));
-//
-//		if (list.length == 0) return;
-//
-//		StorageType storageType = null;
-//		String prefix = "";
-//
-//		if (list.length == 1) {
-//			prefix = list[0].getName().replaceFirst("_metadata.txt", "");
-//			String directory = f.getAbsolutePath();
-//			storageType = StorageOpener.checkStorageType(directory, prefix);
-//		} else {
-//			// List up all the prefix candidates and let the user choose one
-//		}
-//
-//		String directory = f.getAbsolutePath();
-//		DefaultDatastore result = new DefaultDatastore(studioProperty.get());
-
 		SwingUtilities.invokeLater(() -> {
-
-//			final ImagePlus curr = WindowManager.getCurrentImage();
-
-
 			final ArrayList<ConverterSetup> converterSetups = new ArrayList<>();
 			final ArrayList<SourceAndConverter< ? >> sources = new ArrayList<>();
 
@@ -601,7 +534,6 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 			for ( ImagePlus imp : inputImgList )
 			{
-				System.out.println(imp.getNSlices());
 				if ( imp.getNSlices() > 1 )
 					is2D = false;
 				final AbstractSpimData< ? > spimData = load( imp, converterSetups, sources, setup_id_offset );
@@ -618,7 +550,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			{
 				final BigDataViewer bdv = BigDataViewer.open( converterSetups, sources,
 						nTimepoints, cache,
-						"BigDataViewer", new ProgressWriterIJ(),
+						"BigDataViewer", null,
 						ViewerOptions.options().is2D( is2D ) );
 
 				final SynchronizedViewerState state = bdv.getViewer().state();
@@ -635,91 +567,6 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 					state.setDisplayMode( numActiveChannels > 1 ? DisplayMode.FUSED : DisplayMode.SINGLE );
 				}
 			}
-
-
-
-//			new OpenImagePlusPlugIn().run();
-//			IJ.open();
-//			IJ.run( "Confocal Series (2.2MB)" );
-//		IJ.run( "Fly Brain (1MB)" );
-
-//
-//			N5Viewer viewer = new N5Viewer();
-//
-//			final String[] lastOpenedContainer = {""};
-//
-//			final N5MetadataParser<?>[] n5vGroupParsers = new N5MetadataParser[]{
-//					new N5CosemMultiScaleMetadata.CosemMultiScaleParser(),
-//					new N5ViewerMultiscaleMetadataParser(),
-//					new CanonicalMetadataParser(),
-//					new N5ViewerMultichannelMetadata.N5ViewerMultichannelMetadataParser()
-//			};
-//
-//			final N5MetadataParser<?>[] n5vParsers = new N5MetadataParser[] {
-//					new N5CosemMetadataParser(),
-//					new N5SingleScaleMetadataParser(),
-//					new CanonicalMetadataParser(),
-//					new N5GenericSingleScaleMetadataParser()
-//			};
-//
-//			int numTimepoints;
-//
-//			boolean is2D = false;
-//
-//			ExecutorService exec = Executors.newFixedThreadPool( ij.Prefs.getThreads() );
-//			final DatasetSelectorDialog dialog = new DatasetSelectorDialog(
-//					new N5Importer.N5ViewerReaderFun(),
-//					x -> "",
-//					lastOpenedContainer[0],
-//					n5vGroupParsers,
-//					n5vParsers);
-//
-//			dialog.setLoaderExecutor( exec );
-//
-////		dialog.setRecursiveFilterCallback( new N5ViewerDatasetFilter() );
-//			dialog.setContainerPathUpdateCallback( x -> lastOpenedContainer[0] = x );
-//			dialog.setTreeRenderer( new N5ViewerTreeCellRenderer( false ) );
-//
-//
-//			dialog.run( selection -> {
-//				try
-//				{
-//					viewer.exec( selection );
-//				}
-//				catch ( final IOException e )
-//				{
-//					IJ.handleException( e );
-//				}
-//			} );
-//			new N5Viewer().run(null);
-
-//			final String n5Root = directory;
-//
-//			final GsonBuilder builder = JqUtils.gsonBuilder(null);
-//			N5FSReader n5 = null;
-//			try {
-//				n5 = new N5FSReader(n5Root, builder);
-//			} catch (IOException e) {
-//				e.printStackTrace();
-//			}
-//
-//			N5Viewer viewer = new N5Viewer();
-//
-//			final N5MicroManagerMetadata metaReader = new N5MicroManagerMetadata( directory );
-//
-//			final List<N5Metadata> metadataList = new ArrayList<>();
-//			try {
-//				metadataList.addAll((Collection<? extends N5Metadata>) metaReader.parseMetadata(n5, "." ));
-//			} catch (Exception e) {
-//				e.printStackTrace();
-//			}
-//
-//			try {
-//				DataSelection selection = new DataSelection(n5, metadataList);
-//				viewer.exec( selection );
-//			} catch (Exception e) {
-//				e.printStackTrace();
-//			}
 		});
 	}
 
@@ -873,16 +720,22 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			for ( int c = 0; c < nChannels; ++c )
 			{
 				final LUT lut = ci.getChannelLut( c + 1 );
+				ImageProcessor ip = ci.getChannelProcessor();
+				ImageStatistics s = ip.getStats();
+
 				final ConverterSetup setup = converterSetups.getConverterSetup( sources.get( channelOffset + c ) );
 				if ( transferColor )
 					setup.setColor( new ARGBType( lut.getRGB( 255 ) ) );
-				setup.setDisplayRange( lut.min, lut.max );
+				setup.setDisplayRange( s.min, s.max );
 			}
 		}
 		else
 		{
-			final double displayRangeMin = imp.getDisplayRangeMin();
-			final double displayRangeMax = imp.getDisplayRangeMax();
+			ImageProcessor ip = imp.getChannelProcessor();
+			ImageStatistics s = ip.getStats();
+
+			final double displayRangeMin = s.min;
+			final double displayRangeMax = s.max;
 			for ( int i = 0; i < nChannels; ++i )
 			{
 				final ConverterSetup setup = converterSetups.getConverterSetup( sources.get( channelOffset + i ) );
