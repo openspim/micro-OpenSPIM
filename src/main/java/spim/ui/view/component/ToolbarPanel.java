@@ -511,16 +511,16 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 	@SuppressWarnings("Duplicates")
 	public void loadDataWithBDV() throws IOException {
 		Prefs.showScaleBar(true);
-		List<DisplayWindow> displayWindowList = studioProperty.get().displays().getAllImageWindows();
+		DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
 
-		if(displayWindowList.size() == 0) {
+		if(displayWindow == null) {
 			new Alert( Alert.AlertType.WARNING, "Please, load a dataset first").showAndWait();
 			System.err.println("There is no dataset to be opened.");
 			return;
 		}
 
 		ArrayList< ImagePlus > inputImgList = new ArrayList<>();
-		inputImgList.add( toImageJ(displayWindowList.get(0)) );
+		inputImgList.add( toImageJ(displayWindow) );
 
 		SwingUtilities.invokeLater(() -> {
 			final ArrayList<ConverterSetup> converterSetups = new ArrayList<>();
