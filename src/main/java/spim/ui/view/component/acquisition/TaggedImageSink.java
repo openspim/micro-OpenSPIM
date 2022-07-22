@@ -157,8 +157,8 @@ public class TaggedImageSink {
 								int slices = tagged.tags.getJSONObject( "Summary" ).getInt( "Slices" );
 
 								// Check which information is correct for choosing the number of total channels
-//								int channels = tagged.tags.getJSONObject( "Summary" ).getInt( "Channels" );
-								int channels = camChannels_.size();
+								int channels = tagged.tags.getJSONObject( "Summary" ).getInt( "Channels" );
+//								int channels = camChannels_.size();
 
 								if(ch == 0) {
 									// initialize cam channels
