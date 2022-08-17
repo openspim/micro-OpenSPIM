@@ -15,6 +15,7 @@ import org.junit.Before;
 import org.junit.Test;
 import spim.util.NativeLoader;
 import utils.ImageGenerator;
+import net.imglib2.util.StopWatch;
 
 import java.io.File;
 import java.io.IOException;

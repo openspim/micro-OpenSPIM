@@ -8,5 +8,5 @@ package spim.io;
  * Date: June 2021
  */
 public enum StorageType {
-	SinglePlaneTiff, OMETiff, N5
+	SinglePlaneTiff, OMETiff, N5, BDV
 }
