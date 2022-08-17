@@ -1747,7 +1747,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		gridpane.addRow( 1, new Label( "File name:" ), textField );
 
 		ComboBox c = new ComboBox<>( FXCollections.observableArrayList(
-				"Single Plane TIFF", "OMETIFF Image stack", "N5 format", "On-the-fly" ) );
+				"Single Plane TIFF", "OMETIFF Image stack", "BDV format", "N5 format", "On-the-fly" ) );
 
 		c.valueProperty().setValue("Single Plane TIFF");
 

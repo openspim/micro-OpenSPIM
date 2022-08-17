@@ -143,6 +143,8 @@ public class MMAcquisitionEngine
 					result.setStorage(new OpenSPIMSinglePlaneTiffSeries(result, output.getAbsolutePath(), acqFilenamePrefix, true));
 				else if(savingFormatValue.equals( "OMETIFF Image stack" ))
 					result.setStorage(new OMETIFFStorage(result, output.getAbsolutePath(), acqFilenamePrefix, true));
+				else if(savingFormatValue.equals( "BDV format" ))
+					result.setStorage(new BDVMicroManagerStorage(result, output.getAbsolutePath(), acqFilenamePrefix, channelItems.size(), timeSeqs, true));
 				else if(savingFormatValue.equals( "N5 format" ))
 					result.setStorage(new N5MicroManagerStorage(result, output.getAbsolutePath(), acqFilenamePrefix, timeSeqs, true));
 				else if(savingFormatValue.equals( "On-the-fly" ))
