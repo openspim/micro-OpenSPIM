@@ -298,6 +298,10 @@ public class BDVMicroManagerStorage implements Storage {
 				e.printStackTrace();
 			}
 		}
+
+		if(reader != null) {
+			reader.close();
+		}
 	}
 
 	private void saveXml(String n5FilePath, int numTimepoints) throws SpimDataException {
