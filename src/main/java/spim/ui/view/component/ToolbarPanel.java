@@ -90,8 +90,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.function.Supplier;
 
-import net.preibisch.stitcher.plugin.BigStitcher;
-
 
 /**
  * Description: Basic tool bar panel contains Micro-Manager start button as well as
@@ -123,10 +121,12 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 	final Text rotatorStepSizeValue;
 	final Text zStageStepSizeValue;
 	HalcyonMain halcyonMain;
+	final Stage primaryStage;
 
-	public ToolbarPanel( Studio mmStudio, ObjectProperty< Studio > mmStudioObjectProperty, ObjectProperty<GUIRefreshEvent> refreshEventProperty )
+	public ToolbarPanel(Stage primaryStage, Studio mmStudio, ObjectProperty< Studio > mmStudioObjectProperty, ObjectProperty<GUIRefreshEvent> refreshEventProperty )
 	{
 		super(new VBox());
+		this.primaryStage = primaryStage;
 		this.studioProperty = new SimpleObjectProperty<>( mmStudio );
 		this.spimSetupObjectProperty = new SimpleObjectProperty<>();
 		this.waitSeconds =  new SimpleDoubleProperty(-1);
@@ -280,6 +280,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		openBigStitcher.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
+				primaryStage.toBack();
 				openBigStitcherWindow();
 			}
 		});

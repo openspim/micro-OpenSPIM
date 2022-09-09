@@ -153,7 +153,7 @@ public class HalcyonMain extends HalcyonFrame
 		addNode( arduino );
 
 		// Custom Toolbar provided here
-		toolbarPanel = new ToolbarPanel( studio, mmStudioProperty, mmStudioGUIRefreshEventProperty );
+		toolbarPanel = new ToolbarPanel( primaryStage, studio, mmStudioProperty, mmStudioGUIRefreshEventProperty );
 		toolbarPanel.setPrefSize(300, 200);
 		addToolbar(toolbarPanel);
 
