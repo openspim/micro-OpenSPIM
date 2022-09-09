@@ -36,6 +36,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
@@ -57,6 +58,11 @@ import mpicbg.spim.data.sequence.TimePoints;
 import net.imglib2.FinalDimensions;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
+import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
+import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
+import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
+import net.preibisch.stitcher.gui.StitchingExplorer;
+import net.preibisch.stitcher.plugin.EasterEggLoadParseQueryXML;
 import org.dockfx.DockNode;
 
 import org.micromanager.Studio;
@@ -75,6 +81,8 @@ import spim.mm.MicroManager;
 import spim.model.event.ControlEvent;
 
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -763,7 +771,32 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 	public void openBigStitcherWindow() {
 		SwingUtilities.invokeLater(() -> {
-			new BigStitcher().run( );
+			final LoadParseQueryXML result = new EasterEggLoadParseQueryXML();
+
+			result.addButton( "Define a new dataset", new ActionListener()
+			{
+				@Override
+				public void actionPerformed(java.awt.event.ActionEvent e)
+				{
+					((TextField)result.getGenericDialog().getStringFields().firstElement()).setText( "define" );
+					java.awt.Button ok = result.getGenericDialog().getButtons()[ 0 ];
+
+					java.awt.event.ActionEvent ae =  new java.awt.event.ActionEvent( ok, java.awt.event.ActionEvent.ACTION_PERFORMED, "");
+					Toolkit.getDefaultToolkit().getSystemEventQueue().postEvent(ae);
+				}
+			});
+
+			if ( !result.queryXML( "Stitching Explorer", "", false, false, false, false, false ) )
+				return;
+
+			final SpimData2 data = result.getData();
+			final String xml = result.getXMLFileName();
+			final XmlIoSpimData2 io = result.getIO();
+
+			final StitchingExplorer<SpimData2, XmlIoSpimData2> explorer =
+					new StitchingExplorer< >( data, xml, io );
+
+			explorer.getFrame().toFront();
 		});
 	}
 
