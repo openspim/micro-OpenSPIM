@@ -82,6 +82,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.function.Supplier;
 
+import net.preibisch.stitcher.plugin.BigStitcher;
+
 
 /**
  * Description: Basic tool bar panel contains Micro-Manager start button as well as
@@ -104,7 +106,8 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 	final Button mmButton;
 //	final Button liveViewButton;
 	final Button openDatasetButton;
-	final Button openDatasetWithBDV;
+	final Button openBigDadaViewer;
+	final Button openBigStitcher;
 
 	final SimpleDoubleProperty waitSeconds;
 
@@ -251,9 +254,9 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			}
 		});
 
-		openDatasetWithBDV = new Button("Show in BDV");
-		openDatasetWithBDV.setStyle("-fx-font: 14 arial; -fx-base: #e7e45d;");
-		openDatasetWithBDV.setOnAction(new EventHandler<ActionEvent>() {
+		openBigDadaViewer = new Button("Open BDV");
+		openBigDadaViewer.setStyle("-fx-font: 14 arial; -fx-base: #e7e45d;");
+		openBigDadaViewer.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
 				try {
@@ -261,6 +264,15 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
+			}
+		});
+
+		openBigStitcher = new Button("Open BigStitcher");
+		openBigStitcher.setStyle("-fx-font: 14 arial; -fx-base: #e7e45d;");
+		openBigStitcher.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				openBigStitcherWindow();
 			}
 		});
 
@@ -749,6 +761,12 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		}
 	}
 
+	public void openBigStitcherWindow() {
+		SwingUtilities.invokeLater(() -> {
+			new BigStitcher().run( );
+		});
+	}
+
 	public SimpleDoubleProperty waitSecondsProperty() {
 		return waitSeconds;
 	}
@@ -762,7 +780,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			topHbox.getChildren().remove( liveDemoLabel );
 			buttonHbox.getChildren().remove( mmButton );
 //			liveViewHbox.getChildren().add( 0, liveViewButton);
-			liveViewHbox.getChildren().addAll( openDatasetButton, openDatasetWithBDV );
+			liveViewHbox.getChildren().addAll( openDatasetButton, openBigDadaViewer, openBigStitcher);
 			pixelSizeValue.setText(studio.core().getPixelSizeUm() + "");
 			rotatorStepSizeValue.setText(setup.getThetaStage().getStepSize() + "");
 			zStageStepSizeValue.setText(setup.getZStage().getStepSize() + "");
@@ -771,7 +789,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			topHbox.getChildren().add( liveDemoLabel );
 			buttonHbox.getChildren().add( mmButton );
 //			liveViewHbox.getChildren().remove( liveViewButton );
-			liveViewHbox.getChildren().removeAll( openDatasetButton, openDatasetWithBDV );
+			liveViewHbox.getChildren().removeAll( openDatasetButton, openBigDadaViewer, openBigStitcher);
 			pixelSizeValue.setText("N.A.");
 			rotatorStepSizeValue.setText("N.A.");
 			zStageStepSizeValue.setText("N.A.");

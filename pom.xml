@@ -23,7 +23,7 @@
 	<repositories>
 		<repository>
 			<id>imagej.public</id>
-			<url>http://maven.imagej.net/content/groups/public</url>
+			<url>https://maven.imagej.net/content/groups/public</url>
 		</repository>
         <repository>
             <id>local-repo</id>
@@ -228,6 +228,17 @@
             <version>1.0.0-beta-16</version>
         </dependency>
 
+        <dependency>
+            <groupId>net.imglib2</groupId>
+            <artifactId>imglib2</artifactId>
+            <version>5.12.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.preibisch</groupId>
+            <artifactId>BigStitcher</artifactId>
+            <version>0.8.4-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 
     <build>
