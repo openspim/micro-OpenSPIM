@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.PipedReader;
 import java.io.PipedWriter;
 import java.io.Reader;
+import java.lang.reflect.Field;
 
 /**
  * Author: HongKee Moon (moon@mpi-cbg.de), Scientific Computing Facility
@@ -114,14 +115,18 @@ public class BeanshellEditor extends Editor
 		} else {
 			if(beanshellThread != null) {
 				try {
+					commandWriter.write(0);
 					commandWriter.close();
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
+
 				commandWriter = null;
 				try {
-					beanshellThread.stop();
-				} catch (ThreadDeath e) {}
+					beanshellThread.join();
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e);
+				}
 			}
 			beanshellThread = null;
 		}
@@ -189,6 +194,13 @@ public class BeanshellEditor extends Editor
 
 		// Create console and REPL interpreter:
 		beanshellREPLint_ = new Interpreter(in, System.out, System.err, true);
+		try {
+			Field field = Interpreter.class.getDeclaredField("exitOnEOF");
+			field.setAccessible(true);
+			field.setBoolean( beanshellREPLint_, false );
+		} catch (NoSuchFieldException | IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
 
 		beanshellThread = new Thread(beanshellREPLint_, "BeanShell interpreter");
 		beanshellThread.start();

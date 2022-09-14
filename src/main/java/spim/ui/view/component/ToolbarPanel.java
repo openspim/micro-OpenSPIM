@@ -36,7 +36,6 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
@@ -62,7 +61,6 @@ import net.preibisch.mvrecon.fiji.plugin.queryXML.LoadParseQueryXML;
 import net.preibisch.mvrecon.fiji.spimdata.SpimData2;
 import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.stitcher.gui.StitchingExplorer;
-import net.preibisch.stitcher.plugin.EasterEggLoadParseQueryXML;
 import org.dockfx.DockNode;
 
 import org.micromanager.Studio;
@@ -81,8 +79,6 @@ import spim.mm.MicroManager;
 import spim.model.event.ControlEvent;
 
 import javax.swing.*;
-import java.awt.*;
-import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -112,8 +108,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 	final Button mmButton;
 //	final Button liveViewButton;
 	final Button openDatasetButton;
-	final Button openBigDadaViewer;
-	final Button openBigStitcher;
+	final Button openN5;
 
 	final SimpleDoubleProperty waitSeconds;
 
@@ -122,6 +117,8 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 	final Text zStageStepSizeValue;
 	HalcyonMain halcyonMain;
 	final Stage primaryStage;
+	StorageType storageType;
+	String lastOpenedFolder;
 
 	public ToolbarPanel(Stage primaryStage, Studio mmStudio, ObjectProperty< Studio > mmStudioObjectProperty, ObjectProperty<GUIRefreshEvent> refreshEventProperty )
 	{
@@ -262,26 +259,34 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			}
 		});
 
-		openBigDadaViewer = new Button("Open BDV");
-		openBigDadaViewer.setStyle("-fx-font: 14 arial; -fx-base: #e7e45d;");
-		openBigDadaViewer.setOnAction(new EventHandler<ActionEvent>() {
+		openN5 = new Button("Open BigStitcher/BDV");
+		openN5.setStyle("-fx-font: 14 arial; -fx-base: #e7e45d;");
+		openN5.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				try {
-					loadDataWithBDV();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		});
+				DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
 
-		openBigStitcher = new Button("Open BigStitcher");
-		openBigStitcher.setStyle("-fx-font: 14 arial; -fx-base: #e7e45d;");
-		openBigStitcher.setOnAction(new EventHandler<ActionEvent>() {
-			@Override
-			public void handle(ActionEvent event) {
-				primaryStage.toBack();
-				openBigStitcherWindow();
+				if(displayWindow == null) {
+					new Alert( Alert.AlertType.WARNING, "Please, load a dataset first").showAndWait();
+					System.err.println("There is no dataset to be opened.");
+					return;
+				}
+
+				switch (storageType) {
+					case BDV:
+						openBigStitcherWindow( lastOpenedFolder );
+						break;
+					case N5:
+						try {
+							loadDataWithBDV();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+						break;
+					default:
+						new Alert( Alert.AlertType.WARNING, "Please, load a N5 or BDV dataset.").showAndWait();
+						System.err.println("There is no N5 or BDV dataset loaded.");
+				}
 			}
 		});
 
@@ -388,7 +393,6 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 		if (list.length == 0) return;
 
-		StorageType storageType = null;
 		String prefix = "";
 
 		if (list.length == 1) {
@@ -400,6 +404,8 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		}
 
 		String directory = f.getAbsolutePath();
+		lastOpenedFolder = directory;
+
 		DefaultDatastore result = new DefaultDatastore(studioProperty.get());
 
 		switch (storageType) {
@@ -535,12 +541,6 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 	public void loadDataWithBDV() throws IOException {
 		Prefs.showScaleBar(true);
 		DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
-
-		if(displayWindow == null) {
-			new Alert( Alert.AlertType.WARNING, "Please, load a dataset first").showAndWait();
-			System.err.println("There is no dataset to be opened.");
-			return;
-		}
 
 		ArrayList< ImagePlus > inputImgList = new ArrayList<>();
 		inputImgList.add( toImageJ(displayWindow) );
@@ -770,25 +770,11 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		}
 	}
 
-	public void openBigStitcherWindow() {
+	public void openBigStitcherWindow(String folder) {
 		SwingUtilities.invokeLater(() -> {
-			final LoadParseQueryXML result = new EasterEggLoadParseQueryXML();
+			final ParseQueryXML result = new ParseQueryXML();
 
-			result.addButton( "Define a new dataset", new ActionListener()
-			{
-				@Override
-				public void actionPerformed(java.awt.event.ActionEvent e)
-				{
-					((TextField)result.getGenericDialog().getStringFields().firstElement()).setText( "define" );
-					java.awt.Button ok = result.getGenericDialog().getButtons()[ 0 ];
-
-					java.awt.event.ActionEvent ae =  new java.awt.event.ActionEvent( ok, java.awt.event.ActionEvent.ACTION_PERFORMED, "");
-					Toolkit.getDefaultToolkit().getSystemEventQueue().postEvent(ae);
-				}
-			});
-
-			if ( !result.queryXML( "Stitching Explorer", "", false, false, false, false, false ) )
-				return;
+			result.open(folder + File.separator + "dataset.xml");
 
 			final SpimData2 data = result.getData();
 			final String xml = result.getXMLFileName();
@@ -796,8 +782,6 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 			final StitchingExplorer<SpimData2, XmlIoSpimData2> explorer =
 					new StitchingExplorer< >( data, xml, io );
-
-			explorer.getFrame().toFront();
 		});
 	}
 
@@ -814,7 +798,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			topHbox.getChildren().remove( liveDemoLabel );
 			buttonHbox.getChildren().remove( mmButton );
 //			liveViewHbox.getChildren().add( 0, liveViewButton);
-			liveViewHbox.getChildren().addAll( openDatasetButton, openBigDadaViewer, openBigStitcher);
+			liveViewHbox.getChildren().addAll( openDatasetButton, openN5 );
 			pixelSizeValue.setText(studio.core().getPixelSizeUm() + "");
 			rotatorStepSizeValue.setText(setup.getThetaStage().getStepSize() + "");
 			zStageStepSizeValue.setText(setup.getZStage().getStepSize() + "");
@@ -823,11 +807,17 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			topHbox.getChildren().add( liveDemoLabel );
 			buttonHbox.getChildren().add( mmButton );
 //			liveViewHbox.getChildren().remove( liveViewButton );
-			liveViewHbox.getChildren().removeAll( openDatasetButton, openBigDadaViewer, openBigStitcher);
+			liveViewHbox.getChildren().removeAll( openDatasetButton, openN5 );
 			pixelSizeValue.setText("N.A.");
 			rotatorStepSizeValue.setText("N.A.");
 			zStageStepSizeValue.setText("N.A.");
 //			roi = new java.awt.Rectangle( 0, 0, 0, 0 );
+		}
+	}
+
+	static class ParseQueryXML extends LoadParseQueryXML {
+		public void open(String xmlFilename) {
+			this.tryParsing(xmlFilename, true);
 		}
 	}
 }
