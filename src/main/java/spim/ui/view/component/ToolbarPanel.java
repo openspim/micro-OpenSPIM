@@ -72,6 +72,7 @@ import org.micromanager.data.internal.DefaultDatastore;
 import org.micromanager.data.internal.DefaultImageJConverter;
 import org.micromanager.display.DisplayWindow;
 import org.micromanager.events.GUIRefreshEvent;
+import org.micromanager.internal.MMStudio;
 import spim.hardware.SPIMSetup;
 import spim.io.*;
 import spim.mm.MMUtils;
@@ -79,6 +80,9 @@ import spim.mm.MicroManager;
 import spim.model.event.ControlEvent;
 
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -159,8 +163,21 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		{
 			@Override public void handle( ActionEvent event )
 			{
+				if(null == MMStudio.getInstance()) {
+					mmButton.fire();
+				}
+
 				if(null == IJ.getInstance() ) {
 					ij.ImageJ ij = new ij.ImageJ();
+
+					ij.addWindowListener(new WindowAdapter()
+					{
+						@Override public void windowClosing( WindowEvent e )
+						{
+							Frame frame = MMStudio.getInstance().uiManager().frame();
+							frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
+						}
+					});
 					ij.show();
 				} else {
 					IJ.getInstance().show();
