@@ -105,7 +105,7 @@ public class MMUtils
 				try
 				{
 					openBrowser(
-							"http://www.micro-manager.org/wiki/Download%20Micro-Manager_Latest%20Release");
+							"https://micro-manager.org/Download_Micro-Manager_Latest_Release");
 				}
 				catch ( URISyntaxException e )
 				{
