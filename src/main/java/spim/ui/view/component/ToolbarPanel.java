@@ -208,16 +208,12 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 
 					MicroManager.init( stage, mmStudioObjectProperty, refreshEventProperty );
 
-					while(MMUtils.invalidMMPath() && !MMUtils.cancelled())
+					while(MMUtils.invalidMMPath() && !MMUtils.cancelled() && !MMUtils.isSystemLibrairiesLoaded())
 					{
-						if (!MMUtils.isSystemLibrairiesLoaded())
-						{
-							// load micro manager libraries
-							if (!MMUtils.fixSystemLibrairies( stage ))
-								if(halcyonMain != null)
-									System.exit(0);
-								return;
-						}
+						// load micro manager libraries
+						if (!MMUtils.fixSystemLibrairies( stage ))
+							if(halcyonMain != null)
+								System.exit(0);
 
 						MicroManager.init( stage, mmStudioObjectProperty, refreshEventProperty );
 					}
