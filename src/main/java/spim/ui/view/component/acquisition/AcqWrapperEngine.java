@@ -4,6 +4,8 @@ import com.google.common.eventbus.Subscribe;
 import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.locks.ReentrantLock;
@@ -109,12 +111,16 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	private DefaultAntiDrift currentAntiDrift_;
 	private Integer antiDriftReferenceChannel_;
 	private Boolean onTheFly_;
+	private Boolean ablationSupport_;
+	private String prefix_;
+	private File outFolder_;
 
 	final String channelGroupName = "OpenSPIM-channels";
 
 	private ReentrantLock rlock = new ReentrantLock(true);
 
 	Datastore mpStore_;
+	File ablationFile_;
 	TreeMap<Integer, Image>[] mpImages_;
 	TaggedImageSink sink;
 
@@ -124,7 +130,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 							String currentCamera, List<String> cameras, File outFolder, String acqFilenamePrefix,
 							List<ChannelItem> channelItems,
 							boolean arduinoSelected,
-							LongProperty processedImages, HashMap<PositionItem, DefaultAntiDrift> driftCompMap, Integer adReferenceChannel, Boolean onTheFly) throws Exception
+							LongProperty processedImages, HashMap<PositionItem, DefaultAntiDrift> driftCompMap, Integer adReferenceChannel, Boolean saveMIP, Boolean onTheFly, Boolean ablationSupport) throws Exception
 	{
 		curStore_ = store;
 
@@ -156,6 +162,9 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		posList_ = new PositionList();
 		antiDriftReferenceChannel_ = adReferenceChannel;
 		onTheFly_ = onTheFly;
+		ablationSupport_ = ablationSupport;
+		prefix_ = acqFilenamePrefix;
+		outFolder_ = outFolder;
 
 		// Initial setting
 
@@ -228,7 +237,11 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		channels_ = channels;
 		setChannelGroup( channelGroupName );
 
-		if ( outFolder != null && acqFilenamePrefix != null ) {
+		if (ablationSupport) {
+			ablationFile_ = new File(outFolder, acqFilenamePrefix + "_ablation.tiff");
+		}
+
+		if ( outFolder != null && saveMIP ) {
 			File saveDir = new File(outFolder, acqFilenamePrefix + "-MIP");
 
 			if (!outFolder.exists() && !outFolder.mkdirs()) {
@@ -240,7 +253,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 					saveDir.delete();
 				}
 				saveDir.mkdirs();
-				if (null != acqFilenamePrefix) {
+				if (saveMIP) {
 					List<String> multis = MMAcquisitionEngine.getMultiCams(core_);
 
 					DefaultDatastore result = new DefaultDatastore(frame);
@@ -383,6 +396,16 @@ public class AcqWrapperEngine implements AcquisitionEngine
 
 			sink.start(() -> getAcquisitionEngine2010().stop(), () -> {
 				rlock.lock();
+				if(ablationSupport_) {
+					File latestFile = new File(outFolder_, getLatestFile(t_));
+					if (latestFile.exists()) {
+						try {
+							Files.copy(latestFile.toPath(), ablationFile_.toPath(), StandardCopyOption.REPLACE_EXISTING);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+				}
 				generateMIP();
 				rlock.unlock();
 				curStore_.unregisterForEvents(AcqWrapperEngine.this);
@@ -399,11 +422,11 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	}
 
 	private void generateMIP() {
-		if(null != mpImages_)
-			for(TreeMap<Integer, Image> stack : mpImages_) {
+		if(null != mpImages_) {
+			for (TreeMap<Integer, Image> stack : mpImages_) {
 				// Could be moved outside processImage() ?
 				Image img = stack.get(0);
-				if(img == null) continue;
+				if (img == null) continue;
 
 				int bitDepth = img.getMetadata().getBitDepth();
 				int width = img.getWidth();
@@ -494,7 +517,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 				Image processedImage_ = studio_.data().createImage(resultPixels, width, height,
 						bytesPerPixel, numComponents, coords, metadata);
 
-				if(null != mpStore_ && !mpStore_.isFrozen())
+				if (null != mpStore_ && !mpStore_.isFrozen())
 					try {
 						mpStore_.putImage(processedImage_);
 					} catch (IOException e) {
@@ -502,10 +525,16 @@ public class AcqWrapperEngine implements AcquisitionEngine
 					}
 			}
 
-			if(null != mpImages_)
-				for(int i = 0; i < mpImages_.length; i++) {
-					mpImages_[i] = new TreeMap<>();
-				}
+			for(int i = 0; i < mpImages_.length; i++) {
+				mpImages_[i] = new TreeMap<>();
+			}
+		}
+	}
+
+	private String getLatestFile(int t) {
+		String posString = String.format("_Pos%02d", 0);
+
+		return String.format(prefix_ + "_TL%04d" + posString + ".tiff", t);
 	}
 
 	private int getNumChannels() {

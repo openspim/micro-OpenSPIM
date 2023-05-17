@@ -133,6 +133,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	StringProperty filename;
 	ObjectProperty savingFormat;
 	BooleanProperty saveMIP;
+	BooleanProperty ablationSupport;
 	ObjectProperty roiRectangle;
 
 	// Experiment note
@@ -1140,6 +1141,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				filename.setValue("");
 				directory.setValue("");
 				saveMIP.set(false);
+				ablationSupport.set(false);
 
 				binningOptions.clear();
 
@@ -1249,6 +1251,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		filename.set( setting.getFilename() );
 		savingFormat.set( setting.getSavingFormat() );
 		saveMIP.set( setting.getSaveMIP() );
+		ablationSupport.set( setting.getAblationSupport() );
 		roiRectangle.set( setting.getRoiRectangle() );
 
 		Studio studio = getStudio();
@@ -1276,7 +1279,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		return new AcquisitionSetting( enabledTimePoints, timePointItems,
 				enabledPositions, positionItems, enabledZStacks, acquisitionOrder,
 				enabledChannels, channelTabPane.getSelectionModel().selectedIndexProperty().get(), channelItems,
-				channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveMIP, roiRectangle, rotateStepSize,
+				channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveMIP, ablationSupport, roiRectangle, rotateStepSize,
 				experimentNote, onTheFly );
 	}
 
@@ -1299,6 +1302,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		filename.set( "Untitled" );
 		savingFormat.set( "Single Plane TIFF" );
 		saveMIP.set( false );
+		ablationSupport.set( false );
 		roiRectangle.set( null );
 
 		rotateStepSize.set(1);
@@ -1496,7 +1500,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 						timePointItemTableView.getItems(), currentTP, waitSeconds,
 						arduinoSelected, finalFolder, filename.getValue(),
 						positionItemTableView.getItems().filtered(p -> p.getSelected()), channelItemList, processedImages, totalImages.getValue(),
-						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), antiDrift.getValue(), experimentNote.getValue(),
+						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), ablationSupport.getValue(), antiDrift.getValue(), experimentNote.getValue(),
 						antiDriftLog, antiDriftRefCh.get(), antiDriftTypeToggle, onTheFly.getValue() );
 
 //				new MMAcquisitionRunner().runAcquisition();
@@ -1750,6 +1754,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				"Single Plane TIFF", "OMETIFF Image stack", "BDV format", "N5 format", "On-the-fly" ) );
 
 		c.valueProperty().setValue("Single Plane TIFF");
+		c.valueProperty().addListener(new ChangeListener() {
+			@Override
+			public void changed(ObservableValue observableValue, Object o, Object t1) {
+				if(ablationSupport != null && !t1.equals("OMETIFF Image stack")) {
+					ablationSupport.set(false);
+				}
+			}
+		});
 
 		savingFormat = c.valueProperty();
 
@@ -1760,6 +1772,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		gridpane.setColumnSpan( mip, 2 );
 
 		saveMIP = mip.selectedProperty();
+
+		CheckBox ablation = new CheckBox( "Generate ablation.tiff (latest timepoint stack is saved)" );
+		ablation.disableProperty().bind(c.valueProperty().isNotEqualTo("OMETIFF Image stack"));
+
+		gridpane.addRow( 4, ablation );
+		gridpane.setColumnSpan( ablation, 2 );
+
+		ablationSupport = ablation.selectedProperty();
 
 		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.SAVEIMAGE));
@@ -1778,7 +1798,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		noteTab.setClosable(false);
 
 		TabPane tabPane = new TabPane(saveOptionTab, noteTab);
-		tabPane.setMinHeight(200);
+		tabPane.setMinHeight(210);
 
 		VBox vbox = new VBox( 12, tabPane, buttonPane );
 
