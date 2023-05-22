@@ -2090,7 +2090,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		zStackGridPane.addRow( 0, new VBox( startButton, zStartField ) );
+		zStackGridPane.addRow( 1, new VBox( startButton, zStartField ) );
 
 		TextField zStepField = createNumberTextField();
 		zStepField.textProperty().addListener(new ChangeListener<String>() {
@@ -2135,7 +2135,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		HBox zCenter = new HBox( 5, zStepComboBox, new Label( "Z-step (μm)" ) );
 		zCenter.setAlignment( Pos.CENTER_LEFT );
-		zStackGridPane.addRow( 1, new VBox( midButton, zCenter ) );
+		zStackGridPane.addRow( 2, new VBox( midButton, zCenter ) );
 
 		Button endButton = createZStackButton( "Z-end" );
 		TextField zEndField = createNumberTextField();
@@ -2161,7 +2161,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		setupMouseClickedHandler(startButton, zStartField, endButton, zEndField, midButton);
+		setupMouseClickedHandler(startButton, zStartField, endButton, zEndField, midButton, zStepField, zStepComboBox);
 
 
 		Button newButton = new Button( "Add Z-stack" );
@@ -2194,7 +2194,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		zStackGridPane.addRow( 2, new VBox( endButton, zEndField ) );
+		zStackGridPane.addRow( 3, new VBox( endButton, zEndField ) );
 
 		currentPosition.addListener( new ChangeListener< PositionItem >()
 		{
@@ -2234,7 +2234,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		} );
 
 		if(stagePanel == null && zSlider != null)
-			zStackGridPane.add( zSlider, 2, 0, 1, 3 );
+			zStackGridPane.add( zSlider, 2, 1, 1, 3 );
 
 //		Button updateButton = new Button("Update");
 //		updateButton.setOnAction( new EventHandler< ActionEvent >()
@@ -2275,7 +2275,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		});
 
-		zStackGridPane.addRow( 3, new VBox( newButton, clearButton ) );
+		zStackGridPane.addRow( 4, newButton);
+		zStackGridPane.addRow( 0, clearButton);
 
 		// create a group
 		HBox b = new HBox(new Label("Stage"));
@@ -2321,7 +2322,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		addNewPosition( (int) zStackStart, (int) zStackEnd, zStackStepSize );
 	}
 
-	private void setupMouseClickedHandler( Button startButton, TextField zStartField, Button endButton, TextField zEndField, Button midButton )
+	private void setupMouseClickedHandler( Button startButton, TextField zStartField, Button endButton, TextField zEndField, Button midButton, TextField zStepField, ComboBox zStepComboBox )
 	{
 		startButton.setOnAction( new EventHandler< ActionEvent >()
 		{
@@ -2357,6 +2358,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			{
 				SPIMSetup spimSetup = getSpimSetup();
 				if(spimSetup != null && spimSetup.getZStage() != null) {
+
+					if(zStepField.getText().isEmpty()) {
+						zStepComboBox.getSelectionModel().select(1);
+					}
+
 					int currPos = (int) spimSetup.getZStage().getPosition();
 					if(zStartField.getText().isEmpty()) {
 						zEndField.setText(currPos + "");
