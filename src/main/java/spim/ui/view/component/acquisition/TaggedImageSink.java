@@ -19,6 +19,7 @@ import org.micromanager.acquisition.internal.TaggedImageQueue;
 import org.micromanager.data.Coordinates;
 import org.micromanager.data.Coords;
 import org.micromanager.data.Datastore;
+import org.micromanager.data.DatastoreFrozenException;
 import org.micromanager.data.Image;
 import org.micromanager.data.Metadata;
 import org.micromanager.data.Pipeline;
@@ -227,6 +228,10 @@ public class TaggedImageSink {
 							}
 							catch (OutOfMemoryError e) {
 								handleOutOfMemory(e, sinkFullCallback);
+								break;
+							}
+							catch (DatastoreFrozenException ex) {
+								pipeline_.clearExceptions();
 								break;
 							}
 						}

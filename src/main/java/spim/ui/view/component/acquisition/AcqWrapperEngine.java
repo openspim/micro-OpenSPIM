@@ -791,6 +791,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			if (acquisitionEngine2010_ != null) {
 				acquisitionEngine2010_.stop();
 			}
+			acquisitionEngine2010_ = null;
 		} catch (Exception ex) {
 			ReportingUtils.showError(ex, "Acquisition engine stop request failed");
 		}

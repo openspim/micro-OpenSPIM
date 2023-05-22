@@ -1393,51 +1393,31 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				boolean found = folder.exists() && folder.listFiles().length > 1;
 
 				if(found) {
-					Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The folder already exists. All files within this folder will be replaced. Do you want to proceed?\nPress No to create another folder and keep all files.",
-							ButtonType.YES, ButtonType.NO, ButtonType.CANCEL).showAndWait();
-
-					if( results.isPresent() ) {
-						if (results.get() == ButtonType.YES) {
+					int maxNumber = 0;
+					for (File acqDir : Objects.requireNonNull( folder.getParentFile().listFiles() ) ) {
+						String theName = acqDir.getName();
+						int number;
+						if (theName.startsWith(folder.getName())) {
 							try {
-								FileUtils.cleanDirectory(folder);
-							} catch (IOException e) {
-								System.err.println(e.getMessage());
-							}
-						} else if( results.get() == ButtonType.NO ) {
-							int maxNumber = 0;
-							for (File acqDir : Objects.requireNonNull( folder.getParentFile().listFiles() ) ) {
-								String theName = acqDir.getName();
-								int number;
-								if (theName.startsWith(folder.getName())) {
-									try {
-										//e.g.: "blah_32.ome.tiff"
-										Pattern p = Pattern.compile("\\Q" + folder.getName() + "_\\E" + "(\\d+)");
-										Matcher m = p.matcher(theName);
-										if (m.matches()) {
-											number = Integer.parseInt(m.group(1));
-											if (number >= maxNumber) {
-												maxNumber = number;
-											}
-										}
-									} catch (NumberFormatException e) {
-									} // Do nothing.
+								//e.g.: "blah_32.ome.tiff"
+								Pattern p = Pattern.compile("\\Q" + folder.getName() + "_\\E" + "(\\d+)");
+								Matcher m = p.matcher(theName);
+								if (m.matches()) {
+									number = Integer.parseInt(m.group(1));
+									if (number >= maxNumber) {
+										maxNumber = number;
+									}
 								}
-							}
-
-							folder = new File(directory.get() + "_" + (maxNumber + 1));
-							try {
-								FileUtils.forceMkdir(folder);
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-
-						} else if( results.get() == ButtonType.CANCEL ) {
-							System.err.println("Acquisition stopped by user cancellation.");
-							return false;
+							} catch (NumberFormatException e) {
+							} // Do nothing.
 						}
-					} else {
-						System.err.println("Acquisition stopped by user cancellation.");
-						return false;
+					}
+
+					folder = new File(directory.get() + "_" + (maxNumber + 1));
+					try {
+						FileUtils.forceMkdir(folder);
+					} catch (IOException e) {
+						e.printStackTrace();
 					}
 				}
 			}

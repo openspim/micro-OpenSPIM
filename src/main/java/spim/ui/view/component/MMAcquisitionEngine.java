@@ -686,14 +686,15 @@ public class MMAcquisitionEngine
 
 		captureThread = null;
 
-		for(String camera : cameras)
-		{
-			if(core.isSequenceRunning(camera))
-				core.stopSequenceAcquisition( camera );
-		}
+//		for(String camera : cameras)
+//		{
+//			if(core.isSequenceRunning(camera))
+//				core.stopSequenceAcquisition( camera );
+//		}
 
-		core.setCameraDevice( currentCamera );
-
+		core.stopSequenceAcquisition();
+//		core.setCameraDevice( currentCamera );
+//
 //		core.waitForDevice( currentCamera );
 		try
 		{
