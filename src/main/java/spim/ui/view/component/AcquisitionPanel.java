@@ -134,6 +134,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	ObjectProperty savingFormat;
 	BooleanProperty saveMIP;
 	BooleanProperty ablationSupport;
+	BooleanProperty ablationDisabled;
 	ObjectProperty roiRectangle;
 
 	// Experiment note
@@ -620,7 +621,19 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Tab onTheFlyTab = new Tab("On-the-fly", onTheFlyHBox);
 		onTheFlyTab.setClosable(false);
 
-		TabPane acquisitionTabPane = new TabPane( antiDriftTab, binningTab, onTheFlyTab, roiTab );
+		CheckBox ablationCheckbox = new CheckBox( "Generate ablation.tiff (works with OMETIFF as saving format)" );
+
+		ablationSupport = ablationCheckbox.selectedProperty();
+		ablationDisabled = ablationCheckbox.disableProperty();
+
+		HBox ablationHBox = new HBox(3, ablationCheckbox);
+		ablationHBox.setAlignment( Pos.CENTER_LEFT );
+		ablationHBox.setPadding(new Insets(5));
+
+		Tab ablationTab = new Tab("Ablation", ablationHBox);
+		ablationTab.setClosable(false);
+
+		TabPane acquisitionTabPane = new TabPane( antiDriftTab, binningTab, onTheFlyTab, ablationTab, roiTab );
 		acquisitionTabPane.setMinHeight(120);
 
 		Button acqHelpButton = createHelpButton();
@@ -1744,6 +1757,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		});
 
 		savingFormat = c.valueProperty();
+		ablationDisabled.bind(savingFormat.isNotEqualTo("OMETIFF Image stack"));
 
 		gridpane.addRow( 2, new Label( "Saving format:" ), c );
 
@@ -1752,14 +1766,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		gridpane.setColumnSpan( mip, 2 );
 
 		saveMIP = mip.selectedProperty();
-
-		CheckBox ablation = new CheckBox( "Generate ablation.tiff (latest timepoint stack is saved)" );
-		ablation.disableProperty().bind(c.valueProperty().isNotEqualTo("OMETIFF Image stack"));
-
-		gridpane.addRow( 4, ablation );
-		gridpane.setColumnSpan( ablation, 2 );
-
-		ablationSupport = ablation.selectedProperty();
 
 		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.SAVEIMAGE));
@@ -1778,7 +1784,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		noteTab.setClosable(false);
 
 		TabPane tabPane = new TabPane(saveOptionTab, noteTab);
-		tabPane.setMinHeight(210);
+		tabPane.setMinHeight(190);
 
 		VBox vbox = new VBox( 12, tabPane, buttonPane );
 
