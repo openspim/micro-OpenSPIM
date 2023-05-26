@@ -120,7 +120,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	private ReentrantLock rlock = new ReentrantLock(true);
 
 	Datastore mpStore_;
-	File ablationFile_;
+	String ablationFilePrefix_;
 	TreeMap<Integer, Image>[] mpImages_;
 	TaggedImageSink sink;
 
@@ -238,7 +238,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		setChannelGroup( channelGroupName );
 
 		if (ablationSupport) {
-			ablationFile_ = new File(outFolder, acqFilenamePrefix + "_ablation.tiff");
+			ablationFilePrefix_ = acqFilenamePrefix + "_ablation";
 		}
 
 		if ( outFolder != null && saveMIP ) {
@@ -397,10 +397,11 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			sink.start(() -> getAcquisitionEngine2010().stop(), () -> {
 				rlock.lock();
 				if(ablationSupport_) {
-					File latestFile = new File(outFolder_, getLatestFile(t_));
+					File latestFile = new File(outFolder_, getLatestFile(t_, angle_));
 					if (latestFile.exists()) {
+						File ablationFile = new File(outFolder_, getAblationFilename(angle_));
 						try {
-							Files.copy(latestFile.toPath(), ablationFile_.toPath(), StandardCopyOption.REPLACE_EXISTING);
+							Files.copy(latestFile.toPath(), ablationFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 						} catch (IOException e) {
 							e.printStackTrace();
 						}
@@ -531,10 +532,16 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		}
 	}
 
-	private String getLatestFile(int t) {
-		String posString = String.format("_Pos%02d", 0);
+	private String getLatestFile(int t, int p) {
+		String posString = String.format("_Pos%02d", p);
 
 		return String.format(prefix_ + "_TL%04d" + posString + ".tiff", t);
+	}
+
+	private String getAblationFilename(int p) {
+		String posString = String.format("_Pos%02d", p);
+
+		return String.format(ablationFilePrefix_ + posString + ".tiff");
 	}
 
 	private int getNumChannels() {
