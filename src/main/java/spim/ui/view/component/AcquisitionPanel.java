@@ -1264,7 +1264,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		filename.set( setting.getFilename() );
 		savingFormat.set( setting.getSavingFormat() );
 		saveMIP.set( setting.getSaveMIP() );
-		ablationSupport.set( setting.getAblationSupport() );
 		roiRectangle.set( setting.getRoiRectangle() );
 
 		Studio studio = getStudio();
@@ -1278,9 +1277,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		// Experiment Note
 		experimentNote.set(setting.getExperimentNote());
-
-		// OnTheFly
-		onTheFly.set(setting.getOnTheFly());
 	}
 
 	private AcquisitionSetting getAcquisitionSetting() {
@@ -1292,8 +1288,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		return new AcquisitionSetting( enabledTimePoints, timePointItems,
 				enabledPositions, positionItems, enabledZStacks, acquisitionOrder,
 				enabledChannels, channelTabPane.getSelectionModel().selectedIndexProperty().get(), channelItems,
-				channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveMIP, ablationSupport, roiRectangle, rotateStepSize,
-				experimentNote, onTheFly );
+				channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveMIP, roiRectangle, rotateStepSize,
+				experimentNote);
 	}
 
 	private void clearAcquisitionSetting() {
@@ -1315,12 +1311,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		filename.set( "Untitled" );
 		savingFormat.set( "Single Plane TIFF" );
 		saveMIP.set( false );
-		ablationSupport.set( false );
 		roiRectangle.set( null );
 
 		rotateStepSize.set(1);
 		experimentNote.set( "" );
-		onTheFly.set( false );
 	}
 
 	public void stopAcquisition()

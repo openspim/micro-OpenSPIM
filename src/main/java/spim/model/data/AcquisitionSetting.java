@@ -54,7 +54,6 @@ public class AcquisitionSetting
 	String filename;
 	Object savingFormat;
 	Boolean saveMIP;
-	Boolean ablationSupport;
 	Object roiRectangle;
 
 	// Extra
@@ -62,9 +61,6 @@ public class AcquisitionSetting
 
 	// ExperimentNote
 	String experimentNote;
-
-	// On-the-fly
-	Boolean onTheFly;
 
 	public Boolean getEnabledTimePoints()
 	{
@@ -216,14 +212,6 @@ public class AcquisitionSetting
 		this.saveMIP = saveMIP;
 	}
 
-	public Boolean getAblationSupport() {
-		return ablationSupport;
-	}
-
-	public void setAblationSupport(Boolean ablationSupport) {
-		this.ablationSupport = ablationSupport;
-	}
-
 	public Object getRoiRectangle()
 	{
 		return roiRectangle;
@@ -248,19 +236,11 @@ public class AcquisitionSetting
 		this.experimentNote = experimentNote;
 	}
 
-	public Boolean getOnTheFly() {
-		return onTheFly;
-	}
-
-	public void setOnTheFly( Boolean onTheFly ) {
-		this.onTheFly = onTheFly;
-	}
-
 	public AcquisitionSetting()
 	{
 	}
 
-	public AcquisitionSetting(BooleanProperty enabledTimePoints, ArrayList< TimePointItem > timePointItems, BooleanProperty enabledPositions, ArrayList< PositionItem > positionItems, BooleanProperty enabledZStacks, ObjectProperty acquisitionOrder, BooleanProperty enabledChannels, int selectedTabIndex, ArrayList< ChannelItem > channelItems, ArrayList< ChannelItem > channelItemsArduino, BooleanProperty enabledSaveImages, StringProperty directory, StringProperty filename, ObjectProperty savingFormat, BooleanProperty saveMIP, BooleanProperty ablationSupport, ObjectProperty roiRectangle, DoubleProperty rotateStepSize, StringProperty experimentNote, BooleanProperty onTheFly)
+	public AcquisitionSetting(BooleanProperty enabledTimePoints, ArrayList< TimePointItem > timePointItems, BooleanProperty enabledPositions, ArrayList< PositionItem > positionItems, BooleanProperty enabledZStacks, ObjectProperty acquisitionOrder, BooleanProperty enabledChannels, int selectedTabIndex, ArrayList< ChannelItem > channelItems, ArrayList< ChannelItem > channelItemsArduino, BooleanProperty enabledSaveImages, StringProperty directory, StringProperty filename, ObjectProperty savingFormat, BooleanProperty saveMIP, ObjectProperty roiRectangle, DoubleProperty rotateStepSize, StringProperty experimentNote)
 	{
 		// 1.1 Time points panel
 		this.enabledTimePoints = enabledTimePoints.get();
@@ -290,7 +270,6 @@ public class AcquisitionSetting
 		this.filename = filename.get();
 		this.savingFormat = savingFormat.get();
 		this.saveMIP = saveMIP.get();
-		this.ablationSupport = ablationSupport.get();
 		this.roiRectangle = roiRectangle.get();
 
 		// Extra
@@ -298,9 +277,6 @@ public class AcquisitionSetting
 
 		// Experiment Note
 		this.experimentNote = experimentNote.get();
-
-		// OnTheFly
-		this.onTheFly = onTheFly.get();
 	}
 
 	public static AcquisitionSetting load( File file ) {
