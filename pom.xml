@@ -252,7 +252,7 @@
                 <plugin>
                     <groupId>com.zenjava</groupId>
                     <artifactId>javafx-maven-plugin</artifactId>
-                    <version>8.8.4-SNAPSHOT</version>
+                    <version>8.8.3</version>
                     <configuration>
                         <vendor>Scientific Computing Facility</vendor>
                         <mainClass>spim.microOpenSPIM</mainClass>
