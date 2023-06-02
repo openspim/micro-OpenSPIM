@@ -45,6 +45,7 @@ import javafx.scene.text.*;
 import javafx.scene.text.Font;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
+import mpicbg.spim.data.SpimDataException;
 import mpicbg.spim.data.generic.AbstractSpimData;
 import mpicbg.spim.data.generic.sequence.BasicImgLoader;
 import mpicbg.spim.data.generic.sequence.BasicViewSetup;
@@ -63,6 +64,11 @@ import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.stitcher.gui.StitchingExplorer;
 import org.dockfx.DockNode;
 
+import org.mastodon.feature.FeatureComputerService;
+import org.mastodon.feature.FeatureSpecsService;
+import org.mastodon.mamut.MainWindow;
+import org.mastodon.mamut.WindowManager;
+import org.mastodon.mamut.project.MamutProject;
 import org.micromanager.Studio;
 
 import org.micromanager.data.Coordinates;
@@ -73,6 +79,8 @@ import org.micromanager.data.internal.DefaultImageJConverter;
 import org.micromanager.display.DisplayWindow;
 import org.micromanager.events.GUIRefreshEvent;
 import org.micromanager.internal.MMStudio;
+import org.scijava.Context;
+import org.scijava.plugin.PluginService;
 import spim.hardware.SPIMSetup;
 import spim.io.*;
 import spim.mm.MMUtils;
@@ -113,6 +121,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 //	final Button liveViewButton;
 	final Button openDatasetButton;
 	final Button openN5;
+	final Button openMastodon;
 
 	final SimpleDoubleProperty waitSeconds;
 
@@ -272,7 +281,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			}
 		});
 
-		openN5 = new Button("Open BigStitcher/BDV");
+		openN5 = new Button("Open BigStitcher");
 		openN5.setStyle("-fx-font: 14 arial; -fx-base: #e7e45d;");
 		openN5.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
@@ -289,16 +298,32 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 					case BDV:
 						openBigStitcherWindow( lastOpenedFolder );
 						break;
-					case N5:
-						try {
-							loadDataWithBDV();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-						break;
 					default:
 						new Alert( Alert.AlertType.WARNING, "Please, load a N5 or BDV dataset.").showAndWait();
 						System.err.println("There is no N5 or BDV dataset loaded.");
+				}
+			}
+		});
+
+		openMastodon = new Button("Open Mastodon");
+		openMastodon.setStyle("-fx-font: 14 arial; -fx-base: #e7e45d;");
+		openMastodon.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
+				if(displayWindow == null) {
+					new Alert( Alert.AlertType.WARNING, "Please, load a dataset first").showAndWait();
+					System.err.println("There is no dataset to be opened.");
+					return;
+				}
+
+				switch (storageType) {
+					case BDV:
+						openMastodonWindow( lastOpenedFolder );
+						break;
+					default:
+						new Alert( Alert.AlertType.WARNING, "Please, load a BDV dataset.").showAndWait();
+						System.err.println("There is no BDV dataset loaded.");
 				}
 			}
 		});
@@ -798,6 +823,22 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 		});
 	}
 
+	public void openMastodonWindow(String folder) {
+		SwingUtilities.invokeLater(() -> {
+//			final File file = new File("/Users/moon/Desktop/cap_3" + File.separator + "dataset.xml");
+			final File file = new File(folder + File.separator + "dataset.xml");
+			new Thread(() -> {
+				try {
+					final WindowManager windowManager = new WindowManager( new Context(PluginService.class, FeatureSpecsService.class, FeatureComputerService.class));
+					windowManager.getProjectManager().open(new MamutProject(null, file));
+					new MainWindow(windowManager).setVisible(true);
+				} catch (IOException | SpimDataException e) {
+
+				}
+			}).start();
+		});
+	}
+
 	public SimpleDoubleProperty waitSecondsProperty() {
 		return waitSeconds;
 	}
@@ -811,7 +852,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			topHbox.getChildren().remove( liveDemoLabel );
 			buttonHbox.getChildren().remove( mmButton );
 //			liveViewHbox.getChildren().add( 0, liveViewButton);
-			liveViewHbox.getChildren().addAll( openDatasetButton, openN5 );
+			liveViewHbox.getChildren().addAll( openDatasetButton, openN5, openMastodon );
 			pixelSizeValue.setText(studio.core().getPixelSizeUm() + "");
 			rotatorStepSizeValue.setText(setup.getThetaStage().getStepSize() + "");
 			zStageStepSizeValue.setText(setup.getZStage().getStepSize() + "");
@@ -820,7 +861,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			topHbox.getChildren().add( liveDemoLabel );
 			buttonHbox.getChildren().add( mmButton );
 //			liveViewHbox.getChildren().remove( liveViewButton );
-			liveViewHbox.getChildren().removeAll( openDatasetButton, openN5 );
+			liveViewHbox.getChildren().removeAll( openDatasetButton, openN5, openMastodon );
 			pixelSizeValue.setText("N.A.");
 			rotatorStepSizeValue.setText("N.A.");
 			zStageStepSizeValue.setText("N.A.");
