@@ -863,7 +863,10 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 //			liveViewHbox.getChildren().add( 0, liveViewButton);
 			liveViewHbox.getChildren().addAll( openDatasetButton, openN5, openMastodon );
 			pixelSizeValue.setText(studio.core().getPixelSizeUm() + "");
-			rotatorStepSizeValue.setText(setup.getThetaStage().getStepSize() + "");
+
+			if(setup.getThetaStage() != null)
+				rotatorStepSizeValue.setText(setup.getThetaStage().getStepSize() + "");
+
 			zStageStepSizeValue.setText(setup.getZStage().getStepSize() + "");
 //			roi = new java.awt.Rectangle(0, 0, 0, 0);
 		} else {
