@@ -44,6 +44,7 @@ import mmcorej.DeviceType;
 import org.apache.commons.io.FileUtils;
 import org.micromanager.Studio;
 
+import org.micromanager.display.DisplayWindow;
 import org.micromanager.events.internal.DefaultGUIRefreshEvent;
 import org.micromanager.internal.MMStudio;
 import spim.hardware.Camera;
@@ -55,6 +56,7 @@ import spim.model.data.PinItem;
 import spim.model.data.PositionItem;
 import spim.model.data.TimePointItem;
 import spim.model.event.ControlEvent;
+import spim.ui.view.component.util.AdvancedPlugins;
 import spim.ui.view.component.widgets.cube.SliceCube;
 import spim.ui.view.component.widgets.cube.StackCube;
 import spim.ui.view.component.widgets.pane.CheckboxPane;
@@ -443,8 +445,123 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		BorderPane.setMargin(acquireHBox, new Insets(12,12,12,12));
 
+		// Acquisition Setting Buttons
+		final HBox acqSettings = new HBox();
+		acqSettings.setSpacing(5);
+		acqSettings.setAlignment( Pos.CENTER_LEFT );
+
+		Button saveButton = new Button( "SAVE" );
+		saveButton.setMinSize( 100, 30 );
+		saveButton.setStyle("-fx-font: 12 arial; -fx-base: #69e760;");
+		saveButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				final FileChooser fileChooser = new FileChooser();
+				fileChooser.setTitle( "µOpenSPIM AcquisitionSetting file" );
+				fileChooser.getExtensionFilters().addAll(
+						new FileChooser.ExtensionFilter( "µOpenSPIM AcquisitionSetting file", "*.xml" )
+				);
+
+				File file = fileChooser.showSaveDialog( getScene().getWindow() );
+				if ( file != null )
+				{
+					AcquisitionSetting.save( file, getAcquisitionSetting() );
+				}
+			}
+		} );
+
+		Button loadButton = new Button( "LOAD" );
+		loadButton.setMinSize( 100, 30 );
+		loadButton.setStyle("-fx-font: 12 arial; -fx-base: #e7e45d;");
+		loadButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				final FileChooser fileChooser = new FileChooser();
+				fileChooser.setTitle( "µOpenSPIM AcquisitionSetting file" );
+				fileChooser.getExtensionFilters().addAll(
+						new FileChooser.ExtensionFilter( "µOpenSPIM AcquisitionSetting file", "*.xml" )
+				);
+
+				File file = fileChooser.showOpenDialog( getScene().getWindow() );
+				if ( file != null )
+				{
+					AcquisitionSetting setting = AcquisitionSetting.load( file );
+					if(setting != null) {
+						// Update GUI
+						updateUI( setting );
+					}
+				}
+			}
+		} );
+
+		loadButton.setOnDragOver( new EventHandler< DragEvent >()
+		{
+			@Override public void handle( DragEvent event )
+			{
+				Dragboard db = event.getDragboard();
+				if ( db.hasFiles() && db.getFiles().size() == 1 )
+				{
+					event.acceptTransferModes( TransferMode.COPY );
+				}
+				else
+				{
+					event.consume();
+				}
+			}
+		} );
+
+		loadButton.setOnDragDropped( new EventHandler< DragEvent >()
+		{
+			@Override public void handle( DragEvent event )
+			{
+				Dragboard db = event.getDragboard();
+				boolean success = false;
+				if ( db.hasFiles() && db.getFiles().size() == 1 )
+				{
+					if(db.getFiles().get(0).isFile()) {
+						final File file = db.getFiles().get(0);
+						final AcquisitionSetting setting = AcquisitionSetting.load( file );
+						if(setting != null) {
+							// Update GUI
+							updateUI( setting );
+							success = true;
+						}
+					}
+				}
+
+				event.setDropCompleted( success );
+				event.consume();
+			}
+		} );
+
+		Button clearButton = new Button( "CLEAR" );
+		clearButton.setMinSize( 100, 30 );
+		clearButton.setStyle("-fx-font: 12 arial; -fx-base: #ffbec4;");
+		clearButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "Are you sure?", ButtonType.YES, ButtonType.CANCEL).showAndWait();
+
+				if( results.isPresent() && results.get() == ButtonType.YES) {
+					clearAcquisitionSetting();
+				} else {
+					System.err.println("Clear acquisition setting stopped by user cancellation.");
+				}
+			}
+		} );
+
+		acqSettings.getChildren().addAll( saveButton, loadButton, clearButton );
+		BorderPane.setMargin(acqSettings, new Insets(12,12,12,12));
+
+		final TitledPane acqSettingPane = new TitledPane( "Save/Load Settings", acqSettings );
+		acqSettingPane.setCollapsible( false );
+
 		// listbox for Position list
 		SplitPane timePositionSplit = new SplitPane(
+				acqSettingPane,
 				createPositionListPane(positionItemTableView, currentPositionItemTableView),
 				createTimePointsPane() );
 		timePositionSplit.setOrientation( Orientation.VERTICAL );
@@ -719,121 +836,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		CheckboxPane channelPane = new CheckboxPane( "Select Channels/Pins", channelTabPane, helpButton);
 		enabledChannels = channelPane.selectedProperty();
 
-		// Acquisition Setting Buttons
-		final HBox acqSettings = new HBox();
-		acqSettings.setSpacing(5);
-		acqSettings.setAlignment( Pos.CENTER_LEFT );
-
-		Button saveButton = new Button( "SAVE" );
-		saveButton.setMinSize( 100, 30 );
-		saveButton.setStyle("-fx-font: 12 arial; -fx-base: #69e760;");
-		saveButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				final FileChooser fileChooser = new FileChooser();
-				fileChooser.setTitle( "µOpenSPIM AcquisitionSetting file" );
-				fileChooser.getExtensionFilters().addAll(
-						new FileChooser.ExtensionFilter( "µOpenSPIM AcquisitionSetting file", "*.xml" )
-				);
-
-				File file = fileChooser.showSaveDialog( getScene().getWindow() );
-				if ( file != null )
-				{
-					AcquisitionSetting.save( file, getAcquisitionSetting() );
-				}
-			}
-		} );
-
-		Button loadButton = new Button( "LOAD" );
-		loadButton.setMinSize( 100, 30 );
-		loadButton.setStyle("-fx-font: 12 arial; -fx-base: #e7e45d;");
-		loadButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				final FileChooser fileChooser = new FileChooser();
-				fileChooser.setTitle( "µOpenSPIM AcquisitionSetting file" );
-				fileChooser.getExtensionFilters().addAll(
-						new FileChooser.ExtensionFilter( "µOpenSPIM AcquisitionSetting file", "*.xml" )
-				);
-
-				File file = fileChooser.showOpenDialog( getScene().getWindow() );
-				if ( file != null )
-				{
-					AcquisitionSetting setting = AcquisitionSetting.load( file );
-					if(setting != null) {
-						// Update GUI
-						updateUI( setting );
-					}
-				}
-			}
-		} );
-
-		loadButton.setOnDragOver( new EventHandler< DragEvent >()
-		{
-			@Override public void handle( DragEvent event )
-			{
-				Dragboard db = event.getDragboard();
-				if ( db.hasFiles() && db.getFiles().size() == 1 )
-				{
-					event.acceptTransferModes( TransferMode.COPY );
-				}
-				else
-				{
-					event.consume();
-				}
-			}
-		} );
-
-		loadButton.setOnDragDropped( new EventHandler< DragEvent >()
-		{
-			@Override public void handle( DragEvent event )
-			{
-				Dragboard db = event.getDragboard();
-				boolean success = false;
-				if ( db.hasFiles() && db.getFiles().size() == 1 )
-				{
-					if(db.getFiles().get(0).isFile()) {
-						final File file = db.getFiles().get(0);
-						final AcquisitionSetting setting = AcquisitionSetting.load( file );
-						if(setting != null) {
-							// Update GUI
-							updateUI( setting );
-							success = true;
-						}
-					}
-				}
-
-				event.setDropCompleted( success );
-				event.consume();
-			}
-		} );
-
-		Button clearButton = new Button( "CLEAR" );
-		clearButton.setMinSize( 100, 30 );
-		clearButton.setStyle("-fx-font: 12 arial; -fx-base: #ffbec4;");
-		clearButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "Are you sure?", ButtonType.YES, ButtonType.CANCEL).showAndWait();
-
-				if( results.isPresent() && results.get() == ButtonType.YES) {
-					clearAcquisitionSetting();
-				} else {
-					System.err.println("Clear acquisition setting stopped by user cancellation.");
-				}
-			}
-		} );
-
-		acqSettings.getChildren().addAll( saveButton, loadButton, clearButton );
-		BorderPane.setMargin(acqSettings, new Insets(12,12,12,12));
-
-		final TitledPane acqSettingPane = new TitledPane( "Save/Load Settings", acqSettings );
-		acqSettingPane.setCollapsible( false );
-
-
 		// Compute acquisition order logic
 		BooleanBinding bb = new BooleanBinding()
 		{
@@ -905,9 +907,76 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		});
 
+		// Open with advanced plugins
+		final HBox pluginsBox = new HBox();
+		pluginsBox.setSpacing(5);
+		pluginsBox.setAlignment( Pos.CENTER_LEFT );
+
+		Button bdvButton = new Button( "Open with BigDataViewer" );
+		bdvButton.setMinSize( 100, 30 );
+		bdvButton.setStyle("-fx-font: 12 arial; -fx-base: #69e760;");
+		bdvButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
+
+				if(displayWindow == null) {
+					new Alert( Alert.AlertType.WARNING, "Please, load a dataset first").showAndWait();
+					System.err.println("There is no dataset to be opened.");
+					return;
+				}
+
+				AdvancedPlugins.loadDataWithBDV(displayWindow);
+			}
+		} );
+
+		Button bsButton = new Button( "Open with BigStitcher" );
+		bsButton.setMinSize( 100, 30 );
+		bsButton.setStyle("-fx-font: 12 arial; -fx-base: #e7e45d;");
+		bsButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
+
+				if(displayWindow == null) {
+					new Alert( Alert.AlertType.WARNING, "Please, load a dataset first").showAndWait();
+					System.err.println("There is no dataset to be opened.");
+					return;
+				}
+
+				AdvancedPlugins.openBigStitcherWindow( displayWindow.getDatastore().getSavePath() );
+			}
+		} );
+
+		Button mstdButton = new Button( "Open with Mastodon" );
+		mstdButton.setMinSize( 100, 30 );
+		mstdButton.setStyle("-fx-font: 12 arial; -fx-base: #ffbec4;");
+		mstdButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
+				if(displayWindow == null) {
+					new Alert( Alert.AlertType.WARNING, "Please, load a dataset first").showAndWait();
+					System.err.println("There is no dataset to be opened.");
+					return;
+				}
+
+				AdvancedPlugins.openMastodonWindow( displayWindow.getDatastore().getSavePath() );
+			}
+		} );
+
+		pluginsBox.getChildren().addAll( bdvButton, bsButton, mstdButton );
+		BorderPane.setMargin(acqSettings, new Insets(12,12,12,12));
+
+		final TitledPane pluginsPane = new TitledPane( "Open with advanced plugins", pluginsBox );
+		pluginsPane.setCollapsible( false );
+
 		timePositionSplit.getItems().add(channelSummary);
-		timePositionSplit.setDividerPositions( 0.3, 0.6 );
-		zStackAcqTabs.getItems().add(1, createSaveImagesPane(acqSettingPane));
+		timePositionSplit.setDividerPositions( 0.3, 0.5, 0.7 );
+		zStackAcqTabs.getItems().add(1, createSaveImagesPane(pluginsPane));
 		zStackAcqTabs.setDividerPositions( 0.3, 0.7 );
 
 		// Save image options
