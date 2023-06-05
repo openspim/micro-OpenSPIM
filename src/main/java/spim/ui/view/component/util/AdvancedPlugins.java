@@ -223,6 +223,8 @@ public class AdvancedPlugins {
 						"BigDataViewer", null,
 						ViewerOptions.options().is2D( is2D ) );
 
+				bdv.getViewerFrame().requestFocus();
+
 				final SynchronizedViewerState state = bdv.getViewer().state();
 				synchronized ( state )
 				{
