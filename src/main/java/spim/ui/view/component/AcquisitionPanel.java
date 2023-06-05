@@ -759,17 +759,83 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		final TitledPane acqBoxPane = new TitledPane( "", acquireHBox );
 		acqBoxPane.setCollapsible( false );
 
-		LabeledPane acquisitionPane = new LabeledPane( "Acquisition", new VBox(10, acquisitionTabPane, acqBoxPane), acqHelpButton, 0 );
+		// Open with advanced plugins
+		final HBox pluginsBox = new HBox();
+		pluginsBox.setSpacing(5);
+		pluginsBox.setAlignment( Pos.CENTER_LEFT );
+
+		Button bdvButton = new Button( "Open with BigDataViewer" );
+		bdvButton.setMinSize( 100, 30 );
+		bdvButton.setStyle("-fx-font: 12 arial; -fx-base: #69e760;");
+		bdvButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
+
+				if(displayWindow == null) {
+					new Alert( Alert.AlertType.WARNING, "Please, load a dataset first").showAndWait();
+					System.err.println("There is no dataset to be opened.");
+					return;
+				}
+
+				AdvancedPlugins.loadDataWithBDV(displayWindow);
+			}
+		} );
+
+		Button bsButton = new Button( "Open with BigStitcher" );
+		bsButton.setMinSize( 100, 30 );
+		bsButton.setStyle("-fx-font: 12 arial; -fx-base: #e7e45d;");
+		bsButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
+
+				if(displayWindow == null) {
+					new Alert( Alert.AlertType.WARNING, "Please, load a dataset first").showAndWait();
+					System.err.println("There is no dataset to be opened.");
+					return;
+				}
+
+				AdvancedPlugins.openBigStitcherWindow( displayWindow.getDatastore().getSavePath() );
+			}
+		} );
+
+		Button mstdButton = new Button( "Open with Mastodon" );
+		mstdButton.setMinSize( 100, 30 );
+		mstdButton.setStyle("-fx-font: 12 arial; -fx-base: #ffbec4;");
+		mstdButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
+				if(displayWindow == null) {
+					new Alert( Alert.AlertType.WARNING, "Please, load a dataset first").showAndWait();
+					System.err.println("There is no dataset to be opened.");
+					return;
+				}
+
+				AdvancedPlugins.openMastodonWindow( displayWindow.getDatastore().getSavePath() );
+			}
+		} );
+
+		pluginsBox.getChildren().addAll( bdvButton, bsButton, mstdButton );
+
+		final TitledPane pluginsPane = new TitledPane( "Open with advanced plugins", pluginsBox );
+		pluginsPane.setCollapsible( false );
+
+		LabeledPane acquisitionPane = new LabeledPane( "Acquisition", new VBox(10, acquisitionTabPane, acqBoxPane, pluginsPane), acqHelpButton, 0 );
 
 
 		SplitPane zStackAcqTabs = new SplitPane(createZStackPane(stagePanel), acquisitionPane);
 		zStackAcqTabs.setOrientation( Orientation.VERTICAL );
-		zStackAcqTabs.setDividerPositions( 0.8 );
+		zStackAcqTabs.setDividerPositions( 0.4 );
 
 		zStackAcqTabs.heightProperty().addListener(new ChangeListener<Number>() {
 			@Override
 			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
-				zStackAcqTabs.setDividerPositions( 0.8 );
+				zStackAcqTabs.setDividerPositions( 0.4 );
 			}
 		});
 
@@ -907,77 +973,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		});
 
-		// Open with advanced plugins
-		final HBox pluginsBox = new HBox();
-		pluginsBox.setSpacing(5);
-		pluginsBox.setAlignment( Pos.CENTER_LEFT );
-
-		Button bdvButton = new Button( "Open with BigDataViewer" );
-		bdvButton.setMinSize( 100, 30 );
-		bdvButton.setStyle("-fx-font: 12 arial; -fx-base: #69e760;");
-		bdvButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
-
-				if(displayWindow == null) {
-					new Alert( Alert.AlertType.WARNING, "Please, load a dataset first").showAndWait();
-					System.err.println("There is no dataset to be opened.");
-					return;
-				}
-
-				AdvancedPlugins.loadDataWithBDV(displayWindow);
-			}
-		} );
-
-		Button bsButton = new Button( "Open with BigStitcher" );
-		bsButton.setMinSize( 100, 30 );
-		bsButton.setStyle("-fx-font: 12 arial; -fx-base: #e7e45d;");
-		bsButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
-
-				if(displayWindow == null) {
-					new Alert( Alert.AlertType.WARNING, "Please, load a dataset first").showAndWait();
-					System.err.println("There is no dataset to be opened.");
-					return;
-				}
-
-				AdvancedPlugins.openBigStitcherWindow( displayWindow.getDatastore().getSavePath() );
-			}
-		} );
-
-		Button mstdButton = new Button( "Open with Mastodon" );
-		mstdButton.setMinSize( 100, 30 );
-		mstdButton.setStyle("-fx-font: 12 arial; -fx-base: #ffbec4;");
-		mstdButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
-				if(displayWindow == null) {
-					new Alert( Alert.AlertType.WARNING, "Please, load a dataset first").showAndWait();
-					System.err.println("There is no dataset to be opened.");
-					return;
-				}
-
-				AdvancedPlugins.openMastodonWindow( displayWindow.getDatastore().getSavePath() );
-			}
-		} );
-
-		pluginsBox.getChildren().addAll( bdvButton, bsButton, mstdButton );
-		BorderPane.setMargin(acqSettings, new Insets(12,12,12,12));
-
-		final TitledPane pluginsPane = new TitledPane( "Open with advanced plugins", pluginsBox );
-		pluginsPane.setCollapsible( false );
-
 		timePositionSplit.getItems().add(channelSummary);
 		timePositionSplit.setDividerPositions( 0.3, 0.5, 0.7 );
-		zStackAcqTabs.getItems().add(1, createSaveImagesPane(pluginsPane));
-		zStackAcqTabs.setDividerPositions( 0.3, 0.7 );
+		zStackAcqTabs.getItems().add(1, createSaveImagesPane());
+		zStackAcqTabs.setDividerPositions( 0.3, 0.6 );
 
 		// Save image options
 //		SplitPane channelListSaveImage = new SplitPane(
@@ -1754,7 +1753,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		propertyMap.get("slices").setValue( totalImages + "" );
 	}
 
-	private Node createSaveImagesPane(Node buttonPane) {
+	private Node createSaveImagesPane() {
 		GridPane gridpane = new GridPane();
 
 		gridpane.setVgap( 5 );
@@ -1849,7 +1848,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		TabPane tabPane = new TabPane(saveOptionTab, noteTab);
 		tabPane.setMinHeight(190);
 
-		VBox vbox = new VBox( 12, tabPane, buttonPane );
+		VBox vbox = new VBox( 12, tabPane );
 
 		return vbox;
 	}
