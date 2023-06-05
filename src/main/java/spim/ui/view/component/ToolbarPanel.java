@@ -281,7 +281,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			}
 		});
 
-		openN5 = new Button("Open BigStitcher");
+		openN5 = new Button("Open BigStitcher/BDV");
 		openN5.setStyle("-fx-font: 14 arial; -fx-base: #e7e45d;");
 		openN5.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
@@ -297,6 +297,13 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 				switch (storageType) {
 					case BDV:
 						openBigStitcherWindow( lastOpenedFolder );
+						break;
+					case N5:
+						try {
+							loadDataWithBDV();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 						break;
 					default:
 						new Alert( Alert.AlertType.WARNING, "Please, load a N5 or BDV dataset.").showAndWait();
@@ -831,7 +838,9 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 				try {
 					final WindowManager windowManager = new WindowManager( new Context(PluginService.class, FeatureSpecsService.class, FeatureComputerService.class));
 					windowManager.getProjectManager().open(new MamutProject(null, file));
-					new MainWindow(windowManager).setVisible(true);
+					MainWindow mastodonWindow = new MainWindow(windowManager);
+					mastodonWindow.setVisible(true);
+					mastodonWindow.requestFocus();
 				} catch (IOException | SpimDataException e) {
 
 				}
