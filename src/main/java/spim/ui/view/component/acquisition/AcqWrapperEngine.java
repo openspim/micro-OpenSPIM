@@ -210,14 +210,17 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			{
 				String config = "Ch-" + ch++;
 
-				if(spimSetup_.getLaser().getLabel().startsWith("VLT_VersaLase")) {
-					core_.defineConfig(channelGroupName, config, "Core", "Shutter", spimSetup_.getLaser().getLabel());
-					VersaLase.VersaLaseLaser laser = ((VersaLase)spimSetup_.getLaser()).getLaser(channelItem.getLaser());
+				if(spimSetup_.getLaser() != null) {
+					if(spimSetup_.getLaser().getLabel().startsWith("VLT_VersaLase")) {
+						core_.defineConfig(channelGroupName, config, "Core", "Shutter", spimSetup_.getLaser().getLabel());
+						VersaLase.VersaLaseLaser laser = ((VersaLase)spimSetup_.getLaser()).getLaser(channelItem.getLaser());
 
-					core_.defineConfig(channelGroupName, config, spimSetup_.getLaser().getLabel(), laser.getShutter(), "ON");
-				} else {
-					core_.defineConfig(channelGroupName, config, "Core", "Shutter", channelItem.getLaser());
+						core_.defineConfig(channelGroupName, config, spimSetup_.getLaser().getLabel(), laser.getShutter(), "ON");
+					} else {
+						core_.defineConfig(channelGroupName, config, "Core", "Shutter", channelItem.getLaser());
+					}
 				}
+
 
 				core_.defineConfig(channelGroupName, config, "Core", "Camera", channelItem.getName());
 				double exp = channelItem.getValue().doubleValue();

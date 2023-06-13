@@ -139,7 +139,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 				ChangeListener< Number > targetPropertyChangeListener = ( observable, oldValue, newValue ) -> {
 					switch ( stage ) {
 						case R:
-							spimSetup.getThetaStage().setPosition( newValue.doubleValue() );
+							spimSetup.setAngle( newValue.doubleValue() );
 							break;
 						case X: spimSetup.getXStage().setPosition( newValue.doubleValue() );
 							break;
@@ -194,7 +194,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 				double device = 0d;
 				// read the value from the device
 				switch ( stage ) {
-					case R: device = spimSetup.getThetaStage().getPosition();
+					case R: device = spimSetup.getAngle();
 						break;
 					case X: device = spimSetup.getXStage().getPosition();
 						break;

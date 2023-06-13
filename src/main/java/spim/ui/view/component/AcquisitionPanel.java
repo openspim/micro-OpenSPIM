@@ -1169,7 +1169,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				if(multi.isPresent())
 					channelItemTableView = TableViewUtil.createChannelItemDataView(setup, multi.get());
 				else channelItemTableView = TableViewUtil.createChannelItemDataView(setup, null);
-				Node viewContent = createChannelItemTable( channelItemTableView, setup.getCamera1().getLabel(), setup.getLaser().getLabel(), exposure );
+
+				String laserLabel = setup.getLaser() == null ? "Laser-1" : setup.getLaser().getLabel();
+				Node viewContent = createChannelItemTable( channelItemTableView, setup.getCamera1().getLabel(), laserLabel, exposure );
 				laserTab.setContent( viewContent );
 
 				if(getSpimSetup() != null && getSpimSetup().getThetaStage() != null) {
@@ -1613,7 +1615,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		EventHandler newEventHandler = ( EventHandler< ActionEvent > ) event -> {
 			SPIMSetup spimSetup = getSpimSetup();
 			if(spimSetup != null ) {
-				double r = spimSetup.getThetaStage().getPosition();
+				double r = spimSetup.getAngle();
 				double x = spimSetup.getXStage().getPosition();
 				double y = spimSetup.getYStage().getPosition();
 				double z = spimSetup.getZStage().getPosition();
@@ -1650,7 +1652,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				if(currentPosition.get() != null) {
 					SPIMSetup spimSetup = getSpimSetup();
 					if(spimSetup != null ) {
-						double r = spimSetup.getThetaStage().getPosition();
+						double r = spimSetup.getAngle();
 						double x = spimSetup.getXStage().getPosition();
 						double y = spimSetup.getYStage().getPosition();
 						currentPosition.get().setR(r);
@@ -2348,7 +2350,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		InvalidationListener invalidationListener = observable -> computeTotalPositionImages();
 
 		if(spimSetup != null ) {
-			double r = spimSetup.getThetaStage().getPosition();
+			double r = spimSetup.getAngle();
 			double x = spimSetup.getXStage().getPosition();
 			x = Math.ceil(x * 100) / 100;
 			double y = spimSetup.getYStage().getPosition();
