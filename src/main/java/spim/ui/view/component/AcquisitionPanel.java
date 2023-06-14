@@ -211,6 +211,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 	// On-the-fly
 	BooleanProperty onTheFly;
+	BooleanProperty onChannelFusion;
 
 	// Current Position Index
 	IntegerProperty currentPositionIndex;
@@ -720,6 +721,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		CheckBox onTheFlyCheckBox = new CheckBox("on-the-fly processing (based on clij)");
 		onTheFly = onTheFlyCheckBox.selectedProperty();
 
+		CheckBox onFusionChannels = new CheckBox("2-channel fusion (based on clij)");
+		onChannelFusion = onFusionChannels.selectedProperty();
+
 		Hyperlink clijHyperlink = new Hyperlink("https://clij.github.io/");
 		clijHyperlink.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
@@ -733,6 +737,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		onTheFlyHBox.setAlignment( Pos.CENTER_LEFT );
 		onTheFlyHBox.setPadding(new Insets(5));
 
+		HBox onFusionchannelHBox = new HBox(3, onFusionChannels);
+		onFusionchannelHBox.setAlignment( Pos.CENTER_LEFT );
+		onFusionchannelHBox.setPadding(new Insets(5));
+
 		Tab antiDriftTab = new Tab("Anti-drift", new VBox(2, antiDriftPane, chBox));
 		antiDriftTab.setClosable(false);
 
@@ -742,7 +750,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Tab binningTab = new Tab("Binning", binningHBox);
 		binningTab.setClosable(false);
 
-		Tab onTheFlyTab = new Tab("On-the-fly", onTheFlyHBox);
+		Tab onTheFlyTab = new Tab("On-the-fly", new VBox(2, onTheFlyHBox, onFusionchannelHBox));
 		onTheFlyTab.setClosable(false);
 
 		CheckBox ablationCheckbox = new CheckBox( "Generate ablation.tiff (works with OMETIFF as saving format)" );
@@ -1090,49 +1098,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			new File( dir ).mkdirs();
 		}
-	}
-
-	@SuppressWarnings("Duplicates")
-	void loadData() throws IOException {
-		File f = new File(directory.getValue());
-
-		if(f == null) return;
-
-		File[] list = f.listFiles((file, s) -> s.endsWith("_metadata.txt"));
-
-		if (list.length == 0) return;
-
-		String prefix = "";
-		StorageType storageType = null;
-
-		if (list.length == 1) {
-			prefix = list[0].getName().replaceFirst("_metadata.txt", "");
-			String directory = f.getAbsolutePath();
-			storageType = StorageOpener.checkStorageType(directory, prefix);
-		} else {
-			// List up all the prefix candidates and let the user choose one
-		}
-
-		String directory = f.getAbsolutePath();
-
-		DefaultDatastore result = new DefaultDatastore(studioProperty.get());
-
-		switch (storageType) {
-			case SinglePlaneTiff: result.setStorage(new OpenSPIMSinglePlaneTiffSeries(result, directory, prefix, false));
-				break;
-			case OMETiff: result.setStorage(new OMETIFFStorage(result, directory, prefix, false));
-				break;
-			case N5: result.setStorage(new N5MicroManagerStorage(result, directory, prefix, 1, false));
-				break;
-			case BDV: result.setStorage(new BDVMicroManagerStorage(result, directory, prefix, 1, 1, false));
-				break;
-		}
-
-		result.setSavePath(directory);
-		result.freeze();
-
-		studioProperty.get().displays().manage(result);
-		studioProperty.get().displays().loadDisplays(result);
 	}
 
 	void binningItemChanged(String item) {
@@ -1606,7 +1571,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 						arduinoSelected, finalFolder, filename.getValue(),
 						positionItemTableView.getItems().filtered(p -> p.getSelected()), channelItemList, processedImages, totalImages.getValue(),
 						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), ablationSupport.getValue(), antiDrift.getValue(), experimentNote.getValue(),
-						antiDriftLog, antiDriftRefCh.get(), antiDriftTypeToggle, onTheFly.getValue() );
+						antiDriftLog, antiDriftRefCh.get(), antiDriftTypeToggle, onTheFly.getValue(), onChannelFusion.getValue() );
 
 //				new MMAcquisitionRunner().runAcquisition();
 

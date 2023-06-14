@@ -117,10 +117,11 @@ public class MMAcquisitionEngine
 	 * @param antiDriftReferenceChannel the reference channel for anti-drift
 	 * @param antiDriftTypeToggle the type of anti-drift, CentreOfMass or PhaseCorrelation
 	 * @param onTheFly onTheFly is enabled or not
+	 * @param fusionChannel fuse all the channels into one
 	 * @throws Exception the exception
 	 */
 	@SuppressWarnings("Duplicates")
-	public void performAcquisition(Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, ObservableList<TimePointItem> timePointItems, DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList<PositionItem> positionItems, List<ChannelItem> channelItems, LongProperty processedImages, long totalImages, boolean bSave, Object savingFormatValue, boolean saveMIP, boolean ablationSupport, boolean antiDrift, String experimentNote, StringProperty antiDriftLog, Integer antiDriftReferenceChannel, ReadOnlyObjectProperty<Toggle> antiDriftTypeToggle, Boolean onTheFly) throws Exception
+	public void performAcquisition(Studio studio, SPIMSetup setup, StagePanel stagePanel, Rectangle roiRectangle, int timeSeqs, ObservableList<TimePointItem> timePointItems, DoubleProperty currentTP, DoubleProperty waitSeconds, boolean arduinoSelected, File output, String acqFilenamePrefix, ObservableList<PositionItem> positionItems, List<ChannelItem> channelItems, LongProperty processedImages, long totalImages, boolean bSave, Object savingFormatValue, boolean saveMIP, boolean ablationSupport, boolean antiDrift, String experimentNote, StringProperty antiDriftLog, Integer antiDriftReferenceChannel, ReadOnlyObjectProperty<Toggle> antiDriftTypeToggle, Boolean onTheFly, Boolean fusionChannel) throws Exception
 	{
 		final Studio frame = studio;
 
@@ -145,7 +146,7 @@ public class MMAcquisitionEngine
 				else if(savingFormatValue.equals( "OMETIFF Image stack" ))
 					result.setStorage(new OMETIFFStorage(result, output.getAbsolutePath(), acqFilenamePrefix, true));
 				else if(savingFormatValue.equals( "BDV format" ))
-					result.setStorage(new BDVMicroManagerStorage(result, output.getAbsolutePath(), acqFilenamePrefix, channelItems.size(), timeSeqs, true));
+					result.setStorage(new BDVMicroManagerStorage(result, output.getAbsolutePath(), acqFilenamePrefix, channelItems.size(), timeSeqs, true, fusionChannel));
 				else if(savingFormatValue.equals( "N5 format" ))
 					result.setStorage(new N5MicroManagerStorage(result, output.getAbsolutePath(), acqFilenamePrefix, timeSeqs, true));
 				else if(savingFormatValue.equals( "On-the-fly" ))

@@ -347,7 +347,7 @@ public class ToolbarPanel extends DockNode implements SPIMSetupInjectable
 			break;
 			case N5: result.setStorage(new N5MicroManagerStorage(result, directory, prefix, 1, false));
 			break;
-			case BDV: result.setStorage(new BDVMicroManagerStorage(result, directory, prefix, 1, 1, false));
+			case BDV: result.setStorage(new BDVMicroManagerStorage(result, directory, prefix, 1, 1, false, false));
 			break;
 		}
 
