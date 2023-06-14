@@ -44,12 +44,19 @@ import mmcorej.DeviceType;
 import org.apache.commons.io.FileUtils;
 import org.micromanager.Studio;
 
+import org.micromanager.data.internal.DefaultDatastore;
 import org.micromanager.display.DisplayWindow;
 import org.micromanager.events.internal.DefaultGUIRefreshEvent;
 import org.micromanager.internal.MMStudio;
 import spim.hardware.Camera;
 import spim.hardware.SPIMSetup;
 import spim.hardware.VersaLase;
+import spim.io.BDVMicroManagerStorage;
+import spim.io.N5MicroManagerStorage;
+import spim.io.OMETIFFStorage;
+import spim.io.OpenSPIMSinglePlaneTiffSeries;
+import spim.io.StorageOpener;
+import spim.io.StorageType;
 import spim.model.data.AcquisitionSetting;
 import spim.model.data.ChannelItem;
 import spim.model.data.PinItem;
@@ -793,12 +800,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
 
 				if(displayWindow == null) {
-					new Alert( Alert.AlertType.WARNING, "Please, load a dataset first").showAndWait();
-					System.err.println("There is no dataset to be opened.");
-					return;
+					System.err.println("There is no dataset to be opened. Trying to open the current folder.");
+					AdvancedPlugins.openBigStitcherWindow( directory.getValue() );
+				} else {
+					AdvancedPlugins.openBigStitcherWindow( displayWindow.getDatastore().getSavePath() );
 				}
-
-				AdvancedPlugins.openBigStitcherWindow( displayWindow.getDatastore().getSavePath() );
 			}
 		} );
 
@@ -811,12 +817,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			{
 				DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
 				if(displayWindow == null) {
-					new Alert( Alert.AlertType.WARNING, "Please, load a dataset first").showAndWait();
-					System.err.println("There is no dataset to be opened.");
-					return;
+					System.err.println("There is no dataset to be opened. Trying to open the current folder.");
+					AdvancedPlugins.openMastodonWindow( directory.getValue() );
+				} else {
+					AdvancedPlugins.openMastodonWindow( displayWindow.getDatastore().getSavePath() );
 				}
-
-				AdvancedPlugins.openMastodonWindow( displayWindow.getDatastore().getSavePath() );
 			}
 		} );
 
@@ -1085,6 +1090,49 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		{
 			new File( dir ).mkdirs();
 		}
+	}
+
+	@SuppressWarnings("Duplicates")
+	void loadData() throws IOException {
+		File f = new File(directory.getValue());
+
+		if(f == null) return;
+
+		File[] list = f.listFiles((file, s) -> s.endsWith("_metadata.txt"));
+
+		if (list.length == 0) return;
+
+		String prefix = "";
+		StorageType storageType = null;
+
+		if (list.length == 1) {
+			prefix = list[0].getName().replaceFirst("_metadata.txt", "");
+			String directory = f.getAbsolutePath();
+			storageType = StorageOpener.checkStorageType(directory, prefix);
+		} else {
+			// List up all the prefix candidates and let the user choose one
+		}
+
+		String directory = f.getAbsolutePath();
+
+		DefaultDatastore result = new DefaultDatastore(studioProperty.get());
+
+		switch (storageType) {
+			case SinglePlaneTiff: result.setStorage(new OpenSPIMSinglePlaneTiffSeries(result, directory, prefix, false));
+				break;
+			case OMETiff: result.setStorage(new OMETIFFStorage(result, directory, prefix, false));
+				break;
+			case N5: result.setStorage(new N5MicroManagerStorage(result, directory, prefix, 1, false));
+				break;
+			case BDV: result.setStorage(new BDVMicroManagerStorage(result, directory, prefix, 1, 1, false));
+				break;
+		}
+
+		result.setSavePath(directory);
+		result.freeze();
+
+		studioProperty.get().displays().manage(result);
+		studioProperty.get().displays().loadDisplays(result);
 	}
 
 	void binningItemChanged(String item) {

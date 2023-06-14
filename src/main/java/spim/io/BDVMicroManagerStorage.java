@@ -542,8 +542,15 @@ public class BDVMicroManagerStorage implements Storage {
 				}
 			}
 
-			if(coords.getC() == image.getMetadata().getUserData().getInteger("Channels", 1) - 1)
+			if(coords.getC() == image.getMetadata().getUserData().getInteger("Channels", 1) - 1) {
 				timeFinished_.put(time, true);
+				// Save SpimData format for N5 storage
+				try {
+					saveXml(dir_ + "/" + prefix_ + ".n5", time);
+				} catch (SpimDataException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 
 		if (!coordsToFilename_.containsKey(coords)) {
