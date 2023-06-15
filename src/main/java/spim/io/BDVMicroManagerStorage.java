@@ -417,7 +417,7 @@ public class BDVMicroManagerStorage implements Storage {
 		final int time = coords.getT();
 		final int angle = coords.getP();
 
-		final int setupId = channel + angle * channels;
+		final int setupId = (fusionChannel_ ? channel / 2 : channel) + angle * (fusionChannel_ ? channels / 2 : channels);
 
 		String dataset = BdvN5Format.getPathName(setupId, time, 0);
 
