@@ -34,6 +34,7 @@ import mpicbg.spim.data.sequence.Channel;
 import mpicbg.spim.data.sequence.FinalVoxelDimensions;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.TimePoints;
+import net.imagej.ops.OpService;
 import net.imglib2.FinalDimensions;
 import net.imglib2.realtransform.AffineTransform3D;
 import net.imglib2.type.numeric.ARGBType;
@@ -43,9 +44,11 @@ import net.preibisch.mvrecon.fiji.spimdata.XmlIoSpimData2;
 import net.preibisch.stitcher.gui.StitchingExplorer;
 import org.mastodon.feature.FeatureComputerService;
 import org.mastodon.feature.FeatureSpecsService;
+import org.mastodon.feature.io.FeatureSerializationService;
 import org.mastodon.mamut.MainWindow;
 import org.mastodon.mamut.WindowManager;
 import org.mastodon.mamut.project.MamutProject;
+import org.mastodon.mamut.project.MamutProjectIO;
 import org.micromanager.data.Coordinates;
 import org.micromanager.data.Coords;
 import org.micromanager.data.DataProvider;
@@ -437,11 +440,16 @@ public class AdvancedPlugins {
 	public static void openMastodonWindow(String folder) {
 		SwingUtilities.invokeLater(() -> {
 //			final File file = new File("/Users/moon/Desktop/cap_3" + File.separator + "dataset.xml");
-			final File file = new File(folder + File.separator + "dataset.xml");
+			final File datasetFile = new File(folder + File.separator + "dataset.xml");
+			final File mastodonFile = new File(folder + File.separator + "dataset.mastodon");
 			new Thread(() -> {
 				try {
-					final WindowManager windowManager = new WindowManager( new Context(PluginService.class, FeatureSpecsService.class, FeatureComputerService.class));
-					windowManager.getProjectManager().open(new MamutProject(null, file));
+					final WindowManager windowManager = new WindowManager( new Context(PluginService.class, FeatureSpecsService.class, FeatureSerializationService.class, FeatureComputerService.class, OpService.class));
+					if (mastodonFile.exists()) {
+						windowManager.getProjectManager().open(new MamutProjectIO().load( mastodonFile.getPath() ));
+					} else if (datasetFile.exists()) {
+						windowManager.getProjectManager().open(new MamutProject(null, datasetFile));
+					}
 					MainWindow mastodonWindow = new MainWindow(windowManager);
 					mastodonWindow.setVisible(true);
 					mastodonWindow.requestFocus();
