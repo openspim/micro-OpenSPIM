@@ -330,7 +330,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 
 		sliceZBottomUm_ = positionItem.getZStart();
 		sliceZTopUm_ = positionItem.getZEnd();
-		sliceZStepUm_ = positionItem.getZStep();
+		sliceZStepUm_ = positionItem.getZStep() * spimSetup_.getCamera1().getBinning();
 
 		posList_.clearAllPositions();
 		posList_.addPosition( 0, new MultiStagePosition( spimSetup_.getXStage().getLabel(), positionItem.getX(), positionItem.getY(), spimSetup_.getZStage().getLabel(), positionItem.getZStart() ) );
