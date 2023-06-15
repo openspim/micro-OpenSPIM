@@ -251,6 +251,12 @@
             <artifactId>bigdataviewer-core</artifactId>
             <version>10.4.3</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.mastodon</groupId>
+            <artifactId>mastodon-tomancak</artifactId>
+            <version>0.2.1</version>
+        </dependency>
     </dependencies>
 
     <build>
