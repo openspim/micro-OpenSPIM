@@ -199,12 +199,6 @@
         </dependency>
 
         <dependency>
-            <groupId>net.imglib2</groupId>
-            <artifactId>imglib2</artifactId>
-            <version>5.6.3</version>
-        </dependency>
-
-        <dependency>
             <groupId>sc.fiji</groupId>
             <artifactId>bigdataviewer_fiji</artifactId>
             <version>6.2.2</version>
