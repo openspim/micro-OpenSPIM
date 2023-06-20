@@ -120,6 +120,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 	private ReentrantLock rlock = new ReentrantLock(true);
 
 	Datastore mpStore_;
+	Pipeline mpPipeline_;
 	String ablationFilePrefix_;
 	TreeMap<Integer, Image>[] mpImages_;
 	TaggedImageSink sink;
@@ -262,6 +263,9 @@ public class AcqWrapperEngine implements AcquisitionEngine
 					DefaultDatastore result = new DefaultDatastore(frame);
 					result.setStorage(new OpenSPIMSinglePlaneTiffSeries(result, saveDir.getAbsolutePath(), acqFilenamePrefix, true));
 					mpStore_ = result;
+
+					mpPipeline_ = studio_.data().copyApplicationPipeline(mpStore_, false);
+					mpStore_.registerForEvents(this);
 
 					DisplayWindow display = frame.displays().createDisplay(mpStore_);
 
@@ -413,6 +417,12 @@ public class AcqWrapperEngine implements AcquisitionEngine
 				generateMIP();
 				rlock.unlock();
 				curStore_.unregisterForEvents(AcqWrapperEngine.this);
+				if (mpStore_ != null) {
+					studio_.events().post(new DefaultAcquisitionEndedEvent(
+							mpStore_, this));
+
+					mpStore_.unregisterForEvents(this);
+				}
 			});
 
 			return curStore_;
@@ -523,8 +533,10 @@ public class AcqWrapperEngine implements AcquisitionEngine
 
 				if (null != mpStore_ && !mpStore_.isFrozen())
 					try {
-						mpStore_.putImage(processedImage_);
+						mpPipeline_.insertImage(processedImage_);
 					} catch (IOException e) {
+						e.printStackTrace();
+					} catch (PipelineErrorException e) {
 						e.printStackTrace();
 					}
 			}
