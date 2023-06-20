@@ -55,6 +55,7 @@ import org.micromanager.data.DataProvider;
 import org.micromanager.data.internal.DefaultImageJConverter;
 import org.micromanager.display.DisplayWindow;
 import org.scijava.Context;
+import org.scijava.app.StatusService;
 import org.scijava.plugin.PluginService;
 
 import javax.swing.*;
@@ -444,7 +445,7 @@ public class AdvancedPlugins {
 			final File mastodonFile = new File(folder + File.separator + "dataset.mastodon");
 			new Thread(() -> {
 				try {
-					final WindowManager windowManager = new WindowManager( new Context(PluginService.class, FeatureSpecsService.class, FeatureSerializationService.class, FeatureComputerService.class, OpService.class));
+					final WindowManager windowManager = new WindowManager( new Context(PluginService.class, FeatureSpecsService.class, FeatureSerializationService.class, FeatureComputerService.class, StatusService.class, OpService.class));
 					if (mastodonFile.exists()) {
 						windowManager.getProjectManager().open(new MamutProjectIO().load( mastodonFile.getPath() ));
 					} else if (datasetFile.exists()) {
