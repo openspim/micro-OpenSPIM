@@ -604,9 +604,9 @@ public class BDVMicroManagerStorage implements Storage {
 						}
 					}
 					// Save SpimData format for N5 storage
-//					System.out.println("xml Saved");
+//					System.out.println("xml Saved - t:" + time);
 					try {
-						saveXml(dir_ + "/" + prefix_ + ".n5", time);
+						saveXml(dir_ + "/" + prefix_ + ".n5", time + 1);
 					} catch (SpimDataException e) {
 						e.printStackTrace();
 					}
