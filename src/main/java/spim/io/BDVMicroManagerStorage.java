@@ -553,8 +553,8 @@ public class BDVMicroManagerStorage implements Storage {
 						int nChannels = channels / 2;
 						for(int i = 0; i < nChannels; i++) {
 							CLIJx clijx = CLIJx.getInstance();
-							ClearCLBuffer gpu_input1 = clijx.push(new ImagePlus("gpu_input", imageStacks[i]));
-							ClearCLBuffer gpu_input2 = clijx.push(new ImagePlus("gpu_input", imageStacks[nChannels + i]));
+							ClearCLBuffer gpu_input1 = clijx.push(new ImagePlus("gpu_input", imageStacks[nChannels*i]));
+							ClearCLBuffer gpu_input2 = clijx.push(new ImagePlus("gpu_input", imageStacks[nChannels*i + 1]));
 
 							// create an image with correct size and type on GPU for output
 							ClearCLBuffer gpu_output = clijx.create(gpu_input1);
