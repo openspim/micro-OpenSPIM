@@ -419,6 +419,8 @@ public class BDVMicroManagerStorage implements Storage {
 
 		final int setupId = (fusionChannel_ ? channel / 2 : channel) + angle * (fusionChannel_ ? channels / 2 : channels);
 
+//		System.out.println("SetupID: " + setupId);
+
 		String dataset = BdvN5Format.getPathName(setupId, time, 0);
 
 		if (!amLoading_) {
@@ -490,7 +492,7 @@ public class BDVMicroManagerStorage implements Storage {
 
 				// create SourceTransform from the images calibration
 				final AffineTransform3D sourceTransform = new AffineTransform3D();
-				sourceTransform.set( 1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 9.378, 0 );
+				sourceTransform.set( 1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 1.0, 0 );
 
 				registrations.add( new ViewRegistration( time, setupId, sourceTransform ) );
 
@@ -547,62 +549,64 @@ public class BDVMicroManagerStorage implements Storage {
 					}
 				}
 
-//				System.out.println(coords.getC() + "/" + channels);
-				if(coords.getC() == channels - 1) {
-					if(fusionChannel_) {
-						int nChannels = channels / 2;
-						for(int i = 0; i < nChannels; i++) {
-							CLIJx clijx = CLIJx.getInstance();
-							ClearCLBuffer gpu_input1 = clijx.push(new ImagePlus("gpu_input", imageStacks[nChannels*i]));
-							ClearCLBuffer gpu_input2 = clijx.push(new ImagePlus("gpu_input", imageStacks[nChannels*i + 1]));
+				System.out.println(coords.getC() + "/" + channels);
 
-							// create an image with correct size and type on GPU for output
-							ClearCLBuffer gpu_output = clijx.create(gpu_input1);
+				if(fusionChannel_ && coords.getC() % 2 == 1)
+				{
+					int nChannels = coords.getC();
+					for(int i = 0; i < 2; i++) {
+						CLIJx clijx = CLIJx.getInstance();
+						ClearCLBuffer gpu_input1 = clijx.push(new ImagePlus("gpu_input", imageStacks[nChannels]));
+						ClearCLBuffer gpu_input2 = clijx.push(new ImagePlus("gpu_input", imageStacks[nChannels - 1]));
 
-							clijx.maximumImages(gpu_input1, gpu_input2, gpu_output);
+						// create an image with correct size and type on GPU for output
+						ClearCLBuffer gpu_output = clijx.create(gpu_input1);
 
-							ClearCLBuffer background_substrackted_image = clijx.create(gpu_input1);
-							float sigma1x = 1.0f;
-							float sigma1y = 1.0f;
-							float sigma1z = 1.0f;
-							float sigma2x = 5.0f;
-							float sigma2y = 5.0f;
-							float sigma2z = 5.0f;
-							clijx.differenceOfGaussian3D(gpu_output, background_substrackted_image, sigma1x, sigma1y, sigma1z, sigma2x, sigma2y, sigma2z);
+						clijx.maximumImages(gpu_input1, gpu_input2, gpu_output);
 
-							// uncomment the below if you want to see the result
-							 ImagePlus imp_output = clijx.pull(gpu_output);
-							imp_output.setTitle("t=" + time + "/angle=" + angle);
-							// imp_output.getProcessor().resetMinAndMax();
-							// imp_output.show();
+						ClearCLBuffer background_substrackted_image = clijx.create(gpu_input1);
+						float sigma1x = 1.0f;
+						float sigma1y = 1.0f;
+						float sigma1z = 1.0f;
+						float sigma2x = 5.0f;
+						float sigma2y = 5.0f;
+						float sigma2z = 5.0f;
+						clijx.differenceOfGaussian3D(gpu_output, background_substrackted_image, sigma1x, sigma1y, sigma1z, sigma2x, sigma2y, sigma2z);
 
-							// clean up memory on the GPU
-							gpu_input1.close();
-							gpu_input2.close();
-							gpu_output.close();
-							background_substrackted_image.close();
+						// uncomment the below if you want to see the result
+						ImagePlus imp_output = clijx.pull(gpu_output);
+						imp_output.setTitle("t=" + time + "/angle=" + angle);
+						// imp_output.getProcessor().resetMinAndMax();
+						// imp_output.show();
 
-							if (bytesPerPixel == 1) {
-								final Img rai = ImageJFunctions.<UnsignedByteType>wrap(imp_output);
-								source = Views.zeroMin(rai);
-							} else {
-								final Img rai = ImageJFunctions.<UnsignedShortType>wrap(imp_output);
-								source = Views.zeroMin(rai);
-							}
+						// clean up memory on the GPU
+						gpu_input1.close();
+						gpu_input2.close();
+						gpu_output.close();
+						background_substrackted_image.close();
 
-							if (writer != null) {
-								try {
-									N5Utils.saveBlock(source, writer, dataset, gridPosition, exec);
-								} catch (InterruptedException e) {
-									e.printStackTrace();
-								} catch (ExecutionException e) {
-									e.printStackTrace();
-								} catch (Exception e) {
-									e.printStackTrace();
-								}
+						if (bytesPerPixel == 1) {
+							final Img rai = ImageJFunctions.<UnsignedByteType>wrap(imp_output);
+							source = Views.zeroMin(rai);
+						} else {
+							final Img rai = ImageJFunctions.<UnsignedShortType>wrap(imp_output);
+							source = Views.zeroMin(rai);
+						}
+
+						if (writer != null) {
+							try {
+								N5Utils.saveBlock(source, writer, dataset, gridPosition, exec);
+							} catch (InterruptedException e) {
+								e.printStackTrace();
+							} catch (ExecutionException e) {
+								e.printStackTrace();
+							} catch (Exception e) {
+								e.printStackTrace();
 							}
 						}
 					}
+				}
+				if(coords.getC() == channels - 1) {
 					// Save SpimData format for N5 storage
 //					System.out.println("xml Saved - t:" + time);
 					try {
