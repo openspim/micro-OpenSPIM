@@ -104,10 +104,10 @@ public class EditTextFieldTableCell<S,T> extends TableCell<S,T>
 
 			super.commitEdit(var1);
 			this.updateItem(var1, true);
-			if (var2 != null) {
-				var2.edit(-1, (TableColumn)null);
-				requestFocusOnControlOnlyIfCurrentFocusOwnerIsChild(var2);
-			}
+//			if (var2 != null) {
+//				var2.edit(-1, (TableColumn)null);
+//				requestFocusOnControlOnlyIfCurrentFocusOwnerIsChild(var2);
+//			}
 		} else {
 			TableView var2 = this.getTableView();
 			if (var2 != null) {
