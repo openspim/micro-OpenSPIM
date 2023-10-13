@@ -44,19 +44,12 @@ import mmcorej.DeviceType;
 import org.apache.commons.io.FileUtils;
 import org.micromanager.Studio;
 
-import org.micromanager.data.internal.DefaultDatastore;
 import org.micromanager.display.DisplayWindow;
 import org.micromanager.events.internal.DefaultGUIRefreshEvent;
 import org.micromanager.internal.MMStudio;
 import spim.hardware.Camera;
 import spim.hardware.SPIMSetup;
 import spim.hardware.VersaLase;
-import spim.io.BDVMicroManagerStorage;
-import spim.io.N5MicroManagerStorage;
-import spim.io.OMETIFFStorage;
-import spim.io.OpenSPIMSinglePlaneTiffSeries;
-import spim.io.StorageOpener;
-import spim.io.StorageType;
 import spim.model.data.AcquisitionSetting;
 import spim.model.data.ChannelItem;
 import spim.model.data.PinItem;
@@ -77,11 +70,11 @@ import java.awt.*;
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static spim.ui.view.component.util.TableViewUtil.createTimePointItemDataView;
@@ -139,12 +132,15 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	// Save Image panel
 	BooleanProperty enabledSaveImages;
 	StringProperty directory;
+	StringProperty folder;
 	StringProperty filename;
+	SpinnerValueFactory.IntegerSpinnerValueFactory incSpinnerValueFactory;
 	ObjectProperty savingFormat;
 	BooleanProperty saveMIP;
 	BooleanProperty ablationSupport;
 	BooleanProperty ablationDisabled;
 	ObjectProperty roiRectangle;
+	File folderFile;
 
 	// Experiment note
 	StringProperty experimentNote;
@@ -809,7 +805,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 				if(displayWindow == null) {
 					System.err.println("There is no dataset to be opened. Trying to open the current folder.");
-					AdvancedPlugins.openBigStitcherWindow( directory.getValue() );
+					AdvancedPlugins.openBigStitcherWindow( folderFile.getAbsolutePath() );
 				} else {
 					AdvancedPlugins.openBigStitcherWindow( displayWindow.getDatastore().getSavePath() );
 				}
@@ -826,7 +822,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
 				if(displayWindow == null) {
 					System.err.println("There is no dataset to be opened. Trying to open the current folder.");
-					AdvancedPlugins.openMastodonWindow( directory.getValue() );
+					AdvancedPlugins.openMastodonWindow( folderFile.getAbsolutePath() );
 				} else {
 					AdvancedPlugins.openMastodonWindow( displayWindow.getDatastore().getSavePath() );
 				}
@@ -843,12 +839,12 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		SplitPane zStackAcqTabs = new SplitPane(createZStackPane(stagePanel), acquisitionPane);
 		zStackAcqTabs.setOrientation( Orientation.VERTICAL );
-		zStackAcqTabs.setDividerPositions( 0.4 );
+		zStackAcqTabs.setDividerPositions( 0.2 );
 
 		zStackAcqTabs.heightProperty().addListener(new ChangeListener<Number>() {
 			@Override
 			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
-				zStackAcqTabs.setDividerPositions( 0.4 );
+				zStackAcqTabs.setDividerPositions( 0.2, 0.65 );
 			}
 		});
 
@@ -989,7 +985,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		timePositionSplit.getItems().add(channelSummary);
 		timePositionSplit.setDividerPositions( 0.3, 0.5, 0.7 );
 		zStackAcqTabs.getItems().add(1, createSaveImagesPane());
-		zStackAcqTabs.setDividerPositions( 0.3, 0.6 );
+		zStackAcqTabs.setDividerPositions( 0.2, 0.65 );
 
 		// Save image options
 //		SplitPane channelListSaveImage = new SplitPane(
@@ -1236,6 +1232,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 				filename.setValue("");
 				directory.setValue("");
+				folder.setValue("");
+
 				saveMIP.set(false);
 				ablationSupport.set(false);
 
@@ -1344,6 +1342,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		// 6. Save Image panel
 		enabledSaveImages.set( setting.getEnabledSaveImages() );
 		directory.set( setting.getDirectory() );
+		folder.set( setting.getFolder() );
 		filename.set( setting.getFilename() );
 		savingFormat.set( setting.getSavingFormat() );
 		saveMIP.set( setting.getSaveMIP() );
@@ -1371,7 +1370,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		return new AcquisitionSetting( enabledTimePoints, timePointItems,
 				enabledPositions, positionItems, enabledZStacks, acquisitionOrder,
 				enabledChannels, channelTabPane.getSelectionModel().selectedIndexProperty().get(), channelItems,
-				channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveMIP, roiRectangle, rotateStepSize,
+				channelItemsArduino, enabledSaveImages, directory, folder, filename, savingFormat, saveMIP, roiRectangle, rotateStepSize,
 				experimentNote);
 	}
 
@@ -1391,7 +1390,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		enabledSaveImages.set( true );
 		directory.set( "" );
-		filename.set( "Untitled" );
+		folder.set( "" );
+		filename.set( "" );
 		savingFormat.set( "Single Plane TIFF" );
 		saveMIP.set( false );
 		roiRectangle.set( null );
@@ -1459,57 +1459,17 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		}
 
 		// Check if the specified file name exists
-		File folder = new File(directory.getValue());
+		folderFile = new File( directory.getValue(), getCurrentTime() + "_" + folder.getValue() + "_" + incSpinnerValueFactory.getValue() );
 		if ( enabledSaveImages.get() )
 		{
-			if(!folder.exists()) {
-				Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The folder does not exist. Click Yes to create new folder.", ButtonType.YES, ButtonType.NO).showAndWait();
-
-				if( results.isPresent() ) {
-					if (results.get() == ButtonType.YES) {
-						try {
-							FileUtils.forceMkdir(folder);
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-					}
-					else if(results.get() == ButtonType.NO)
-					{
-						return false;
-					}
-				}
+			while(folderFile.exists()) {
+				incSpinnerValueFactory.increment(1);
+				folderFile = new File( directory.getValue(), getCurrentTime() + "_" + folder.getValue() + "_" + incSpinnerValueFactory.getValue() );
 			}
-			if(null != folder.listFiles()) {
-				boolean found = folder.exists() && folder.listFiles().length > 1;
-
-				if(found) {
-					int maxNumber = 0;
-					for (File acqDir : Objects.requireNonNull( folder.getParentFile().listFiles() ) ) {
-						String theName = acqDir.getName();
-						int number;
-						if (theName.startsWith(folder.getName())) {
-							try {
-								//e.g.: "blah_32.ome.tiff"
-								Pattern p = Pattern.compile("\\Q" + folder.getName() + "_\\E" + "(\\d+)");
-								Matcher m = p.matcher(theName);
-								if (m.matches()) {
-									number = Integer.parseInt(m.group(1));
-									if (number >= maxNumber) {
-										maxNumber = number;
-									}
-								}
-							} catch (NumberFormatException e) {
-							} // Do nothing.
-						}
-					}
-
-					folder = new File(directory.get() + "_" + (maxNumber + 1));
-					try {
-						FileUtils.forceMkdir(folder);
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
+			try {
+				FileUtils.forceMkdir(folderFile);
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 		}
 
@@ -1537,7 +1497,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		// Write the experiment note
 		try {
-			writeNote(folder);
+			writeNote(folderFile);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -1559,7 +1519,28 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		Platform.runLater( () -> processedImages.set( 0 ) );
 
-		File finalFolder = folder;
+		File finalFolder = folderFile;
+		String fileName = filename.getValue();
+
+		Date date = Calendar.getInstance().getTime();
+
+		// yyyyMMdd_HHmm
+		// <YYYYMMDD>_<hhmmss>
+		DateFormat dateFormat = new SimpleDateFormat("yyyMMdd");
+		String dateString = dateFormat.format(date);
+		dateFormat = new SimpleDateFormat("HHmmss");
+		String timeString = dateFormat.format(date);
+
+		fileName = fileName.replace("<YYYYMMDD>", dateString);
+		fileName = fileName.replace("<hhmmss>", timeString);
+		String positions = positionItemTableView.getItems().filtered(p -> p.getSelected()).stream().map(PositionItem::getName).collect(Collectors.joining("_"));
+
+		String timepoints = timePointItemTableView.getItems().filtered(t -> t.getType().equals(TimePointItem.Type.Acq)).stream().map(t -> String.format("%dx%d%s", t.getNoTimePoints(), t.getInterval(), t.getIntervalUnit())).collect(Collectors.joining("_"));
+
+		fileName = fileName.replace("<positions>", positions);
+		fileName = fileName.replace("<timepoints>", timepoints);
+
+		String finalFileName = fileName;
 		acquisitionThread = new Thread(() ->
 		{
 			Thread.currentThread().setContextClassLoader( HalcyonMain.class.getClassLoader() );
@@ -1568,7 +1549,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			{
 				engine.performAcquisition( getStudio(), getSpimSetup(), stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp,
 						timePointItemTableView.getItems(), currentTP, waitSeconds,
-						arduinoSelected, finalFolder, filename.getValue(),
+						arduinoSelected, finalFolder, finalFileName,
 						positionItemTableView.getItems().filtered(p -> p.getSelected()), channelItemList, processedImages, totalImages.getValue(),
 						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), ablationSupport.getValue(), antiDrift.getValue(), experimentNote.getValue(),
 						antiDriftLog, antiDriftRefCh.get(), antiDriftTypeToggle, onTheFly.getValue(), onChannelFusion.getValue() );
@@ -1604,6 +1585,12 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			noteStream.write(experimentNote.getValue());
 			noteStream.close();
 		}
+	}
+
+	static String getCurrentTime() {
+		Date date = Calendar.getInstance().getTime();
+		DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmm");
+		return dateFormat.format(date);
 	}
 
 	static double getUnit(String unitString) {
@@ -1775,7 +1762,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		gridpane.setHgap( 5 );
 
 		TextField textField = new TextField();
-		propertyMap.put( "folder", textField.textProperty() );
+		propertyMap.put( "directory", textField.textProperty() );
 
 		directory = textField.textProperty();
 
@@ -1804,21 +1791,44 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			@Override
 			public void handle(ActionEvent event) {
 				try {
-					if (!directory.get().isEmpty())
-						Desktop.getDesktop().open(new File(directory.get()));
+					if ( folderFile != null && folderFile.exists() )
+						Desktop.getDesktop().open( folderFile );
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
 		});
 
-		gridpane.addRow( 0, new Label( "Directory:" ), textField, selectFolder, openFolder );
+		GridPane.setConstraints(textField, 1, 0, 2, 1); // column=1 row=0
+		GridPane.setConstraints(selectFolder, 3, 0, 1, 1); // column=3 row=0
 
-		textField = new TextField("Untitled");
-		filename = textField.textProperty();
+		gridpane.addRow( 0, new Label( "Base Directory:" ) );
+		gridpane.getChildren().addAll(textField, selectFolder);
 
-		propertyMap.put( "filename", textField.textProperty() );
-		gridpane.addRow( 1, new Label( "File name:" ), textField );
+//		textField = new TextField("");
+		textField = new TextField("ML-AblationPolarBodies-N01_CB-JG");
+		folder = textField.textProperty();
+
+		propertyMap.put( "folder", textField.textProperty() );
+
+		Spinner<Integer> incSpinner = new Spinner<>(0, 99, 0, 1);
+		incSpinner.setMaxWidth(60);
+
+		incSpinnerValueFactory =
+				(SpinnerValueFactory.IntegerSpinnerValueFactory) incSpinner.getValueFactory();
+
+		gridpane.addRow( 1, new Label( "Base Folder:" ), textField, incSpinner, openFolder );
+
+		TextArea textArea = new TextArea("<YYYYMMDD>_<hhmmss>_<positions>_<timepoints>");
+		textArea.setWrapText(true);
+		textArea.setMinHeight(80);
+		textArea.setMaxHeight(80);
+		GridPane.setConstraints(textArea, 1, 0, 2, 1);
+
+		filename = textArea.textProperty();
+		propertyMap.put( "filename", textArea.textProperty() );
+
+		gridpane.addRow(2, new Label( "Filename:" ), textArea);
 
 		ComboBox c = new ComboBox<>( FXCollections.observableArrayList(
 				"Single Plane TIFF", "OMETIFF Image stack", "BDV format", "N5 format", "On-the-fly" ) );
@@ -1836,11 +1846,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		savingFormat = c.valueProperty();
 		ablationDisabled.bind(savingFormat.isNotEqualTo("OMETIFF Image stack"));
 
-		gridpane.addRow( 2, new Label( "Saving format:" ), c );
+		gridpane.addRow( 3, new Label( "Saving format:" ), c );
 
 		CheckBox mip = new CheckBox( "Show/save Maximum Intensity Projection of each TP" );
-		gridpane.addRow( 3, mip );
-		gridpane.setColumnSpan( mip, 2 );
+		gridpane.addRow( 4, mip );
+		gridpane.setColumnSpan( mip, 3 );
 
 		saveMIP = mip.selectedProperty();
 
@@ -1853,7 +1863,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Tab saveOptionTab = new Tab("Saving option", pane);
 		saveOptionTab.setClosable(false);
 
-		TextArea textArea = new TextArea();
+		textArea = new TextArea();
 		textArea.setWrapText(true);
 		experimentNote = textArea.textProperty();
 
