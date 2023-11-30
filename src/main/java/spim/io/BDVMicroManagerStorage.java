@@ -473,6 +473,7 @@ public class BDVMicroManagerStorage implements Storage {
 				writer.setAttribute( pathName, DATA_TYPE_KEY, bytesPerPixel == 1 ? DataType.UINT8 : DataType.UINT16 );
 
 				final double pixelSizeUm = image.getMetadata().getPixelSizeUm();
+				final double binning = image.getMetadata().getBinning();
 				final double zStepSize = image.getMetadata().getUserData().getDouble("Z-Step-um", 1);
 
 				String punit = "µm";
@@ -492,7 +493,7 @@ public class BDVMicroManagerStorage implements Storage {
 
 				// create SourceTransform from the images calibration
 				final AffineTransform3D sourceTransform = new AffineTransform3D();
-				sourceTransform.set( 1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 1.0, 0 );
+				sourceTransform.set( 1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, zStepSize / pixelSizeUm / binning, 0 );
 
 				registrations.add( new ViewRegistration( time, setupId, sourceTransform ) );
 
