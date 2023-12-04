@@ -498,7 +498,7 @@ public class BDVMicroManagerStorage implements Storage {
 
 				// create SourceTransform from the images calibration
 				final AffineTransform3D sourceTransform = new AffineTransform3D();
-				sourceTransform.set( 1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, zUnit / binning, 0 );
+				sourceTransform.set( 1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, zUnit, 0 );
 
 				registrations.add( new ViewRegistration( time, setupId, sourceTransform ) );
 
