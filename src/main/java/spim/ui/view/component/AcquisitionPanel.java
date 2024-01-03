@@ -44,6 +44,7 @@ import mmcorej.DeviceType;
 import org.apache.commons.io.FileUtils;
 import org.micromanager.Studio;
 
+import org.micromanager.display.DisplayWindow;
 import org.micromanager.events.internal.DefaultGUIRefreshEvent;
 import org.micromanager.internal.MMStudio;
 import spim.hardware.Camera;
@@ -55,6 +56,7 @@ import spim.model.data.PinItem;
 import spim.model.data.PositionItem;
 import spim.model.data.TimePointItem;
 import spim.model.event.ControlEvent;
+import spim.ui.view.component.util.AdvancedPlugins;
 import spim.ui.view.component.widgets.cube.SliceCube;
 import spim.ui.view.component.widgets.cube.StackCube;
 import spim.ui.view.component.widgets.pane.CheckboxPane;
@@ -68,11 +70,11 @@ import java.awt.*;
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static spim.ui.view.component.util.TableViewUtil.createTimePointItemDataView;
@@ -130,10 +132,15 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 	// Save Image panel
 	BooleanProperty enabledSaveImages;
 	StringProperty directory;
+	StringProperty folder;
 	StringProperty filename;
+	SpinnerValueFactory.IntegerSpinnerValueFactory incSpinnerValueFactory;
 	ObjectProperty savingFormat;
 	BooleanProperty saveMIP;
+	BooleanProperty ablationSupport;
+	BooleanProperty ablationDisabled;
 	ObjectProperty roiRectangle;
+	File folderFile;
 
 	// Experiment note
 	StringProperty experimentNote;
@@ -200,6 +207,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 	// On-the-fly
 	BooleanProperty onTheFly;
+	BooleanProperty onChannelFusion;
 
 	// Current Position Index
 	IntegerProperty currentPositionIndex;
@@ -441,8 +449,123 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		BorderPane.setMargin(acquireHBox, new Insets(12,12,12,12));
 
+		// Acquisition Setting Buttons
+		final HBox acqSettings = new HBox();
+		acqSettings.setSpacing(5);
+		acqSettings.setAlignment( Pos.CENTER_LEFT );
+
+		Button saveButton = new Button( "SAVE" );
+		saveButton.setMinSize( 100, 30 );
+		saveButton.setStyle("-fx-font: 12 arial; -fx-base: #69e760;");
+		saveButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				final FileChooser fileChooser = new FileChooser();
+				fileChooser.setTitle( "µOpenSPIM AcquisitionSetting file" );
+				fileChooser.getExtensionFilters().addAll(
+						new FileChooser.ExtensionFilter( "µOpenSPIM AcquisitionSetting file", "*.xml" )
+				);
+
+				File file = fileChooser.showSaveDialog( getScene().getWindow() );
+				if ( file != null )
+				{
+					AcquisitionSetting.save( file, getAcquisitionSetting() );
+				}
+			}
+		} );
+
+		Button loadButton = new Button( "LOAD" );
+		loadButton.setMinSize( 100, 30 );
+		loadButton.setStyle("-fx-font: 12 arial; -fx-base: #e7e45d;");
+		loadButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				final FileChooser fileChooser = new FileChooser();
+				fileChooser.setTitle( "µOpenSPIM AcquisitionSetting file" );
+				fileChooser.getExtensionFilters().addAll(
+						new FileChooser.ExtensionFilter( "µOpenSPIM AcquisitionSetting file", "*.xml" )
+				);
+
+				File file = fileChooser.showOpenDialog( getScene().getWindow() );
+				if ( file != null )
+				{
+					AcquisitionSetting setting = AcquisitionSetting.load( file );
+					if(setting != null) {
+						// Update GUI
+						updateUI( setting );
+					}
+				}
+			}
+		} );
+
+		loadButton.setOnDragOver( new EventHandler< DragEvent >()
+		{
+			@Override public void handle( DragEvent event )
+			{
+				Dragboard db = event.getDragboard();
+				if ( db.hasFiles() && db.getFiles().size() == 1 )
+				{
+					event.acceptTransferModes( TransferMode.COPY );
+				}
+				else
+				{
+					event.consume();
+				}
+			}
+		} );
+
+		loadButton.setOnDragDropped( new EventHandler< DragEvent >()
+		{
+			@Override public void handle( DragEvent event )
+			{
+				Dragboard db = event.getDragboard();
+				boolean success = false;
+				if ( db.hasFiles() && db.getFiles().size() == 1 )
+				{
+					if(db.getFiles().get(0).isFile()) {
+						final File file = db.getFiles().get(0);
+						final AcquisitionSetting setting = AcquisitionSetting.load( file );
+						if(setting != null) {
+							// Update GUI
+							updateUI( setting );
+							success = true;
+						}
+					}
+				}
+
+				event.setDropCompleted( success );
+				event.consume();
+			}
+		} );
+
+		Button clearButton = new Button( "CLEAR" );
+		clearButton.setMinSize( 100, 30 );
+		clearButton.setStyle("-fx-font: 12 arial; -fx-base: #ffbec4;");
+		clearButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "Are you sure?", ButtonType.YES, ButtonType.CANCEL).showAndWait();
+
+				if( results.isPresent() && results.get() == ButtonType.YES) {
+					clearAcquisitionSetting();
+				} else {
+					System.err.println("Clear acquisition setting stopped by user cancellation.");
+				}
+			}
+		} );
+
+		acqSettings.getChildren().addAll( saveButton, loadButton, clearButton );
+		BorderPane.setMargin(acqSettings, new Insets(12,12,12,12));
+
+		final TitledPane acqSettingPane = new TitledPane( "Save/Load Settings", acqSettings );
+		acqSettingPane.setCollapsible( false );
+
 		// listbox for Position list
 		SplitPane timePositionSplit = new SplitPane(
+				acqSettingPane,
 				createPositionListPane(positionItemTableView, currentPositionItemTableView),
 				createTimePointsPane() );
 		timePositionSplit.setOrientation( Orientation.VERTICAL );
@@ -594,6 +717,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		CheckBox onTheFlyCheckBox = new CheckBox("on-the-fly processing (based on clij)");
 		onTheFly = onTheFlyCheckBox.selectedProperty();
 
+		CheckBox onFusionChannels = new CheckBox("2-channel fusion (based on clij)");
+		onChannelFusion = onFusionChannels.selectedProperty();
+
 		Hyperlink clijHyperlink = new Hyperlink("https://clij.github.io/");
 		clijHyperlink.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
@@ -607,6 +733,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		onTheFlyHBox.setAlignment( Pos.CENTER_LEFT );
 		onTheFlyHBox.setPadding(new Insets(5));
 
+		HBox onFusionchannelHBox = new HBox(3, onFusionChannels);
+		onFusionchannelHBox.setAlignment( Pos.CENTER_LEFT );
+		onFusionchannelHBox.setPadding(new Insets(5));
+
 		Tab antiDriftTab = new Tab("Anti-drift", new VBox(2, antiDriftPane, chBox));
 		antiDriftTab.setClosable(false);
 
@@ -616,10 +746,22 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Tab binningTab = new Tab("Binning", binningHBox);
 		binningTab.setClosable(false);
 
-		Tab onTheFlyTab = new Tab("On-the-fly", onTheFlyHBox);
+		Tab onTheFlyTab = new Tab("On-the-fly", new VBox(2, onTheFlyHBox, onFusionchannelHBox));
 		onTheFlyTab.setClosable(false);
 
-		TabPane acquisitionTabPane = new TabPane( antiDriftTab, binningTab, onTheFlyTab, roiTab );
+		CheckBox ablationCheckbox = new CheckBox( "Generate ablation.tiff (works with OMETIFF as saving format)" );
+
+		ablationSupport = ablationCheckbox.selectedProperty();
+		ablationDisabled = ablationCheckbox.disableProperty();
+
+		HBox ablationHBox = new HBox(3, ablationCheckbox);
+		ablationHBox.setAlignment( Pos.CENTER_LEFT );
+		ablationHBox.setPadding(new Insets(5));
+
+		Tab ablationTab = new Tab("Ablation", ablationHBox);
+		ablationTab.setClosable(false);
+
+		TabPane acquisitionTabPane = new TabPane( antiDriftTab, binningTab, onTheFlyTab, ablationTab, roiTab );
 		acquisitionTabPane.setMinHeight(120);
 
 		Button acqHelpButton = createHelpButton();
@@ -628,17 +770,81 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		final TitledPane acqBoxPane = new TitledPane( "", acquireHBox );
 		acqBoxPane.setCollapsible( false );
 
-		LabeledPane acquisitionPane = new LabeledPane( "Acquisition", new VBox(10, acquisitionTabPane, acqBoxPane), acqHelpButton, 0 );
+		// Open with advanced plugins
+		final HBox pluginsBox = new HBox();
+		pluginsBox.setSpacing(5);
+		pluginsBox.setAlignment( Pos.CENTER_LEFT );
+
+		Button bdvButton = new Button( "Open with BigDataViewer" );
+		bdvButton.setMinSize( 100, 30 );
+		bdvButton.setStyle("-fx-font: 12 arial; -fx-base: #69e760;");
+		bdvButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
+
+				if(displayWindow == null) {
+					new Alert( Alert.AlertType.WARNING, "Please, load a dataset first").showAndWait();
+					System.err.println("There is no dataset to be opened.");
+					return;
+				}
+
+				AdvancedPlugins.loadDataWithBDV(displayWindow);
+			}
+		} );
+
+		Button bsButton = new Button( "Open with BigStitcher" );
+		bsButton.setMinSize( 100, 30 );
+		bsButton.setStyle("-fx-font: 12 arial; -fx-base: #e7e45d;");
+		bsButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
+
+				if(displayWindow == null) {
+					System.err.println("There is no dataset to be opened. Trying to open the current folder.");
+					AdvancedPlugins.openBigStitcherWindow( folderFile.getAbsolutePath() );
+				} else {
+					AdvancedPlugins.openBigStitcherWindow( displayWindow.getDatastore().getSavePath() );
+				}
+			}
+		} );
+
+		Button mstdButton = new Button( "Open with Mastodon" );
+		mstdButton.setMinSize( 100, 30 );
+		mstdButton.setStyle("-fx-font: 12 arial; -fx-base: #ffbec4;");
+		mstdButton.setOnAction( new EventHandler< ActionEvent >()
+		{
+			@Override public void handle( ActionEvent event )
+			{
+				DisplayWindow displayWindow = studioProperty.get().displays().getCurrentWindow();
+				if(displayWindow == null) {
+					System.err.println("There is no dataset to be opened. Trying to open the current folder.");
+					AdvancedPlugins.openMastodonWindow( folderFile.getAbsolutePath() );
+				} else {
+					AdvancedPlugins.openMastodonWindow( displayWindow.getDatastore().getSavePath() );
+				}
+			}
+		} );
+
+		pluginsBox.getChildren().addAll( bdvButton, bsButton, mstdButton );
+
+		final TitledPane pluginsPane = new TitledPane( "Open with advanced plugins", pluginsBox );
+		pluginsPane.setCollapsible( false );
+
+		LabeledPane acquisitionPane = new LabeledPane( "Acquisition", new VBox(10, acquisitionTabPane, acqBoxPane, pluginsPane), acqHelpButton, 0 );
 
 
 		SplitPane zStackAcqTabs = new SplitPane(createZStackPane(stagePanel), acquisitionPane);
 		zStackAcqTabs.setOrientation( Orientation.VERTICAL );
-		zStackAcqTabs.setDividerPositions( 0.8 );
+		zStackAcqTabs.setDividerPositions( 0.2 );
 
 		zStackAcqTabs.heightProperty().addListener(new ChangeListener<Number>() {
 			@Override
 			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
-				zStackAcqTabs.setDividerPositions( 0.8 );
+				zStackAcqTabs.setDividerPositions( 0.2, 0.65 );
 			}
 		});
 
@@ -704,121 +910,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		CheckboxPane channelPane = new CheckboxPane( "Select Channels/Pins", channelTabPane, helpButton);
 		enabledChannels = channelPane.selectedProperty();
-
-		// Acquisition Setting Buttons
-		final HBox acqSettings = new HBox();
-		acqSettings.setSpacing(5);
-		acqSettings.setAlignment( Pos.CENTER_LEFT );
-
-		Button saveButton = new Button( "SAVE" );
-		saveButton.setMinSize( 100, 30 );
-		saveButton.setStyle("-fx-font: 12 arial; -fx-base: #69e760;");
-		saveButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				final FileChooser fileChooser = new FileChooser();
-				fileChooser.setTitle( "µOpenSPIM AcquisitionSetting file" );
-				fileChooser.getExtensionFilters().addAll(
-						new FileChooser.ExtensionFilter( "µOpenSPIM AcquisitionSetting file", "*.xml" )
-				);
-
-				File file = fileChooser.showSaveDialog( getScene().getWindow() );
-				if ( file != null )
-				{
-					AcquisitionSetting.save( file, getAcquisitionSetting() );
-				}
-			}
-		} );
-
-		Button loadButton = new Button( "LOAD" );
-		loadButton.setMinSize( 100, 30 );
-		loadButton.setStyle("-fx-font: 12 arial; -fx-base: #e7e45d;");
-		loadButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				final FileChooser fileChooser = new FileChooser();
-				fileChooser.setTitle( "µOpenSPIM AcquisitionSetting file" );
-				fileChooser.getExtensionFilters().addAll(
-						new FileChooser.ExtensionFilter( "µOpenSPIM AcquisitionSetting file", "*.xml" )
-				);
-
-				File file = fileChooser.showOpenDialog( getScene().getWindow() );
-				if ( file != null )
-				{
-					AcquisitionSetting setting = AcquisitionSetting.load( file );
-					if(setting != null) {
-						// Update GUI
-						updateUI( setting );
-					}
-				}
-			}
-		} );
-
-		loadButton.setOnDragOver( new EventHandler< DragEvent >()
-		{
-			@Override public void handle( DragEvent event )
-			{
-				Dragboard db = event.getDragboard();
-				if ( db.hasFiles() && db.getFiles().size() == 1 )
-				{
-					event.acceptTransferModes( TransferMode.COPY );
-				}
-				else
-				{
-					event.consume();
-				}
-			}
-		} );
-
-		loadButton.setOnDragDropped( new EventHandler< DragEvent >()
-		{
-			@Override public void handle( DragEvent event )
-			{
-				Dragboard db = event.getDragboard();
-				boolean success = false;
-				if ( db.hasFiles() && db.getFiles().size() == 1 )
-				{
-					if(db.getFiles().get(0).isFile()) {
-						final File file = db.getFiles().get(0);
-						final AcquisitionSetting setting = AcquisitionSetting.load( file );
-						if(setting != null) {
-							// Update GUI
-							updateUI( setting );
-							success = true;
-						}
-					}
-				}
-
-				event.setDropCompleted( success );
-				event.consume();
-			}
-		} );
-
-		Button clearButton = new Button( "CLEAR" );
-		clearButton.setMinSize( 100, 30 );
-		clearButton.setStyle("-fx-font: 12 arial; -fx-base: #ffbec4;");
-		clearButton.setOnAction( new EventHandler< ActionEvent >()
-		{
-			@Override public void handle( ActionEvent event )
-			{
-				Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "Are you sure?", ButtonType.YES, ButtonType.CANCEL).showAndWait();
-
-				if( results.isPresent() && results.get() == ButtonType.YES) {
-					clearAcquisitionSetting();
-				} else {
-					System.err.println("Clear acquisition setting stopped by user cancellation.");
-				}
-			}
-		} );
-
-		acqSettings.getChildren().addAll( saveButton, loadButton, clearButton );
-		BorderPane.setMargin(acqSettings, new Insets(12,12,12,12));
-
-		final TitledPane acqSettingPane = new TitledPane( "Save/Load Settings", acqSettings );
-		acqSettingPane.setCollapsible( false );
-
 
 		// Compute acquisition order logic
 		BooleanBinding bb = new BooleanBinding()
@@ -892,9 +983,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		});
 
 		timePositionSplit.getItems().add(channelSummary);
-		timePositionSplit.setDividerPositions( 0.3, 0.6 );
-		zStackAcqTabs.getItems().add(1, createSaveImagesPane(acqSettingPane));
-		zStackAcqTabs.setDividerPositions( 0.3, 0.7 );
+		timePositionSplit.setDividerPositions( 0.3, 0.5, 0.7 );
+		zStackAcqTabs.getItems().add(1, createSaveImagesPane());
+		zStackAcqTabs.setDividerPositions( 0.2, 0.65 );
 
 		// Save image options
 //		SplitPane channelListSaveImage = new SplitPane(
@@ -1087,7 +1178,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				if(multi.isPresent())
 					channelItemTableView = TableViewUtil.createChannelItemDataView(setup, multi.get());
 				else channelItemTableView = TableViewUtil.createChannelItemDataView(setup, null);
-				Node viewContent = createChannelItemTable( channelItemTableView, setup.getCamera1().getLabel(), setup.getLaser().getLabel(), exposure );
+
+				String laserLabel = setup.getLaser() == null ? "Laser-1" : setup.getLaser().getLabel();
+				Node viewContent = createChannelItemTable( channelItemTableView, setup.getCamera1().getLabel(), laserLabel, exposure );
 				laserTab.setContent( viewContent );
 
 				if(getSpimSetup() != null && getSpimSetup().getThetaStage() != null) {
@@ -1139,7 +1232,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 				filename.setValue("");
 				directory.setValue("");
+				folder.setValue("");
+
 				saveMIP.set(false);
+				ablationSupport.set(false);
 
 				binningOptions.clear();
 
@@ -1246,6 +1342,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		// 6. Save Image panel
 		enabledSaveImages.set( setting.getEnabledSaveImages() );
 		directory.set( setting.getDirectory() );
+		folder.set( setting.getFolder() );
 		filename.set( setting.getFilename() );
 		savingFormat.set( setting.getSavingFormat() );
 		saveMIP.set( setting.getSaveMIP() );
@@ -1262,9 +1359,6 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		// Experiment Note
 		experimentNote.set(setting.getExperimentNote());
-
-		// OnTheFly
-		onTheFly.set(setting.getOnTheFly());
 	}
 
 	private AcquisitionSetting getAcquisitionSetting() {
@@ -1276,8 +1370,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		return new AcquisitionSetting( enabledTimePoints, timePointItems,
 				enabledPositions, positionItems, enabledZStacks, acquisitionOrder,
 				enabledChannels, channelTabPane.getSelectionModel().selectedIndexProperty().get(), channelItems,
-				channelItemsArduino, enabledSaveImages, directory, filename, savingFormat, saveMIP, roiRectangle, rotateStepSize,
-				experimentNote, onTheFly );
+				channelItemsArduino, enabledSaveImages, directory, folder, filename, savingFormat, saveMIP, roiRectangle, rotateStepSize,
+				experimentNote);
 	}
 
 	private void clearAcquisitionSetting() {
@@ -1296,14 +1390,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		enabledSaveImages.set( true );
 		directory.set( "" );
-		filename.set( "Untitled" );
+		folder.set( "" );
+		filename.set( "" );
 		savingFormat.set( "Single Plane TIFF" );
 		saveMIP.set( false );
 		roiRectangle.set( null );
 
 		rotateStepSize.set(1);
 		experimentNote.set( "" );
-		onTheFly.set( false );
 	}
 
 	public void stopAcquisition()
@@ -1365,77 +1459,17 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		}
 
 		// Check if the specified file name exists
-		File folder = new File(directory.getValue());
+		folderFile = new File( directory.getValue(), getCurrentTime() + "_" + folder.getValue() + "_" + incSpinnerValueFactory.getValue() );
 		if ( enabledSaveImages.get() )
 		{
-			if(!folder.exists()) {
-				Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The folder does not exist. Click Yes to create new folder.", ButtonType.YES, ButtonType.NO).showAndWait();
-
-				if( results.isPresent() ) {
-					if (results.get() == ButtonType.YES) {
-						try {
-							FileUtils.forceMkdir(folder);
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-					}
-					else if(results.get() == ButtonType.NO)
-					{
-						return false;
-					}
-				}
+			while(folderFile.exists()) {
+				incSpinnerValueFactory.increment(1);
+				folderFile = new File( directory.getValue(), getCurrentTime() + "_" + folder.getValue() + "_" + incSpinnerValueFactory.getValue() );
 			}
-			if(null != folder.listFiles()) {
-				boolean found = folder.exists() && folder.listFiles().length > 1;
-
-				if(found) {
-					Optional< ButtonType > results = new Alert( Alert.AlertType.WARNING, "The folder already exists. All files within this folder will be replaced. Do you want to proceed?\nPress No to create another folder and keep all files.",
-							ButtonType.YES, ButtonType.NO, ButtonType.CANCEL).showAndWait();
-
-					if( results.isPresent() ) {
-						if (results.get() == ButtonType.YES) {
-							try {
-								FileUtils.cleanDirectory(folder);
-							} catch (IOException e) {
-								System.err.println(e.getMessage());
-							}
-						} else if( results.get() == ButtonType.NO ) {
-							int maxNumber = 0;
-							for (File acqDir : Objects.requireNonNull( folder.getParentFile().listFiles() ) ) {
-								String theName = acqDir.getName();
-								int number;
-								if (theName.startsWith(folder.getName())) {
-									try {
-										//e.g.: "blah_32.ome.tiff"
-										Pattern p = Pattern.compile("\\Q" + folder.getName() + "_\\E" + "(\\d+)");
-										Matcher m = p.matcher(theName);
-										if (m.matches()) {
-											number = Integer.parseInt(m.group(1));
-											if (number >= maxNumber) {
-												maxNumber = number;
-											}
-										}
-									} catch (NumberFormatException e) {
-									} // Do nothing.
-								}
-							}
-
-							folder = new File(directory.get() + "_" + (maxNumber + 1));
-							try {
-								FileUtils.forceMkdir(folder);
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-
-						} else if( results.get() == ButtonType.CANCEL ) {
-							System.err.println("Acquisition stopped by user cancellation.");
-							return false;
-						}
-					} else {
-						System.err.println("Acquisition stopped by user cancellation.");
-						return false;
-					}
-				}
+			try {
+				FileUtils.forceMkdir(folderFile);
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 		}
 
@@ -1463,7 +1497,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		// Write the experiment note
 		try {
-			writeNote(folder);
+			writeNote(folderFile);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -1485,7 +1519,28 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		Platform.runLater( () -> processedImages.set( 0 ) );
 
-		File finalFolder = folder;
+		File finalFolder = folderFile;
+		String fileName = filename.getValue();
+
+		Date date = Calendar.getInstance().getTime();
+
+		// yyyyMMdd_HHmm
+		// <YYYYMMDD>_<hhmmss>
+		DateFormat dateFormat = new SimpleDateFormat("yyyMMdd");
+		String dateString = dateFormat.format(date);
+		dateFormat = new SimpleDateFormat("HHmmss");
+		String timeString = dateFormat.format(date);
+
+		fileName = fileName.replace("<YYYYMMDD>", dateString);
+		fileName = fileName.replace("<hhmmss>", timeString);
+		String positions = positionItemTableView.getItems().filtered(p -> p.getSelected()).stream().map(PositionItem::getName).collect(Collectors.joining("_"));
+
+		String timepoints = timePointItemTableView.getItems().filtered(t -> t.getType().equals(TimePointItem.Type.Acq)).stream().map(t -> String.format("%dx%d%s", t.getNoTimePoints(), t.getInterval(), t.getIntervalUnit())).collect(Collectors.joining("_"));
+
+		fileName = fileName.replace("<positions>", positions);
+		fileName = fileName.replace("<timepoints>", timepoints);
+
+		String finalFileName = fileName;
 		acquisitionThread = new Thread(() ->
 		{
 			Thread.currentThread().setContextClassLoader( HalcyonMain.class.getClassLoader() );
@@ -1494,10 +1549,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			{
 				engine.performAcquisition( getStudio(), getSpimSetup(), stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp,
 						timePointItemTableView.getItems(), currentTP, waitSeconds,
-						arduinoSelected, finalFolder, filename.getValue(),
+						arduinoSelected, finalFolder, finalFileName,
 						positionItemTableView.getItems().filtered(p -> p.getSelected()), channelItemList, processedImages, totalImages.getValue(),
-						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), antiDrift.getValue(), experimentNote.getValue(),
-						antiDriftLog, antiDriftRefCh.get(), antiDriftTypeToggle, onTheFly.getValue() );
+						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), ablationSupport.getValue(), antiDrift.getValue(), experimentNote.getValue(),
+						antiDriftLog, antiDriftRefCh.get(), antiDriftTypeToggle, onTheFly.getValue(), onChannelFusion.getValue() );
 
 //				new MMAcquisitionRunner().runAcquisition();
 
@@ -1532,6 +1587,12 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		}
 	}
 
+	static String getCurrentTime() {
+		Date date = Calendar.getInstance().getTime();
+		DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmm");
+		return dateFormat.format(date);
+	}
+
 	static double getUnit(String unitString) {
 		double unit = 1;
 
@@ -1554,7 +1615,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		EventHandler newEventHandler = ( EventHandler< ActionEvent > ) event -> {
 			SPIMSetup spimSetup = getSpimSetup();
 			if(spimSetup != null ) {
-				double r = spimSetup.getThetaStage().getPosition();
+				double r = spimSetup.getAngle();
 				double x = spimSetup.getXStage().getPosition();
 				double y = spimSetup.getYStage().getPosition();
 				double z = spimSetup.getZStage().getPosition();
@@ -1591,7 +1652,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				if(currentPosition.get() != null) {
 					SPIMSetup spimSetup = getSpimSetup();
 					if(spimSetup != null ) {
-						double r = spimSetup.getThetaStage().getPosition();
+						double r = spimSetup.getAngle();
 						double x = spimSetup.getXStage().getPosition();
 						double y = spimSetup.getYStage().getPosition();
 						currentPosition.get().setR(r);
@@ -1694,14 +1755,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		propertyMap.get("slices").setValue( totalImages + "" );
 	}
 
-	private Node createSaveImagesPane(Node buttonPane) {
+	private Node createSaveImagesPane() {
 		GridPane gridpane = new GridPane();
 
 		gridpane.setVgap( 5 );
 		gridpane.setHgap( 5 );
 
 		TextField textField = new TextField();
-		propertyMap.put( "folder", textField.textProperty() );
+		propertyMap.put( "directory", textField.textProperty() );
 
 		directory = textField.textProperty();
 
@@ -1730,34 +1791,66 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			@Override
 			public void handle(ActionEvent event) {
 				try {
-					if (!directory.get().isEmpty())
-						Desktop.getDesktop().open(new File(directory.get()));
+					if ( folderFile != null && folderFile.exists() )
+						Desktop.getDesktop().open( folderFile );
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
 		});
 
-		gridpane.addRow( 0, new Label( "Directory:" ), textField, selectFolder, openFolder );
+		GridPane.setConstraints(textField, 1, 0, 2, 1); // column=1 row=0
+		GridPane.setConstraints(selectFolder, 3, 0, 1, 1); // column=3 row=0
 
-		textField = new TextField("Untitled");
-		filename = textField.textProperty();
+		gridpane.addRow( 0, new Label( "Base Directory:" ) );
+		gridpane.getChildren().addAll(textField, selectFolder);
 
-		propertyMap.put( "filename", textField.textProperty() );
-		gridpane.addRow( 1, new Label( "File name:" ), textField );
+//		textField = new TextField("");
+		textField = new TextField("ML-AblationPolarBodies-N01_CB-JG");
+		folder = textField.textProperty();
+
+		propertyMap.put( "folder", textField.textProperty() );
+
+		Spinner<Integer> incSpinner = new Spinner<>(0, 99, 0, 1);
+		incSpinner.setMaxWidth(60);
+
+		incSpinnerValueFactory =
+				(SpinnerValueFactory.IntegerSpinnerValueFactory) incSpinner.getValueFactory();
+
+		gridpane.addRow( 1, new Label( "Base Folder:" ), textField, incSpinner, openFolder );
+
+		TextArea textArea = new TextArea("<YYYYMMDD>_<hhmmss>_<positions>_<timepoints>");
+		textArea.setWrapText(true);
+		textArea.setMinHeight(80);
+		textArea.setMaxHeight(80);
+		GridPane.setConstraints(textArea, 1, 0, 2, 1);
+
+		filename = textArea.textProperty();
+		propertyMap.put( "filename", textArea.textProperty() );
+
+		gridpane.addRow(2, new Label( "Filename:" ), textArea);
 
 		ComboBox c = new ComboBox<>( FXCollections.observableArrayList(
 				"Single Plane TIFF", "OMETIFF Image stack", "BDV format", "N5 format", "On-the-fly" ) );
 
 		c.valueProperty().setValue("Single Plane TIFF");
+		c.valueProperty().addListener(new ChangeListener() {
+			@Override
+			public void changed(ObservableValue observableValue, Object o, Object t1) {
+				if(ablationSupport != null && !t1.equals("OMETIFF Image stack")) {
+					ablationSupport.set(false);
+				}
+			}
+		});
 
 		savingFormat = c.valueProperty();
+		ablationDisabled.bind(savingFormat.isNotEqualTo("OMETIFF Image stack"));
 
-		gridpane.addRow( 2, new Label( "Saving format:" ), c );
+		gridpane.addRow( 3, new Label( "Saving format:" ), c );
 
 		CheckBox mip = new CheckBox( "Show/save Maximum Intensity Projection of each TP" );
-		gridpane.addRow( 3, mip );
-		gridpane.setColumnSpan( mip, 2 );
+		gridpane.addRow( 4, mip );
+		gridpane.setColumnSpan( mip, 3 );
 
 		saveMIP = mip.selectedProperty();
 
@@ -1770,7 +1863,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Tab saveOptionTab = new Tab("Saving option", pane);
 		saveOptionTab.setClosable(false);
 
-		TextArea textArea = new TextArea();
+		textArea = new TextArea();
 		textArea.setWrapText(true);
 		experimentNote = textArea.textProperty();
 
@@ -1778,9 +1871,9 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		noteTab.setClosable(false);
 
 		TabPane tabPane = new TabPane(saveOptionTab, noteTab);
-		tabPane.setMinHeight(200);
+		tabPane.setMinHeight(190);
 
-		VBox vbox = new VBox( 12, tabPane, buttonPane );
+		VBox vbox = new VBox( 12, tabPane );
 
 		return vbox;
 	}
@@ -2070,7 +2163,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		zStackGridPane.addRow( 0, new VBox( startButton, zStartField ) );
+		zStackGridPane.addRow( 1, new VBox( startButton, zStartField ) );
 
 		TextField zStepField = createNumberTextField();
 		zStepField.textProperty().addListener(new ChangeListener<String>() {
@@ -2115,7 +2208,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 
 		HBox zCenter = new HBox( 5, zStepComboBox, new Label( "Z-step (μm)" ) );
 		zCenter.setAlignment( Pos.CENTER_LEFT );
-		zStackGridPane.addRow( 1, new VBox( midButton, zCenter ) );
+		zStackGridPane.addRow( 2, new VBox( midButton, zCenter ) );
 
 		Button endButton = createZStackButton( "Z-end" );
 		TextField zEndField = createNumberTextField();
@@ -2141,7 +2234,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		setupMouseClickedHandler(startButton, zStartField, endButton, zEndField, midButton);
+		setupMouseClickedHandler(startButton, zStartField, endButton, zEndField, midButton, zStepField, zStepComboBox);
 
 
 		Button newButton = new Button( "Add Z-stack" );
@@ -2174,7 +2267,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
-		zStackGridPane.addRow( 2, new VBox( endButton, zEndField ) );
+		zStackGridPane.addRow( 3, new VBox( endButton, zEndField ) );
 
 		currentPosition.addListener( new ChangeListener< PositionItem >()
 		{
@@ -2214,7 +2307,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		} );
 
 		if(stagePanel == null && zSlider != null)
-			zStackGridPane.add( zSlider, 2, 0, 1, 3 );
+			zStackGridPane.add( zSlider, 2, 1, 1, 3 );
 
 //		Button updateButton = new Button("Update");
 //		updateButton.setOnAction( new EventHandler< ActionEvent >()
@@ -2255,7 +2348,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		});
 
-		zStackGridPane.addRow( 3, new VBox( newButton, clearButton ) );
+		zStackGridPane.addRow( 4, newButton);
+		zStackGridPane.addRow( 0, clearButton);
 
 		// create a group
 		HBox b = new HBox(new Label("Stage"));
@@ -2279,7 +2373,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		InvalidationListener invalidationListener = observable -> computeTotalPositionImages();
 
 		if(spimSetup != null ) {
-			double r = spimSetup.getThetaStage().getPosition();
+			double r = spimSetup.getAngle();
 			double x = spimSetup.getXStage().getPosition();
 			x = Math.ceil(x * 100) / 100;
 			double y = spimSetup.getYStage().getPosition();
@@ -2301,7 +2395,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		addNewPosition( (int) zStackStart, (int) zStackEnd, zStackStepSize );
 	}
 
-	private void setupMouseClickedHandler( Button startButton, TextField zStartField, Button endButton, TextField zEndField, Button midButton )
+	private void setupMouseClickedHandler( Button startButton, TextField zStartField, Button endButton, TextField zEndField, Button midButton, TextField zStepField, ComboBox zStepComboBox )
 	{
 		startButton.setOnAction( new EventHandler< ActionEvent >()
 		{
@@ -2337,6 +2431,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			{
 				SPIMSetup spimSetup = getSpimSetup();
 				if(spimSetup != null && spimSetup.getZStage() != null) {
+
+					if(zStepField.getText().isEmpty()) {
+						zStepComboBox.getSelectionModel().select(1);
+					}
+
 					int currPos = (int) spimSetup.getZStage().getPosition();
 					if(zStartField.getText().isEmpty()) {
 						zEndField.setText(currPos + "");

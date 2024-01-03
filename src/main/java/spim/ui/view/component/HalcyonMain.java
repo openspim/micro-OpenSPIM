@@ -23,7 +23,7 @@ import org.micromanager.Studio;
 import org.micromanager.events.GUIRefreshEvent;
 import spim.hardware.SPIMSetup;
 import spim.hardware.VersaLase;
-import spim.mm.MicroManager;
+
 import spim.model.event.ControlEvent;
 import spim.ui.view.component.console.StdOutCaptureConsole;
 import spim.ui.view.component.util.ResourceUtil;
@@ -153,7 +153,7 @@ public class HalcyonMain extends HalcyonFrame
 		addNode( arduino );
 
 		// Custom Toolbar provided here
-		toolbarPanel = new ToolbarPanel( studio, mmStudioProperty, mmStudioGUIRefreshEventProperty );
+		toolbarPanel = new ToolbarPanel( primaryStage, studio, mmStudioProperty, mmStudioGUIRefreshEventProperty );
 		toolbarPanel.setPrefSize(300, 200);
 		addToolbar(toolbarPanel);
 
@@ -277,6 +277,7 @@ public class HalcyonMain extends HalcyonFrame
 //		String lLayoutFile = getUserDataDirectory( mWindowtitle )
 //				+ "layout.pref";
 		checkLayoutPref(getFileFromResourceAsStream("spim/gui/layout.pref"));
+		checkOthersPref(getFileFromResourceAsStream("spim/gui/others.pref"));
 
 		return createHalcyonFrame( primaryStage );
 	}

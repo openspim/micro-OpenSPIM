@@ -23,7 +23,7 @@
 	<repositories>
 		<repository>
 			<id>imagej.public</id>
-			<url>http://maven.imagej.net/content/groups/public</url>
+			<url>https://maven.imagej.net/content/groups/public</url>
 		</repository>
         <repository>
             <id>local-repo</id>
@@ -45,7 +45,7 @@
 		<dependency>
 			<groupId>io.scif</groupId>
 			<artifactId>scifio</artifactId>
-            <version>0.37.3</version>
+            <version>0.45.0</version>
 		</dependency>
 		<dependency>
 			<groupId>io.scif</groupId>
@@ -113,18 +113,6 @@
             <groupId>commons-logging</groupId>
             <artifactId>commons-logging</artifactId>
             <version>1.2</version>
-        </dependency>
-
-        <dependency>
-            <groupId>ome</groupId>
-            <artifactId>formats-api</artifactId>
-            <version>5.5.3</version>
-        </dependency>
-
-        <dependency>
-            <groupId>ome</groupId>
-            <artifactId>formats-bsd</artifactId>
-            <version>5.5.3</version>
         </dependency>
 
         <dependency>
@@ -201,19 +189,13 @@
         <dependency>
             <groupId>ome</groupId>
             <artifactId>bioformats_package</artifactId>
-            <version>5.5.2</version>
+            <version>5.5.3</version>
         </dependency>
 
         <dependency>
             <groupId>jdk.tools</groupId>
             <artifactId>jdk.tools</artifactId>
             <version>1.8</version>
-        </dependency>
-
-        <dependency>
-            <groupId>net.imglib2</groupId>
-            <artifactId>imglib2</artifactId>
-            <version>5.6.3</version>
         </dependency>
 
         <dependency>
@@ -228,6 +210,47 @@
             <version>1.0.0-beta-16</version>
         </dependency>
 
+        <dependency>
+            <groupId>net.imglib2</groupId>
+            <artifactId>imglib2-roi</artifactId>
+            <version>0.12.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.imglib2</groupId>
+            <artifactId>imglib2</artifactId>
+            <version>5.12.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>net.preibisch</groupId>
+            <artifactId>BigStitcher</artifactId>
+            <version>0.8.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mastodon</groupId>
+            <artifactId>mastodon</artifactId>
+            <version>1.0.0-beta-26</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mastodon</groupId>
+            <artifactId>mastodon-tracking</artifactId>
+            <version>1.0.0-beta-12</version>
+        </dependency>
+
+        <dependency>
+            <groupId>sc.fiji</groupId>
+            <artifactId>bigdataviewer-core</artifactId>
+            <version>10.4.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mastodon</groupId>
+            <artifactId>mastodon-tomancak</artifactId>
+            <version>0.2.1</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -241,7 +264,7 @@
                 <plugin>
                     <groupId>com.zenjava</groupId>
                     <artifactId>javafx-maven-plugin</artifactId>
-                    <version>8.8.4-SNAPSHOT</version>
+                    <version>8.8.3</version>
                     <configuration>
                         <vendor>Scientific Computing Facility</vendor>
                         <mainClass>spim.microOpenSPIM</mainClass>

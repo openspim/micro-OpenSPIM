@@ -25,7 +25,6 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.ChoiceBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
 import javafx.scene.input.Dragboard;
@@ -71,7 +70,7 @@ public class TableViewUtil
 		textColumn.setCellValueFactory( param ->
 				new ReadOnlyStringWrapper(param.getValue().getName())
 		);
-		textColumn.setCellFactory( TextFieldTableCell.forTableColumn() );
+		textColumn.setCellFactory( EditTextFieldTableCell.forTableColumn() );
 		textColumn.setOnEditCommit( event -> event.getRowValue().setName( event.getNewValue() ) );
 		tv.getColumns().add(textColumn);
 		tv.prefWidthProperty().bind(textColumn.widthProperty().add(316));
@@ -232,7 +231,7 @@ public class TableViewUtil
 		TableColumn<PositionItem, String> textColumn = new TableColumn<>("Position Name");
 		textColumn.setPrefWidth(100);
 		textColumn.setCellValueFactory( param -> param.getValue().getNameProperty() );
-		textColumn.setCellFactory( TextFieldTableCell.forTableColumn() );
+		textColumn.setCellFactory( EditTextFieldTableCell.forTableColumn() );
 		textColumn.setOnEditCommit( event -> event.getRowValue().setName( event.getNewValue() ) );
 		tv.getColumns().add(textColumn);
 

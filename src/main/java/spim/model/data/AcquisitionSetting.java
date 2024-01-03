@@ -51,6 +51,7 @@ public class AcquisitionSetting
 	// Save Image panel
 	Boolean enabledSaveImages;
 	String directory;
+	String folder;
 	String filename;
 	Object savingFormat;
 	Boolean saveMIP;
@@ -61,9 +62,6 @@ public class AcquisitionSetting
 
 	// ExperimentNote
 	String experimentNote;
-
-	// On-the-fly
-	Boolean onTheFly;
 
 	public Boolean getEnabledTimePoints()
 	{
@@ -185,6 +183,14 @@ public class AcquisitionSetting
 		this.directory = directory;
 	}
 
+	public String getFolder() {
+		return folder;
+	}
+
+	public void setFolder(String folder) {
+		this.folder = folder;
+	}
+
 	public String getFilename()
 	{
 		return filename;
@@ -239,19 +245,11 @@ public class AcquisitionSetting
 		this.experimentNote = experimentNote;
 	}
 
-	public Boolean getOnTheFly() {
-		return onTheFly;
-	}
-
-	public void setOnTheFly( Boolean onTheFly ) {
-		this.onTheFly = onTheFly;
-	}
-
 	public AcquisitionSetting()
 	{
 	}
 
-	public AcquisitionSetting(BooleanProperty enabledTimePoints, ArrayList< TimePointItem > timePointItems, BooleanProperty enabledPositions, ArrayList< PositionItem > positionItems, BooleanProperty enabledZStacks, ObjectProperty acquisitionOrder, BooleanProperty enabledChannels, int selectedTabIndex, ArrayList< ChannelItem > channelItems, ArrayList< ChannelItem > channelItemsArduino, BooleanProperty enabledSaveImages, StringProperty directory, StringProperty filename, ObjectProperty savingFormat, BooleanProperty saveMIP, ObjectProperty roiRectangle, DoubleProperty rotateStepSize, StringProperty experimentNote, BooleanProperty onTheFly)
+	public AcquisitionSetting(BooleanProperty enabledTimePoints, ArrayList< TimePointItem > timePointItems, BooleanProperty enabledPositions, ArrayList< PositionItem > positionItems, BooleanProperty enabledZStacks, ObjectProperty acquisitionOrder, BooleanProperty enabledChannels, int selectedTabIndex, ArrayList< ChannelItem > channelItems, ArrayList< ChannelItem > channelItemsArduino, BooleanProperty enabledSaveImages, StringProperty directory, StringProperty folder, StringProperty filename, ObjectProperty savingFormat, BooleanProperty saveMIP, ObjectProperty roiRectangle, DoubleProperty rotateStepSize, StringProperty experimentNote)
 	{
 		// 1.1 Time points panel
 		this.enabledTimePoints = enabledTimePoints.get();
@@ -278,6 +276,7 @@ public class AcquisitionSetting
 		// 6. Save Image panel
 		this.enabledSaveImages = enabledSaveImages.get();
 		this.directory = directory.get();
+		this.folder = folder.get();
 		this.filename = filename.get();
 		this.savingFormat = savingFormat.get();
 		this.saveMIP = saveMIP.get();
@@ -288,9 +287,6 @@ public class AcquisitionSetting
 
 		// Experiment Note
 		this.experimentNote = experimentNote.get();
-
-		// OnTheFly
-		this.onTheFly = onTheFly.get();
 	}
 
 	public static AcquisitionSetting load( File file ) {

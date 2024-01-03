@@ -19,6 +19,7 @@ import mmcorej.StrVector;
 import mmcorej.TaggedImage;
 
 import mmcorej.org.json.JSONObject;
+import net.imagej.patcher.LegacyInjector;
 import org.micromanager.Studio;
 import org.micromanager.acquisition.SequenceSettings;
 import org.micromanager.acquisition.internal.AcquisitionWrapperEngine;
@@ -76,6 +77,7 @@ public class MicroManager implements PlugIn, CommandListener
 	static {
 		WindowPositioningPatch.applyPatches();
 		WindowPositioningPatch.applyMMPatches();
+		LegacyInjector.preinit();
 	}
 
 	private MicroManager(ObjectProperty<Studio> studioObjectProperty, ObjectProperty<GUIRefreshEvent> refreshEventProperty) {

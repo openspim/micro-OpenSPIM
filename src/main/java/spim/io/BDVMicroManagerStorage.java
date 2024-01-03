@@ -31,6 +31,8 @@ import mpicbg.spim.data.sequence.Illumination;
 import mpicbg.spim.data.sequence.Tile;
 import mpicbg.spim.data.sequence.TimePoint;
 import mpicbg.spim.data.sequence.TimePoints;
+import net.haesleinhuepf.clij.clearcl.ClearCLBuffer;
+import net.haesleinhuepf.clijx.CLIJx;
 import net.imglib2.Cursor;
 import net.imglib2.FinalDimensions;
 import net.imglib2.RandomAccessibleInterval;
@@ -114,6 +116,7 @@ public class BDVMicroManagerStorage implements Storage {
 	private final int timesteps_;
 	private int angles_;
 	private int channels_;
+	private boolean fusionChannel_;
 
 	int width;
 	int height;
@@ -133,13 +136,14 @@ public class BDVMicroManagerStorage implements Storage {
 	private Map< Integer, ExportMipmapInfo > perSetupExportMipmapInfo = new HashMap< Integer, ExportMipmapInfo >();
 	private ArrayList< ViewRegistration > registrations = new ArrayList< ViewRegistration >();
 
-	public BDVMicroManagerStorage(DefaultDatastore store, String directory, String prefix, int channels, int timeSeqs, boolean newDataSet) throws IOException {
+	public BDVMicroManagerStorage(DefaultDatastore store, String directory, String prefix, int channels, int timeSeqs, boolean newDataSet, boolean fusionChannel) throws IOException {
 		store_ = store;
 		dir_ = directory;
 		prefix_ = prefix;
 
 		store_.setSavePath(dir_);
 		store_.setName(new File(dir_).getName());
+		fusionChannel_ = fusionChannel;
 		isDatasetWritable_ = newDataSet;
 
 		// Must be informed of events before traditional consumers, so that we
@@ -298,6 +302,10 @@ public class BDVMicroManagerStorage implements Storage {
 				e.printStackTrace();
 			}
 		}
+
+		if(reader != null) {
+			reader.close();
+		}
 	}
 
 	private void saveXml(String n5FilePath, int numTimepoints) throws SpimDataException {
@@ -409,7 +417,9 @@ public class BDVMicroManagerStorage implements Storage {
 		final int time = coords.getT();
 		final int angle = coords.getP();
 
-		final int setupId = channel + angle * channels;
+		final int setupId = (fusionChannel_ ? channel / 2 : channel) + angle * (fusionChannel_ ? channels / 2 : channels);
+
+//		System.out.println("SetupID: " + setupId);
 
 		String dataset = BdvN5Format.getPathName(setupId, time, 0);
 
@@ -463,6 +473,7 @@ public class BDVMicroManagerStorage implements Storage {
 				writer.setAttribute( pathName, DATA_TYPE_KEY, bytesPerPixel == 1 ? DataType.UINT8 : DataType.UINT16 );
 
 				final double pixelSizeUm = image.getMetadata().getPixelSizeUm();
+				final double binning = image.getMetadata().getBinning();
 				final double zStepSize = image.getMetadata().getUserData().getDouble("Z-Step-um", 1);
 
 				String punit = "µm";
@@ -472,7 +483,7 @@ public class BDVMicroManagerStorage implements Storage {
 
 				final BasicViewSetup setup = new BasicViewSetup( setupId, "" + (setupId), size, voxelSize );
 				setup.setAttribute( new Angle( angle ) );
-				setup.setAttribute( new Channel( channel ) );
+				setup.setAttribute( new Channel( fusionChannel_ ? channel / 2 : channel ) );
 				setup.setAttribute( new Illumination( 0 ) );
 				setup.setAttribute( new Tile( 0 ) );
 				setups.put( setupId, setup );
@@ -480,9 +491,14 @@ public class BDVMicroManagerStorage implements Storage {
 				final ExportMipmapInfo autoMipmapSettings = ProposeMipmaps.proposeMipmaps( new BasicViewSetup( 0, "", size, voxelSize ) );
 				perSetupExportMipmapInfo.put(setupId, autoMipmapSettings );
 
+				double zUnit = 1.524d;
+				if (pixelSizeUm != 0d) {
+					zUnit = zStepSize / pixelSizeUm;
+				}
+
 				// create SourceTransform from the images calibration
 				final AffineTransform3D sourceTransform = new AffineTransform3D();
-				sourceTransform.set( 1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 9.378, 0 );
+				sourceTransform.set( 1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, zUnit, 0 );
 
 				registrations.add( new ViewRegistration( time, setupId, sourceTransform ) );
 
@@ -517,29 +533,99 @@ public class BDVMicroManagerStorage implements Storage {
 			RandomAccessibleInterval source;
 
 			if(!amLoading_) {
-				if (bytesPerPixel == 1) {
-					final Img rai = ImageJFunctions.<UnsignedByteType>wrap(new ImagePlus("t=" + time + "/angle=" + angle, imageStacks[channel]));
-					source = Views.zeroMin(rai);
-				} else {
-					final Img rai = ImageJFunctions.<UnsignedShortType>wrap(new ImagePlus("t=" + time + "/angle=" + angle, imageStacks[channel]));
-					source = Views.zeroMin(rai);
+				if(!fusionChannel_) {
+					if (bytesPerPixel == 1) {
+						final Img rai = ImageJFunctions.<UnsignedByteType>wrap(new ImagePlus("t=" + time + "/angle=" + angle, imageStacks[channel]));
+						source = Views.zeroMin(rai);
+					} else {
+						final Img rai = ImageJFunctions.<UnsignedShortType>wrap(new ImagePlus("t=" + time + "/angle=" + angle, imageStacks[channel]));
+						source = Views.zeroMin(rai);
+					}
+
+					if (writer != null) {
+						try {
+							N5Utils.saveBlock(source, writer, dataset, gridPosition, exec);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						} catch (ExecutionException e) {
+							e.printStackTrace();
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
 				}
 
-				if (writer != null) {
+				System.out.println(coords.getC() + "/" + channels);
+
+				if(fusionChannel_ && coords.getC() % 2 == 1)
+				{
+					int nChannels = coords.getC();
+					for(int i = 0; i < 2; i++) {
+						CLIJx clijx = CLIJx.getInstance();
+						ClearCLBuffer gpu_input1 = clijx.push(new ImagePlus("gpu_input", imageStacks[nChannels]));
+						ClearCLBuffer gpu_input2 = clijx.push(new ImagePlus("gpu_input", imageStacks[nChannels - 1]));
+
+						// create an image with correct size and type on GPU for output
+						ClearCLBuffer gpu_output = clijx.create(gpu_input1);
+
+						clijx.maximumImages(gpu_input1, gpu_input2, gpu_output);
+
+						ClearCLBuffer background_substrackted_image = clijx.create(gpu_input1);
+						float sigma1x = 1.0f;
+						float sigma1y = 1.0f;
+						float sigma1z = 1.0f;
+						float sigma2x = 5.0f;
+						float sigma2y = 5.0f;
+						float sigma2z = 5.0f;
+						clijx.differenceOfGaussian3D(gpu_output, background_substrackted_image, sigma1x, sigma1y, sigma1z, sigma2x, sigma2y, sigma2z);
+
+						// uncomment the below if you want to see the result
+						ImagePlus imp_output = clijx.pull(gpu_output);
+						imp_output.setTitle("t=" + time + "/angle=" + angle);
+						// imp_output.getProcessor().resetMinAndMax();
+						// imp_output.show();
+
+						// clean up memory on the GPU
+						gpu_input1.close();
+						gpu_input2.close();
+						gpu_output.close();
+						background_substrackted_image.close();
+
+						if (bytesPerPixel == 1) {
+							final Img rai = ImageJFunctions.<UnsignedByteType>wrap(imp_output);
+							source = Views.zeroMin(rai);
+						} else {
+							final Img rai = ImageJFunctions.<UnsignedShortType>wrap(imp_output);
+							source = Views.zeroMin(rai);
+						}
+
+						if (writer != null) {
+							try {
+								N5Utils.saveBlock(source, writer, dataset, gridPosition, exec);
+							} catch (InterruptedException e) {
+								e.printStackTrace();
+							} catch (ExecutionException e) {
+								e.printStackTrace();
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+						}
+					}
+				}
+				if(coords.getC() == channels - 1) {
+					// Save SpimData format for N5 storage
+//					System.out.println("xml Saved - t:" + time);
 					try {
-						N5Utils.saveBlock(source, writer, dataset, gridPosition, exec);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					} catch (ExecutionException e) {
-						e.printStackTrace();
-					} catch (Exception e) {
+						saveXml(dir_ + "/" + prefix_ + ".n5", time + 1);
+					} catch (SpimDataException e) {
 						e.printStackTrace();
 					}
 				}
 			}
 
-			if(coords.getC() == image.getMetadata().getUserData().getInteger("Channels", 1) - 1)
+			if(coords.getC() == image.getMetadata().getUserData().getInteger("Channels", 1) - 1) {
 				timeFinished_.put(time, true);
+			}
 		}
 
 		if (!coordsToFilename_.containsKey(coords)) {

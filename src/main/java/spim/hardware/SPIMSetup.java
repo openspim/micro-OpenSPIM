@@ -202,7 +202,7 @@ public class SPIMSetup implements EventTarget {
 			getZStage().setPosition(z);
 
 		if (t != null)
-			getThetaStage().setPosition(t);
+			setAngle(t);
 	}
 
 	/**
@@ -237,7 +237,11 @@ public class SPIMSetup implements EventTarget {
 	}
 
 	public double getAngle() {
-		return getThetaStage().getPosition();
+		return getThetaStage() ==  null ? 0d : getThetaStage().getPosition();
+	}
+
+	public void setAngle(double r) {
+		if (getThetaStage() != null) getThetaStage().setPosition(r);
 	}
 
 	public CMMCore getCore() {

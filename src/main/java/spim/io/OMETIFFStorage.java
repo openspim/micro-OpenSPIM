@@ -683,10 +683,9 @@ public class OMETIFFStorage implements Storage {
 		ImageProcessor ip = null;
 		try {
 			ip = ipr.openProcessors( index )[ channel ];
-		} catch (FormatException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (IllegalArgumentException | FormatException | ArrayIndexOutOfBoundsException | IOException e) {
+//			e.printStackTrace();
+			return null;
 		}
 
 		ImagePlus imp = new ImagePlus(prefix_, ip);
