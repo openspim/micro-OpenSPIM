@@ -205,11 +205,7 @@ public class TaggedImageSink {
 										mpImages_[ch].put(slice, img);
 								}
 								catch (PipelineErrorException e) {
-									// TODO: make showing the dialog optional.
-									// TODO: allow user to cancel acquisition from
-									// here.
-									ReportingUtils.showError(e,
-											"There was an error in processing images.");
+									ReportingUtils.logError(e,"There was an error in processing images.");
 									pipeline_.clearExceptions();
 								}
 
@@ -235,7 +231,7 @@ public class TaggedImageSink {
 								break;
 							}
 							catch (RuntimeException e) {
-								ReportingUtils.logMessage("Runtime exception");
+								ReportingUtils.logError("Runtime exception");
 								pipeline_.clearExceptions();
 								break;
 							}
@@ -245,7 +241,6 @@ public class TaggedImageSink {
 					ReportingUtils.logError(ex2);
 				} finally {
 					pipeline_.halt();
-					ReportingUtils.logMessage("The pipeline is halted and the acquisition ended");
 					studioEvents_.post(
 							new DefaultAcquisitionEndedEvent(store_, engine_));
 				}
