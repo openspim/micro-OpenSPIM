@@ -234,12 +234,18 @@ public class TaggedImageSink {
 								pipeline_.clearExceptions();
 								break;
 							}
+							catch (RuntimeException e) {
+								ReportingUtils.logMessage("Runtime exception");
+								pipeline_.clearExceptions();
+								break;
+							}
 						}
 					}
 				} catch (Exception ex2) {
 					ReportingUtils.logError(ex2);
 				} finally {
 					pipeline_.halt();
+					ReportingUtils.logMessage("The pipeline is halted and the acquisition ended");
 					studioEvents_.post(
 							new DefaultAcquisitionEndedEvent(store_, engine_));
 				}
