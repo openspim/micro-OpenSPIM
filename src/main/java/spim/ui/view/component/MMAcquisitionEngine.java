@@ -495,6 +495,7 @@ public class MMAcquisitionEngine
 							} catch ( InterruptedException ie )
 							{
 								core.logMessage(ie.toString());
+								engine.stop( true );
 								finalize( false, setup, currentCamera, cameras, frame, 0, 0, store );
 								break mainLoop;
 							}
