@@ -291,13 +291,13 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 						} );
 					}
 				}
-			}, 500, 10, TimeUnit.MILLISECONDS );
+			}, 500, 500, TimeUnit.MILLISECONDS );
 		}
 		else
 		{
 			executor.scheduleAtFixedRate( () -> {
 				monitorSPIM();
-			}, 500, 10, TimeUnit.MILLISECONDS );
+			}, 500, 500, TimeUnit.MILLISECONDS );
 		}
 	}
 
