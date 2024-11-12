@@ -158,7 +158,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 			// start executor for monitoring values
 			executor.scheduleAtFixedRate( () -> {
 				monitorSPIM();
-			}, 500, 10, TimeUnit.MILLISECONDS );
+			}, 500, 500, TimeUnit.MILLISECONDS );
 
 			switchAll.setSelected(true);
 		} else {
