@@ -211,8 +211,9 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 				Platform.runLater( () -> {
 					stageMap.get( stage ).deviceValueProperty().setValue( finalDevice );
 
-					if ( abs( error ) < granularity )
+					if ( abs( error ) < granularity && !stageMap.get( stage ).get( StageUnit.BooleanState.Ready ).get() ) {
 						stageMap.get( stage ).get( StageUnit.BooleanState.Ready ).set( true );
+					}
 				} );
 			}
 		}
