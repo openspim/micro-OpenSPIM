@@ -38,6 +38,7 @@ import org.micromanager.acquisition.AcquisitionStartedEvent;
 
 import org.micromanager.internal.MMStudio;
 
+import org.micromanager.internal.diagnostics.EDTHangLogger;
 import org.micromanager.internal.utils.ReportingUtils;
 import spim.model.data.Row;
 import spim.algorithm.AntiDrift;
@@ -392,8 +393,8 @@ public class MMAcquisitionEngine
 		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, channelItems, arduinoSelected, processedImages, driftCompMap, adReferenceChannel, saveMIP, onTheFly, ablationSupport);
 
 		SystemInfo.dumpMemoryStatusToLog(core);
-		Platform.setImplicitExit(false);
 		ReportingUtils.showErrorOn(false);
+		EDTHangLogger.stopDefault();
 
 		mainLoop:
 		for(TimePointItem tpItem : timePointItems ) {
