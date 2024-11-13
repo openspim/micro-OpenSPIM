@@ -611,22 +611,22 @@ public class MMAcquisitionEngine
 	}
 
 	private static void updateCurrentTPProperty(DoubleProperty currentTP, double updatedCurrentTP) {
-		Platform.runLater(() -> {
+//		Platform.runLater(() -> {
 			currentTP.set( updatedCurrentTP );
-		});
+//		});
 	}
 
 	private static void updateWaitTimeProperty(DoubleProperty waitSeconds, double updatedWaitSeconds) {
-		Platform.runLater(() -> {
+//		Platform.runLater(() -> {
 			waitSeconds.set( updatedWaitSeconds );
-		});
+//		});
 	}
 
 	private static void updateTimeProperties(DoubleProperty waitSeconds, double updatedWaitSeconds, DoubleProperty currentTP, double updatedCurrentTP) {
-		Platform.runLater(() -> {
+//		Platform.runLater(() -> {
 			waitSeconds.set( updatedWaitSeconds );
 			currentTP.set( updatedCurrentTP );
-		});
+//		});
 	}
 
 	/**

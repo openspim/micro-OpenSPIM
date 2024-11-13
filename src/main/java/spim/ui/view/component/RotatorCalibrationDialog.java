@@ -99,18 +99,18 @@ public class RotatorCalibrationDialog extends Alert
 					double granularity = 3;
 					double newDevice = device + granularity * signum( error );
 
-					Platform.runLater( () -> {
+//					Platform.runLater( () -> {
 						if ( abs( error ) > granularity )
 							unit.deviceValueProperty().setValue( newDevice );
 						else if ( !unit.get( StageUnit.BooleanState.Ready ).get() )
 							unit.get( StageUnit.BooleanState.Ready ).set( true );
-					} );
+//					} );
 				}
-			}, 500, 10, TimeUnit.MILLISECONDS );
+			}, 500, 500, TimeUnit.MILLISECONDS );
 		} else {
 			executor.scheduleAtFixedRate( () -> {
 				monitorSPIM(unit);
-			}, 500, 10, TimeUnit.MILLISECONDS );
+			}, 500, 500, TimeUnit.MILLISECONDS );
 		}
 
 		this.setOnCloseRequest( new EventHandler< DialogEvent >()
@@ -142,12 +142,12 @@ public class RotatorCalibrationDialog extends Alert
 			double granularity = 1.5;
 
 			double finalDevice = device;
-			Platform.runLater( () -> {
+//			Platform.runLater( () -> {
 				unit.deviceValueProperty().setValue( finalDevice );
 
 				if ( abs( error ) < granularity )
 					unit.get( StageUnit.BooleanState.Ready ).set( true );
-			} );
+//			} );
 		}
 	}
 

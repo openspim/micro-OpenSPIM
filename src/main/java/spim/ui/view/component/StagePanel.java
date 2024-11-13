@@ -208,13 +208,13 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 				double granularity = stage == StageUnit.Stage.R ? 2.5 : 1.5;
 
 				double finalDevice = device;
-				Platform.runLater( () -> {
+//				Platform.runLater( () -> {
 					stageMap.get( stage ).deviceValueProperty().setValue( finalDevice );
 
 					if ( abs( error ) < granularity && !stageMap.get( stage ).get( StageUnit.BooleanState.Ready ).get() ) {
 						stageMap.get( stage ).get( StageUnit.BooleanState.Ready ).set( true );
 					}
-				} );
+//				} );
 			}
 		}
 	}
@@ -283,12 +283,12 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 						double granularity = stage == StageUnit.Stage.R ? 0.3 : 3;
 						double newDevice = device + granularity * signum( error );
 
-						Platform.runLater( () -> {
+//						Platform.runLater( () -> {
 							if ( abs( error ) > granularity )
 								stageMap.get( stage ).deviceValueProperty().setValue( newDevice );
 							else if ( !stageMap.get( stage ).get( StageUnit.BooleanState.Ready ).get() )
 								stageMap.get( stage ).get( StageUnit.BooleanState.Ready ).set( true );
-						} );
+//						} );
 					}
 				}
 			}, 500, 500, TimeUnit.MILLISECONDS );
