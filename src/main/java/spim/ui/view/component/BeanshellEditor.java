@@ -203,6 +203,7 @@ public class BeanshellEditor extends Editor
 		}
 
 		beanshellThread = new Thread(beanshellREPLint_, "BeanShell interpreter");
+		beanshellThread.setContextClassLoader( HalcyonMain.class.getClassLoader() );
 		beanshellThread.start();
 
 		running_ = false;

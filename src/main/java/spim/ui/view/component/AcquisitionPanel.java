@@ -1574,6 +1574,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		} );
 
+		acquisitionThread.setContextClassLoader( HalcyonMain.class.getClassLoader() );
 		acquisitionThread.start();
 
 		return true;
