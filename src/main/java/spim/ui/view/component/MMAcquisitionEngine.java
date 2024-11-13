@@ -38,6 +38,7 @@ import org.micromanager.acquisition.AcquisitionStartedEvent;
 
 import org.micromanager.internal.MMStudio;
 
+import org.micromanager.internal.utils.ReportingUtils;
 import spim.model.data.Row;
 import spim.algorithm.AntiDrift;
 import spim.algorithm.DefaultAntiDrift;
@@ -391,6 +392,7 @@ public class MMAcquisitionEngine
 		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, channelItems, arduinoSelected, processedImages, driftCompMap, adReferenceChannel, saveMIP, onTheFly, ablationSupport);
 
 		SystemInfo.dumpMemoryStatusToLog(core);
+		ReportingUtils.showErrorOn(false);
 
 		mainLoop:
 		for(TimePointItem tpItem : timePointItems ) {
@@ -587,6 +589,8 @@ public class MMAcquisitionEngine
 		processedImages.set( totalImages );
 		System.out.println("AcquisitionEngine exited.");
 		core.logMessage("AcquisitionEngine exited.");
+
+		ReportingUtils.showErrorOn(true);
 	}
 
 	private boolean stopRequestCheck(SPIMSetup setup, DoubleProperty waitSeconds, CMMCore core, AcqWrapperEngine engine) {
