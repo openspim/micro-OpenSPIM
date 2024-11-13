@@ -392,6 +392,7 @@ public class MMAcquisitionEngine
 		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, channelItems, arduinoSelected, processedImages, driftCompMap, adReferenceChannel, saveMIP, onTheFly, ablationSupport);
 
 		SystemInfo.dumpMemoryStatusToLog(core);
+		Platform.setImplicitExit(false);
 		ReportingUtils.showErrorOn(false);
 
 		mainLoop:
