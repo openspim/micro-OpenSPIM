@@ -31,6 +31,7 @@ import org.micromanager.acquisition.internal.DefaultAcquisitionEndedEvent;
 import org.micromanager.internal.utils.ReportingUtils;
 import org.micromanager.internal.utils.imageanalysis.ImageUtils;
 import spim.algorithm.DefaultAntiDrift;
+import spim.mm.MicroManager;
 import spim.ui.view.component.HalcyonMain;
 
 /**
@@ -254,7 +255,7 @@ public class TaggedImageSink {
 				processMIP.run();
 			}
 		};
-		savingThread.setContextClassLoader( HalcyonMain.class.getClassLoader() );
+		savingThread.setContextClassLoader( MicroManager.getMMStudio().getClass().getClassLoader()  );
 		savingThread.start();
 	}
 

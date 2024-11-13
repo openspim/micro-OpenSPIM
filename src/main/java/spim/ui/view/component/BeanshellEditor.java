@@ -17,6 +17,7 @@ import org.micromanager.internal.utils.ReportingUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import spim.hardware.SPIMSetup;
+import spim.mm.MicroManager;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -203,7 +204,7 @@ public class BeanshellEditor extends Editor
 		}
 
 		beanshellThread = new Thread(beanshellREPLint_, "BeanShell interpreter");
-		beanshellThread.setContextClassLoader( HalcyonMain.class.getClassLoader() );
+		beanshellThread.setContextClassLoader( MicroManager.getMMStudio().getClass().getClassLoader() );
 		beanshellThread.start();
 
 		running_ = false;

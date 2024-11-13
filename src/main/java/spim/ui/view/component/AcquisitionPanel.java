@@ -50,6 +50,7 @@ import org.micromanager.internal.MMStudio;
 import spim.hardware.Camera;
 import spim.hardware.SPIMSetup;
 import spim.hardware.VersaLase;
+import spim.mm.MicroManager;
 import spim.model.data.AcquisitionSetting;
 import spim.model.data.ChannelItem;
 import spim.model.data.PinItem;
@@ -1573,8 +1574,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				e.printStackTrace();
 			}
 		} );
-
-		acquisitionThread.setContextClassLoader( HalcyonMain.class.getClassLoader() );
+		acquisitionThread.setContextClassLoader( MicroManager.getMMStudio().getClass().getClassLoader() );
 		acquisitionThread.start();
 
 		return true;
