@@ -13,6 +13,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -1542,12 +1543,11 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		fileName = fileName.replace("<timepoints>", timepoints);
 
 		String finalFileName = fileName;
-		acquisitionThread = new Thread(() ->
-		{
-			Thread.currentThread().setContextClassLoader( HalcyonMain.class.getClassLoader() );
 
-			try
-			{
+		Task<Void> task = new Task<Void>() {
+			@Override
+            protected Void call() throws Exception
+            {
 				engine.performAcquisition( getStudio(), getSpimSetup(), stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp,
 						timePointItemTableView.getItems(), currentTP, waitSeconds,
 						arduinoSelected, finalFolder, finalFileName,
@@ -1555,26 +1555,23 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), ablationSupport.getValue(), antiDrift.getValue(), experimentNote.getValue(),
 						antiDriftLog, antiDriftRefCh.get(), antiDriftTypeToggle, onTheFly.getValue(), onChannelFusion.getValue() );
 
-//				new MMAcquisitionRunner().runAcquisition();
-
-//				engine.performAcquisitionMM( spimSetup, stagePanel, (java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages, enabledSaveImages.get());
-
-
 				acquisitionThread = null;
 				engine = null;
 				Platform.runLater( () -> {
 					acquireButton.setText( "Acquire" );
 					acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #69e760;");
 				} );
+                return null;
+            }
+		};
 
-//				Thread.currentThread().setContextClassLoader( getClass().getClassLoader() );
-			}
-			catch ( Exception e )
-			{
-				e.printStackTrace();
-			}
+        task.setOnSucceeded( (e) -> {
 		} );
-		acquisitionThread.setContextClassLoader( MicroManager.getMMStudio().getClass().getClassLoader() );
+		task.setOnFailed(e -> {
+        } );
+
+
+		acquisitionThread = new Thread(task);
 		acquisitionThread.start();
 
 		return true;
