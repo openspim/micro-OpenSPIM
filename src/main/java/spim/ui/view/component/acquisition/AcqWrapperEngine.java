@@ -404,13 +404,16 @@ public class AcqWrapperEngine implements AcquisitionEngine
 			sink.start(() -> getAcquisitionEngine2010().stop(), () -> {
 				rlock.lock();
 				if(ablationSupport_) {
-					File latestFile = new File(outFolder_, getLatestFile(t_, angle_));
-					if (latestFile.exists()) {
-						File ablationFile = new File(outFolder_, getAblationFilename(angle_));
-						try {
-							Files.copy(latestFile.toPath(), ablationFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-						} catch (IOException e) {
-							e.printStackTrace();
+					List<String> multis = MMAcquisitionEngine.getMultiCams(core_);
+					for( int i = 0; i < multis.size(); i++ ) {
+						File latestFile = new File(outFolder_, getLatestFile(i, t_, angle_));
+						if (latestFile.exists()) {
+							File ablationFile = new File(outFolder_, getAblationFilename(i, angle_));
+							try {
+								Files.copy(latestFile.toPath(), ablationFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
 						}
 					}
 				}
@@ -547,16 +550,19 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		}
 	}
 
-	private String getLatestFile(int t, int p) {
-		String posString = String.format("_Pos%02d", p);
+	private String getLatestFile(int c, int t, int p) {
+		String chString = String.format("_channel%03d", c);
+		String posString = String.format("_position%03d", p);
 
-		return String.format(prefix_ + "_TL%04d" + posString + ".tiff", t);
+		System.out.println(String.format(prefix_ + chString + posString + "_time%09d_view000_z000.tif", t));
+		return String.format(prefix_ + chString + posString + "_time%09d_view000_z000.tif", t);
 	}
 
-	private String getAblationFilename(int p) {
-		String posString = String.format("_Pos%02d", p);
+	private String getAblationFilename(int c, int p) {
+		String chString = String.format("_channel%03d", c);
+		String posString = String.format("_position%02d", p);
 
-		return String.format(ablationFilePrefix_ + posString + ".tiff");
+		return String.format(ablationFilePrefix_ + chString + posString + ".tif");
 	}
 
 	private int getNumChannels() {

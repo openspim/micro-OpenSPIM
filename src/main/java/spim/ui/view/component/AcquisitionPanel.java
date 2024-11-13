@@ -750,7 +750,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Tab onTheFlyTab = new Tab("On-the-fly", new VBox(2, onTheFlyHBox, onFusionchannelHBox));
 		onTheFlyTab.setClosable(false);
 
-		CheckBox ablationCheckbox = new CheckBox( "Generate ablation.tiff (works with OMETIFF as saving format)" );
+		CheckBox ablationCheckbox = new CheckBox( "Generate ablation.tiff (works with Single Plane TIFF as saving format)" );
 
 		ablationSupport = ablationCheckbox.selectedProperty();
 		ablationDisabled = ablationCheckbox.disableProperty();
@@ -1838,14 +1838,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		c.valueProperty().addListener(new ChangeListener() {
 			@Override
 			public void changed(ObservableValue observableValue, Object o, Object t1) {
-				if(ablationSupport != null && !t1.equals("OMETIFF Image stack")) {
+				if(ablationSupport != null && !t1.equals("Single Plane TIFF")) {
 					ablationSupport.set(false);
 				}
 			}
 		});
 
 		savingFormat = c.valueProperty();
-		ablationDisabled.bind(savingFormat.isNotEqualTo("OMETIFF Image stack"));
+		ablationDisabled.bind(savingFormat.isNotEqualTo("Single Plane TIFF"));
 
 		gridpane.addRow( 3, new Label( "Saving format:" ), c );
 
