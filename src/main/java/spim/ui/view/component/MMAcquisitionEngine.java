@@ -394,7 +394,7 @@ public class MMAcquisitionEngine
 
 		SystemInfo.dumpMemoryStatusToLog(core);
 		ReportingUtils.showErrorOn(false);
-		EDTHangLogger.stopDefault();
+//		EDTHangLogger.stopDefault();
 
 		mainLoop:
 		for(TimePointItem tpItem : timePointItems ) {
