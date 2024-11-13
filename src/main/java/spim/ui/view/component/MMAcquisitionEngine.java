@@ -508,9 +508,6 @@ public class MMAcquisitionEngine
 
 						core.logMessage("MMAcquisition finished");
 
-						if(setup.getArduino1() != null)
-							setup.getArduino1().setSwitchState( "0" );
-
 						++step;
 					}
 
@@ -600,9 +597,6 @@ public class MMAcquisitionEngine
 			System.err.println("Stop requested.");
 			core.logMessage("Stop requested.");
 			engine.stop(true);
-
-			if(setup.getArduino1() != null)
-				setup.getArduino1().setSwitchState( "0" );
 
 			if (waitSeconds != null)
 				updateWaitTimeProperty( waitSeconds, -1 );
