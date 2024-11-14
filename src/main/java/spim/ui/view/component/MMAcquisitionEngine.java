@@ -38,7 +38,6 @@ import org.micromanager.acquisition.AcquisitionStartedEvent;
 
 import org.micromanager.internal.MMStudio;
 
-import org.micromanager.internal.diagnostics.EDTHangLogger;
 import org.micromanager.internal.utils.ReportingUtils;
 import spim.model.data.Row;
 import spim.algorithm.AntiDrift;
@@ -392,8 +391,7 @@ public class MMAcquisitionEngine
 
 		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, channelItems, arduinoSelected, processedImages, driftCompMap, adReferenceChannel, saveMIP, onTheFly, ablationSupport);
 
-		SystemInfo.dumpMemoryStatusToLog(core);
-		ReportingUtils.showErrorOn(false);
+		SystemInfo.dumpMemoryStatusToLog( core );
 //		EDTHangLogger.stopDefault();
 
 		mainLoop:
@@ -501,7 +499,7 @@ public class MMAcquisitionEngine
 								System.err.println(ie.toString());
 								core.logMessage(ie.toString());
 								finalize( false, setup, currentCamera, cameras, frame, 0, 0, store );
-
+							} finally {
 								if (stopRequestCheck(setup, null, core, engine)) break mainLoop;
 							}
 						}
@@ -533,7 +531,8 @@ public class MMAcquisitionEngine
 							{
 								System.err.println(ie.toString());
 								core.logMessage(ie.toString());
-
+							}
+							finally {
 								if (stopRequestCheck(setup, waitSeconds, core, engine)) break mainLoop;
 							}
 						}
@@ -571,7 +570,8 @@ public class MMAcquisitionEngine
 						{
 							core.logMessage(ie.toString());
 							finalize( false, setup, currentCamera, cameras, frame, 0, 0, store );
-
+						}
+						finally {
 							if (stopRequestCheck(setup, waitSeconds, core, engine)) break mainLoop;
 						}
 					}
@@ -588,8 +588,6 @@ public class MMAcquisitionEngine
 		processedImages.set( totalImages );
 		System.out.println("AcquisitionEngine exited.");
 		core.logMessage("AcquisitionEngine exited.");
-
-		ReportingUtils.showErrorOn(true);
 	}
 
 	private boolean stopRequestCheck(SPIMSetup setup, DoubleProperty waitSeconds, CMMCore core, AcqWrapperEngine engine) {

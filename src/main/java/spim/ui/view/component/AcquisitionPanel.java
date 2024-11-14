@@ -48,6 +48,7 @@ import org.micromanager.Studio;
 import org.micromanager.display.DisplayWindow;
 import org.micromanager.events.internal.DefaultGUIRefreshEvent;
 import org.micromanager.internal.MMStudio;
+import org.micromanager.internal.utils.ReportingUtils;
 import spim.hardware.Camera;
 import spim.hardware.SPIMSetup;
 import spim.hardware.VersaLase;
@@ -77,6 +78,10 @@ import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import static spim.ui.view.component.util.TableViewUtil.createTimePointItemDataView;
@@ -1548,7 +1553,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			@Override
             protected Void call() throws Exception
             {
-				engine.performAcquisition( getStudio(), getSpimSetup(), stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp,
+				engine.performAcquisition( getStudio(), getSpimSetup(), stagePanel, (java.awt.Rectangle) roiRectangle.get(), tp,
 						timePointItemTableView.getItems(), currentTP, waitSeconds,
 						arduinoSelected, finalFolder, finalFileName,
 						positionItemTableView.getItems().filtered(p -> p.getSelected()), channelItemList, processedImages, totalImages.getValue(),
@@ -1566,11 +1571,42 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		};
 
         task.setOnSucceeded( (e) -> {
+			System.out.println("task.onSucceeded");
+
+//			CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+//				//read data through usb device and add it into array;
+//				try {
+//					Thread.sleep(10000);
+//				} catch (InterruptedException ex) {
+//					throw new RuntimeException(ex);
+//				}
+//			});
+//
+//			try {
+//				future.get(5, TimeUnit.SECONDS);
+//				ReportingUtils.showErrorOn( true );
+//				// get here if read was successful
+//			} catch (InterruptedException ie) {
+//				Thread.currentThread().interrupt();
+//			} catch (ExecutionException ee) {
+//				// exception was thrown by code reading usb device
+//			} catch (TimeoutException te) {
+//				// timeout occurred
+//			}
+
+			Timer timer = new java.util.Timer();
+
+			timer.schedule(new TimerTask() {
+				public void run() {
+					ReportingUtils.showErrorOn( true );
+
+				}
+			}, 5000);
 		} );
 		task.setOnFailed(e -> {
         } );
 
-
+		ReportingUtils.showErrorOn( false );
 		acquisitionThread = new Thread(task);
 		acquisitionThread.start();
 
