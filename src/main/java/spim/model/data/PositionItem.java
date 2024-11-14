@@ -68,6 +68,7 @@ public class PositionItem
 
 	public double getZStep()
 	{
+		if( zStep == 0 ) zStep = 1.524;
 		return zStep;
 	}
 
@@ -118,7 +119,8 @@ public class PositionItem
 
 	public void setZStep( double zStep )
 	{
-		this.zStep = zStep;
+		if (zStep != 0)
+			this.zStep = zStep;
 	}
 
 	public int getNumberOfSlices() {
