@@ -60,6 +60,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Description: AcquisitionEngine for Micro-Manager is used for µOpenSPIM.
@@ -479,29 +481,38 @@ public class MMAcquisitionEngine
 							core.logMessage(e.toString());
 						}
 
-						core.clearCircularBuffer();
+//						core.clearCircularBuffer();
 
-						while( core.systemBusy() ) {
-							System.err.println("System is busy. Wait for 100ms..");
-							core.logMessage("System is busy. Wait for 100ms..");
-							Thread.sleep( 100 );
-						}
+//						while( core.systemBusy() ) {
+//							System.err.println("System is busy. Wait for 100ms..");
+//							core.logMessage("System is busy. Wait for 100ms..");
+//							Thread.sleep( 100 );
+//						}
 
 						core.logMessage("MMAcquisition started");
 						engine.startAcquire( timePoints, step, positionItem );
-
-						while(engine.isAcquisitionRunning()) {
-							try
-							{
-								Thread.sleep( 10 );
-							} catch ( InterruptedException ie )
-							{
-								System.err.println(ie.toString());
-								core.logMessage(ie.toString());
-								finalize( false, setup, currentCamera, cameras, frame, 0, 0, store );
-							} finally {
-								if (stopRequestCheck(setup, null, core, engine)) break mainLoop;
+						CompletableFuture<Void> future = CompletableFuture.runAsync( () -> {
+							while(engine.isAcquisitionRunning()) {
+								try {
+									Thread.sleep( 10 );
+								} catch (InterruptedException e) {
+									try {
+										throw new ExecutionException(e);
+									} catch (ExecutionException ex) {
+										throw new RuntimeException(ex);
+									}
+								}
 							}
+						});
+
+						try {
+							future.get();
+						} catch (InterruptedException | ExecutionException e) {
+							System.err.println(e.toString());
+							core.logMessage(e.toString());
+							finalize( false, setup, currentCamera, cameras, frame, 0, 0, store );
+						} finally {
+							if (stopRequestCheck(setup, null, core, engine)) break mainLoop;
 						}
 
 						core.logMessage("MMAcquisition finished");

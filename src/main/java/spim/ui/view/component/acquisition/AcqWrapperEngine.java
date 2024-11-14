@@ -380,6 +380,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 
 	protected Datastore runAcquisition(SequenceSettings acquisitionSettings) {
 		try {
+			studio_.events().registerForEvents(this);
 			// Start up the acquisition engine
 			BlockingQueue<TaggedImage> engineOutputQueue = getAcquisitionEngine2010().run(
 					acquisitionSettings, true, posList_,
@@ -1212,8 +1213,10 @@ public class AcqWrapperEngine implements AcquisitionEngine
 
 	@Subscribe
 	public void onAcquisitionEnded(AcquisitionEndedEvent event) {
-		curStore_ = null;
-		curPipeline_ = null;
+//		curStore_ = null;
+//		curPipeline_ = null;
+//		System.out.println("Acq Ended: " + event.getSource());
+		studio_.events().unregisterForEvents(this);
 	}
 
 	@Subscribe
