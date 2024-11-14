@@ -1660,6 +1660,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			}
 		};
 
+		EventHandler dupEventHandler = ( EventHandler< ActionEvent > ) event -> {
+			if(positionItemTableView.getSelectionModel().getSelectedIndex() > -1) {
+				PositionItem clone = positionItemTableView.getItems().get(positionItemTableView.getSelectionModel().getSelectedIndex()).clone(invalidationListener);
+				positionItemTableView.getItems().add( clone );
+			}
+		};
+
+
 		EventHandler deleteEventHandler = new EventHandler< ActionEvent >()
 		{
 			@Override public void handle( ActionEvent event )
@@ -1672,6 +1680,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Button newButton = new Button("Add current position");
 		newButton.setMinHeight(30);
 		newButton.setOnAction( newEventHandler );
+
+		Button dupButton = new Button("Duplicate");
+		dupButton.setMinHeight(30);
+		dupButton.setOnAction( dupEventHandler );
 
 		Button deleteButton = new Button("Delete position");
 		deleteButton.setMinHeight(30);
@@ -1724,7 +1736,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.POSITION));
 
-		HBox hbox = new HBox( 5, newButton, deleteButton, showAllPositionsButton );
+		HBox hbox = new HBox( 5, newButton, dupButton, deleteButton, showAllPositionsButton );
 
 		// If it gives the confusion changing position values without intention,
 		// Remove the currentPosition change event handler,

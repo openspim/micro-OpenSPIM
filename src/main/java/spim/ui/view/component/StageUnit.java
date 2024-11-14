@@ -382,13 +382,15 @@ public class StageUnit extends Region
 	}
 
 	public double getCurrentValue() {
-		return deviceValueProperty.getValue().doubleValue();
+		return currentValue = deviceValueProperty.getValue().doubleValue();
 	}
 
 	public void setCurrentPos(double val) {
-		targetValueProperty.setValue( val );
-		targetSlider.getSlider().setValue( val );
-		booleanStateMap.get( BooleanState.Ready ).setValue( false );
+		if (val != currentValue) {
+			targetValueProperty.setValue( val );
+			targetSlider.getSlider().setValue( val );
+			booleanStateMap.get( BooleanState.Ready ).setValue( false );
+		}
 	}
 
 	public StageSlider getDeviceSlider()

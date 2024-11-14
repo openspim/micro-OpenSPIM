@@ -139,6 +139,12 @@ public class PositionItem
 		this.name.set(name);
 	}
 
+	public PositionItem clone(InvalidationListener invalidationListener) {
+		PositionItem clone = new PositionItem(x, y, r, zStart, zEnd, zStep, invalidationListener );
+		clone.setName( getName() + " Copy" );
+		return clone;
+	}
+
 	@Override public String toString()
 	{
 		StringBuilder sb = new StringBuilder(  );

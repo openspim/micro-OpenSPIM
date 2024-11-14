@@ -554,7 +554,7 @@ public class AcqWrapperEngine implements AcquisitionEngine
 		String chString = String.format("_channel%03d", c);
 		String posString = String.format("_position%03d", p);
 
-		System.out.println(String.format(prefix_ + chString + posString + "_time%09d_view000_z000.tif", t));
+//		System.out.println(String.format(prefix_ + chString + posString + "_time%09d_view000_z000.tif", t));
 		return String.format(prefix_ + chString + posString + "_time%09d_view000_z000.tif", t);
 	}
 
