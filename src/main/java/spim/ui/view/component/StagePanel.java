@@ -311,6 +311,10 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		return property;
 	}
 
+	public double getZTargetValue() {
+		return stageMap.get( StageUnit.Stage.Z ).targetValueProperty().getValue().doubleValue();
+	}
+
 	private StageUnit createStageControl( String labelString, StageUnit.Stage stage )
 	{
 		final StageUnit unit = new StageUnit( labelString, stage == StageUnit.Stage.R, null );

@@ -1652,7 +1652,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				double r = spimSetup.getAngle();
 				double x = spimSetup.getXStage().getPosition();
 				double y = spimSetup.getYStage().getPosition();
-				double z = spimSetup.getZStage().getPosition();
+				double z = stagePanel.getZTargetValue();
+//				double z = spimSetup.getZStage().getPosition();
 				positionItemTableView.getItems().add( new PositionItem( x, y, r, z, z, zStackStepSize, invalidationListener ) );
 			}
 			else {
@@ -2426,7 +2427,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			y = Math.ceil(y * 100) / 100;
 
 			if( zStart < 0 && zEnd < 0 ) {
-				double z = spimSetup.getZStage().getPosition();
+				double z = stagePanel.getZTargetValue();
 				positionItemTableView.getItems().add(new PositionItem(x, y, r, z, z, zStep, invalidationListener));
 			} else {
 				positionItemTableView.getItems().add(new PositionItem(x, y, r, zStart, zEnd, zStep, invalidationListener));
@@ -2449,7 +2450,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			{
 				SPIMSetup spimSetup = getSpimSetup();
 				if(spimSetup != null && spimSetup.getZStage() != null) {
-					int currPos = (int) spimSetup.getZStage().getPosition();
+//					int currPos = (int) spimSetup.getZStage().getPosition();
+					int currPos = (int) stagePanel.getZTargetValue();
 					if(zEndField.getText().isEmpty()) {
 						zStartField.setText(currPos + "");
 						zStartField.setDisable(true);
@@ -2482,7 +2484,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 						zStepComboBox.getSelectionModel().select(1);
 					}
 
-					int currPos = (int) spimSetup.getZStage().getPosition();
+//					int currPos = (int) spimSetup.getZStage().getPosition();
+					int currPos = (int) stagePanel.getZTargetValue();
 					if(zStartField.getText().isEmpty()) {
 						zEndField.setText(currPos + "");
 						zEndField.setDisable(true);
