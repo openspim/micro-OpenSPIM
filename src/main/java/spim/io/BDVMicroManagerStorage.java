@@ -361,7 +361,8 @@ public class BDVMicroManagerStorage implements Storage {
 
 				// create SourceTransform from the images calibration
 				final AffineTransform3D sourceTransform = new AffineTransform3D();
-				sourceTransform.set( 1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, 9.378, 0 );
+				double zUnit = 1.524d;
+				sourceTransform.set( 1.0, 0, 0, 0, 0, 1.0, 0, 0, 0, 0, zUnit, 0 );
 
 				for ( int t = 0; t < numTimepoints; ++t )
 					registrations.add( new ViewRegistration( t, angles * j + i, sourceTransform ) );
@@ -555,7 +556,7 @@ public class BDVMicroManagerStorage implements Storage {
 					}
 				}
 
-				System.out.println(coords.getC() + "/" + channels);
+				// System.out.println(coords.getC() + "/" + channels);
 
 				if(fusionChannel_ && coords.getC() % 2 == 1)
 				{

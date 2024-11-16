@@ -1502,6 +1502,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			return false;
 		}
 
+		if ((savingFormat.getValue().equals("BDV format") || savingFormat.getValue().equals("N5 format")) &&
+				!positionItemTableView.getItems().filtered(p -> p.getSelected() && p.getZStart() == p.getZEnd()).isEmpty()) {
+			new Alert( Alert.AlertType.WARNING, "BDV and N5 format support only multi-stack images.").showAndWait();
+
+			System.err.println("Acquisition stopped due to a single stack setup.");
+			return false;
+		}
+
 		// Write the experiment note
 		try {
 			writeNote(folderFile);
