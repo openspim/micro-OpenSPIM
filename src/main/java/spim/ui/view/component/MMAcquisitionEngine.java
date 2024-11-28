@@ -38,6 +38,7 @@ import org.micromanager.acquisition.AcquisitionStartedEvent;
 
 import org.micromanager.internal.MMStudio;
 
+import org.micromanager.internal.utils.ReportingUtils;
 import spim.model.data.Row;
 import spim.algorithm.AntiDrift;
 import spim.algorithm.DefaultAntiDrift;
@@ -59,6 +60,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Description: AcquisitionEngine for Micro-Manager is used for µOpenSPIM.
@@ -390,7 +393,8 @@ public class MMAcquisitionEngine
 
 		AcqWrapperEngine engine = new AcqWrapperEngine( setup, frame, store, currentCamera, cameras, outFolder, acqFilenamePrefix, channelItems, arduinoSelected, processedImages, driftCompMap, adReferenceChannel, saveMIP, onTheFly, ablationSupport);
 
-		SystemInfo.dumpMemoryStatusToLog(core);
+		SystemInfo.dumpMemoryStatusToLog( core );
+//		EDTHangLogger.stopDefault();
 
 		mainLoop:
 		for(TimePointItem tpItem : timePointItems ) {
@@ -473,43 +477,45 @@ public class MMAcquisitionEngine
 							// wait until the all devices in the system stop moving
 							core.waitForSystem();
 						} catch ( Exception e ) {
+							System.err.println(e.toString());
 							core.logMessage(e.toString());
-							System.out.println(e.toString());
 						}
 
-						core.clearCircularBuffer();
+//						core.clearCircularBuffer();
 
-						while( core.systemBusy() ) {
-							core.logMessage("System is busy. Wait for 100ms..");
-							Thread.sleep( 100 );
-						}
+//						while( core.systemBusy() ) {
+//							System.err.println("System is busy. Wait for 100ms..");
+//							core.logMessage("System is busy. Wait for 100ms..");
+//							Thread.sleep( 100 );
+//						}
 
 						core.logMessage("MMAcquisition started");
-//						System.out.println("MMAcquisition started");
 						engine.startAcquire( timePoints, step, positionItem );
-
-						while(engine.isAcquisitionRunning()) {
-							try
-							{
-								Thread.sleep( 10 );
-							} catch ( InterruptedException ie )
-							{
-								core.logMessage(ie.toString());
-								finalize( false, setup, currentCamera, cameras, frame, 0, 0, store );
-								break mainLoop;
+						CompletableFuture<Void> future = CompletableFuture.runAsync( () -> {
+							while(engine.isAcquisitionRunning()) {
+								try {
+									Thread.sleep( 10 );
+								} catch (InterruptedException e) {
+									try {
+										throw new ExecutionException(e);
+									} catch (ExecutionException ex) {
+										throw new RuntimeException(ex);
+									}
+								}
 							}
+						});
+
+						try {
+							future.get();
+						} catch (InterruptedException | ExecutionException e) {
+							System.err.println(e.toString());
+							core.logMessage(e.toString());
+							finalize( false, setup, currentCamera, cameras, frame, 0, 0, store );
+						} finally {
+							if (stopRequestCheck(setup, null, core, engine)) break mainLoop;
 						}
 
 						core.logMessage("MMAcquisition finished");
-//						System.out.println("MMAcquisition finished");
-
-						if(setup.getArduino1() != null)
-							setup.getArduino1().setSwitchState( "0" );
-
-						if(stopRequest) {
-							engine.stop(true);
-							break mainLoop;
-						}
 
 						++step;
 					}
@@ -534,22 +540,16 @@ public class MMAcquisitionEngine
 							}
 							catch ( InterruptedException ie )
 							{
+								System.err.println(ie.toString());
 								core.logMessage(ie.toString());
-								finalize( false, setup, currentCamera, cameras, frame, 0, 0, store );
-								break mainLoop;
 							}
-
-							if(stopRequest) {
-								System.err.println("Stop requested.");
-								core.logMessage("Stop requested.");
-
-								engine.stop(true);
-								updateWaitTimeProperty( waitSeconds, -1 );
-								break mainLoop;
+							finally {
+								if (stopRequestCheck(setup, waitSeconds, core, engine)) break mainLoop;
 							}
 						}
 						updateWaitTimeProperty( waitSeconds, -1 );
 					} else {
+						System.err.println("Behind schedule! (next seq in " + wait + "s)");
 						core.logMessage("Behind schedule! (next seq in " + wait + "s)");
 
 						if(timeSeq < timeSeqs - 1) {
@@ -581,15 +581,9 @@ public class MMAcquisitionEngine
 						{
 							core.logMessage(ie.toString());
 							finalize( false, setup, currentCamera, cameras, frame, 0, 0, store );
-							break mainLoop;
 						}
-
-						if(stopRequest) {
-							System.err.println("Stop requested.");
-							core.logMessage("Stop requested.");
-							engine.stop(true);
-							updateWaitTimeProperty( waitSeconds, -1 );
-							break mainLoop;
+						finally {
+							if (stopRequestCheck(setup, waitSeconds, core, engine)) break mainLoop;
 						}
 					}
 					updateWaitTimeProperty( waitSeconds, -1 );
@@ -603,27 +597,40 @@ public class MMAcquisitionEngine
 		store.freeze();
 
 		processedImages.set( totalImages );
-		System.err.println("AcquisitionEngine exited.");
+		System.out.println("AcquisitionEngine exited.");
 		core.logMessage("AcquisitionEngine exited.");
 	}
 
+	private boolean stopRequestCheck(SPIMSetup setup, DoubleProperty waitSeconds, CMMCore core, AcqWrapperEngine engine) {
+		if (stopRequest) {
+			System.err.println("Stop requested.");
+			core.logMessage("Stop requested.");
+			engine.stop(true);
+
+			if (waitSeconds != null)
+				updateWaitTimeProperty( waitSeconds, -1 );
+			return true;
+		}
+		return false;
+	}
+
 	private static void updateCurrentTPProperty(DoubleProperty currentTP, double updatedCurrentTP) {
-		Platform.runLater(() -> {
+//		Platform.runLater(() -> {
 			currentTP.set( updatedCurrentTP );
-		});
+//		});
 	}
 
 	private static void updateWaitTimeProperty(DoubleProperty waitSeconds, double updatedWaitSeconds) {
-		Platform.runLater(() -> {
+//		Platform.runLater(() -> {
 			waitSeconds.set( updatedWaitSeconds );
-		});
+//		});
 	}
 
 	private static void updateTimeProperties(DoubleProperty waitSeconds, double updatedWaitSeconds, DoubleProperty currentTP, double updatedCurrentTP) {
-		Platform.runLater(() -> {
+//		Platform.runLater(() -> {
 			waitSeconds.set( updatedWaitSeconds );
 			currentTP.set( updatedCurrentTP );
-		});
+//		});
 	}
 
 	/**

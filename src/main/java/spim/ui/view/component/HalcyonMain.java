@@ -58,7 +58,7 @@ public class HalcyonMain extends HalcyonFrame
 		{
 			@Override public void run()
 			{
-				Thread.currentThread().setContextClassLoader( getClass().getClassLoader() );
+//				Thread.currentThread().setContextClassLoader( getClass().getClassLoader() );
 				try
 				{
 					Thread.sleep(1000);

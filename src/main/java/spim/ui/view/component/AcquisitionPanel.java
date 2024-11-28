@@ -13,6 +13,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -47,9 +48,11 @@ import org.micromanager.Studio;
 import org.micromanager.display.DisplayWindow;
 import org.micromanager.events.internal.DefaultGUIRefreshEvent;
 import org.micromanager.internal.MMStudio;
+import org.micromanager.internal.utils.ReportingUtils;
 import spim.hardware.Camera;
 import spim.hardware.SPIMSetup;
 import spim.hardware.VersaLase;
+import spim.mm.MicroManager;
 import spim.model.data.AcquisitionSetting;
 import spim.model.data.ChannelItem;
 import spim.model.data.PinItem;
@@ -75,6 +78,10 @@ import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import static spim.ui.view.component.util.TableViewUtil.createTimePointItemDataView;
@@ -749,7 +756,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Tab onTheFlyTab = new Tab("On-the-fly", new VBox(2, onTheFlyHBox, onFusionchannelHBox));
 		onTheFlyTab.setClosable(false);
 
-		CheckBox ablationCheckbox = new CheckBox( "Generate ablation.tiff (works with OMETIFF as saving format)" );
+		CheckBox ablationCheckbox = new CheckBox( "Generate ablation.tiff (works with Single Plane TIFF as saving format)" );
 
 		ablationSupport = ablationCheckbox.selectedProperty();
 		ablationDisabled = ablationCheckbox.disableProperty();
@@ -1495,6 +1502,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			return false;
 		}
 
+		if ((savingFormat.getValue().equals("BDV format") || savingFormat.getValue().equals("N5 format")) &&
+				!positionItemTableView.getItems().filtered(p -> p.getSelected() && p.getZStart() == p.getZEnd()).isEmpty()) {
+			new Alert( Alert.AlertType.WARNING, "BDV and N5 format support only multi-stack images.").showAndWait();
+
+			System.err.println("Acquisition stopped due to a single stack setup.");
+			return false;
+		}
+
 		// Write the experiment note
 		try {
 			writeNote(folderFile);
@@ -1541,23 +1556,17 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		fileName = fileName.replace("<timepoints>", timepoints);
 
 		String finalFileName = fileName;
-		acquisitionThread = new Thread(() ->
-		{
-			Thread.currentThread().setContextClassLoader( HalcyonMain.class.getClassLoader() );
 
-			try
-			{
-				engine.performAcquisition( getStudio(), getSpimSetup(), stagePanel, ( java.awt.Rectangle) roiRectangle.get(), tp,
+		Task<Void> task = new Task<Void>() {
+			@Override
+            protected Void call() throws Exception
+            {
+				engine.performAcquisition( getStudio(), getSpimSetup(), stagePanel, (java.awt.Rectangle) roiRectangle.get(), tp,
 						timePointItemTableView.getItems(), currentTP, waitSeconds,
 						arduinoSelected, finalFolder, finalFileName,
 						positionItemTableView.getItems().filtered(p -> p.getSelected()), channelItemList, processedImages, totalImages.getValue(),
 						enabledSaveImages.get(), savingFormat.getValue(), saveMIP.getValue(), ablationSupport.getValue(), antiDrift.getValue(), experimentNote.getValue(),
 						antiDriftLog, antiDriftRefCh.get(), antiDriftTypeToggle, onTheFly.getValue(), onChannelFusion.getValue() );
-
-//				new MMAcquisitionRunner().runAcquisition();
-
-//				engine.performAcquisitionMM( spimSetup, stagePanel, (java.awt.Rectangle) roiRectangle.get(), tp, deltaT * unit, arduinoSelected, new File(directory.getValue()), filename.getValue(), positionItemTableView.getItems(), channelItemList, processedImages, enabledSaveImages.get());
-
 
 				acquisitionThread = null;
 				engine = null;
@@ -1565,15 +1574,48 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 					acquireButton.setText( "Acquire" );
 					acquireButton.setStyle("-fx-font: 18 arial; -fx-base: #69e760;");
 				} );
+                return null;
+            }
+		};
 
-//				Thread.currentThread().setContextClassLoader( getClass().getClassLoader() );
-			}
-			catch ( Exception e )
-			{
-				e.printStackTrace();
-			}
+        task.setOnSucceeded( (e) -> {
+			System.out.println("task.onSucceeded");
+
+//			CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+//				//read data through usb device and add it into array;
+//				try {
+//					Thread.sleep(10000);
+//				} catch (InterruptedException ex) {
+//					throw new RuntimeException(ex);
+//				}
+//			});
+//
+//			try {
+//				future.get(5, TimeUnit.SECONDS);
+//				ReportingUtils.showErrorOn( true );
+//				// get here if read was successful
+//			} catch (InterruptedException ie) {
+//				Thread.currentThread().interrupt();
+//			} catch (ExecutionException ee) {
+//				// exception was thrown by code reading usb device
+//			} catch (TimeoutException te) {
+//				// timeout occurred
+//			}
+
+			Timer timer = new java.util.Timer();
+
+			timer.schedule(new TimerTask() {
+				public void run() {
+					ReportingUtils.showErrorOn( true );
+
+				}
+			}, 5000);
 		} );
+		task.setOnFailed(e -> {
+        } );
 
+		ReportingUtils.showErrorOn( false );
+		acquisitionThread = new Thread(task);
 		acquisitionThread.start();
 
 		return true;
@@ -1618,13 +1660,22 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 				double r = spimSetup.getAngle();
 				double x = spimSetup.getXStage().getPosition();
 				double y = spimSetup.getYStage().getPosition();
-				double z = spimSetup.getZStage().getPosition();
+				double z = stagePanel.getZTargetValue();
+//				double z = spimSetup.getZStage().getPosition();
 				positionItemTableView.getItems().add( new PositionItem( x, y, r, z, z, zStackStepSize, invalidationListener ) );
 			}
 			else {
 				positionItemTableView.getItems().add( new PositionItem( 10, 20, 30, 20, 50, 10, invalidationListener ) );
 			}
 		};
+
+		EventHandler dupEventHandler = ( EventHandler< ActionEvent > ) event -> {
+			if(positionItemTableView.getSelectionModel().getSelectedIndex() > -1) {
+				PositionItem clone = positionItemTableView.getItems().get(positionItemTableView.getSelectionModel().getSelectedIndex()).clone(invalidationListener);
+				positionItemTableView.getItems().add( clone );
+			}
+		};
+
 
 		EventHandler deleteEventHandler = new EventHandler< ActionEvent >()
 		{
@@ -1638,6 +1689,10 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Button newButton = new Button("Add current position");
 		newButton.setMinHeight(30);
 		newButton.setOnAction( newEventHandler );
+
+		Button dupButton = new Button("Duplicate");
+		dupButton.setMinHeight(30);
+		dupButton.setOnAction( dupEventHandler );
 
 		Button deleteButton = new Button("Delete position");
 		deleteButton.setMinHeight(30);
@@ -1690,7 +1745,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		Button helpButton = createHelpButton();
 		helpButton.setOnAction( event -> new HelpWindow().show(HelpType.POSITION));
 
-		HBox hbox = new HBox( 5, newButton, deleteButton, showAllPositionsButton );
+		HBox hbox = new HBox( 5, newButton, dupButton, deleteButton, showAllPositionsButton );
 
 		// If it gives the confusion changing position values without intention,
 		// Remove the currentPosition change event handler,
@@ -1837,14 +1892,14 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 		c.valueProperty().addListener(new ChangeListener() {
 			@Override
 			public void changed(ObservableValue observableValue, Object o, Object t1) {
-				if(ablationSupport != null && !t1.equals("OMETIFF Image stack")) {
+				if(ablationSupport != null && !t1.equals("Single Plane TIFF")) {
 					ablationSupport.set(false);
 				}
 			}
 		});
 
 		savingFormat = c.valueProperty();
-		ablationDisabled.bind(savingFormat.isNotEqualTo("OMETIFF Image stack"));
+		ablationDisabled.bind(savingFormat.isNotEqualTo("Single Plane TIFF"));
 
 		gridpane.addRow( 3, new Label( "Saving format:" ), c );
 
@@ -2380,7 +2435,7 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			y = Math.ceil(y * 100) / 100;
 
 			if( zStart < 0 && zEnd < 0 ) {
-				double z = spimSetup.getZStage().getPosition();
+				double z = stagePanel.getZTargetValue();
 				positionItemTableView.getItems().add(new PositionItem(x, y, r, z, z, zStep, invalidationListener));
 			} else {
 				positionItemTableView.getItems().add(new PositionItem(x, y, r, zStart, zEnd, zStep, invalidationListener));
@@ -2403,7 +2458,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 			{
 				SPIMSetup spimSetup = getSpimSetup();
 				if(spimSetup != null && spimSetup.getZStage() != null) {
-					int currPos = (int) spimSetup.getZStage().getPosition();
+//					int currPos = (int) spimSetup.getZStage().getPosition();
+					int currPos = (int) stagePanel.getZTargetValue();
 					if(zEndField.getText().isEmpty()) {
 						zStartField.setText(currPos + "");
 						zStartField.setDisable(true);
@@ -2436,7 +2492,8 @@ public class AcquisitionPanel extends BorderPane implements SPIMSetupInjectable
 						zStepComboBox.getSelectionModel().select(1);
 					}
 
-					int currPos = (int) spimSetup.getZStage().getPosition();
+//					int currPos = (int) spimSetup.getZStage().getPosition();
+					int currPos = (int) stagePanel.getZTargetValue();
 					if(zStartField.getText().isEmpty()) {
 						zEndField.setText(currPos + "");
 						zEndField.setDisable(true);

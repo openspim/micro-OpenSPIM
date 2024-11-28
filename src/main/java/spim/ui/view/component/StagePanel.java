@@ -158,7 +158,7 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 			// start executor for monitoring values
 			executor.scheduleAtFixedRate( () -> {
 				monitorSPIM();
-			}, 500, 10, TimeUnit.MILLISECONDS );
+			}, 500, 500, TimeUnit.MILLISECONDS );
 
 			switchAll.setSelected(true);
 		} else {
@@ -208,12 +208,13 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 				double granularity = stage == StageUnit.Stage.R ? 2.5 : 1.5;
 
 				double finalDevice = device;
-				Platform.runLater( () -> {
+//				Platform.runLater( () -> {
 					stageMap.get( stage ).deviceValueProperty().setValue( finalDevice );
 
-					if ( abs( error ) < granularity )
+					if ( abs( error ) < granularity && !stageMap.get( stage ).get( StageUnit.BooleanState.Ready ).get() ) {
 						stageMap.get( stage ).get( StageUnit.BooleanState.Ready ).set( true );
-				} );
+					}
+//				} );
 			}
 		}
 	}
@@ -282,21 +283,21 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 						double granularity = stage == StageUnit.Stage.R ? 0.3 : 3;
 						double newDevice = device + granularity * signum( error );
 
-						Platform.runLater( () -> {
+//						Platform.runLater( () -> {
 							if ( abs( error ) > granularity )
 								stageMap.get( stage ).deviceValueProperty().setValue( newDevice );
 							else if ( !stageMap.get( stage ).get( StageUnit.BooleanState.Ready ).get() )
 								stageMap.get( stage ).get( StageUnit.BooleanState.Ready ).set( true );
-						} );
+//						} );
 					}
 				}
-			}, 500, 10, TimeUnit.MILLISECONDS );
+			}, 500, 500, TimeUnit.MILLISECONDS );
 		}
 		else
 		{
 			executor.scheduleAtFixedRate( () -> {
 				monitorSPIM();
-			}, 500, 10, TimeUnit.MILLISECONDS );
+			}, 500, 500, TimeUnit.MILLISECONDS );
 		}
 	}
 
@@ -308,6 +309,10 @@ public class StagePanel extends BorderPane implements SPIMSetupInjectable
 		stageMap.get( StageUnit.Stage.Z ).deviceValueProperty().addListener( currentZChangeListener );
 
 		return property;
+	}
+
+	public double getZTargetValue() {
+		return stageMap.get( StageUnit.Stage.Z ).targetValueProperty().getValue().doubleValue();
 	}
 
 	private StageUnit createStageControl( String labelString, StageUnit.Stage stage )

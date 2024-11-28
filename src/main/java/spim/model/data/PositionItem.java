@@ -68,6 +68,7 @@ public class PositionItem
 
 	public double getZStep()
 	{
+		if( zStep == 0 ) zStep = 1.524;
 		return zStep;
 	}
 
@@ -118,7 +119,8 @@ public class PositionItem
 
 	public void setZStep( double zStep )
 	{
-		this.zStep = zStep;
+		if (zStep != 0)
+			this.zStep = zStep;
 	}
 
 	public int getNumberOfSlices() {
@@ -137,6 +139,12 @@ public class PositionItem
 
 	public void setName(String name) {
 		this.name.set(name);
+	}
+
+	public PositionItem clone(InvalidationListener invalidationListener) {
+		PositionItem clone = new PositionItem(x, y, r, zStart, zEnd, zStep, invalidationListener );
+		clone.setName( getName() + " Copy" );
+		return clone;
 	}
 
 	@Override public String toString()

@@ -31,6 +31,8 @@ import org.micromanager.acquisition.internal.DefaultAcquisitionEndedEvent;
 import org.micromanager.internal.utils.ReportingUtils;
 import org.micromanager.internal.utils.imageanalysis.ImageUtils;
 import spim.algorithm.DefaultAntiDrift;
+import spim.mm.MicroManager;
+import spim.ui.view.component.HalcyonMain;
 
 /**
  * This object spawns a new thread that receives images from the acquisition
@@ -205,11 +207,7 @@ public class TaggedImageSink {
 										mpImages_[ch].put(slice, img);
 								}
 								catch (PipelineErrorException e) {
-									// TODO: make showing the dialog optional.
-									// TODO: allow user to cancel acquisition from
-									// here.
-									ReportingUtils.showError(e,
-											"There was an error in processing images.");
+									ReportingUtils.logError(e,"There was an error in processing images.");
 									pipeline_.clearExceptions();
 								}
 
@@ -234,6 +232,11 @@ public class TaggedImageSink {
 								pipeline_.clearExceptions();
 								break;
 							}
+							catch (RuntimeException e) {
+								ReportingUtils.logError("Runtime exception");
+								pipeline_.clearExceptions();
+								break;
+							}
 						}
 					}
 				} catch (Exception ex2) {
@@ -252,6 +255,7 @@ public class TaggedImageSink {
 				processMIP.run();
 			}
 		};
+		savingThread.setContextClassLoader( MicroManager.getMMStudio().getClass().getClassLoader()  );
 		savingThread.start();
 	}
 
